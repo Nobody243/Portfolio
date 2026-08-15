@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Dark-mode variant (escape hatch only).
+
+   Components should NOT need `dark:` variants: every token below flips by
+   redefining the CSS variable under `html.light`, so `bg-base` / `text-fg` /
+   `border-accent-working` are already theme-correct in both modes.
+   This variant exists for the rare case a value can't be expressed as a token.
+   If later tickets start sprouting `dark:` prefixes, that signals a MISSING
+   TOKEN — add the token instead.
+--------------------------------------------------------------------------- */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   THEME TOKENS — dark is the default (see color-scheme block below).
+--------------------------------------------------------------------------- */
+@theme {
+  /* --- COLOR: DARK (default) ------------------------------------------- */
+  --color-base: #0a0a0b;
+  --color-fg: #ededed; /* 16.90:1 on base */
+  --color-accent-working: #14b8a6; /* 7.95:1 on base */
+  --color-on-accent: #0a0a0b; /* text ON a filled accent-working surface */
+
+  /* --- TYPE SCALE ------------------------------------------------------
+     Desktop maxima are golden-ratio values rounded to whole px. Clamps hit
+     their max at exactly 1440px viewport and their min at 360px.
+
+     Every clamp keeps a rem term on purpose — pure-vw sizing breaks browser
+     zoom (WCAG 1.4.4). Do not "simplify" these to vw-only.
+
+     Deliberate, approved deviations from the Frontend Spec:
+       - caption is 12px, not ~10px (16 / 1.618 = 9.89px is below a usable
+         floor for mobile meta labels).
+       - h1 line-height is 1.05, just under the spec's "around 1.1-1.2" — at
+         110px, 1.1 reads gappy.
+
+     Font family is NOT part of these steps: pair `text-caption` with
+     `font-mono` (JetBrains Mono) and the rest with the inherited `font-sans`
+     (Space Grotesk).
+  --------------------------------------------------------------------- */
+
+  /* 12px — JetBrains Mono, labels / stats / tags */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.08em;
+
+  /* 16px — deliberately NOT clamped */
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-body--letter-spacing: 0;
+
+  /* 21px -> 26px */
+  --text-h4: clamp(1.3125rem, 1.208rem + 0.46vw, 1.625rem);
+  --text-h4--line-height: 1.2;
+  --text-h4--letter-spacing: -0.01em;
+
+  /* 26px -> 42px */
+  --text-h3: clamp(1.625rem, 1.292rem + 1.48vw, 2.625rem);
+  --text-h3--line-height: 1.15;
+  --text-h3--letter-spacing: -0.015em;
+
+  /* 34px -> 68px */
+  --text-h2: clamp(2.125rem, 1.417rem + 3.15vw, 4.25rem);
+  --text-h2--line-height: 1.1;
+  --text-h2--letter-spacing: -0.02em;
+
+  /* 44px -> 110px */
+  --text-h1: clamp(2.75rem, 1.375rem + 6.11vw, 6.875rem);
+  --text-h1--line-height: 1.05;
+  --text-h1--letter-spacing: -0.03em;
+
+  /* --- SPACING (Fibonacci) ---------------------------------------------
+     Semantic names are MANDATORY. Numeric keys (e.g. `--spacing-8`) would
+     collide with Tailwind's built-in scale, where `8` means 2rem — silently
+     redefining `p-8` site-wide.
+
+     Use these Fibonacci names for ALL layout spacing. Tailwind's numeric
+     scale is reserved for 1-2px hairlines only (e.g. `p-px`, `top-0.5`).
+  --------------------------------------------------------------------- */
+  --spacing-3xs: 3px;
+  --spacing-2xs: 5px;
+  --spacing-xs: 8px;
+  --spacing-sm: 13px;
+  --spacing-md: 21px;
+  --spacing-lg: 34px;
+  --spacing-xl: 55px;
+  --spacing-2xl: 89px;
+  --spacing-3xl: 144px;
+  --spacing-4xl: 233px;
+}
+
+/* ---------------------------------------------------------------------------
+   FONT MAPPING
+
+   The `inline` keyword is REQUIRED here: without it, `--font-sans` would be
+   emitted as a literal `var(--font-space-grotesk)` string into the theme layer
+   before next/font has defined it on <html>. `inline` resolves the reference at
+   use-site instead.
+
+   There is NO serif token, and font-serif is off-limits site-wide — serif reads
+   editorial / creative-agency, which is the wrong signal for this positioning.
+--------------------------------------------------------------------------- */
+@theme inline {
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+/* ---------------------------------------------------------------------------
+   TIER 1 ACCENT
+
+   `accent-hero` is registered as `--accent-hero`, NOT `--color-accent-hero`.
+   Tailwind v4 only generates utilities from the `--color-*` namespace, so
+   `text-accent-hero` / `bg-accent-hero` deliberately DO NOT EXIST. This is a
+   mechanical guard enforcing CLAUDE.md's rule that this accent is Tier 1 only:
+   the hero 3D glow / particles / lighting, and the small Contact close echo.
+   Never Tier 2 or Tier 3.
+
+   Read it via `var(--accent-hero)` (inline style / CSS) or as a JS constant.
+   DO NOT "fix" this by moving it into the `--color-*` namespace.
+--------------------------------------------------------------------------- */
+:root {
+  --accent-hero: #00e5ff;
+}
+
+/* ---------------------------------------------------------------------------
+   LIGHT MODE — opt-in only.
+
+   Selector is `html.light` (specificity 0,1,1) rather than a bare `.light`
+   (0,1,0) on purpose: `@theme` emits into `:root` at 0,1,0, so a bare `.light`
+   would only win by source order and could break on a later import.
+
+   `--color-elevated`, `--color-tint-cool` and `--color-tint-warm` are defined
+   for light mode only — their dark-mode equivalents are unresolved and owned by
+   Tickets 6 and 5 respectively. Because they are not declared in `@theme`, no
+   `bg-elevated` / `bg-tint-cool` utilities are generated yet; consume them via
+   `var(--color-elevated)` until those tickets land.
+--------------------------------------------------------------------------- */
+html.light {
+  --color-base: #fdfcfa;
+  --color-fg: #151515; /* 17.81:1 */
+  --color-elevated: #f4f4f4;
+  --color-tint-cool: #f4f9ff;
+  --color-tint-warm: #f8fbf8;
+  --color-accent-working: #0f766e; /* 5.34:1 — passes AA body + UI */
+  --color-on-accent: #fdfcfa;
+  --accent-hero: #0091b3; /* 3.59:1 — passes the 3:1 non-text bar */
+}
+
+/* ---------------------------------------------------------------------------
+   COLOR-SCHEME
+
+   Dark is the default for EVERY visitor. There is deliberately no
+   `prefers-color-scheme` auto-detection — light is opt-in via the Ticket 11
+   toggle only. This is a positioning decision, not an oversight.
+--------------------------------------------------------------------------- */
+:root {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+}
+
+/* ---------------------------------------------------------------------------
+   BASE
+
+   No border token: borders are accent-working at low opacity per the spec —
+   `border-accent-working/20` in dark, `/25` in light.
+   No shadow, gradient, backdrop-blur or radius tokens either.
+--------------------------------------------------------------------------- */
+body {
+  background-color: var(--color-base);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}

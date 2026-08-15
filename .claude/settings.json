@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "core-3d-animation@claude-design-skillstack": true,
+    "meta-skills@claude-design-skillstack": true
+  }
+}
