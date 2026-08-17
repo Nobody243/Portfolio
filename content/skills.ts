@@ -102,6 +102,6 @@ export const skills = [
  * Returns a plain (non-readonly-tuple) array, so callers may sort or reverse
  * the result freely — it is a fresh array, not the source data.
  */
-export function getSkillsByGroup(group: SkillGroup): readonly Skill[] {
+export function getSkillsByGroup(group: SkillGroup): Skill[] {
   return skills.filter((skill) => skill.group === group);
 }
