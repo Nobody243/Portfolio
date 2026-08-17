@@ -56,14 +56,17 @@ regardless of tier. "Minimal" ≠ "static" — it means visually quiet, not un-c
 - Deploy target: Vercel
 
 ## Design system
-**Color (dark mode = default, light mode via toggle, same accent in both):**
+**Color (dark mode = default, light mode via toggle, same accent hue in both — lightness tuned per mode
+for contrast):**
 - Dark bg: `#0A0A0B` · Dark text: `#EDEDED`
-- Light bg: `#F5F4F0` · Light text: `#151515`
+- Light bg: `#FDFCFA` · Light text: `#151515`
 - Hero accent (Tier 1 ONLY — hero glow/particles/lighting, and sparingly in the Contact close beat):
-  `#00E5FF`
-- Working accent (Tier 2 & 3 — links, tags, highlights, borders, everywhere else): teal in the
-  `#14B8A6` range (tune for contrast/accessibility on both bg colors once in browser — don't treat the
-  hex as final until checked in context)
+  `#00E5FF`, identical in both modes. It renders on the 3D scene's own dark backdrop, so the page theme
+  never applies to it. On `#FDFCFA` directly it is ~1.5:1 — so the Contact close beat must sit it on its
+  own dark surface, never as hairline text or a thin rule on the page background.
+- Working accent (Tier 2 & 3 — links, tags, highlights, borders, everywhere else): `#14B8A6` in dark
+  (7.95:1), `#0F766E` in light (5.34:1). Same teal, darkened for light mode because `#14B8A6` on
+  `#FDFCFA` is 2.44:1 and fails AA for text. One hue family, tuned per background — not two accents.
 - Rule: no other accent colors. Two accents total, each with one clear job. Never mix.
 
 **Typography:**

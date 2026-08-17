@@ -1,6 +1,35 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
+   LENIS — required stylesheet, not optional.
+
+   Lenis ships CSS the JS depends on, and its first rule is
+   `html.lenis, html.lenis body { height: auto }`. That rule exists to undo
+   exactly what this project's layout does: `<html class="h-full">` with
+   `<body class="min-h-full">` pins the document to viewport height, which is
+   precisely the case that leaves Lenis driving a scroller that cannot scroll.
+   It also scopes `overflow: clip` for programmatic stops and neutralises
+   iframe pointer capture mid-scroll.
+
+   Lenis adds the `.lenis` class to <html> itself at runtime, so nothing here
+   applies until Lenis actually mounts — which means this is inert under
+   reduced motion, where LenisProvider skips instantiation entirely.
+--------------------------------------------------------------------------- */
+@import "lenis/dist/lenis.css";
+
+/* ---------------------------------------------------------------------------
+   CONTENT SOURCES
+
+   Tailwind v4 auto-detects content across the whole project, and that sweep
+   includes the markdown in /docs. The Frontend Spec documents tokens by writing
+   their utility names as literal strings, so the planning docs were emitting
+   real CSS for utilities no component uses. Design prose must not reach the
+   bundle — exclude markdown from the scan.
+--------------------------------------------------------------------------- */
+@source not "../docs";
+@source not "../*.md";
+
+/* ---------------------------------------------------------------------------
    Dark-mode variant (escape hatch only).
 
    Components should NOT need `dark:` variants: every token below flips by
@@ -9,18 +38,49 @@
    This variant exists for the rare case a value can't be expressed as a token.
    If later tickets start sprouting `dark:` prefixes, that signals a MISSING
    TOKEN — add the token instead.
+
+   This matches a literal `.dark` class, which `app/layout.tsx` puts on <html>.
+   That pairing is load-bearing: without the class the variant compiles fine and
+   then matches nothing, so `dark:` utilities would fail silently. The two
+   classes are mutually exclusive — Ticket 11's toggle must REMOVE `dark` when
+   it adds `light`, not just add `light` on top.
 --------------------------------------------------------------------------- */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
    THEME TOKENS — dark is the default (see color-scheme block below).
 --------------------------------------------------------------------------- */
-@theme {
+@theme static {
+  /* `static` emits every token below into `:root` whether or not a utility
+     references it. The default (usage-driven) behaviour tree-shakes unused
+     tokens, which breaks any token read as a raw `var(--color-*)` from an
+     inline style or from JS — and Tier 1 needs exactly that, since the 3D
+     scene takes its colors as values, not as classes. A token that resolves in
+     one theme and silently falls back to transparent in the other is the worst
+     kind of bug: invisible until someone toggles. Cost is a few hundred bytes.
+
+     Corollary: theme tokens are safe to read via var() anywhere. Utilities are
+     still preferred in markup, but they are not load-bearing for correctness. */
+
   /* --- COLOR: DARK (default) ------------------------------------------- */
   --color-base: #0a0a0b;
   --color-fg: #ededed; /* 16.90:1 on base */
   --color-accent-working: #14b8a6; /* 7.95:1 on base */
   --color-on-accent: #0a0a0b; /* text ON a filled accent-working surface */
+
+  /* Surfaces. `elevated` is the card background (Ticket 6); the two tints are
+     the quiet cyber-green / cloud-blue undertones reserved for skill groups
+     (Ticket 5). All three are one small step off base ON PURPOSE — at Tier 2/3
+     these must read as a change in depth, not as a second background color.
+
+     Contrast against --color-fg is ~16:1 for all three (computed, not
+     eyeballed), and accent-working holds 7.5:1 on elevated. Treat the hexes as
+     tuned-in-theory: verify in browser when Tickets 5 and 6 land, since a 2%
+     luminance step is exactly the kind of value that looks right in a swatch
+     and invisible in a real layout. */
+  --color-elevated: #121214;
+  --color-tint-cool: #0b1116;
+  --color-tint-warm: #0b120e;
 
   /* --- TYPE SCALE ------------------------------------------------------
      Desktop maxima are golden-ratio values rounded to whole px. Clamps hit
@@ -130,11 +190,32 @@
    (0,1,0) on purpose: `@theme` emits into `:root` at 0,1,0, so a bare `.light`
    would only win by source order and could break on a later import.
 
-   `--color-elevated`, `--color-tint-cool` and `--color-tint-warm` are defined
-   for light mode only — their dark-mode equivalents are unresolved and owned by
-   Tickets 6 and 5 respectively. Because they are not declared in `@theme`, no
-   `bg-elevated` / `bg-tint-cool` utilities are generated yet; consume them via
-   `var(--color-elevated)` until those tickets land.
+   Every token here overrides a dark counterpart declared in `@theme` above, so
+   the background/text/border utilities Tailwind generates from those tokens are
+   already correct in both modes — no `dark:` prefix needed anywhere.
+
+   Both halves are guaranteed to ship: the dark values via `@theme static`, the
+   light values because they are written literally here. Reading any of these
+   with var() from an inline style or from JS is therefore safe in both modes.
+
+   ACCENT POLICY — the two accents are NOT handled the same way, deliberately:
+
+     accent-working  DIFFERS per mode (#14b8a6 dark -> #0f766e light). #14b8a6
+       on this background is 2.44:1, which fails AA for text, and this accent's
+       whole job is links/tags/labels. CLAUDE.md explicitly licenses tuning this
+       hex for contrast; the darker teal is that tuning, not a new color.
+
+     accent-hero     IDENTICAL in both modes (#00e5ff). It is Tier 1 only:
+       glow / particles / lighting inside the 3D scene, which carries its own
+       dark backdrop regardless of site theme. On that backdrop the light-mode
+       page background never applies, so there is nothing to fail.
+
+   HARD CONSTRAINT for Ticket 10: #00e5ff on this background is ~1.5:1 — below
+   even the 3:1 non-text floor. The Contact close beat's "small accent-hero
+   touch" must therefore sit on its own dark surface (a panel, a canvas, a
+   filled shape), NEVER as hairline text, a thin rule, or an icon stroke drawn
+   straight onto bg-base. If that isn't achievable in the design, use
+   accent-working there instead and leave the hero accent to the hero.
 --------------------------------------------------------------------------- */
 html.light {
   --color-base: #fdfcfa;
@@ -144,7 +225,7 @@ html.light {
   --color-tint-warm: #f8fbf8;
   --color-accent-working: #0f766e; /* 5.34:1 — passes AA body + UI */
   --color-on-accent: #fdfcfa;
-  --accent-hero: #0091b3; /* 3.59:1 — passes the 3:1 non-text bar */
+  /* --accent-hero is deliberately NOT overridden — see ACCENT POLICY above. */
 }
 
 /* ---------------------------------------------------------------------------

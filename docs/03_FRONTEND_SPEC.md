@@ -18,12 +18,20 @@
 | `bg-tint-cool` | `#F4F9FF` | Faint blue-white undertone — reserved for cloud/infra-leaning content blocks or hover states, used sparingly |
 | `bg-tint-warm-green` | `#F8FBF8` | Faint green-white undertone — reserved for code/dev-leaning content blocks, used sparingly |
 | `text-primary` | `#151515` | Body/heading text |
-| accents | same `accent-hero` / `accent-working` as dark mode | Keeps the palette feeling like one system, not two |
+| `accent-hero` | `#00E5FF` — same hex as dark mode | Unchanged; renders on the 3D scene's own dark backdrop. See the accent-tuning clarification below |
+| `accent-working` | `#0F766E` (dark mode: `#14B8A6`) | Same teal, darkened for contrast — `#14B8A6` on `#FDFCFA` is 2.44:1 and fails AA for text |
 
 **Rule:** the two tinted whites are a subtle echo of the cyber(green)/cloud(blue) duality — they should
 be used as occasional, quiet background tints (e.g. behind a "Systems Foundation" vs "Currently Building
 Toward" skill group), never as competing primary surfaces. If in doubt, default to `bg-base` or
 `bg-elevated`. No other accent or neutral colors are introduced anywhere in the system.
+
+**Accent tuning clarification:** `accent-hero` is fixed across both themes (`#00E5FF`) — it's used only
+as a glow/lighting effect on the hero's 3D scene, never for text, so contrast rules don't apply to it.
+`accent-working` may be contrast-tuned per theme (e.g. a slightly different exact hex in light vs. dark)
+to meet WCAG AA text-contrast requirements against that theme's specific background — this is expected
+and correct, not a violation of the design system. The rule is "one consistent teal hue family, tuned
+for readability per background," not "one identical hex regardless of background."
 
 ## Typography — golden ratio scale
 
@@ -98,7 +106,7 @@ who have that OS setting enabled.
 | Service | Purpose | Data sent |
 |---|---|---|
 | Vercel (hosting) | Deployment | Build output only |
-| Optional: Resend or Formspree | Contact form handling, if added | Name/email/message submitted by visitor — routed server-side, never exposes the API key client-side |
+| Optional: Resend or Formspree | Contact form handling, if added | Name/email/message submitted by visitor → routed server-side, never exposes the API key client-side |
 | Optional: Vercel Analytics | Lightweight, privacy-respecting page/scroll analytics | Anonymous page-view/interaction events, no PII beyond standard web analytics |
 
 No other third-party services are planned for v1. Anything beyond this list should be added deliberately,

@@ -12,7 +12,9 @@ import { ReactLenis } from "lenis/react";
  * without a mismatch warning.
  *
  * NOTE: GSAP ScrollTrigger is deliberately NOT wired to Lenis here. No
- * ScrollTrigger timelines exist yet; that sync belongs to Ticket 3 (hero).
+ * ScrollTrigger timelines exist yet; that sync belongs to Ticket 3 (hero), and
+ * should import gsap from `lib/animation/gsap.ts` so plugin registration and
+ * the shared eases are guaranteed to have run.
  */
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
