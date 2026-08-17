@@ -47,8 +47,10 @@ export default function Page() {
           <h3 className="text-h3">Placeholder h3 — Space Grotesk</h3>
           <h4 className="text-h4">Placeholder h4 — Space Grotesk</h4>
           <p className="text-body max-w-prose">
-            Placeholder body copy — Space Grotesk. Lorem ipsum placeholder text
-            standing in for real content, which is owned by later tickets.
+            TODO(ticket-3): this scaffold page is deleted when the hero lands.
+            Real copy for every section is owned by its own ticket — do not
+            write it here. Runs long on purpose so body measure, line-height and
+            max-w-prose can be judged against more than one line of text.
           </p>
           <p className="text-caption font-mono uppercase">
             Placeholder caption — JetBrains Mono
