@@ -10,6 +10,8 @@
  * `light` class to the <html> element.
  */
 
+import { PlaceholderScene } from "@/components/hero/PlaceholderScene";
+
 const SWATCHES = [
   { label: "base", cssVar: "var(--color-base)" },
   { label: "fg", cssVar: "var(--color-fg)" },
@@ -54,21 +56,33 @@ export default function Page() {
         </div>
       </section>
 
+      {/* R3F pipeline check — deleted in Ticket 3 along with PlaceholderScene.
+          The wrapper's explicit height is load-bearing: R3F measures its parent
+          and skips creating the WebGL root at 0px. */}
       <section className="min-h-screen border-t border-accent-working/20 pt-xl">
         <p className="text-caption font-mono uppercase text-accent-working">
-          placeholder / section two — scroll to feel Lenis easing
+          placeholder / section two — r3f canvas (accent-hero, tier 1 only)
         </p>
+        <div className="mt-lg h-[60vh] w-full">
+          <PlaceholderScene />
+        </div>
       </section>
 
       <section className="min-h-screen border-t border-accent-working/20 pt-xl">
         <p className="text-caption font-mono uppercase text-accent-working">
-          placeholder / section three
+          placeholder / section three — scroll to feel Lenis easing
         </p>
       </section>
 
       <section className="min-h-screen border-t border-accent-working/20 pt-xl">
         <p className="text-caption font-mono uppercase text-accent-working">
           placeholder / section four
+        </p>
+      </section>
+
+      <section className="min-h-screen border-t border-accent-working/20 pt-xl">
+        <p className="text-caption font-mono uppercase text-accent-working">
+          placeholder / section five
         </p>
       </section>
     </main>
