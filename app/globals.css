@@ -100,7 +100,15 @@
      (Space Grotesk).
   --------------------------------------------------------------------- */
 
-  /* 12px — JetBrains Mono, labels / stats / tags */
+  /* 12px — JetBrains Mono, labels / stats / tags.
+
+     DELIBERATE DEVIATION from the Frontend Spec's ~10px: the golden-ratio step
+     is 16 / 1.618 = 9.89px, which is below a usable floor for real UI text —
+     especially uppercase mono with 0.08em tracking on a phone. 12px is the
+     legibility call, not an oversight. Do NOT "correct" this back to 10px;
+     doing so is an accessibility regression on the smallest text on the site.
+     (Also noted in the type-scale header above, kept here so it is visible at
+     the token itself.) */
   --text-caption: 0.75rem;
   --text-caption--line-height: 1.4;
   --text-caption--letter-spacing: 0.08em;
