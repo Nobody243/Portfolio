@@ -12,12 +12,20 @@ Muhammad Saad — IT undergrad (Bahria University, 7th semester), completed a 2-
 (React/Next.js/Tailwind/Supabase) at New Web Order. Strong foundation across full-stack web + mobile
 (React, Next.js, Flutter, ASP.NET) and systems coursework (OOP, DSA, C++, Computer Networks, OS,
 Assembly, DBMS, Big Data Analytics, DAA). Notable project: FOLIO (Kafka/Spark clothing aggregator, BDA).
-Also shipped: Aero-Grid (Next.js + FastAPI), ClashChat (Flutter + Firebase + Groq).
+Also shipped: Aero-Grid (Next.js + FastAPI), ClashChat (Flutter + Firebase + Groq). Plus two hands-on
+academic infrastructure builds: a multi-floor call-center network design (Computer Communication
+Networks — VLANs, ACLs, RIP routing, DHCP, TFTP, in Cisco Packet Tracer) and a seven-phase Windows
+Server enterprise infrastructure (System & Network Administration — Active Directory, DNS, DHCP, IIS,
+FTP, RDS, WDS, Cisco NAT).
 
-**Current direction:** deliberately pivoting toward Cybersecurity, Cloud Infrastructure, and Networking/DevOps.
-No dedicated projects in that direction yet — this is ~1 year out. The portfolio must NOT claim expertise
-he doesn't have yet. It should read as: proven builder with real shipped range, who is intentionally and
-visibly building toward a specific technical direction.
+**Current direction:** deliberately pivoting toward Cybersecurity, Cloud Infrastructure, and
+Networking/DevOps. No **self-directed or professional** projects in that direction yet — that is
+~1 year out. But the direction is not starting from zero: the CCN and SNA coursework above is real,
+hands-on networking and infrastructure work. It is academic rather than self-directed, and the site
+must say so plainly — it is not nothing, and it is not professional depth either. The portfolio must
+NOT claim expertise he doesn't have yet. It should read as: proven builder with real shipped range
+and genuine hands-on infrastructure coursework behind him, who is intentionally and visibly building
+toward a specific technical direction.
 
 ## Positioning (do not deviate from this)
 - NOT "I am a cybersecurity/DevOps expert."
@@ -26,6 +34,10 @@ visibly building toward a specific technical direction.
 - The "Currently Learning / In Progress" section is meant to be honest and sparse right now, and updated
   over time as certs/projects/CTFs happen. This is a feature (visible trajectory), not something to hide
   or pad with fluff.
+- Ticket 4's About/Trajectory narrative follows that arc: academic foundations through coursework
+  (CCN — VLANs/routing/ACLs; SNA — AD/DNS/NAT/IIS), now building toward professional depth via
+  self-directed projects and certifications. This framing is both stronger and more honest than
+  either "nothing yet" or an overclaim.
 - Avoid generic portfolio tropes: no fake stats ("50+ projects," "25+ happy clients"), no fake
   testimonials, no vague marketing copy ("I craft exceptional digital experiences"). Every claim on the
   site must be true and specific.
@@ -81,9 +93,12 @@ for contrast):**
    Honest, not oversold.
 3. **Skills / Stack** (Tier 2–3) — three groups: "Core Dev" (React/Next.js/Flutter/ASP.NET/JS/TS),
    "Systems Foundation" (OOP/DSA/OS/DBMS/Networks/DAA/C++), "Currently Building Toward"
-   (DevOps/Cloud/Security — sparse, meant to grow). The grouping itself communicates the positioning.
-4. **Projects** (Tier 2 gallery → Tier 3 detail) — FOLIO, Aero-Grid, ClashChat as cards → click → smooth
-   transition into clean detail page (problem, stack, what was built, real links, dates). Old
+   (DevOps/Cloud/Security — sparse, meant to grow; currently ships with **zero** entries —
+   deliberately. The empty group is the honest state and Ticket 5 must render it without breaking).
+   The grouping itself communicates the positioning.
+4. **Projects** (Tier 2 gallery → Tier 3 detail) — FOLIO, Aero-Grid, ClashChat, the CCN call-center
+   network design and the SNA enterprise infrastructure build as cards → click → smooth transition
+   into a clean detail page (problem, stack, what was built, real links, dates, screenshots). Old
    `my-portfolio-ten-ruddy-35` site excluded or footnoted only, not featured.
 5. **Experience** (Tier 3) — New Web Order internship, framed accurately, resume-clean.
 6. **Currently Learning / In Progress** (Tier 3) — certs in progress, current focus, optionally a

@@ -32,8 +32,13 @@ form is added, it posts to a lightweight serverless function or a third-party fo
   /projects                  — ProjectCard, ProjectGallery, ProjectDetail
   /ui                        — shared primitives (buttons, section wrappers, theme toggle)
 /content
+  types.ts                   — shared content types. NOT in the original listing: a deliberate
+                               fourth file, because Project.category is typed as SkillGroup and
+                               colocating types would force projects.ts to import skills.ts.
+                               Flagged in the style of the lib/hooks/ deviation recorded in
+                               .claude/handoff/review-fixes-2026-08-17.md.
   projects.ts                — structured project data (see "Content shape" below)
-  skills.ts                  — structured skills data, grouped by tier
+  skills.ts                  — structured skills data, grouped by SkillGroup
   currentlyLearning.ts       — structured "in progress" entries
 /lib
   /three                     — reusable R3F scene helpers
@@ -55,11 +60,20 @@ cert later means editing an array, not touching layout code.
 - `stack` — array of technologies used
 - `links` — object with optional `github` and `live` URLs (omit rather than fabricate if one doesn't exist)
 - `date` — when it was built/shipped
-- `tier` — which skill group it belongs to (useful if projects later get filtered by category)
-- `coverImage` — the single image the gallery card uses: `{ src, alt }`. One pick per project, chosen
-  for proof value (for FOLIO that's the results view, not the search form). May point at the same file
-  as one of the screenshots below — it is a separate field so the card's choice never depends on
-  screenshot ordering.
+- `credit` — optional honest credit line, omitted when the work was solely Saad's. It does two
+  things: it stops shared work from being silently presented as solo work, and where Saad's role was
+  a leading one it says so plainly ("Led a team of 4"). It is **not** a job title — it describes what
+  happened on one project, not a position held. Every value must be one Saad has explicitly
+  confirmed. Where a collaborator has not consented to being named publicly, the credit states the
+  team size and role without naming anyone — it never guesses at consent.
+- `category` — which skill group the project belongs to, typed as `SkillGroup` (useful if projects
+  are later filtered). **Renamed from `tier` in Ticket 2.** `tier` is reserved project-wide for the
+  Tier 1/2/3 motion system and is never used as a data field name, anywhere. The rename exists so
+  `project.tier === "core-dev"` can never sit inside a Tier 2 component next to Tier-2 motion config.
+- `coverImage` — the single image the gallery card uses: `{ src, alt }`. **Required** — every project
+  has one, so Ticket 6 never needs a no-image fallback card. Kept as a separate field from
+  `screenshots` so the card's pick never depends on screenshot ordering; it may point at the same
+  file as one of them.
 - `screenshots` — ORDERED array of `{ src, alt, caption }` for the detail page. Deliberately an array,
   not one image: a project's interface is not always one view. FOLIO puts its search interface and its
   results view on **separate pages**, and both need capturing and showing — as a small gallery or a
@@ -68,21 +82,29 @@ cert later means editing an array, not touching layout code.
   n images without assuming a pair. `caption` is what labels each view ("Search", "Results"); `alt` is
   the accessibility description and is required, not optional (see Ticket 12).
 
-Image notes that constrain Ticket 2's typing:
-- Omit `coverImage` / `screenshots` rather than pointing at a file that does not exist yet — the
-  no-fabricated-content rule covers screenshots too. A missing cover means the card needs a
-  typography-only treatment, which is a design question for Ticket 6, not a reason to ship a stock
-  image or an empty box.
-- `next/image` needs intrinsic dimensions. Either store static imports instead of string paths, or
-  carry explicit `width`/`height` on each image object. Pick one in Ticket 2 and apply it uniformly —
-  mixing the two is what causes layout shift on the gallery.
+Image notes — **settled in Ticket 2:**
+- Images are **static imports**, not string paths: `import cover from
+  "@/public/images/projects/folio/cover.png"`. Chosen over string paths + explicit `width`/`height`
+  for two reasons: a missing or misnamed file becomes a **build error** rather than a broken image in
+  production, and `StaticImageData` carries real intrinsic dimensions, so `next/image` prevents
+  layout shift with nothing hand-copied. `import type { StaticImageData } from "next/image"` is the
+  one permitted `next/*` reference under `/content` — it is type-only and erased at compile time.
+- Screenshot counts **vary**: 0 for CCN and SNA, 1 for FOLIO, 2 for Aero-Grid and ClashChat. Ticket 7
+  must render 0, 1 or n without assuming a pair. Projects with no additional images **omit the
+  `screenshots` key entirely** rather than setting `[]`.
+- `alt` is content and is required on every image — accurate, hand-written, describing what is
+  actually on screen. `caption` is separate, optional, visible editorial copy and never substitutes
+  for `alt`.
 
 **Skill entry** — one object per skill:
 - `name`, `group` (`"core-dev" | "systems-foundation" | "building-toward"`), optional `note`
 
 **Currently Learning entry** — one object per in-progress item:
 - `title`, `status` (`"in-progress" | "planned" | "completed"`), `description`, `startedDate`,
-  optional `link` (cert page, course, etc.)
+  optional `completedDate`, optional `link` (cert page, course, etc.). Lifecycle: a completed item
+  **graduates** out of this section into `skills.ts` under `building-toward` rather than lingering
+  here, so "Currently Learning" stays literally true while the achievement stays visible;
+  `completedDate` records that transition. An **empty array is a valid, honest state** for this file.
 
 ## Configuration / environment notes
 
@@ -104,4 +126,7 @@ Image notes that constrain Ticket 2's typing:
 3. Tier 2 sections (About, Projects gallery + transition)
 4. Tier 3 sections (Project detail, Skills, Experience, Currently Learning)
 5. Polish pass: easing, loading states, responsiveness, accessibility, theme toggle
-6. Populate real content last
+6. Write final narrative copy last — the hero identity line, the About/Trajectory narrative, the
+   Experience framing. The structured `/content` data layer is **not** part of this step: it lands
+   early, at Ticket 2, because Tickets 5/6/7/9 are built against real data and their acceptance
+   criteria are unverifiable against empty arrays.

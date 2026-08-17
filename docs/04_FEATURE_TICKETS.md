@@ -19,12 +19,19 @@ Tailwind classes or CSS variables in both modes; Lenis smooth scroll is active o
 ---
 
 ### TICKET 2 — Content data layer [M]
-**Description:** Create `content/projects.ts`, `content/skills.ts`, and `content/currentlyLearning.ts`
-using the shapes defined in the Technical Architecture Document. Populate with real data: FOLIO,
-Aero-Grid, ClashChat for projects; the three skill groups (Core Dev, Systems Foundation, Currently
-Building Toward) for skills; and honest current-progress entries for Currently Learning.
-**Acceptance criteria:** All three data files export typed arrays; no placeholder/fabricated content;
-every project entry has real links where they exist (omit the field, don't fake a URL, where they don't).
+**Description:** Create `content/types.ts`, `content/projects.ts`, `content/skills.ts`, and
+`content/currentlyLearning.ts` using the shapes defined in the Technical Architecture Document.
+Populate with real data: FOLIO, Aero-Grid, ClashChat, the Multi-Floor Call Center Network Design
+(CCN) and the Secure & Scalable IT Infrastructure build (SNA) for projects; the three skill groups
+(Core Dev, Systems Foundation, Currently Building Toward) for skills; and honest current-progress
+entries for Currently Learning — where an empty array is a valid and honest answer, not a gap to
+fill. Wire each project's `coverImage` and `screenshots` as **static imports** from
+`public/images/projects/<slug>/`.
+**Acceptance criteria:** All data files export typed arrays; no placeholder/fabricated content;
+every project entry has real links where they exist (omit the field, don't fake a URL, where they
+don't); **every image is a static import that resolves at build time — a missing or misnamed file
+must fail the build, not ship a broken image; every image carries accurate, hand-written `alt` text
+describing what is actually on screen.**
 **Dependencies:** Ticket 1.
 
 ---
@@ -67,17 +74,21 @@ positioning without needing explanatory copy; responsive.
 (hover depth/parallax, staggered scroll-in). Clicking a card triggers a Framer Motion shared-element
 (`layoutId`) transition into the detail page.
 **Acceptance criteria:** Gallery renders all projects from data; hover and entrance animations work
-smoothly at 60fps on a mid-range laptop; transition into detail page feels continuous, not a hard cut.
+smoothly at 60fps on a mid-range laptop; transition into detail page feels continuous, not a hard cut;
+each card renders its project's `coverImage` through `next/image` using the intrinsic dimensions
+carried by `StaticImageData` — no hand-copied width/height, no layout shift.
 **Dependencies:** Tickets 1, 2.
 
 ---
 
 ### TICKET 7 — Project detail page [M]
 **Description:** Build the dynamic `/projects/[slug]` route rendering full project detail (description,
-stack, real links, date) per Tier 3 motion rules — clean, minimal, typography-driven, simple fade/slide
+stack, real links, date, and the project's screenshot gallery) per Tier 3 motion rules — clean, minimal, typography-driven, simple fade/slide
 reveals only.
 **Acceptance criteria:** Each project in the data file has a working detail page; layout is clean and
-readable; no 3D or heavy motion present; links open correctly.
+readable; no 3D or heavy motion present; links open correctly; the screenshot gallery renders
+correctly for 0, 1 and n images — CCN and SNA have none beyond their cover, FOLIO has one, Aero-Grid
+and ClashChat have two — with no hardcoded two-up before/after assumption.
 **Dependencies:** Tickets 2, 6.
 
 ---
