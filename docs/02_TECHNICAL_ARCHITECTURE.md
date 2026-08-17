@@ -56,6 +56,26 @@ cert later means editing an array, not touching layout code.
 - `links` — object with optional `github` and `live` URLs (omit rather than fabricate if one doesn't exist)
 - `date` — when it was built/shipped
 - `tier` — which skill group it belongs to (useful if projects later get filtered by category)
+- `coverImage` — the single image the gallery card uses: `{ src, alt }`. One pick per project, chosen
+  for proof value (for FOLIO that's the results view, not the search form). May point at the same file
+  as one of the screenshots below — it is a separate field so the card's choice never depends on
+  screenshot ordering.
+- `screenshots` — ORDERED array of `{ src, alt, caption }` for the detail page. Deliberately an array,
+  not one image: a project's interface is not always one view. FOLIO puts its search interface and its
+  results view on **separate pages**, and both need capturing and showing — as a small gallery or a
+  before/after pair — or the detail page misrepresents how the thing actually works. Single-view
+  projects (Aero-Grid, ClashChat) simply have a shorter array, so the detail page must render 1, 2, or
+  n images without assuming a pair. `caption` is what labels each view ("Search", "Results"); `alt` is
+  the accessibility description and is required, not optional (see Ticket 12).
+
+Image notes that constrain Ticket 2's typing:
+- Omit `coverImage` / `screenshots` rather than pointing at a file that does not exist yet — the
+  no-fabricated-content rule covers screenshots too. A missing cover means the card needs a
+  typography-only treatment, which is a design question for Ticket 6, not a reason to ship a stock
+  image or an empty box.
+- `next/image` needs intrinsic dimensions. Either store static imports instead of string paths, or
+  carry explicit `width`/`height` on each image object. Pick one in Ticket 2 and apply it uniformly —
+  mixing the two is what causes layout shift on the gallery.
 
 **Skill entry** — one object per skill:
 - `name`, `group` (`"core-dev" | "systems-foundation" | "building-toward"`), optional `note`
