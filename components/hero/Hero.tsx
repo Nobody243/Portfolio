@@ -261,7 +261,26 @@ export function Hero() {
   }, [phase, webglSupported, heroFallback]);
 
   const showCanvas = !heroFallback && !!font;
-  const showLoader = !heroFallback && phase === "loading";
+
+  /**
+   * Mounted until SETTLED, not until loading ends.
+   *
+   * Gating this on `phase === "loading"` made two things dead code, because
+   * the phase is derived and `"loading"` is exactly equivalent to
+   * `!sceneReady`: inside that branch `sceneReady` could never be true, so the
+   * 85 -> 100 scene-ready segment never rendered (the bar went 0 -> 85 and
+   * vanished), and `visible` was a constant `true`, so the exit fade never
+   * ran and the loader disappeared on a hard unmount.
+   *
+   * That contradicted TRANSFER_WEIGHT's own doc comment, which defends the
+   * 85/15 split as two REAL milestones. The second milestone was real and
+   * simply never drawn.
+   *
+   * Keeping it mounted through "revealing" lets the last segment paint and
+   * lets the 0.30s fade play across the start of the camera move — which is
+   * the intended seam: the loader hands its screen position to the tagline.
+   */
+  const showLoader = !heroFallback && phase !== "settled";
 
   return (
     <section
@@ -302,6 +321,8 @@ export function Hero() {
           // shaders compiled. Both boundaries are real events.
           progress={sceneReady ? 1 : progress}
           indeterminate={indeterminate}
+          // Goes false the moment the pull-back starts, which is what drives
+          // the exit fade rather than a hard unmount.
           visible={phase === "loading"}
         />
       ) : null}

@@ -22,7 +22,7 @@
  *    progress curve by another route.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 
 import { EASE } from "@/lib/animation/easing";
@@ -41,17 +41,38 @@ type HeroLoaderProps = {
 
 export function HeroLoader({ progress, indeterminate, visible }: HeroLoaderProps) {
   const reducedMotion = useReducedMotion();
-  const [pastThreshold, setPastThreshold] = useState(false);
+
+  /**
+   * ARMED, not merely "past the threshold" — and once armed it stays armed.
+   *
+   * Two requirements pull in opposite directions here. The loader must survive
+   * past the end of loading so its 0.30s exit fade can play (it is mounted
+   * until the hero settles). But it must ALSO never appear if loading finished
+   * inside the threshold window — otherwise a fast load would pop the loader
+   * onto the screen 180ms in, mid-pull-back, purely because the timer was
+   * still pending. That flash is exactly the glitch the threshold exists to
+   * prevent, just moved later.
+   *
+   * So the timer arms the loader only if it is STILL loading when it fires.
+   */
+  const [armed, setArmed] = useState(false);
+
+  // Written in an effect rather than during render: the timeout below needs
+  // the current value at fire time, and putting `visible` in its dependency
+  // array would restart the threshold window every time the value changed.
+  const visibleRef = useRef(visible);
+  useEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
 
   useEffect(() => {
-    const timer = window.setTimeout(
-      () => setPastThreshold(true),
-      DISPLAY_THRESHOLD_MS,
-    );
+    const timer = window.setTimeout(() => {
+      if (visibleRef.current) setArmed(true);
+    }, DISPLAY_THRESHOLD_MS);
     return () => window.clearTimeout(timer);
   }, []);
 
-  if (!pastThreshold) return null;
+  if (!armed) return null;
 
   const percent = Math.round(Math.min(Math.max(progress, 0), 1) * 100);
 
