@@ -27,7 +27,22 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Saad — Engineer & Builder",
+  // TITLE TEMPLATE — adopted in Ticket 7 (gate G6).
+  //
+  // `default` IS BYTE-IDENTICAL to the plain string this field held before,
+  // and must stay that way: it is what every page without its own title still
+  // renders, including the one-pager at `/`. Only the shape changed.
+  //
+  // `template` exists so a page can return the bare thing it is about —
+  // `title: project.title` on /projects/[slug] — and get "FOLIO — Saad"
+  // composed for it. Without it every page would have to hand-write the
+  // suffix, which is how one page eventually ships without it. Next applies a
+  // template only to DESCENDANT titles, never to `default` itself, so the
+  // site title is not doubled into "Saad — Engineer & Builder — Saad".
+  title: {
+    default: "Saad — Engineer & Builder",
+    template: "%s — Saad",
+  },
   // The phrase "full-stack developer" is deliberately ABSENT and must not be
   // reintroduced. An earlier draft used it here and filed the conflict with
   // CLAUDE.md's positioning rule as acceptable because a meta description is a
