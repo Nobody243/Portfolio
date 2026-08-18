@@ -218,3 +218,35 @@ PRD's success metrics.
 **Acceptance criteria:** Analytics dashboard shows real traffic data post-launch; no PII collected
 beyond standard anonymous analytics.
 **Dependencies:** Ticket 13.
+
+---
+
+### TICKET 17 — Social preview image (`og:image`) [S]
+**Description:** The site has **no `og:image` anywhere**. Every URL pasted into LinkedIn, Discord,
+Slack or a DM previews as text on a blank card — and the project detail pages are the site's most
+shareable URLs. For a portfolio whose whole argument is "this is not a template," that is a bad first
+impression delivered before anyone reaches the page. Add a static OG image plus per-page `openGraph`
+metadata. `ticket-3-design.md` §7.2/§8 deliberately built the hero to be screenshot-publishable —
+neutral fill light, legible silhouette at zero motion — precisely so this asset is free to produce.
+**Acceptance criteria:** Every route resolves an `og:image`; previews render correctly in at least one
+real scraper (LinkedIn Post Inspector or similar); `metadataBase` is set to the production origin; no
+image is fabricated or shows content that is not really on the site.
+**Dependencies:** Ticket 13 — `metadataBase` must be the real deployed origin, which is not known
+until the site is deployed. Raised repeatedly from Ticket 3 onward and written down here so it is not
+discovered from a bad link preview after launch.
+
+---
+
+### TICKET 18 — Themed error and not-found pages [S]
+**Description:** Two site-wide chrome gaps, grouped because they are the same category of work and
+share their copy register. `app/error.tsx` does not exist, so a runtime error in any client component
+falls through to Next's default screen; `app/not-found.tsx` does not exist, so an unknown project slug
+renders an unthemed 404 sitting off the site's spine. Both should use the shipped tokens, Rule S-1's
+left-anchored container, and Tier 3 restraint. Copy is Saad's.
+**Acceptance criteria:** A thrown client error renders a themed page with a working recovery action; an
+unknown `/projects/<slug>` renders a themed 404 with a link back to `/#work`; both honour Rules S-1
+and S-2 and both light and dark themes; no fabricated apology copy.
+**Dependencies:** Tickets 1, 7, 11. Flagged in Ticket 3 (`error.tsx`) and Ticket 7 (`not-found.tsx`),
+neither of which owned it.
+
+---
