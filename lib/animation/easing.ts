@@ -49,14 +49,34 @@ export const DURATION = {
   ui: 0.35,
   /** Tier 2/3 scroll reveals. */
   reveal: 0.7,
-  /** Tier 1 camera pull-back and hero headline. */
-  hero: 1.6,
+  /**
+   * Tier 1 camera pull-back and hero headline.
+   *
+   * TUNED IN TICKET 3 against the real scene: 1.6 -> 1.45.
+   * `EASE.hero` is an expo-out that covers ~80% of the distance in the first
+   * third of the duration, so perceived ARRIVAL happens around 0.5s and the
+   * remainder is a sub-pixel settle supplying the weight. At 1.6s that tail
+   * starts to read as lag rather than as expense. It also gates the tagline
+   * (which waits for the camera to finish), so this value sets time-to-first
+   * -readable-word: 1.45s, with the full statement at ~2.25s.
+   *
+   * Tuning window 1.30-1.70. Test: at t=1.2s nothing should be perceptibly
+   * moving. Do not exceed 1.7.
+   */
+  hero: 1.45,
 } as const;
 
 /** Delay between siblings in a staggered sequence, in seconds. */
 export const STAGGER = {
-  /** Hero headline lines (Tier 1). */
-  line: 0.08,
+  /**
+   * Hero headline lines (Tier 1). Retuned 0.08 -> 0.10 in Ticket 3.
+   *
+   * The identity statement is only TWO units, and at 80ms two units read as
+   * near-simultaneous. 100ms against a 700ms reveal is a ~14% offset — enough
+   * to register as a sequence (the stance arrives, then the direction lands)
+   * while staying well inside one gesture.
+   */
+  line: 0.1,
   /** Project card entrance (Tier 2). */
   card: 0.09,
 } as const;
