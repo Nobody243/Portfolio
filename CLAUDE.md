@@ -121,6 +121,27 @@ directly into components.
 5. Polish pass: easing curves, loading states, responsiveness, accessibility, light/dark toggle
 6. Populate real content last
 
+## Where decisions live (read before writing any planning doc)
+
+`/docs` is tracked. `.claude/` is gitignored, session-local, and has already been lost mid-task more
+than once.
+
+**Any decision that governs more than one ticket belongs in `/docs`, not in a handoff file.** Handoff
+files under `.claude/handoff/` are for *this ticket's* working state: intake answers, step lists,
+verification notes, findings. The moment a decision constrains a later ticket, it is architecture and
+it moves.
+
+This rule exists because it was broken. Rules S-1 and S-2 — the site's spine and section-seam rules,
+binding on every remaining section — sat only in `.claude/handoff/ticket-4-design.md` until a Ticket 5
+review caught it. Anyone reading only `/docs` would not have known they existed.
+
+**`app/globals.css` is the source of truth for every token value.** `docs/03_FRONTEND_SPEC.md`
+describes the system; where the two disagree, the code is right and the doc gets corrected. Four such
+divergences have already been found and fixed (`text-caption` size, `bg-tint-warm-green`,
+`text-primary`, and a dark-mode table missing three surfaces). Verify a token against `globals.css`
+before writing a class name that depends on it — Tailwind does not error on an unknown utility, it
+silently renders nothing.
+
 ## Working style
 - Saad prefers to direct and verify changes himself rather than have them applied blindly — propose a
   plan before large changes, keep diffs reviewable.

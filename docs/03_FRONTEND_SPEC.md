@@ -7,6 +7,9 @@
 |---|---|---|
 | `bg-base` | `#0A0A0B` | Primary background |
 | `text-fg` | `#EDEDED` | Body/heading text |
+| `bg-elevated` | `#121214` | Cards / elevated surfaces — one step up from base |
+| `bg-tint-cool` | `#0B1116` | Faint blue undertone — reserved for cloud/infra-leaning content blocks, used sparingly |
+| `bg-tint-warm` | `#0B120E` | Faint green undertone — reserved for code/dev-leaning content blocks, used sparingly |
 | `accent-hero` | `#00E5FF` | Hero 3D glow/particles/lighting, and the small Contact-section echo ONLY |
 | `accent-working` | `~#14B8A6` (tune in-browser for contrast) | Links, tags, highlights, borders — everywhere else |
 
@@ -25,6 +28,20 @@
 be used as occasional, quiet background tints (e.g. behind a "Systems Foundation" vs "Currently Building
 Toward" skill group), never as competing primary surfaces. If in doubt, default to `bg-base` or
 `bg-elevated`. No other accent or neutral colors are introduced anywhere in the system.
+
+> **Both tints ship in BOTH modes.** An earlier version of these tables listed `bg-elevated` and the
+> two tints under light mode only, which read as though they were a light-mode technique. They are
+> not. Measured against their own base in CIE L\*a\*b\*, the dark tints sit at ΔE ~ 4.0 (cool) and 4.2
+> (warm) versus ΔE ~ 4.7 for the light cool tint — comparable. And in dark mode both tints are *more*
+> distinct from base than `bg-elevated` is (ΔE 2.89), because the tints differ mostly in chroma while
+> `elevated` differs only in lightness. Ticket 6 should know that before assuming `elevated` reads as
+> a card surface on dark — it may need a border to register.
+>
+> Caveat on the measurement: ΔE\*ab is least reliable near black, where both dark values sit on
+> CIE Lab's linear branch. Treat these numbers as "clears the bar computationally, proceed on design
+> grounds", not as "confirmed visible on every display". Verify tinted blocks on a dim screen.
+>
+> `app/globals.css` is the source of truth for all six hexes.
 
 **Accent tuning clarification:** `accent-hero` is fixed across both themes (`#00E5FF`) — it's used only
 as a glow/lighting effect on the hero's 3D scene, never for text, so contrast rules don't apply to it.
@@ -59,6 +76,29 @@ Headings tighter, around `1.1–1.2`.
 practice) for margins/padding/section gaps: `8, 13, 21, 34, 55, 89, 144` (px). This keeps the
 heading-to-text relationship and overall rhythm consistent with the ×1.618 type scale rather than
 arbitrary spacing values.
+
+### Section layout rules
+
+*Established in Ticket 4 and binding on every section ticket that follows. These lived only in an
+untracked handoff file until 2026-08-19; they are site-wide architecture, not one section's notes.*
+
+**Rule S-1 (site spine).** Every section, Tier 2 and Tier 3 alike, aligns its leading edge to the
+same left inset inside the same 1440px centred container. **Nothing on this site is ever a centred
+content column.** The site's negative space lives on the right. Shipped insets: `px-md` (21px) below
+640px, `px-xl` (55px) at 640-1023px, `px-2xl` (89px) at 1024px and above, inside
+`mx-auto w-full max-w-[1440px]`.
+
+The hero established this deliberately — its wordmark is an object in a space and the text is an
+annotation anchored to the frame. Re-centring any later section would retroactively demote that to an
+artefact of the 3D layout rather than a compositional claim.
+
+**Rule S-2 (section seam).** The standard seam between two adjacent `bg-base` sections is
+`spacing-2xl` bottom + `spacing-2xl` top = **178px, uniform at all breakpoints**. There is exactly one
+documented exception: About opens at `spacing-3xl` (144px) at ≥640px, because the hero ends in a hard
+`bg-hero-surface` → `bg-base` colour edge with no gradient, and that edge has to land in empty space
+rather than immediately above a heading. **Sections that do not follow a hard edge do not pay that
+cost** — About's larger opening is hero debt, not precedent. The Contact section (Tier 1 echo, on its
+own dark surface) may set its own vertical rhythm, and must say so where it does.
 
 **Fonts:**
 - Space Grotesk — all headings, UI, body text
