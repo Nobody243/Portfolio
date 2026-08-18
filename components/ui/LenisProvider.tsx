@@ -15,9 +15,13 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * a mismatch warning (see the hook's server-snapshot note).
  *
  * ScrollTrigger sync lives in <ScrollTriggerSync />, rendered below rather
- * than implemented here: it is site-wide plumbing that Tickets 4 and 6 depend
- * on, and keeping it in its own component keeps this file free of a GSAP
- * import. It is rendered in BOTH branches — under reduced motion there is no
+ * than implemented here: it is site-wide plumbing for any section that drives
+ * a scroll-synced GSAP timeline, and keeping it in its own component keeps
+ * this file free of a GSAP import. (It once said "Tickets 4 and 6 depend on"
+ * it — neither does. Both shipped on Framer's `Reveal`, which is
+ * IntersectionObserver-driven and needs no ScrollTrigger. The plumbing still
+ * earns its place: Hero.tsx creates a ScrollTrigger to gate the R3F frameloop,
+ * and the post-font refresh below keeps its start/end positions honest.) It is rendered in BOTH branches — under reduced motion there is no
  * Lenis instance to bind, so it no-ops, but it still refreshes ScrollTrigger
  * after fonts settle, which native scroll needs just as much.
  */

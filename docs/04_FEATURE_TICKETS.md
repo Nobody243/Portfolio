@@ -85,6 +85,34 @@ positioning without needing explanatory copy; responsive.
 smoothly at 60fps on a mid-range laptop; transition into detail page feels continuous, not a hard cut;
 each card renders its project's `coverImage` through `next/image` using the intrinsic dimensions
 carried by `StaticImageData` — no hand-copied width/height, no layout shift.
+
+> **Caveat on the shared-element criterion — the morph moved to a new Ticket 6b (decided 2026-08-19,
+> ticket-6-plan.md §0, G1 = "A-split").** As written, `layoutId` is not buildable in this install:
+> Next 16.3.1 ships no `viewTransition` escape hatch, and an App Router push from `/` to
+> `/projects/<slug>` unmounts the gallery before the detail mounts, so the morph has nothing to morph
+> *from*. The correct architecture is intercepting + parallel routes
+> (`app/(site)/@modal/(.)projects/[slug]/`), which keeps both endpoints in one React tree.
+>
+> That architecture is deferred rather than dropped, for one reason above the others: the morph's
+> destination geometry — where the cover image lands on the detail page, at what width and aspect —
+> is **Ticket 7's design output**, and `/projects/[slug]` is still a route stub. Building it now means
+> guessing that geometry and retuning it in Ticket 7, and "feels continuous, not a hard cut" cannot be
+> judged against scaffolding text.
+>
+> **Ticket 6 therefore ships the gallery with plain `<Link>` navigation** and deliberately no
+> `layoutId`, not even an inert one — an unmatched `layoutId` still enrols the element in Framer's
+> layout-projection tree and measures it on mount. **Ticket 6b — interception, the overlay shell,
+> focus trapping, scroll lock, and the morph — is scheduled AFTER Ticket 7.** Its interim state is
+> the honest downgrade with zero sunk cost: if 6b is never built, nothing needs unwinding.
+>
+> **Two contract lines this imposes on Ticket 7**, so 6b stays cheap: (1) the route file renders a
+> presentational `<ProjectDetail project={…} />`, not inlined JSX, so 6b's overlay can render the same
+> component; (2) the detail's first visual element is the cover image **alone inside one wrapper
+> element** — that wrapper is 6b's morph target. Ticket 7 also owes a back affordance pointing at
+> `/#work`.
+>
+> Ticket 6's other three criteria are unaffected and were met as written.
+
 **Dependencies:** Tickets 1, 2.
 
 ---
