@@ -55,6 +55,41 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`dark ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <head>
+        {/*
+          NO-JS NET for every <Reveal> on the site, present and future.
+
+          Framer Motion writes `initial` styles into the SERVER-RENDERED markup
+          — that is how it avoids a flash of unstyled content — so
+          `opacity: 0` genuinely ships in the HTML. If JS is blocked or
+          hydration fails, that opacity is PERMANENT and every revealed section
+          is a blank page.
+
+          It is a sighted-no-JS failure specifically: the text stays in the DOM
+          and in the accessibility tree, so screen readers and crawlers are
+          unaffected and an audit would not catch it.
+
+          One rule covers every consumer, costs nothing at runtime, and is
+          keyed to the `data-reveal` attribute Reveal sets on its root. Rename
+          that attribute and this must change in the same commit.
+        */}
+        <noscript
+          // A static literal, so there is no injection surface — and this form
+          // is deliberate rather than lazy. React special-cases <noscript> in
+          // `shouldSetTextContent`, so its children are treated as TEXT and are
+          // never reconciled on the client; the element form therefore also
+          // works, but only by relying on that internal. Passing the CSS as a
+          // string states the intent directly and removes any question of a
+          // hydration mismatch between a server-rendered <style> element and a
+          // client that parses noscript content as raw text.
+          //
+          // Verified present, verbatim, in the built HTML — not assumed.
+          dangerouslySetInnerHTML={{
+            __html:
+              "<style>[data-reveal]{opacity:1!important;transform:none!important}</style>",
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col">
         <MotionProvider>
           <LenisProvider>{children}</LenisProvider>
