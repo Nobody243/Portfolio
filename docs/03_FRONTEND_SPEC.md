@@ -104,6 +104,32 @@ practice) for margins/padding/section gaps: `8, 13, 21, 34, 55, 89, 144` (px). T
 heading-to-text relationship and overall rhythm consistent with the ×1.618 type scale rather than
 arbitrary spacing values.
 
+### Borders — two families, one rule
+
+**`accent-working` at low opacity marks INTERACTIVE surfaces. Neutral `fg` at low opacity marks
+NON-interactive ones.** The colour table above says `accent-working` covers "borders"; that is true of
+the interactive family only, and this is the qualification.
+
+| Family | Value | Used on |
+|---|---|---|
+| Interactive | `border-accent-working/30` | Gallery cards (Ticket 6) — the whole card is a link |
+| Neutral | `border-fg/25` | Detail-page cover and screenshot frames (Ticket 7) — static images |
+
+The point of the split is that **teal means "activate this" and nothing else**. A teal frame around a
+static screenshot spends the accent on something you cannot click, and once two things wear the same
+border a reader stops reading it as a signal. An image frame exists only to stop the picture
+dissolving into `bg-base`, which is a boundary job, not an affordance.
+
+> **`border-fg/25` is PROVISIONAL.** Computed 1.99:1 dark and 1.73:1 light — computed, not observed.
+> Ticket 11 judges it for real, because the CCN and SNA covers are light-field images and light mode
+> is the binding constraint. Escalation path if it fails: `/30` if light covers still bleed, `/20` if
+> it reads heavy in dark. **Never to `accent-working`, never a `bg-elevated` mat.** Delete this note
+> when Ticket 11 confirms or replaces the value.
+
+Recorded here rather than left in a handoff file because it already constrains later work: Ticket 6b
+morphs a teal-bordered card into a neutral-bordered cover, and every later ticket putting an image on
+`bg-base` inherits the choice.
+
 ### Section layout rules
 
 *Established in Ticket 4 and binding on every section ticket that follows. These lived only in an

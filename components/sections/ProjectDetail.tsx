@@ -81,6 +81,15 @@ const IMAGE_WIDTH_CAP = "57rem";
  * Below 640px the inset is 21x2 -> `100vw - 42px`, always under the cap.
  * 640-1023px the inset is 55x2 -> `100vw - 110px`, which reaches 912 only at
  * 1022px. At >=1024px the inset is 89x2 and the cap binds from a 1090px
+ * NOTE the unit mismatch: the cap above is `57rem` while this string says a
+ * literal `912px`. They agree only at a 16px root. A user with a 20px default
+ * font size gets a 1140px image cap against a 912px `sizes` hint, which flips
+ * the safe over-declaration below into an UNDER-declaration and ships them a
+ * soft image. Inherited from `max-w-[57rem]` everywhere else on the site (the
+ * Projects grid, the `<h1>`), not introduced here — fix it site-wide or not at
+ * all, but do not assume the "over-declares" claim below holds at every root
+ * size.
+ *
  * viewport, so the flat `912px` over-declares by at most 7.8% between 1024 and
  * 1090. Over-declaring is the safe direction (fetch a slightly larger
  * candidate); under-declaring ships a blurry image. Same trade Ticket 6 made.
@@ -165,6 +174,19 @@ const IMAGE_FRAME = "border border-fg/25";
  * right edge. Composing both caps into one CSS `min()` is the only form where
  * both bind. The 57rem term is `IMAGE_WIDTH_CAP` so it stays a single source
  * of truth with the `<h1>` and the screenshots block.
+ *
+ * CORRECTION (review, 2026-08-19): THAT LAST SENTENCE IS FALSE AND THE REAL
+ * COUNT IS FOUR. Tailwind needs a literal, so a runtime constant cannot reach
+ * a class. The 912px cap is encoded at:
+ *   1. `IMAGE_WIDTH_CAP` here            (covers + screenshot figures)
+ *   2. `max-w-[57rem]` on the `<h1>`     (the shared right edge, ~line 272)
+ *   3. `max-w-[57rem]` on the Screenshots wrapper (~line 387)
+ *   4. the literal `912px` inside `IMAGE_SIZES` above
+ * CHANGE ONE, CHANGE ALL FOUR, IN THE SAME COMMIT. Editing only this constant
+ * moves the images and strands the `<h1>` and the figures behind them: the page
+ * grows a third right edge, the `<h1>`/cover shared edge that section 4.1 calls
+ * compositional breaks on four of five pages, and tsc/lint/build all stay
+ * green. Nobody sees it without measuring.
  */
 function imageWidthCap(src: StaticImageData) {
   return { maxWidth: `min(${IMAGE_WIDTH_CAP}, ${src.width}px)` };
@@ -221,7 +243,14 @@ export function ProjectDetail({ project }: { project: Project }) {
   const { github, live } = project.links;
 
   return (
-    <article className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
+    // `aria-labelledby` points at the <h1> below, so the region is announced
+    // as the project rather than as an unnamed "article" in a rotor. Every
+    // other top-level region on the site names itself the same way
+    // (Projects.tsx -> work-heading, Skills.tsx -> stack-heading).
+    <article
+      aria-labelledby="project-title"
+      className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl"
+    >
       {/*
         THE COVER WRAPPER CONTAINS ONLY THE <Image>. Nothing else may ever be
         added to it — no overlay, no gradient scrim, no title, no category
@@ -269,7 +298,7 @@ export function ProjectDetail({ project }: { project: Project }) {
         heading there). Weight stays at the inherited 400, as in all three.
       */}
       <Reveal>
-        <h1 className="mt-lg max-w-[57rem] text-h2 text-fg lg:mt-xl">
+        <h1 id="project-title" className="mt-lg max-w-[57rem] text-h2 text-fg lg:mt-xl">
           {project.title}
         </h1>
 

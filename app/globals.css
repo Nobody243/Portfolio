@@ -310,9 +310,18 @@ html.light {
 /* ---------------------------------------------------------------------------
    BASE
 
-   No border token: borders are accent-working at low opacity per the spec.
-   SHIPPED VALUE IS `border-accent-working/30`, THE SAME IN BOTH MODES
-   (components/sections/ProjectCard.tsx, Ticket 6). This block previously said
+   No border token. TWO border families ship, and the split is deliberate:
+     - `border-accent-working/30` — INTERACTIVE surfaces. The gallery card
+       (components/sections/ProjectCard.tsx, Ticket 6), whose whole area is a
+       link. Same value in both modes.
+     - `border-fg/25` — NEUTRAL image frames. Detail-page covers and
+       screenshots (components/sections/ProjectDetail.tsx, Ticket 7), which are
+       not interactive. Keeping these neutral is what lets teal mean "activate
+       this" and nothing else; a teal frame around a static image spends the
+       accent on something you cannot click.
+   `/25` is PROVISIONAL — computed 1.99:1 dark, 1.73:1 light, judged for real
+   at Ticket 11. Escalation: /30 if light-field covers still bleed, /20 if it
+   reads heavy in dark. Never to accent-working, never a bg-elevated mat. This block previously said
    `/20` in dark and `/25` in light, which no component ever used; Ticket 6
    chose one value over a per-mode split deliberately, because the border is
    structural rather than decorative and a theme-dependent weight would make

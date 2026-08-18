@@ -107,9 +107,19 @@ carried by `StaticImageData` — no hand-copied width/height, no layout shift.
 >
 > **Two contract lines this imposes on Ticket 7**, so 6b stays cheap: (1) the route file renders a
 > presentational `<ProjectDetail project={…} />`, not inlined JSX, so 6b's overlay can render the same
-> component; (2) the detail's first visual element is the cover image **alone inside one wrapper
-> element** — that wrapper is 6b's morph target. Ticket 7 also owes a back affordance pointing at
+> component; (2) **`<ProjectDetail>`'s** first visual element is the cover image **alone inside one
+> wrapper element** — `<ProjectDetail>` the component, NOT the route: the route legitimately renders
+> a back link above it, which 6b swaps for a close affordance — that wrapper is 6b's morph target. Ticket 7 also owes a back affordance pointing at
 > `/#work`.
+>
+> **A third thing 6b must plan for, found in Ticket 7's review:** `<ProjectDetail>` owns the container,
+> so the cover's **x and width** travel with the component into an overlay — but `<main>`'s padding
+> and the back-link block live in the ROUTE file, so on the real route the cover's top sits roughly
+> 106px (mobile) to 140px (≥1024px) below `<main>`. Inside an overlay none of that chrome exists.
+> A 6b that nails the horizontal morph will still jump ~140px vertically the moment a user refreshes
+> with the overlay open and the interception falls through to the real route. Do not hard-code an
+> overlay top inset to compensate — it desynchronises silently the day anyone edits `pt-xl` or
+> `mb-lg` in the route file.
 >
 > **On the other three criteria — corrected 2026-08-19.** An earlier version of this caveat said they
 > "were met as written". That overclaimed: two of the three are *"hover and entrance animations work
