@@ -46,7 +46,7 @@ import type { Project } from "@/content/types";
  */
 export type ProjectCardProps = Pick<
   Project,
-  "slug" | "title" | "oneLiner" | "stack" | "date" | "coverImage"
+  "slug" | "title" | "oneLiner" | "stack" | "coverImage"
 >;
 
 /**
@@ -66,64 +66,11 @@ export type ProjectCardProps = Pick<
  */
 const STACK_LIMIT = 4;
 
-/**
- * Month names for `formatMonthYear`. Twelve strings, deterministic, no
- * dependency — and that is the entire point.
- *
- * DO NOT REPLACE THIS WITH `new Date(project.date)`. `date` is `"YYYY-MM"`,
- * which the Date constructor parses as UTC midnight, so every viewer at a
- * negative UTC offset renders the PREVIOUS month: FOLIO's "2025-05" shows
- * "April 2025" in America/New_York, SNA's "2025-12" shows "November 2025",
- * CCN's "2024-12" shows "November 2024". Invisible from Pakistan (UTC+5) and
- * wrong for most of this site's audience. A real defect, verified, not a
- * nitpick.
- *
- * DO NOT REPLACE IT WITH `Intl` / `toLocaleDateString` EITHER, even when
- * constructing from parts: the server's ICU default locale and the browser's
- * locale can disagree, and this string is rendered on both sides of a client
- * boundary — that is a hydration mismatch.
- */
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
-
-/**
- * `"2025-05"` -> `"May 2025"`. Pure string work: split, index, join.
- *
- * Full month names rather than abbreviations because at 12px mono the longest
- * ("December 2024") is ~94px and fits every slot on the site, and `Dec '24` is
- * a register this site does not use anywhere else.
- *
- * An unrecognised value falls back to the raw string rather than rendering
- * "undefined 2025" — a malformed date should look wrong in review, not
- * plausible.
- */
-function formatMonthYear(isoMonth: string): string {
-  const [year, month] = isoMonth.split("-");
-  const name = MONTH_NAMES[Number(month) - 1];
-
-  return year !== undefined && name !== undefined
-    ? `${name} ${year}`
-    : isoMonth;
-}
-
 export function ProjectCard({
   slug,
   title,
   oneLiner,
   stack,
-  date,
   coverImage,
 }: ProjectCardProps) {
   const shownStack = stack.slice(0, STACK_LIMIT);
@@ -215,9 +162,11 @@ export function ProjectCard({
           sources run 1.967 (SNA) to 2.671 (CCN) and three of them are within
           0.4% of each other, so exactly one grid row shows an image-height
           difference at all. Ragged image bottoms are absorbed structurally
-          instead: the grid stretches both cards in a row to the taller one and
-          the date's `mt-auto` puts the slack above the date, so the dates land
-          on one baseline. `object-cover` is forbidden outright —
+          instead: the grid stretches both cards in a row to the taller one and the
+          slack falls below the last line of text. (Ticket 6 originally put
+          `mt-auto` on a date row so the dates aligned across a row; the date
+          was dropped after review, and with it the need for an anchor.)
+          `object-cover` is forbidden outright —
           content/projects.ts says "DO NOT CROP" of the CCN topology, which is
           content authority, not taste.
 
@@ -272,9 +221,11 @@ export function ProjectCard({
       </motion.div>
 
       {/*
-        `flex-1` is what lets the date's `mt-auto` work: the text block absorbs
-        whatever height the row's taller card imposed, and the slack lands
-        above the date rather than below it.
+        `flex-1` lets the text block absorb whatever height the row's taller
+        card imposed, so the card fills its stretched grid cell instead of
+        leaving a gap between the block and the card's border. Nothing carries
+        `mt-auto` any more — the date did, until it was dropped — so the slack
+        simply sits below the last line.
 
         Padding steps at `xl` (1280px), NOT at `lg`. The slot only reaches its
         428px maximum at ~1090px viewport, so stepping to 34px at 1024px would
@@ -297,8 +248,7 @@ export function ProjectCard({
           title text only and throws an `after:absolute after:inset-0`
           pseudo-element across the whole card, so the entire card is clickable
           while the accessible name stays "FOLIO" rather than ~200 characters
-          of title + one-liner + four stack entries + date read aloud on every
-          card. A wrapper link plus a hand-written `aria-label` was rejected
+          of title + one-liner + four stack entries read aloud on every card. A wrapper link plus a hand-written `aria-label` was rejected
           because a hand-written accessible name drifts from the visible text
           over a year of edits.
 
@@ -389,25 +339,6 @@ export function ProjectCard({
           ) : null}
         </ul>
 
-        {/*
-          THE DATE ANCHORS THE CARD'S BOTTOM EDGE. `mt-auto` absorbs the height
-          slack the grid's `items-stretch` hands this card, so within a row both
-          dates land on one baseline — which is what turns stretching from a
-          compromise into an alignment. `pt-md` is the floor when there is no
-          slack to absorb.
-
-          OPACITY IS /70, NOT /50. docs/03 sets /70 as the floor for any text
-          carrying an alpha modifier: /50 measures 4.71:1 on `bg-elevated` in
-          dark but 3.38:1 in light, below the 4.5:1 AA floor, and 12px is
-          nowhere near the large-text exemption. The trap is that dark mode is
-          the default and light mode is the binding constraint. The date is
-          separated from the stack by POSITION (last line, after the largest
-          gap in the card) and by the stack's full-strength `text-fg`, not by a
-          third opacity value. Do not dim this to create hierarchy.
-        */}
-        <p className="mt-auto pt-md text-caption font-mono text-fg/70">
-          {formatMonthYear(date)}
-        </p>
       </div>
     </motion.article>
   );

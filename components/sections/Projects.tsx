@@ -74,7 +74,7 @@ import { projects } from "@/content/projects";
  * CLAUDE.md's positioning rules out.
  *
  * NO ACCENT BEYOND THE CARD BORDER AND THE FOCUS RING. `accent-working` is not
- * on the title, not on the date, not on the stack, not on the overflow marker,
+ * on the title, not on the stack, not on the overflow marker,
  * not as a hover text colour and not as a rule or divider. About and Skills
  * both banned accent-on-text because a coloured short string reads as a link —
  * and inside a card that IS a link, an accent title would claim the title is
@@ -135,11 +135,17 @@ export function Projects() {
           two-column composition AND three-column image density at once.
 
           DEFAULT `items-stretch` — DO NOT ADD `items-start`. Stretching is
-          load-bearing: both cards in a row take the taller card's height, and
-          each card's date carries `mt-auto`, so the leftover height lands
-          above the date and the dates sit on one baseline across the row. That
-          is what makes native per-card image aspects (ProjectCard.tsx) read as
-          two different pictures rather than as ragged rows.
+          load-bearing: both cards in a row take the taller card's height, so
+          their borders close on one line even though the covers have different
+          native aspects (ProjectCard.tsx). Without it, a row reads as two
+          ragged boxes rather than as two pictures of different shapes.
+
+          The cards originally also aligned a bottom date row via `mt-auto`.
+          The date was dropped after Ticket 6's review — five dates in a
+          stretched column made the deliberate strength-first order (see below)
+          read as a broken reverse-chronological sort. Stretching still earns
+          its place on the border argument alone; the slack now falls below the
+          last line of text inside each card.
 
           THE LAST ROW IS AN ORPHAN AND STAYS ONE CARD WIDE. No
           `last:col-span-2`, no `justify-center`, no `place-items-center`, no
@@ -202,7 +208,6 @@ export function Projects() {
                   title={project.title}
                   oneLiner={project.oneLiner}
                   stack={project.stack}
-                  date={project.date}
                   coverImage={project.coverImage}
                 />
               </Reveal>
