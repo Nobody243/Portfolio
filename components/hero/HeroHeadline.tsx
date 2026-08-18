@@ -16,6 +16,7 @@ import { motion } from "motion/react";
 import { useLenis } from "lenis/react";
 
 import { HERO_NAME, HERO_TAGLINE_UNITS } from "@/components/hero/heroContent";
+import { ABOUT_HEADING } from "@/components/sections/aboutContent";
 import { DURATION, EASE, STAGGER } from "@/lib/animation/easing";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
@@ -165,7 +166,20 @@ function ScrollCueButton({
   return (
     <button
       type="button"
-      aria-label="Scroll to About"
+      // Named from the destination's own approved heading rather than typed
+      // here. The label is the ONLY name this control has — there is no
+      // visible text — so a literal would be an invented, unreviewed string
+      // that no audit could catch: WCAG 2.5.3 compares a label against visible
+      // text, and there is none to compare against.
+      //
+      // It previously read "Scroll to About", which announced a destination
+      // that does not exist: the section is headed "Trajectory", and "About"
+      // is the exact word the content decision rejected. Importing the
+      // constant means the two cannot drift apart again.
+      //
+      // The import is cheap: aboutContent.ts is a plain data module with no
+      // "use client" and no dependencies.
+      aria-label={`Scroll to ${ABOUT_HEADING}`}
       onClick={handleClick}
       // `pointer-events-auto` IS LOAD-BEARING. HeroHeadline's outermost
       // container is `pointer-events-none` so the canvas behind it stays
