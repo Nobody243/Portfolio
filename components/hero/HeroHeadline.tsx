@@ -13,6 +13,7 @@
  */
 
 import { motion } from "motion/react";
+import { useLenis } from "lenis/react";
 
 import { HERO_NAME, HERO_TAGLINE_UNITS } from "@/components/hero/heroContent";
 import { DURATION, EASE, STAGGER } from "@/lib/animation/easing";
@@ -116,30 +117,79 @@ export function HeroHeadline({
         </div>
 
         {/*
-          Decorative in this ticket: `aria-hidden`, no click target. The only
-          thing below the hero right now is a spacer, and a control that
-          scrolls to an empty placeholder is a dead affordance. Ticket 4
-          promotes it to a real <button aria-label="Scroll to About"> — and its
-          focus ring must use `hero-accent`, never `accent-working`.
+          A REAL CONTROL as of Ticket 4, now that there is a real section below
+          the hero to scroll to. It is mounted only once the hero has settled:
+          a focusable button sitting at opacity 0 would put keyboard focus on
+          something invisible, which is worse than not having it.
+
+          `aria-hidden` has moved OFF this wrapper and onto the <svg> — the
+          chevron is decoration, but the button is not.
         */}
-        <div className={`absolute ${INSET_CLASSES}`} aria-hidden>
-          <ScrollCue
-            visible={revealed}
-            active={cueActive && !reducedMotion}
-            reducedMotion={reducedMotion}
-          />
+        <div className={`absolute ${INSET_CLASSES}`}>
+          {revealed ? (
+            <ScrollCueButton
+              active={cueActive && !reducedMotion}
+              reducedMotion={reducedMotion}
+            />
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function ScrollCue({
-  visible,
+function ScrollCueButton({
   active,
   reducedMotion,
 }: {
-  visible: boolean;
+  active: boolean;
+  reducedMotion: boolean;
+}) {
+  // Undefined under reduced motion — LenisProvider never instantiates Lenis
+  // there — which is exactly why the fallback below is not optional.
+  const lenis = useLenis();
+
+  const handleClick = () => {
+    if (lenis) {
+      lenis.scrollTo("#trajectory");
+      return;
+    }
+    // Reduced-motion path: native scroll, and deliberately `behavior: "auto"`.
+    // Animating the jump for someone who asked for less motion would defeat
+    // the preference at the exact moment it matters most.
+    document
+      .getElementById("trajectory")
+      ?.scrollIntoView({ behavior: "auto" });
+  };
+
+  return (
+    <button
+      type="button"
+      aria-label="Scroll to About"
+      onClick={handleClick}
+      // `pointer-events-auto` IS LOAD-BEARING. HeroHeadline's outermost
+      // container is `pointer-events-none` so the canvas behind it stays
+      // interactive; without this the button would be perfectly
+      // keyboard-operable and completely mouse-dead — a keyboard audit would
+      // pass while a sighted user clicked a control that does nothing, and
+      // nothing would error.
+      //
+      // Focus ring is `hero-accent`, NEVER `accent-working`. This is the first
+      // focusable element on the pinned dark hero surface, and it is the
+      // consumer whose scheduled existence justified shipping that token:
+      // `accent-working` flips to its light-mode value on a surface that does
+      // not flip, landing at ~3.6:1 instead of 7.95:1.
+      className="pointer-events-auto cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-hero-accent"
+    >
+      <ScrollCue active={active} reducedMotion={reducedMotion} />
+    </button>
+  );
+}
+
+function ScrollCue({
+  active,
+  reducedMotion,
+}: {
   active: boolean;
   reducedMotion: boolean;
 }) {
@@ -148,6 +198,7 @@ function ScrollCue({
   // — all portfolio-template signatures.
   const chevron = (
     <svg
+      aria-hidden
       viewBox="0 0 24 24"
       width={20}
       height={20}
@@ -162,16 +213,15 @@ function ScrollCue({
   );
 
   if (reducedMotion) {
-    // Gated on `visible` INSIDE this branch, not above it: the non-reduced
-    // path already handles visibility correctly via its own opacity
-    // animation, and hoisting the guard would gate that too. Without this,
-    // the chevron painted at full opacity from first paint — underneath the
-    // loader, which shares this exact anchor at every breakpoint.
+    // Present and legible, but not moving. Appearing instantly with no fade is
+    // correct here; that is the point of this branch.
     //
-    // Appearing instantly with no fade is correct here; that is the point of
-    // this branch.
-    if (!visible) return null;
-    // Present and legible, but not moving.
+    // The `visible` guard that used to live here has moved up to the parent,
+    // which now mounts this component only once the hero has settled. That
+    // guard existed because the chevron otherwise painted at full opacity from
+    // first paint, underneath the loader that shares this exact anchor at
+    // every breakpoint — mount-gating preserves that, and additionally keeps
+    // the button out of the tab order until there is something to scroll to.
     return <div className="text-hero-fg/55">{chevron}</div>;
   }
 
@@ -180,20 +230,18 @@ function ScrollCue({
       className="text-hero-fg"
       initial={{ opacity: 0 }}
       animate={
-        visible
-          ? active
-            ? {
+        active
+          ? {
                 // One continuous downward PASS with fades at both ends, rather
                 // than a yo-yo bob — direction and flow instead of a nervous
                 // tic. The repeatDelay matters: a gapless loop is a spinner.
-                y: [0, 3, 11, 14],
-                opacity: [0, 0.55, 0.55, 0],
-              }
-            : { opacity: 0.55, y: 0 }
-          : { opacity: 0 }
+              y: [0, 3, 11, 14],
+              opacity: [0, 0.55, 0.55, 0],
+            }
+          : { opacity: 0.55, y: 0 }
       }
       transition={
-        visible && active
+        active
           ? {
               duration: 2,
               repeat: Infinity,
