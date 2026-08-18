@@ -32,6 +32,14 @@ every project entry has real links where they exist (omit the field, don't fake 
 don't); **every image is a static import that resolves at build time — a missing or misnamed file
 must fail the build, not ship a broken image; every image carries accurate, hand-written `alt` text
 describing what is actually on screen.**
+
+> Caveat on the build-failure criterion: it describes a property of the import mechanism, and that
+> property is LATENT until something actually imports the content modules. While `/content` has no
+> consumer, the static imports are never evaluated during a build, so a renamed file would not fail
+> it. Ticket 2 verified the guarantee manually — by deliberately renaming an import path and
+> confirming the module-not-found error — which is the only check available at that point. It
+> becomes automatic once Ticket 6 renders the gallery. The criterion is correct; it was simply
+> written as if it were self-enforcing on the day Ticket 2 shipped, and it was not.
 **Dependencies:** Ticket 1.
 
 ---
