@@ -1,6 +1,5 @@
 import { Reveal } from "@/components/ui/Reveal";
 import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
-import { STAGGER } from "@/lib/animation/easing";
 
 /**
  * About / Trajectory — Tier 2, and the first real-content section on `bg-base`.
@@ -60,14 +59,29 @@ export function About() {
           rather than as the thing the beats argue for.
         */}
         <div className="mt-xl space-y-lg lg:mt-2xl lg:space-y-xl">
-          {ABOUT_BEATS.map((beat, index) => (
+          {ABOUT_BEATS.map((beat) => (
             <Reveal
               key={beat.label}
-              // Only the first beat is staggered, and only against the heading
-              // — a per-beat cascade would mean a fast scroller reading a
-              // paragraph that is still assembling. Beats 2 and 3 fire on
-              // their own intersection with no delay at all.
-              delay={index === 0 ? STAGGER.line : 0}
+              // NO DELAY ON ANY BEAT — uniform, and that uniformity is the
+              // point. An earlier version staggered beat 1 by STAGGER.line on
+              // the reasoning that beats never co-enter the viewport, so only
+              // the heading and beat 1 could ever fire together.
+              //
+              // That holds while SCROLLING and is false after a CUE CLICK: the
+              // jump lands heading, beat 1 and beat 2 in view on the same
+              // observer tick, so delays of 0 / 0.10 / 0 render "heading and
+              // beat 2 together, then beat 1 a tenth of a second later" — a
+              // sequence that runs visibly backwards.
+              //
+              // Nothing is lost on the scroll path: heading and beat 1 cross
+              // the threshold roughly 164px of scroll apart, far more than
+              // 100ms at any realistic speed, so the delay was already inert
+              // there.
+              //
+              // Do NOT "restore" the stagger, and do NOT reach for
+              // `index * STAGGER.line` — an index cascade is rejected by name
+              // in the design brief and would make the backwards-ordering
+              // worse, not better.
               className="lg:grid lg:grid-cols-[var(--spacing-3xl)_minmax(0,34rem)_1fr] lg:gap-x-xl"
             >
               {/*
