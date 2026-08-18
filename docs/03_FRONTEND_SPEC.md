@@ -43,6 +43,33 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 >
 > `app/globals.css` is the source of truth for all six hexes.
 
+> ### Opacity floor for text: `/70`. And check LIGHT mode, not dark.
+>
+> **Any text token carrying an alpha modifier (`text-fg/NN`) must be at `/70` or above.** Below that
+> it fails WCAG AA (4.5:1) for normal text, and every size on this site is normal text — `text-caption`
+> is 12px and `text-body` is 16px, both far under the large-text threshold (18.66px bold / 24px) where
+> the 3:1 allowance would apply.
+>
+> Measured, against the surfaces these actually land on:
+>
+> | | `bg-base` dark | `bg-base` light | `bg-elevated` dark | `bg-elevated` light |
+> |---|---|---|---|---|
+> | `/40` | 3.39:1 ✗ | 2.56:1 ✗ | — | — |
+> | `/50` | — | — | 4.71:1 ✓ | **3.38:1 ✗** |
+> | `/70` | 8.41:1 ✓ | 6.69:1 ✓ | 8.18:1 ✓ | 6.48:1 ✓ |
+>
+> **The trap is that dark mode is the default and light mode is the binding constraint.** `/50` on
+> `bg-elevated` passes in dark and fails in light, so an opacity tuned by eye in the default theme
+> ships an accessibility defect nobody sees. This has now been caught twice — Skills' entry counts at
+> `/40`, and the project card's date at `/50` — both in review rather than in design.
+>
+> `/60` does technically pass on `bg-elevated` light at 4.62:1, but with 0.12 of headroom it is not a
+> safe rule. **`/70` is the floor. If an element needs to recede further than `/70` allows, it needs a
+> different device — size, weight, position, spacing — not a lower contrast ratio.**
+>
+> `aria-hidden` does not exempt anything here: it hides an element from screen readers, while 1.4.3
+> exists for low-vision users looking straight at it.
+
 **Accent tuning clarification:** `accent-hero` is fixed across both themes (`#00E5FF`) — it's used only
 as a glow/lighting effect on the hero's 3D scene, never for text, so contrast rules don't apply to it.
 `accent-working` may be contrast-tuned per theme (e.g. a slightly different exact hex in light vs. dark)
