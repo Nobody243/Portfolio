@@ -16,7 +16,7 @@
 | `bg-base` | `#FDFCFA` | Primary background (warm neutral) |
 | `bg-elevated` | `#F4F4F4` | Cards / elevated surfaces — one step up from base |
 | `bg-tint-cool` | `#F4F9FF` | Faint blue-white undertone — reserved for cloud/infra-leaning content blocks or hover states, used sparingly |
-| `bg-tint-warm-green` | `#F8FBF8` | Faint green-white undertone — reserved for code/dev-leaning content blocks, used sparingly |
+| `bg-tint-warm` | `#F8FBF8` | Faint green-white undertone — reserved for code/dev-leaning content blocks, used sparingly |
 | `text-primary` | `#151515` | Body/heading text |
 | `accent-hero` | `#00E5FF` — same hex as dark mode | Unchanged; renders on the 3D scene's own dark backdrop. See the accent-tuning clarification below |
 | `accent-working` | `#0F766E` (dark mode: `#14B8A6`) | Same teal, darkened for contrast — `#14B8A6` on `#FDFCFA` is 2.44:1 and fails AA for text |
@@ -39,12 +39,18 @@ Base unit: `16px` (1rem). Scale multiplier: `×1.618` per step.
 
 | Token | Size | Approx. use |
 |---|---|---|
-| `text-caption` | `~10px` (16 ÷ 1.618) | Meta labels, tags, timestamps — set in JetBrains Mono |
+| `text-caption` | `12px` (0.75rem) | Meta labels, tags, timestamps — set in JetBrains Mono |
 | `text-body` | `16px` | Base reading size |
 | `text-h4` | `~26px` (16 × 1.618) | Sub-headings, card titles |
 | `text-h3` | `~42px` (16 × 1.618²) | Section sub-headers |
 | `text-h2` | `~68px` (16 × 1.618³) | Section headers |
 | `text-h1` | `~110px` (16 × 1.618⁴), clamp() for responsiveness | Hero headline only |
+
+> **`text-caption` deviates from the ratio, on purpose.** A strict 16 ÷ 1.618 lands at ~9.9px, and
+> the shipped token is `0.75rem` (12px). At 10px, JetBrains Mono with this scale's `0.08em` tracking
+> is below comfortable reading size for the meta labels it is used on — the ratio was serving the
+> scale instead of the reader. `app/globals.css` is the source of truth for every token value in this
+> table; do not "restore" 10px to satisfy the multiplier.
 
 **Line height:** `1.6` for body text (already near-golden-ratio, keeps long-form reading comfortable).
 Headings tighter, around `1.1–1.2`.
