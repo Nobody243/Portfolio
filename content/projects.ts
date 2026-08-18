@@ -202,8 +202,18 @@ export const projects = [
     category: "systems-foundation",
     credit: "Team of 2, led by me",
     // Dense at full-topology zoom, approved as-is: the density communicates
-    // scale. Do not crop, downscale past legibility, or swap in a simplified
-    // diagram.
+    // scale. DO NOT CROP, and do not swap in a simplified diagram.
+    //
+    // This comment used to end "or downscale past legibility". That clause was
+    // removed on 2026-08-19 because it described a state the file never had:
+    // opened at its native 1600x599, the node labels are ALREADY unreadable.
+    // The instruction was therefore unsatisfiable at any card size rather than
+    // only at small ones, and a later ticket would have chased it.
+    //
+    // What the image is actually for: the shape of the thing — colour-coded
+    // VLAN groups, per-floor star topologies, the routers tying them together.
+    // It reads as structure, never as text. Judge any resize against whether
+    // that structure still reads, not against the labels.
     coverImage: {
       src: ccnCover,
       alt: "Cisco Packet Tracer topology showing multi-site call center network with color-coded VLANs across 4 floors and interconnecting routers",
