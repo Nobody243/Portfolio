@@ -11,6 +11,11 @@
  * are derived from them and neither may hardcode a width:
  *   - the camera fit (heroCamera.fitDistance)
  *   - the particle exclusion shell (ParticleField)
+ *
+ * WHAT IS REPORTED IS WORLD SPACE, recentred on the origin — NOT the raw
+ * geometry-local box. Both consumers assume world space, and getting that
+ * wrong is silent: the camera still frames something plausible and the field
+ * still looks like a field. See the comment in `handleRef`.
  */
 
 import { useCallback, useMemo } from "react";
@@ -92,10 +97,36 @@ export function HeroName({ font, bucket, onMeasured }: HeroNameProps) {
       const full = mesh.geometry.boundingBox;
       if (!full) return;
 
-      // <Center> offsets the GROUP, so geometry-local bounds are still centred
-      // on the wordmark's own origin — which is what both consumers want.
+      // RECENTRE BEFORE REPORTING — both consumers treat what they receive as
+      // WORLD space, and raw geometry bounds are not.
+      //
+      // The mechanic, written out because the previous comment here asserted
+      // the opposite and both consumers trusted it:
+      //   - TextGeometry lays glyphs out from x=0 rightward with the baseline
+      //     at y=0, so the raw box is x in [0, W], y in [0, capHeight]. Its
+      //     centre is half a word width to the RIGHT of the origin — measured:
+      //     (1.936, 0.500, 0.238).
+      //   - <Center> offsets the wrapping GROUP and never touches
+      //     mesh.geometry, so the geometry keeps those local coordinates while
+      //     the group's transform is what puts the wordmark at the world
+      //     origin.
+      // Reporting the raw centre therefore aimed the camera at the word's
+      // right edge and slid the particle exclusion shell off the letterforms
+      // entirely.
+      //
+      // (0,0,0) is a verified constant, not an assumption: <Center> is used
+      // with no props — no `disable`, no `disableX/Y/Z` — and HeroScene renders
+      // <HeroName> with no wrapping group and no position offset, so the
+      // centred group sits exactly at the origin. If either of those ever
+      // changes, this constant must be derived rather than hardcoded.
+      //
+      // The reported box is flattened to z=0 while the true world front face
+      // sits at z=+0.128. That is deliberate and harmless: fitDistance
+      // subtracts the centre before projecting, and ParticleField reads only
+      // the x/y extents, testing world z against its own constant.
       const front = frontFaceBounds(full);
-      onMeasured(front, front.getCenter(new Vector3()));
+      front.translate(front.getCenter(new Vector3()).negate());
+      onMeasured(front, new Vector3(0, 0, 0));
     },
     [onMeasured],
   );
