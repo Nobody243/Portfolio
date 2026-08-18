@@ -430,8 +430,18 @@ export function ParticleField({ bucket, bounds }: ParticleFieldProps) {
     // Clamped: a tab returning from the background delivers a delta measured
     // in seconds, which would teleport the whole field in one step.
     const dt = Math.min(delta, 1 / 30);
-    // Positions are read off the GEOMETRY, which owns the live array. The
-    // memoised buffers below are read-only from here on.
+    // Positions are reached through the GEOMETRY rather than through `field`
+    // directly. Be clear about what that does and does not buy:
+    //
+    // It is NOT a compliance trick. <bufferAttribute args={[field.positions,
+    // 3]}> holds that array BY REFERENCE, so `attributes.position.array` IS
+    // `field.positions` — this loop genuinely mutates the memoised value, just
+    // by a path the compiler cannot trace. What it buys is the ability to
+    // express an in-place particle simulation at all: per-frame reallocation
+    // of a 1100-element buffer is exactly the jank the memo exists to avoid.
+    //
+    // The deviation is deliberate and correct; only the earlier claim that the
+    // memoised buffers were "read-only from here on" was false.
     const positionAttribute = points.geometry.attributes.position;
     const positions = positionAttribute.array as Float32Array;
     const { velocities, wander, count } = field;

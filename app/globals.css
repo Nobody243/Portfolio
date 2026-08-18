@@ -117,7 +117,16 @@
      Usage rule: on `bg-hero-surface`, use `hero-accent`, never
      `accent-working`. If a FILLED hero-accent surface is ever added here it
      also needs a pinned --color-hero-on-accent: #0a0a0b, since #fdfcfa on
-     #14b8a6 is 2.18:1 and fails AA outright. Not declared yet — no consumer.
+     #14b8a6 is 2.18:1 and fails AA outright.
+
+     WHY hero-accent IS DECLARED AND hero-on-accent IS NOT, given neither has a
+     consumer in Ticket 3: a token ships when a consumer is SCHEDULED, and is
+     recorded as a rule when it is merely conceivable. hero-accent has a known
+     consumer in the very next ticket — the scroll cue becomes a real button in
+     Ticket 4 and its focus ring lands on this surface. A filled teal surface
+     on the hero surface is speculative for Ticket 10 and may never exist, so
+     that one is written down here instead of shipped as dead CSS. Same rule,
+     two outcomes; stated because the criterion is what makes them consistent.
 
      TICKET 11: all THREE are theme-exempt, not just the surface. A toggle that
      flips two of three is worse than one that flips none. */
