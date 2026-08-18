@@ -14,14 +14,24 @@ import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
  * do not widen the measure to "use the space".
  *
  * THE RAIL. At >=1024px each beat is a three-column grid: a 144px rail holding
- * only the mono label, the prose, and an empty third column. That third column
- * is the photo slot — declared now, empty today, costing nothing (content
- * decision: no photo ships). If a photo ever arrives it drops into an existing
- * column, but note it must span two beat rows, which is the one structural
- * change it forces: the per-beat grids would have to merge into a single
- * three-row grid. Below 1024px the rail collapses and the label stacks above
- * its paragraph — attempting the rail at 640px would leave a ~42-character
- * measure, and a cramped measure is worse than a stacked label.
+ * only the mono label, the prose, and an empty third column. Below 1024px the
+ * rail collapses and the label stacks above its paragraph — attempting the rail
+ * at 640px would leave a ~42-character measure, and a cramped measure is worse
+ * than a stacked label.
+ *
+ * THE THIRD COLUMN IS THE PHOTO SLOT, declared now and empty today (content
+ * decision: no photo ships). "Costs nothing" is true of the COLUMN and NOT of a
+ * photo — read this before dropping an image in:
+ *   - It is `1fr`, so it takes whatever the fixed tracks leave over: about
+ *     48px at exactly 1024px, and only a usable ~464px around 1360px. A real
+ *     image therefore needs its own breakpoint (~1360px) plus a stated
+ *     fallback below it, most likely the mobile treatment.
+ *   - It must span the beat-1 and beat-2 rows, which means the per-beat grids
+ *     here would have to merge into a single three-row grid. That is the one
+ *     structural change a photo forces, and it is why this is written down
+ *     rather than assumed away.
+ *   - On mobile a photo does NOT go in this slot at all: it goes between the
+ *     <h2> and beat 1, full width, 3:2 landscape rather than 4:5 portrait.
  *
  * NO ACCENT COLOUR ANYWHERE IN THIS SECTION. That is a decision, not an
  * oversight: the labels are `fg` at 70%, not `accent-working`. Teal on the
@@ -100,9 +110,19 @@ export function About() {
                 {beat.label}
               </h3>
 
+              {/* max-w-[34rem] AND the 34rem track in the grid template above
+                  are BOTH required and must move together: the grid column
+                  governs >=1024px, this cap governs everything below it, where
+                  the rail has collapsed and there is no grid at all. Changing
+                  one and not the other silently gives two different measures at
+                  two different breakpoints. */}
               <div className="mt-sm max-w-[34rem] space-y-sm lg:mt-0">
-                {beat.paragraphs.map((paragraph) => (
-                  <p key={paragraph} className="text-body text-fg">
+                {/* Index as key: the array is static, never reordered and never
+                    filtered. The alternative here is a 400-plus character
+                    paragraph as a key, which is stable and correct but makes a
+                    reader stop and work out why. */}
+                {beat.paragraphs.map((paragraph, index) => (
+                  <p key={index} className="text-body text-fg">
                     {paragraph}
                   </p>
                 ))}

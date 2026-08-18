@@ -69,7 +69,19 @@ export const DURATION = {
 /** Delay between siblings in a staggered sequence, in seconds. */
 export const STAGGER = {
   /**
-   * Hero headline lines (Tier 1). Retuned 0.08 -> 0.10 in Ticket 3.
+   * Hero headline lines. CURRENTLY TIER 1 ONLY — the hero's two tagline units
+   * are its sole consumer.
+   *
+   * Ticket 4's About section was designed to reuse this for its first beat,
+   * which is why no STAGGER.section entry was ever added. It then removed the
+   * delay outright: after a scroll-cue click the heading and the first two
+   * beats intersect on one observer tick, and a non-zero delay on beat 1 alone
+   * made the sequence render backwards. If a Tier 2 section ever wants a
+   * stagger again, reuse this rather than inventing a per-section cadence —
+   * but read About's comment first, because the same trap applies to anything
+   * a jump link can land on.
+   *
+   * Retuned 0.08 -> 0.10 in Ticket 3.
    *
    * The identity statement is only TWO units, and at 80ms two units read as
    * near-simultaneous. 100ms against a 700ms reveal is a ~14% offset — enough
