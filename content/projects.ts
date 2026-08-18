@@ -120,6 +120,11 @@ export const projects = [
     },
     date: "2025-04",
     category: "systems-foundation",
+    // Nominally a group submission, but Saad did the work (confirmed
+    // 2026-08-18). No team count here on purpose: "Team of 4" would credit
+    // contribution that did not happen. "Led design and development" is the
+    // accurate line — it does not claim solo authorship and it does not
+    // inflate anyone else's part.
     credit: "Led design and development",
     coverImage: {
       src: aeroGridCover,
@@ -140,9 +145,9 @@ export const projects = [
     slug: "clashchat",
     title: "ClashChat",
     oneLiner:
-      "AI-powered debate app — argue any topic against Groq's LLM with timed rounds, stance tracking, and difficulty modes",
+      "Text-based AI debate app — argue any topic against Groq's LLM with timed rounds, stance tracking, and difficulty modes",
     description:
-      "A Flutter application for AI-powered structured debates. Users pick a topic and stance, then argue against Groq's LLM across timed rounds with difficulty levels — Casual (free practice), Ranked (competitive scoring), and Learning (coached feedback). Groq API calls route through a privately-hosted Cloudflare Worker proxy so the API key never touches the client. Firebase handles auth (email + Google Sign-In), Firestore stores debate history and user profiles, and a daily quota of 40 debates is enforced client-side for the demo build. A responsive web build is available alongside the native Android APK.",
+      "A Flutter application for text-based, AI-powered structured debates. Users pick a topic and stance, then argue against Groq's LLM across timed rounds with difficulty levels — Casual (free practice), Ranked (competitive scoring), and Learning (coached feedback). Groq API calls route through a privately-hosted Cloudflare Worker proxy so the API key never touches the client. Firebase handles auth (email + Google Sign-In), Firestore stores debate history and user profiles, and a daily quota of 40 debates is enforced client-side for the demo build. A responsive web build is available alongside the native Android APK.",
     stack: [
       "Flutter",
       "Dart",
@@ -160,7 +165,7 @@ export const projects = [
     },
     date: "2025-03",
     category: "core-dev",
-    credit: "Led design and development",
+    credit: "Team of 2 — led design and development",
     coverImage: {
       src: clashchatCover,
       alt: "ClashChat active debate on Economy topic showing AI and user exchange with Debate Stats panel",
@@ -195,7 +200,7 @@ export const projects = [
     links: {},
     date: "2024-12",
     category: "systems-foundation",
-    credit: "Led a team of 2",
+    credit: "Team of 2, led by me",
     // Dense at full-topology zoom, approved as-is: the density communicates
     // scale. Do not crop, downscale past legibility, or swap in a simplified
     // diagram.
@@ -230,7 +235,7 @@ export const projects = [
     links: {},
     date: "2025-12",
     category: "systems-foundation",
-    credit: "Led a team of 4",
+    credit: "Team of 4, led by me",
     // 779x396 — the smallest source in the set, and not recapturable (the VM
     // lab is decommissioned). Ships as-is by decision: the file is real and its
     // alt text is accurate, which outranks sharpness. Ticket 6 note only.

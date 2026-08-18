@@ -94,7 +94,23 @@ export interface Project {
    * Honest credit line. Omit when the work was solely Saad's.
    *
    * Two jobs: shared work is never silently presented as solo work, and where
-   * Saad's role was a leading one, it says so plainly ("Led a team of 4").
+   * Saad's role was a leading one, it says so plainly ("Team of 4, led by me").
+   *
+   * TEAM SIZE IS THE TOTAL HEADCOUNT, SAAD INCLUDED. Write "Team of 4", never
+   * "Led a team of 4" — the latter reads as four *reports*, i.e. five people,
+   * and every count in this file is a total. Saad corrected these on
+   * 2026-08-18; do not reintroduce the ambiguous phrasing.
+   *
+   * PREFER A NUMBER OVER A NAME. Saad's standing instruction is to state how
+   * many people were on a project, not who they were. FOLIO is the sole
+   * exception and only because that collaborator explicitly consented to being
+   * named publicly.
+   *
+   * A COUNT IS A CLAIM ABOUT CONTRIBUTION, NOT ABOUT ROSTER SIZE. Do not add a
+   * team count to a project where the other members did no work — that credits
+   * contribution that did not happen, which is the same fabrication rule from
+   * CLAUDE.md pointed the other way. Aero-Grid is the case in point: nominally
+   * a group of 4, credited as "Led design and development" with no count.
    *
    * It is NOT a job title — it describes what happened on one project, not a
    * position held. Every value must be one Saad has explicitly confirmed, and
