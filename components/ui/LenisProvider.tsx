@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ReactLenis } from "lenis/react";
 
+import { ScrollTriggerSync } from "@/components/ui/ScrollTriggerSync";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /**
@@ -13,10 +14,12 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * That is what lets `useReducedMotion` flip this branch after hydration without
  * a mismatch warning (see the hook's server-snapshot note).
  *
- * NOTE: GSAP ScrollTrigger is deliberately NOT wired to Lenis here. No
- * ScrollTrigger timelines exist yet; that sync belongs to Ticket 3 (hero), and
- * should import gsap from `lib/animation/gsap.ts` so plugin registration and
- * the shared eases are guaranteed to have run.
+ * ScrollTrigger sync lives in <ScrollTriggerSync />, rendered below rather
+ * than implemented here: it is site-wide plumbing that Tickets 4 and 6 depend
+ * on, and keeping it in its own component keeps this file free of a GSAP
+ * import. It is rendered in BOTH branches — under reduced motion there is no
+ * Lenis instance to bind, so it no-ops, but it still refreshes ScrollTrigger
+ * after fonts settle, which native scroll needs just as much.
  */
 
 export function LenisProvider({ children }: { children: ReactNode }) {
@@ -24,7 +27,12 @@ export function LenisProvider({ children }: { children: ReactNode }) {
 
   // Reduced motion: do not instantiate Lenis at all — plain native scroll.
   if (reducedMotion) {
-    return <>{children}</>;
+    return (
+      <>
+        <ScrollTriggerSync />
+        {children}
+      </>
+    );
   }
 
   return (
@@ -40,6 +48,7 @@ export function LenisProvider({ children }: { children: ReactNode }) {
         syncTouch: false,
       }}
     >
+      <ScrollTriggerSync />
       {children}
     </ReactLenis>
   );

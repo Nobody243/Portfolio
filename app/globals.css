@@ -82,6 +82,49 @@
   --color-tint-cool: #0b1116;
   --color-tint-warm: #0b120e;
 
+  /* --- HERO TOKENS: a permanently dark context. THESE THREE DO NOT FLIP. ---
+
+     The hero renders its own dark surface in BOTH themes, and the other two
+     exist because that surface is pinned. They ship as one block, with one
+     rationale, because they are one decision — not three tokens that happen to
+     share a prefix.
+
+     Why the surface is pinned at all: SceneCanvas keeps `alpha: true`, so the
+     page background composites through the canvas. Without a pinned surface,
+     light mode would put #00e5ff at ~1.5:1 — and, worse, every additively
+     blended layer in the scene (particles, connection lines, the emissive
+     glow) would contribute NOTHING against near-white, because additive
+     blending is dst + src and dst is already ~1.0. The dark surface is what
+     makes the Tier 1 accent work at all; it is not a stylistic preference.
+     This is also the surface Ticket 10's Contact echo should reuse rather than
+     inventing a second dark panel.
+
+     Because the SURFACE is pinned, anything rendering ON it must be pinned
+     too. A theme-tuned token placed here inverts — it is tuned for the page
+     background, which this section does not have:
+
+       --color-hero-fg      --color-fg is #151515 in light mode. On a
+                            near-black surface that is unreadable.
+       --color-hero-accent  --color-accent-working flips to #0f766e in light,
+                            which lands at ~3.6:1 here against 7.95:1 in dark.
+                            That PASSES the 3:1 non-text floor — it is not
+                            broken — but it is one affordance rendering at two
+                            different strengths for no reason anyone chose,
+                            visible only after a toggle. Same teal hue family,
+                            tuned for the background it actually sits on.
+                            NOT a third accent; the two-accent rule is intact.
+
+     Usage rule: on `bg-hero-surface`, use `hero-accent`, never
+     `accent-working`. If a FILLED hero-accent surface is ever added here it
+     also needs a pinned --color-hero-on-accent: #0a0a0b, since #fdfcfa on
+     #14b8a6 is 2.18:1 and fails AA outright. Not declared yet — no consumer.
+
+     TICKET 11: all THREE are theme-exempt, not just the surface. A toggle that
+     flips two of three is worse than one that flips none. */
+  --color-hero-surface: #07090c;
+  --color-hero-fg: #e8eaec; /* 16.68:1 on hero-surface */
+  --color-hero-accent: #14b8a6; /* 8.00:1 on hero-surface */
+
   /* --- TYPE SCALE ------------------------------------------------------
      Desktop maxima are golden-ratio values rounded to whole px. Clamps hit
      their max at exactly 1440px viewport and their min at 360px.
@@ -233,7 +276,11 @@ html.light {
   --color-tint-warm: #f8fbf8;
   --color-accent-working: #0f766e; /* 5.34:1 — passes AA body + UI */
   --color-on-accent: #fdfcfa;
-  /* --accent-hero is deliberately NOT overridden — see ACCENT POLICY above. */
+  /* --accent-hero is deliberately NOT overridden — see ACCENT POLICY above.
+     Neither are --color-hero-surface, --color-hero-fg or --color-hero-accent:
+     the hero is a pinned dark context in both themes. Their absence here is
+     the whole point, so do not "complete the set" by adding light values —
+     see the HERO TOKENS block above. */
 }
 
 /* ---------------------------------------------------------------------------
