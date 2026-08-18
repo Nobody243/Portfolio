@@ -121,9 +121,21 @@ export function HeroName({ font, bucket, onMeasured }: HeroNameProps) {
       // changes, this constant must be derived rather than hardcoded.
       //
       // The reported box is flattened to z=0 while the true world front face
-      // sits at z=+0.128. That is deliberate and harmless: fitDistance
-      // subtracts the centre before projecting, and ParticleField reads only
-      // the x/y extents, testing world z against its own constant.
+      // sits at z=+0.128 (the extrusion is centred too). That is deliberate:
+      // fitDistance subtracts the centre before projecting, and ParticleField
+      // reads only the x/y extents, testing world z against its own constant.
+      //
+      // ONE MEASURABLE CONSEQUENCE, recorded so nobody later concludes the fit
+      // has drifted. fitDistance solves against a plane 0.128 units FURTHER
+      // from the camera than the real front face, so the face renders slightly
+      // nearer and therefore slightly larger:
+      //
+      //   magnification = D / (D - 0.128) = 6.92 / 6.792 = 1.0188
+      //   desktop fill  = 62.0% nominal -> ~63.2% actually rendered
+      //   mobile fill   = 80.0% nominal -> ~80.8% (D is larger, so less effect)
+      //
+      // ~1.9%, well inside the tuning window, and unchanged by the centring
+      // fix. Measuring ~63% in a browser is CORRECT, not a regression.
       const front = frontFaceBounds(full);
       front.translate(front.getCenter(new Vector3()).negate());
       onMeasured(front, new Vector3(0, 0, 0));

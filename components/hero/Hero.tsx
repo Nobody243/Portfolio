@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "motion/react";
 import { invalidate } from "@react-three/fiber";
 import type { PerspectiveCamera as ThreePerspectiveCamera } from "three";
 import { Vector3 } from "three";
@@ -47,6 +48,7 @@ export function Hero() {
   const webglSupported = useWebGLSupport();
 
   const [revealComplete, setRevealComplete] = useState(false);
+  const [loaderRetired, setLoaderRetired] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const [sceneInitFailed, setSceneInitFailed] = useState(false);
@@ -263,24 +265,30 @@ export function Hero() {
   const showCanvas = !heroFallback && !!font;
 
   /**
-   * Mounted until SETTLED, not until loading ends.
+   * MOUNTED UNTIL THE LOADER ITSELF SAYS IT IS DONE — not until a phase flips.
    *
-   * Gating this on `phase === "loading"` made two things dead code, because
-   * the phase is derived and `"loading"` is exactly equivalent to
-   * `!sceneReady`: inside that branch `sceneReady` could never be true, so the
-   * 85 -> 100 scene-ready segment never rendered (the bar went 0 -> 85 and
-   * vanished), and `visible` was a constant `true`, so the exit fade never
-   * ran and the loader disappeared on a hard unmount.
+   * Two earlier shapes were both wrong, in the same way, for different
+   * branches. `phase === "loading"` is exactly equivalent to `!sceneReady`, so
+   * the 85 -> 100 scene-ready segment could never render and `visible` was a
+   * constant `true`. Widening it to `phase !== "settled"` fixed the normal
+   * path but not the reduced-motion one, where the machine goes
+   * `loading -> settled` on a single tick and both conditions collapse
+   * together again.
    *
-   * That contradicted TRANSFER_WEIGHT's own doc comment, which defends the
-   * 85/15 split as two REAL milestones. The second milestone was real and
-   * simply never drawn.
+   * Keying the mount to the loader's own lifecycle fixes both branches at
+   * once, and removes a real fragility: the fade previously worked only
+   * because `revealing` happens to last ~1.45s, i.e. the exit was borrowing
+   * headroom from an unrelated phase's duration. `easing.ts` explicitly marks
+   * DURATION.hero as expected to be tuned, so the first person to shorten the
+   * camera move would have silently clipped the fade with no error.
    *
-   * Keeping it mounted through "revealing" lets the last segment paint and
-   * lets the 0.30s fade play across the start of the camera move — which is
-   * the intended seam: the loader hands its screen position to the tagline.
+   * Note that <AnimatePresence> alone could NOT have delivered this: it
+   * renders an exiting child from the element it stored at removal time, so
+   * its props are frozen at that moment. On the reduced-motion tick those
+   * props still say 85%. Staying mounted for the render where `sceneReady` is
+   * true is what actually lets the bar reach 100 before it fades.
    */
-  const showLoader = !heroFallback && phase !== "settled";
+  const showLoader = !heroFallback && !loaderRetired;
 
   return (
     <section
@@ -315,17 +323,30 @@ export function Hero() {
         </SceneCanvas>
       ) : null}
 
-      {showLoader ? (
-        <HeroLoader
-          // The last 15% is the scene-ready milestone: geometry built and
-          // shaders compiled. Both boundaries are real events.
-          progress={sceneReady ? 1 : progress}
-          indeterminate={indeterminate}
-          // Goes false the moment the pull-back starts, which is what drives
-          // the exit fade rather than a hard unmount.
-          visible={phase === "loading"}
-        />
-      ) : null}
+      {/*
+        AnimatePresence covers the paths where the loader is torn out WITHOUT
+        getting to fade itself — chiefly a mid-load drop to `heroFallback`,
+        where the element simply stops being rendered. In the ordinary case the
+        fade has already completed before the unmount, so its exit is a no-op.
+      */}
+      <AnimatePresence>
+        {showLoader ? (
+          <HeroLoader
+            key="hero-loader"
+            // The last 15% is the scene-ready milestone: geometry built and
+            // shaders compiled. Both boundaries are real events, and staying
+            // mounted through this render is what lets the second one draw.
+            progress={sceneReady ? 1 : progress}
+            indeterminate={indeterminate}
+            // Goes false the moment loading ends — in EITHER branch, including
+            // the reduced-motion one that skips "revealing" entirely.
+            visible={phase === "loading"}
+            // The loader retires itself once its own fade has finished, so the
+            // exit never depends on how long the camera move happens to be.
+            onExited={() => setLoaderRetired(true)}
+          />
+        ) : null}
+      </AnimatePresence>
 
       <HeroHeadline
         revealed={phase === "settled"}

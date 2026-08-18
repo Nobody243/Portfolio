@@ -35,11 +35,20 @@ type HeroLoaderProps = {
   /** 0-1. Meaningless when `indeterminate`. */
   progress: number;
   indeterminate: boolean;
-  /** Drives the exit fade; the loader unmounts when the hero leaves loading. */
+  /** False once loading has ended — in either branch. Drives the fade. */
   visible: boolean;
+  /** Fired when the fade has actually finished, so the owner can unmount.
+   *  The exit therefore depends on this component's own lifecycle rather than
+   *  on how long some other phase happens to last. */
+  onExited?: () => void;
 };
 
-export function HeroLoader({ progress, indeterminate, visible }: HeroLoaderProps) {
+export function HeroLoader({
+  progress,
+  indeterminate,
+  visible,
+  onExited,
+}: HeroLoaderProps) {
   const reducedMotion = useReducedMotion();
 
   /**
@@ -65,9 +74,24 @@ export function HeroLoader({ progress, indeterminate, visible }: HeroLoaderProps
     visibleRef.current = visible;
   }, [visible]);
 
+  // Same reason as `visibleRef`: the threshold timer must not restart just
+  // because the callback identity changed.
+  const onExitedRef = useRef(onExited);
+  useEffect(() => {
+    onExitedRef.current = onExited;
+  }, [onExited]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      if (visibleRef.current) setArmed(true);
+      if (visibleRef.current) {
+        setArmed(true);
+      } else {
+        // Loading already finished inside the threshold window, so this loader
+        // will never appear at all. Retire immediately rather than sitting
+        // mounted rendering null for the rest of the session — the owner keys
+        // the mount off this callback now, not off a phase.
+        onExitedRef.current?.();
+      }
     }, DISPLAY_THRESHOLD_MS);
     return () => window.clearTimeout(timer);
   }, []);
@@ -81,7 +105,24 @@ export function HeroLoader({ progress, indeterminate, visible }: HeroLoaderProps
       className="pointer-events-none absolute inset-0 z-20"
       initial={{ opacity: 1 }}
       animate={{ opacity: visible ? 1 : 0 }}
+      // Belt and braces for the case where the owner removes this element
+      // outright (a mid-load drop to the WebGL fallback) rather than letting
+      // it fade first.
+      exit={{ opacity: 0 }}
       transition={{ duration: 0.3, ease: EASE.hero }}
+      // Guarded on `!visible`: this also fires for the no-op 1 -> 1 settle on
+      // mount, and retiring there would unmount the loader instantly.
+      //
+      // A 0.30s opacity crossfade is kept under reduced motion deliberately.
+      // MotionProvider's own comment states that `reducedMotion="user"` drops
+      // transform and layout animation and KEEPS opacity — so the fade is the
+      // house position and the hard cut was the inconsistent branch. Opacity
+      // is not vestibular motion. A timed settle beat would have been the
+      // wrong fix twice over: it is exactly the fabricated-duration category
+      // this component's own honesty rules rule out.
+      onAnimationComplete={() => {
+        if (!visible) onExited?.();
+      }}
     >
       <div className="relative mx-auto h-full w-full max-w-[1440px]">
         <div className="absolute bottom-lg left-md flex items-center gap-sm sm:bottom-xl sm:left-xl lg:left-2xl">
