@@ -9,7 +9,11 @@
  * reverse-chronological sort), and deleting this with them would have thrown
  * away the bug it exists to prevent.
  *
- * There is currently no caller. That is expected until Ticket 7.
+ * CALLERS: `components/sections/ProjectDetail.tsx` (Ticket 7) renders each
+ * project's completion month through it. This line previously read "there is
+ * currently no caller, that is expected until Ticket 7" and was left stale when
+ * Ticket 7 shipped — corrected 2026-08-19. Keep it accurate: a comment claiming
+ * a function is unused is exactly the licence someone needs to delete it.
  */
 
 /**
