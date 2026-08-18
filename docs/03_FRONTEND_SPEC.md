@@ -6,7 +6,7 @@
 | Token | Hex | Use |
 |---|---|---|
 | `bg-base` | `#0A0A0B` | Primary background |
-| `text-primary` | `#EDEDED` | Body/heading text |
+| `text-fg` | `#EDEDED` | Body/heading text |
 | `accent-hero` | `#00E5FF` | Hero 3D glow/particles/lighting, and the small Contact-section echo ONLY |
 | `accent-working` | `~#14B8A6` (tune in-browser for contrast) | Links, tags, highlights, borders — everywhere else |
 
@@ -17,7 +17,7 @@
 | `bg-elevated` | `#F4F4F4` | Cards / elevated surfaces — one step up from base |
 | `bg-tint-cool` | `#F4F9FF` | Faint blue-white undertone — reserved for cloud/infra-leaning content blocks or hover states, used sparingly |
 | `bg-tint-warm` | `#F8FBF8` | Faint green-white undertone — reserved for code/dev-leaning content blocks, used sparingly |
-| `text-primary` | `#151515` | Body/heading text |
+| `text-fg` | `#151515` | Body/heading text |
 | `accent-hero` | `#00E5FF` — same hex as dark mode | Unchanged; renders on the 3D scene's own dark backdrop. See the accent-tuning clarification below |
 | `accent-working` | `#0F766E` (dark mode: `#14B8A6`) | Same teal, darkened for contrast — `#14B8A6` on `#FDFCFA` is 2.44:1 and fails AA for text |
 
