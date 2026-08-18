@@ -111,7 +111,17 @@ carried by `StaticImageData` — no hand-copied width/height, no layout shift.
 > element** — that wrapper is 6b's morph target. Ticket 7 also owes a back affordance pointing at
 > `/#work`.
 >
-> Ticket 6's other three criteria are unaffected and were met as written.
+> **On the other three criteria — corrected 2026-08-19.** An earlier version of this caveat said they
+> "were met as written". That overclaimed: two of the three are *"hover and entrance animations work
+> smoothly at 60fps on a mid-range laptop"* and *"no layout shift"*, and neither has been measured.
+> `tsc`, `lint` and `build` being green proves neither one.
+>
+> **Verified statically:** the gallery renders every project from `content/projects.ts` with no group
+> id or label string in JSX; each cover goes through `next/image` using the intrinsic dimensions
+> `StaticImageData` carries, with no hand-copied width/height; `sizes` never under-declares.
+>
+> **Still needs a browser:** 60fps under a 4x CPU throttle, and CLS = 0 under network throttling.
+> Until someone runs those, they are unproven rather than met.
 
 **Dependencies:** Tickets 1, 2.
 

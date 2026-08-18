@@ -184,7 +184,7 @@ export function ProjectCard({
         coincidence, not by reference. Retuning easing.ts will not move these.
       */
       whileHover="hover"
-      className="group relative flex h-full flex-col overflow-hidden border border-accent-working/30 bg-elevated transition-colors duration-200 ease-in-out hover:border-accent-working/55 has-[a:focus-visible]:border-accent-working/55 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-accent-working"
+      className="relative flex h-full flex-col overflow-hidden border border-accent-working/30 bg-elevated transition-colors duration-200 ease-in-out hover:border-accent-working/55 has-[a:focus-visible]:border-accent-working/55 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-accent-working"
     >
       {/*
         THE COVER WRAPPER CONTAINS ONLY THE <Image>. Nothing else may be added
@@ -359,7 +359,14 @@ export function ProjectCard({
           ))}
 
           {overflowCount > 0 ? (
-            <li>
+            // MUST carry the same type classes as its siblings above, even
+            // though every glyph inside is already styled. A bare <li> inherits
+            // 16px from preflight's `html { line-height: 1.5 }`, giving it a
+            // 24px strut against the 16.8px (12px x 1.4) of every technology
+            // name beside it — so the marker sat ~4px low on its row and added
+            // ~7px to the block. Every card has a remainder (11/14/9/6/11
+            // against N=4), so it was visible on all five.
+            <li className="text-caption font-mono text-fg/70">
               {/*
                 Same device and same reasoning as Skills' `00` count: a bare
                 "+7" spoken after four technology names is cryptic, because the

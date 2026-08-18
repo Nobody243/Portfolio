@@ -43,7 +43,12 @@ import { projects } from "@/content/projects";
  * the SNA cover (a 779px source that cannot be recaptured — the VM lab is
  * decommissioned) at 0.63x of ideal 2x density, visibly soft, on the newest
  * project and the one nearest the stated career direction. The cap holds every
- * slot on the site between 312px and 439px, so SNA's worst case is 0.89x.
+ * slot between 312px and 439px AT 360px AND ABOVE, so SNA's worst case in that
+ * range is 0.89x. Below 360px the slot keeps shrinking (278px at 320, 238px on
+ * a folded Galaxy Fold) — which is safe in the direction that matters, because
+ * a narrower slot makes SNA DENSER, not softer, and `sizes`' calc(100vw - 42px)
+ * branch tracks it correctly. Stated precisely because the whole aspect-ratio
+ * argument rests on this range, and "every slot on the site" was not true.
  *
  * If the two-void-width effect ever reads badly on a tall scroll-through, the
  * correction is to narrow the gallery TOWARD About's void (max-w-[51rem], slot

@@ -310,8 +310,14 @@ html.light {
 /* ---------------------------------------------------------------------------
    BASE
 
-   No border token: borders are accent-working at low opacity per the spec —
-   `border-accent-working/20` in dark, `/25` in light.
+   No border token: borders are accent-working at low opacity per the spec.
+   SHIPPED VALUE IS `border-accent-working/30`, THE SAME IN BOTH MODES
+   (components/sections/ProjectCard.tsx, Ticket 6). This block previously said
+   `/20` in dark and `/25` in light, which no component ever used; Ticket 6
+   chose one value over a per-mode split deliberately, because the border is
+   structural rather than decorative and a theme-dependent weight would make
+   the grid read differently in the two modes. Escape hatches, if /30 proves
+   wrong on a dim screen, are /20 and /40 — nothing else.
    No shadow, gradient, backdrop-blur or radius tokens either.
 --------------------------------------------------------------------------- */
 body {
