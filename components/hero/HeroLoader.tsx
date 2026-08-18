@@ -2,8 +2,14 @@
 
 /**
  * The preloader: an 89px hairline track and a mono percentage readout, sitting
- * at exactly the anchor the tagline will later occupy — so the hero has one
- * continuously-owned focal point from first paint through to the settled state.
+ * at exactly the anchor the SCROLL CUE will later occupy — so the hero has one
+ * continuously-owned focal point from first paint through to the settled
+ * state.
+ *
+ * The scroll cue, NOT the tagline: these insets are character-for-character
+ * HeroHeadline's INSET_CLASSES at every breakpoint (left-md sm:left-xl
+ * lg:left-2xl, bottom-lg sm:bottom-xl), while the tagline block sits ~75px
+ * higher. The cue is what inherits this spot once the loader retires.
  *
  * Not a big centred 0-100 counter, which is both fashionable and generic.
  *

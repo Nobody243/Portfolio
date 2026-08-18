@@ -162,6 +162,15 @@ function ScrollCue({
   );
 
   if (reducedMotion) {
+    // Gated on `visible` INSIDE this branch, not above it: the non-reduced
+    // path already handles visibility correctly via its own opacity
+    // animation, and hoisting the guard would gate that too. Without this,
+    // the chevron painted at full opacity from first paint — underneath the
+    // loader, which shares this exact anchor at every breakpoint.
+    //
+    // Appearing instantly with no fade is correct here; that is the point of
+    // this branch.
+    if (!visible) return null;
     // Present and legible, but not moving.
     return <div className="text-hero-fg/55">{chevron}</div>;
   }
