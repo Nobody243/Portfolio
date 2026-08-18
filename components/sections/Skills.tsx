@@ -205,10 +205,25 @@ export function Skills() {
                     `aria-hidden` because the group heading's accessible name has
                     to stay clean: "Core Dev 10" announced as a heading is worse
                     than useless. This is a visual annotation.
+
+                    OPACITY IS /70, NOT /40 — AND IT IS NOT A TASTE SETTING.
+                    Design §1.7 offered `text-fg/40` with `/70` as a fallback if
+                    `00` read as "failed to load" rather than "zero, stated".
+                    Measured, /40 never had the option: against `bg-base` it is
+                    3.39:1 in dark and 2.56:1 in light, and 3.43:1 on the warm
+                    tint — all below the 4.5:1 WCAG AA floor for normal text,
+                    and 12px mono is nowhere near the large-text exemption.
+                    `aria-hidden` does not exempt it either: that hides it from
+                    screen readers, while 1.4.3 protects low-vision users who
+                    are looking straight at it, and a count is information, not
+                    decoration. /70 measures 8.41:1 dark and 6.69:1 light.
+                    Do not dim this back down to create hierarchy against the
+                    label — if the count needs to recede, it needs a different
+                    device, not a lower contrast ratio.
                   */}
                   <span
                     aria-hidden="true"
-                    className="text-caption font-mono text-fg/40"
+                    className="text-caption font-mono text-fg/70"
                   >
                     {String(groupSkills.length).padStart(2, "0")}
                   </span>
