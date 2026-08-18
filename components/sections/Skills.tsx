@@ -202,9 +202,23 @@ export function Skills() {
                     anomaly. Above 99 `padStart` is a no-op — no clamping, no
                     "99+". Never stored in content; always computed here.
 
-                    `aria-hidden` because the group heading's accessible name has
-                    to stay clean: "Core Dev 10" announced as a heading is worse
-                    than useless. This is a visual annotation.
+                    `aria-hidden` — BUT NOT FOR THE REASON ORIGINALLY WRITTEN
+                    HERE. That comment said it protected the group heading's
+                    accessible name from becoming "Core Dev 10". It never could:
+                    this <span> is a SIBLING of the <h3>, not a child, so the
+                    heading's name is `group.label` either way.
+
+                    The real reason is narrower. Spoken, a bare "10" after a
+                    heading is cryptic — the digits carry their meaning from
+                    sitting on a baseline beside a label, which is a purely
+                    visual relationship. So the glyphs stay hidden and the
+                    sr-only sibling below states the same fact in a form that
+                    survives being read aloud. Hiding it with NOTHING in its
+                    place was the actual bug: it dropped the section's entire
+                    honesty signal for screen-reader users, who reached
+                    "Currently Building Toward" and then silence — the audio
+                    version of "did this fail to load?", which is the exact
+                    question §1.7's rejection criterion exists to prevent.
 
                     OPACITY IS /70, NOT /40 — AND IT IS NOT A TASTE SETTING.
                     Design §1.7 offered `text-fg/40` with `/70` as a fallback if
@@ -226,6 +240,26 @@ export function Skills() {
                     className="text-caption font-mono text-fg/70"
                   >
                     {String(groupSkills.length).padStart(2, "0")}
+                  </span>
+
+                  {/* The same fact, for the channel the digits cannot reach.
+                      Zero visual footprint, so §1.1's "nothing may be appended
+                      to the count" is intact — that rule governs what is drawn
+                      beside the numerals, and this is never drawn.
+
+                      A unit noun appears HERE and only here, because "0" alone
+                      read aloud after a label is ambiguous in a way "00" beside
+                      one is not. Singular is handled: the group goes to "1
+                      entry" the day the first cert lands, which is the same
+                      one-entry state §1.4 covers visually. */}
+                  {/* One interpolation, not three children: React separates
+                      adjacent text nodes with <!-- --> markers, and while every
+                      screen reader concatenates across them, a single string
+                      keeps the served HTML readable when someone greps it. */}
+                  <span className="sr-only">
+                    {`${groupSkills.length} ${
+                      groupSkills.length === 1 ? "entry" : "entries"
+                    }`}
                   </span>
                 </div>
 
