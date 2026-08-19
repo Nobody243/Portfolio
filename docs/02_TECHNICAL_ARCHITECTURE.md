@@ -43,6 +43,11 @@ form is added, it posts to a lightweight serverless function or a third-party fo
 /lib
   /three                     — reusable R3F scene helpers
   /animation                 — GSAP timeline configs, shared easing curves
+  theme.ts                   — theme storage key, apply/read helpers, and the pre-paint anti-flash
+                               script source. Deliberately has NO "use client": it is imported by
+                               both the server root layout and the client toggle, and adding a
+                               directive would drag the layout into a client boundary for a string.
+                               See "Client-side persisted state" below.
 /public
   /fonts, /models, /images
 ```
@@ -106,9 +111,44 @@ Image notes — **settled in Ticket 2:**
   here, so "Currently Learning" stays literally true while the achievement stays visible;
   `completedDate` records that transition. An **empty array is a valid, honest state** for this file.
 
+## Client-side persisted state
+
+There is exactly one piece of persisted client state on this site, and it is expected to stay that way.
+
+| Key | Values | Written by | Read by |
+|---|---|---|---|
+| `saad-portfolio-theme` | `"light"` \| `"dark"` — nothing else is ever written | `components/ui/ThemeToggle.tsx` | the pre-paint script in `app/layout.tsx`, sourced from `lib/theme.ts` |
+
+**`localStorage`, deliberately not a cookie, and this is a build-output decision rather than a
+preference.** A cookie would let the server render the correct theme class and remove the
+flash-of-wrong-theme with no script at all. It would also make the root layout read a **dynamic API**,
+which opts **every route** out of static prerendering and destroys the CDN caching that makes the site
+fast. That is a real, permanent cost for an aesthetic nicety. `localStorage` plus a ~130-byte
+synchronous inline script in `<head>` keeps the build fully static and kills the flash before first
+paint. **Verify the route table still shows every route as static after touching the root layout.**
+
+Rules that go with it, all enforced in `lib/theme.ts`:
+
+- **The key is namespaced on purpose.** `localhost:3000` is one shared origin across every project on
+  a dev machine, so a bare `theme` key genuinely collides and produces a bug that reproduces nowhere
+  else.
+- **Absent, corrupted or unreadable → fall back to `dark`, and write nothing back.** Dark is the
+  documented default for every visitor (there is no `prefers-color-scheme` detection anywhere — light
+  is opt-in). A defensive re-write would mask the bug that caused it and would create a stored
+  preference for someone who never chose one.
+- **Every read and every write is inside `try/catch`.** `localStorage` *throws* — it does not return
+  null — in Safari private browsing, in partitioned or blocked storage contexts, and at quota. A throw
+  must degrade to "works this session, not remembered", never to a crash. This matters most inside the
+  inline script, where an uncaught throw aborts it before it sets the class, i.e. breaks the exact
+  anti-flash it exists for.
+- **The DOM class on `<html>` is the single source of truth.** No React state mirrors the theme.
+  `.dark` and `.light` are mutually exclusive: always remove one before adding the other.
+
 ## Configuration / environment notes
 
 - No secrets are required for the core site (no auth, no database).
+- **No cookies are set by this site.** The one persisted preference above uses `localStorage`, so
+  there is no cookie banner obligation and no per-request state.
 - If a contact form is added: store the form-handling service's API key (e.g. Resend, Formspree) as an
   environment variable in Vercel's project settings — never commit it to the repo, and never expose it
   client-side (route form submissions through a server action or API route, not directly from the

@@ -3,6 +3,7 @@ import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LenisProvider } from "@/components/ui/LenisProvider";
 import { MotionProvider } from "@/components/ui/MotionProvider";
+import { themeInitScript } from "@/lib/theme";
 
 // Both are variable fonts. `weight` is intentionally omitted so next/font loads
 // the full variable axis — Space Grotesk's natural range is exactly 300-700.
@@ -58,13 +59,19 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // The theme class is ALWAYS explicit — "dark" here, swapped for "light" by
-    // the Ticket 11 toggle. Token values would flip correctly without it (they
-    // key off `:root` and `html.light`), but Tailwind's `dark:` variant matches
-    // on a literal `.dark` class: leave it off and every `dark:` utility in the
-    // codebase silently never applies. Failing loudly beats failing quietly.
+    // the theme toggle (Ticket 11, shipped). Token values would flip correctly
+    // without it (they key off `:root` and `html.light`), but Tailwind's
+    // `dark:` variant matches on a literal `.dark` class: leave it off and
+    // every `dark:` utility in the codebase silently never applies. Failing
+    // loudly beats failing quietly.
     //
-    // suppressHydrationWarning is set so Ticket 11's pre-hydration theme script
-    // (which rewrites this class before React attaches) drops in without rework.
+    // THIS STAYS "dark" UNCONDITIONALLY, on every route. It is what the static
+    // prerender ships; the pre-paint script in <head> below rewrites it for a
+    // returning light-mode visitor. Do not make it dynamic — reading a cookie
+    // here would opt every route out of static rendering.
+    //
+    // suppressHydrationWarning is what makes that rewrite legal: the class React
+    // sees on the client differs from the one it rendered on the server.
     <html
       lang="en"
       suppressHydrationWarning
@@ -72,7 +79,40 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         {/*
-          NO-JS NET for every <Reveal> on the site, present and future.
+          THE ANTI-FLASH SCRIPT — Ticket 11. MUST STAY FIRST IN <head>, and must
+          stay a RAW inline <script>.
+
+          A classic inline script (no async, no defer, not type="module") is
+          executed synchronously by the parser at the point it appears — before
+          <body> is parsed and therefore before the first paint. That ordering
+          is the entire mechanism. `next/script` with
+          strategy="beforeInteractive" is injected and hydration-managed rather
+          than emitted verbatim in document order, so it cannot do this.
+
+          The served HTML is static on every route and always carries
+          class="dark" on <html> above. Without this script a returning
+          light-mode visitor paints near-black first and flips to warm-white
+          when React hydrates — hundreds of ms later on a throttled connection.
+          That is a returning-visitor-only bug, invisible in normal
+          development, and it is exactly what Ticket 11's acceptance criterion
+          forbids.
+
+          The body of the script lives in `lib/theme.ts` so the storage key has
+          ONE definition site-wide — the script cannot import, so the string is
+          built there from the key constant. It is a static author-controlled
+          literal with no user or URL data in it, so there is no injection
+          surface.
+
+          `suppressHydrationWarning` on <html> (above) is what lets this rewrite
+          the class before React attaches without a warning. It was put there in
+          Ticket 1 for this.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/*
+          NO-JS NET — TWO RULES, TWO ATTRIBUTES, ONE PLACE.
+
+          Rule 1, [data-reveal] — for every <Reveal> on the site, present and
+          future.
 
           Framer Motion writes `initial` styles into the SERVER-RENDERED markup
           — that is how it avoids a flash of unstyled content — so
@@ -84,9 +124,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           and in the accessibility tree, so screen readers and crawlers are
           unaffected and an audit would not catch it.
 
-          One rule covers every consumer, costs nothing at runtime, and is
-          keyed to the `data-reveal` attribute Reveal sets on its root. Rename
-          that attribute and this must change in the same commit.
+          Rule 2, [data-theme-toggle] — for the Ticket 11 theme toggle. With JS
+          disabled the script above never runs, <html> keeps class="dark", and
+          the site is dark and entirely correct — but the toggle is
+          server-rendered markup, so it would render and do nothing: a DEAD
+          CONTROL. `display: none` hides it AND removes it from the tab order
+          and the accessibility tree, so keyboard focus cannot land on
+          something inert.
+
+          Each rule is keyed to a data attribute its component sets on its root
+          (`data-reveal` on Reveal, `data-theme-toggle` on ThemeToggle). RENAME
+          EITHER ATTRIBUTE AND THIS SELECTOR MUST CHANGE IN THE SAME COMMIT.
+          Both rules cost nothing at runtime.
+
+          Caveat, stated rather than glossed: <noscript> applies only when
+          scripting is DISABLED. If JS is enabled but fails to load or throws,
+          the toggle is visible and inert. That is true of the whole app and is
+          not this net's job to solve.
         */}
         <noscript
           // A static literal, so there is no injection surface — and this form
@@ -101,7 +155,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           // Verified present, verbatim, in the built HTML — not assumed.
           dangerouslySetInnerHTML={{
             __html:
-              "<style>[data-reveal]{opacity:1!important;transform:none!important}</style>",
+              "<style>[data-reveal]{opacity:1!important;transform:none!important}[data-theme-toggle]{display:none!important}</style>",
           }}
         />
       </head>
