@@ -169,3 +169,56 @@ export interface LearningEntry {
   readonly completedDate?: string;
   readonly link?: string;
 }
+
+/**
+ * One employment entry — ADDED BY TICKET 8. Everything above this comment is
+ * Ticket 2's; nothing there was edited, renamed or reordered.
+ *
+ * REQUIRED: `company`, `role`, `startDate`. Three, deliberately. An entry that
+ * cannot state who, what and when is not resume-clean, and making `role`
+ * optional would licence an entry that renders an employer and a stack with no
+ * statement of what he did.
+ *
+ * A ROLE IS A JOB TITLE, NOT A DESCRIPTION OF THE WORK. It is only ever a
+ * string Saad has confirmed was the actual title. CLAUDE.md's "2-month
+ * fullstack internship" describes the work; inferring a title from it — even a
+ * plausible one — is fabrication in the one section a recruiter may verify.
+ *
+ * There is deliberately NO `employmentType` ("Internship" / "Full-time") field:
+ * the role title already carries it, and a second source of truth for "was this
+ * an internship" is the drift `Project` refused when it dropped `featured` and
+ * `order`. No `id` or `slug` either — experience entries have no URL, and
+ * consumers key on company + startDate.
+ *
+ * No `bullets` array. This site has no bullet register anywhere; prose goes in
+ * `description` and splits on blank lines exactly as `Project.description` does.
+ */
+export interface Experience {
+  /** Exact display casing. Content, not styling — never normalised. */
+  readonly company: string;
+  /** The job title, verbatim as it was. See the note above. */
+  readonly role: string;
+  /** ISO YYYY-MM. Components format it; never `new Date()`, never `Intl`. */
+  readonly startDate: string;
+  /**
+   * ISO YYYY-MM.
+   *
+   * AN ABSENT KEY MEANS THE ROLE IS ONGOING. That is the one implicit encoding
+   * in this type, and it is deliberate: the alternative — `endDate: "present"`
+   * — puts a DISPLAY WORD inside a date field, i.e. copy in the data layer,
+   * which the hard rules at the top of this file forbid outright. The renderer
+   * supplies the label. Unexercised today; the internship ended.
+   */
+  readonly endDate?: string;
+  /** City / area, as Saad states it. Never inferred, never "Remote" by guess. */
+  readonly location?: string;
+  /** Canonical vendor casing. Order is meaningful and is not sorted. Omit
+   *  entirely for a role with no meaningful stack — never pad one. */
+  readonly stack?: readonly string[];
+  /** What was built, in Saad's words. Blank lines split paragraphs. Omitting
+   *  it is a complete answer: nothing substitutes for it. */
+  readonly description?: string;
+  /** The employer's site, verified loading. Omit if none, dead, or if Saad
+   *  would rather not link it — a guessed URL is a fabricated one. */
+  readonly url?: string;
+}
