@@ -50,5 +50,13 @@ export const currentlyLearning: readonly LearningEntry[] = [];
  *
  * Update this whenever the array above is reviewed, even if nothing changed:
  * "reviewed and still nothing in progress" is real information.
+ *
+ * ONLY THE MONTH AND YEAR EVER RENDER. The value is YYYY-MM-DD, but the
+ * section formats it through lib/formatMonthYear.ts, which takes the first two
+ * segments — so "2026-08-17" displays as "August 2026". Keep the day anyway:
+ * it costs nothing, it makes this constant useful as a record of when the
+ * review actually happened, and month precision is the right granularity for a
+ * freshness stamp a visitor reads. Noted here rather than only in the
+ * component, because this line is what someone edits.
  */
 export const CURRENTLY_LEARNING_UPDATED = "2026-08-17";
