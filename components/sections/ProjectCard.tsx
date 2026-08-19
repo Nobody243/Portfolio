@@ -129,9 +129,20 @@ export function ProjectCard({
         `duration-200` and `ease-in-out` happen to equal DURATION.micro (0.2s)
         and EASE.ui (cubic-bezier(0.4, 0, 0.2, 1)) NUMERICALLY, by
         coincidence, not by reference. Retuning easing.ts will not move these.
+
+        TRANSITION IS SCOPED TO `border-color`, NOT `transition-colors`.
+        The only thing that changes on hover or focus here is the border. But
+        `transition-colors` also covers `background-color`, and Ticket 11
+        measured what that cost: on a theme flip the page snapped to #fdfcfa at
+        0ms while these cards eased rgb(18,18,20) -> 164 -> 213 -> 240 -> 244
+        over ~200ms — four large near-black rectangles on an already-white
+        page, their own text invisible inside them, for a fifth of a second.
+        Scoping the property keeps the hover ease and makes the theme flip
+        instant here as everywhere else. `outline-color` is still deliberately
+        not transitioned, so the focus ring stays immediate.
       */
       whileHover="hover"
-      className="relative flex h-full flex-col overflow-hidden border border-accent-working/30 bg-elevated transition-colors duration-200 ease-in-out hover:border-accent-working/55 has-[a:focus-visible]:border-accent-working/55 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-accent-working"
+      className="relative flex h-full flex-col overflow-hidden border border-accent-working/30 bg-elevated transition-[border-color] duration-200 ease-in-out hover:border-accent-working/55 has-[a:focus-visible]:border-accent-working/55 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-accent-working"
     >
       {/*
         THE COVER WRAPPER CONTAINS ONLY THE <Image>. Nothing else may be added

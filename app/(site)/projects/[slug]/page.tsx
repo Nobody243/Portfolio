@@ -36,11 +36,27 @@ import { getProjectBySlug, projectSlugs } from "@/content/projects";
  * All five detail pages are static at build time. `projectSlugs` already
  * exists in `content/projects.ts` and its comment names this ticket.
  *
- * `export const dynamicParams = false` was considered and REJECTED: it would
- * be a second gate answering the question `notFound()` already answers, and it
- * behaves differently in dev than in prod. One mechanism that works
- * identically everywhere is easier to trust.
+ * `export const dynamicParams = false` was originally REJECTED here as "a
+ * second gate answering the question `notFound()` already answers". THAT WAS
+ * WRONG, corrected 2026-08-19 after Ticket 18 measured the difference:
+ *
+ *   - WITHOUT it, an unknown slug renders this route dynamically and calls
+ *     notFound(). Next 16 answers 404 but serves `<html id="__next_error__">`
+ *     with an EMPTY <body>, painting only on hydration. With JS blocked,
+ *     /projects/<unknown> is a blank white page.
+ *   - WITH it, the routing layer 404s before this component runs and the
+ *     themed not-found page is fully server-rendered.
+ *
+ * All five slugs are known at build time and there is no dynamic project
+ * source, so nothing is lost by closing the route. The dev-vs-prod difference
+ * the old note cited is real but minor beside shipping a blank page.
+ *
+ * `notFound()` STAYS below. It is not redundant — it is what makes the type
+ * narrowing honest, and it is the guard if a slug is removed from
+ * content/projects.ts while a link to it survives.
  */
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return projectSlugs.map((slug) => ({ slug }));
 }
