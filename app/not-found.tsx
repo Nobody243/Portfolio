@@ -1,0 +1,149 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { BACK_LINK_LABEL } from "@/components/sections/projectDetailContent";
+
+/**
+ * The site's 404 — Ticket 18, Tier 3.
+ *
+ * A SERVER COMPONENT, and it must stay one. Next renders this file INSIDE the
+ * root layout, so it already has `<html>`, `<body>`, both font variables, the
+ * theme class and the `<noscript>` net. Re-declaring `<html>` or `<body>` here
+ * would nest a second document; only `app/global-error.tsx` renders those, and
+ * that file deliberately does not exist (see `app/error.tsx`).
+ *
+ * WHAT REACHES THIS FILE. `notFound()` in
+ * `app/(site)/projects/[slug]/page.tsx` — the live case, since any typo'd or
+ * stale `/projects/<slug>` URL lands here — plus every unmatched path on the
+ * site. Route groups do not create a boundary, so `(site)` has no closer
+ * `not-found.tsx` and this one serves it.
+ *
+ * THE TWO PATHS RENDER DIFFERENTLY, AND THAT IS NEXT'S BEHAVIOUR, NOT THIS
+ * FILE'S. Measured against `next start`, both return HTTP 404:
+ *   - An unmatched path (`/nope`) is served from the prerendered `/_not-found`
+ *     and arrives as COMPLETE SERVER-RENDERED HTML — layout, theme class,
+ *     fonts, stylesheet, `<title>Page not found — Saad</title>`.
+ *   - A runtime `notFound()` on the dynamic `/projects/[slug]` route arrives as
+ *     Next's `<html id="__next_error__">` shell with an empty `<body>` and this
+ *     page in the flight payload, so it paints on hydration. The title is still
+ *     correct in that HTML. VERIFIED PRE-EXISTING: the same request returned
+ *     the same empty shell with Next's own default 404 before this file
+ *     existed, so it is not a regression introduced here.
+ * `export const dynamicParams = false` on the slug route makes that second case
+ * server-render identically to the first — measured, it does. It is NOT applied
+ * here: that route's header records rejecting it for a stated reason, and
+ * reversing another ticket's documented decision is Saad's call, not this
+ * file's. Raised in `.claude/handoff/ticket-18-implementation.md`.
+ *
+ * THE ATTEMPTED URL IS DELIBERATELY NOT ECHOED. It is not reliably available
+ * to this component in the first place, and rendering user-controlled path
+ * text back into the page is reflected content for no benefit — a visitor who
+ * mistyped a URL can read their own address bar.
+ *
+ * COPY REGISTER: plain and specific, matching every other surface on the site.
+ * NO APOLOGY COPY — no "Oops", no "we're sorry", no exclamation mark, no
+ * invented error code, no support address. The ticket forbids it by name, and
+ * a 404 does not need to route to the Contact section, which already exists
+ * one link away at the bottom of `/`.
+ *
+ * NO `Reveal` AND NO MOTION ANYWHERE ON THIS PAGE. Every other section on the
+ * site fades in; this one must not. The two links are the page's only purpose
+ * and its only exits, and an exit that fades in is worse than one that is
+ * simply there — the same reasoning that keeps the detail page's back links
+ * outside a `Reveal`.
+ */
+
+/**
+ * Composes through the root layout's `template: "%s — Saad"` to
+ * "Page not found — Saad". VERIFIED in the built HTML of a 404 response
+ * (`npm run start`, `/projects/does-not-exist`), not assumed: `template`
+ * applies to descendant titles only, and `not-found.tsx` is a special file
+ * rather than an ordinary page.
+ *
+ * NO `description`, no `openGraph`. A 404 is not a shareable surface, and
+ * `og:image` is site-wide missing under its own ticket.
+ */
+export const metadata: Metadata = {
+  title: "Page not found",
+};
+
+/** Saad's copy, verbatim. Two strings for one route is fixed-arity chrome, not
+ *  a collection, so it stays in the file that renders it — the same reasoning
+ *  `projectDetailContent.ts` states for its six labels. Do not paraphrase
+ *  either string to fit a layout. */
+const HEADING = "Page not found";
+const BODY = "That URL doesn't match anything on this site.";
+
+/**
+ * `All work` is IMPORTED, not retyped. `projectDetailContent.ts` records that
+ * its destination `/#work` is derived from `PROJECTS_HEADING` and that
+ * renaming "Work" is a multi-file commit; importing the label means this page
+ * cannot become the file that gets missed. The module is pure strings with no
+ * "use client" and no dependencies, so the import costs nothing.
+ *
+ * `Home` is local because no constant for it exists anywhere on the site —
+ * there is no site nav, and this is the first surface that has ever needed to
+ * name `/`.
+ */
+const HOME_LINK_LABEL = "Home";
+const WORK_HREF = "/#work";
+const HOME_HREF = "/";
+
+/** Rule S-1's spine, byte-identical to `app/(site)/projects/[slug]/page.tsx`,
+ *  `Contact` and the five shipped sections: 21 / 55 / 89px inside a 1440px
+ *  centred container. NOTHING HERE IS CENTRED. A centred hero-style block is
+ *  the obvious move on an error page and it would be the site's first centred
+ *  content column, which Rule S-1 forbids outright. */
+const CONTAINER = "mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl";
+
+/**
+ * The same standalone-nav atom the detail page's back links use, character for
+ * character: 12px mono, `accent-working`, no underline, no arrow glyph, no
+ * pill. `accent-working` and not `hero-accent` because this page sits on
+ * `bg-base`, which flips with the theme, rather than on the pinned dark plate.
+ *
+ * NOT EXTRACTED INTO A SHARED CONSTANT. Doing so would mean editing the
+ * shipped detail route, which this ticket does not own, to save one string.
+ * Extract it the moment a fourth consumer appears — that is the point at which
+ * the duplication starts costing more than the refactor.
+ */
+const LINK =
+  "text-caption font-mono text-accent-working focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working";
+
+export default function NotFound() {
+  return (
+    // `pt-2xl pb-2xl` — Rule S-2's standard 89px, with no hard colour edge
+    // above or below to pay for. There is no `min-h` and there must not be
+    // one: `<body>` already carries `bg-base`, so a short page leaves the
+    // correct colour below it in both themes, and stretching this to the
+    // viewport would make an empty column the point of the page.
+    <main className="w-full bg-base pt-2xl pb-2xl">
+      <div className={CONTAINER}>
+        {/* `text-h2`, never `text-h1` — the h1 step is the hero's alone. The
+            element is still an `<h1>` because this is the page's only heading;
+            the size class and the level are independent decisions. Weight is
+            left at the inherited 400, as in every shipped section. */}
+        <h1 className="text-h2 text-fg">{HEADING}</h1>
+
+        {/* Full opacity: this is the page's primary content, not metadata, so
+            the `/70` floor never comes into it. `34rem` is the site's reading
+            measure. */}
+        <p className="mt-lg max-w-[34rem] text-body text-fg">{BODY}</p>
+
+        {/* Two exits, side by side, wrapping rather than overflowing at 360px
+            — 318px of usable width there against two short mono words. The
+            gap is 34px, the same value that separates Contact's link blocks.
+            Work first: a visitor who reached a dead `/projects/<slug>` was
+            looking for the gallery, not the top of the page. */}
+        <div className="mt-xl flex flex-wrap gap-lg">
+          <Link href={WORK_HREF} className={LINK}>
+            {BACK_LINK_LABEL}
+          </Link>
+          <Link href={HOME_HREF} className={LINK}>
+            {HOME_LINK_LABEL}
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
