@@ -258,5 +258,11 @@ unknown `/projects/<slug>` renders a themed 404 with a link back to `/#work`; bo
 and S-2 and both light and dark themes; no fabricated apology copy.
 **Dependencies:** Tickets 1, 7, 11. Flagged in Ticket 3 (`error.tsx`) and Ticket 7 (`not-found.tsx`),
 neither of which owned it.
+**Inherited from Ticket 11:** both pages are `bg-base`, so each takes **one** `<ThemeToggle>` with
+`THEME_TOGGLE_ON_BASE` (`components/ui/ThemeToggle.tsx`). The toggle is one in-flow instance per
+route, at the top, right-aligned inside the same `mx-auto w-full max-w-[1440px] px-md sm:px-xl
+lg:px-2xl` container the back link uses — never fixed or floating. `className` is required and has no
+default; passing `THEME_TOGGLE_ON_HERO` here would render `hero-accent` on a surface that flips.
+Without it, a light-mode visitor who hits an error has no way back to light mode on that page.
 
 ---

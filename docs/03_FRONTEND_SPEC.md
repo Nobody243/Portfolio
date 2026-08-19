@@ -276,9 +276,32 @@ who have that OS setting enabled.
   rather than a hard-color border.
 - **Nav:** minimal, likely a slim fixed bar or a corner menu — should not compete with the hero's first
   3 seconds of impact.
-- **Theme toggle:** simple icon-based switch, persists user preference (local state / cookie, not
-  localStorage per artifact constraints if built as an artifact — a real deployed Next.js site can use
-  localStorage normally).
+- **Theme toggle — SHIPPED IN TICKET 11, and NOT as this line originally specified.** It read "simple
+  icon-based switch, persists user preference (local state / cookie, not localStorage per artifact
+  constraints if built as an artifact — a real deployed Next.js site can use localStorage normally)."
+  Both halves were corrected against what was actually built, because the code is the source of truth:
+
+  - **A 12px JetBrains Mono text button, not an icon switch.** There is **no icon system on this site**
+    (two inline SVGs exist, both in `HeroHeadline`) and **no radius token**. A switch needs a visible
+    track and knob, which needs a radius; an icon toggle needs an icon set. Introducing either for a
+    preference control would make it the site's first non-typographic widget. The shipped control is
+    the exact shape of the detail route's `BACK_LINK`: 12px mono, teal, no underline, no border, no
+    background, no hover state, and **zero motion** — including the theme flip itself, which is
+    instant.
+  - **`localStorage`, not a cookie.** The parenthetical above already licensed it ("a real deployed
+    Next.js site can use localStorage normally"), and there is a second, harder reason: reading a
+    cookie in the root layout is a dynamic API, so it would opt **every** route out of static
+    prerendering. Key: `saad-portfolio-theme`. See `docs/02_TECHNICAL_ARCHITECTURE.md`.
+
+  **Two exported class constants, `className` required with no default** — `THEME_TOGGLE_ON_BASE`
+  (`accent-working`) and `THEME_TOGGLE_ON_HERO` (`hero-accent`), same pattern and same reasoning as
+  `ExternalLink`'s pair: the surface a control sits on is the call site's knowledge, and a defaulted
+  surface prop renders a legible-but-wrong colour on the pinned hero plate, visible only after a
+  toggle nobody performs while implementing. **Ticket 18 inherits both constants** — `error.tsx` and
+  `not-found.tsx` are `bg-base` and take `THEME_TOGGLE_ON_BASE`.
+
+  **One in-flow instance per route, at the top**, never fixed or floating: a fixed control crosses
+  three surface contexts on `/`, and at 360px an opaque fixed chip occludes body text on every route.
 
 ## Third-party integrations (kept intentionally minimal)
 

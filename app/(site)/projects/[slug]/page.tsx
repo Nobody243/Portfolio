@@ -4,16 +4,20 @@ import { notFound } from "next/navigation";
 
 import { ProjectDetail } from "@/components/sections/ProjectDetail";
 import { BACK_LINK_LABEL } from "@/components/sections/projectDetailContent";
+import {
+  ThemeToggle,
+  THEME_TOGGLE_ON_BASE,
+} from "@/components/ui/ThemeToggle";
 import { getProjectBySlug, projectSlugs } from "@/content/projects";
 
 /**
  * Project detail route — Ticket 7, Tier 3.
  *
  * THIS FILE OWNS THE PAGE FRAME AND NOTHING ELSE: `<main>`, the page
- * background, the page's vertical padding, both back links,
- * `generateStaticParams`, `generateMetadata` and `notFound()`. Everything
- * below the top back link is `<ProjectDetail>`, which owns the site container
- * and the content.
+ * background, the page's vertical padding, both back links, this route's one
+ * `<ThemeToggle>` (Ticket 11), `generateStaticParams`, `generateMetadata` and
+ * `notFound()`. Everything below the top row is `<ProjectDetail>`, which owns
+ * the site container and the content.
  *
  * THE BACK LINKS ARE DELIBERATELY OUTSIDE `<ProjectDetail>`. That is what
  * reconciles two contracts from the 6/6b split: "the detail's first visual
@@ -150,10 +154,27 @@ export default async function ProjectDetailPage({
 
   return (
     <main className="w-full bg-base pt-xl pb-2xl lg:pt-2xl">
-      <div className={`${CONTAINER} mb-lg`}>
+      {/*
+        THE TOP ROW CARRIES TWO THINGS AS OF TICKET 11: the back link on the
+        spine, and this route's single theme toggle at the mirrored right inset.
+        `justify-between` is safe here specifically because n is FIXED AT TWO —
+        `Contact.tsx` bans it for a list whose length can change, which this is
+        not. At 360px both are 12px mono inside a 318px content box; they cannot
+        collide.
+
+        IMPORTING A CLIENT COMPONENT DOES NOT MAKE THIS ROUTE A CLIENT
+        COMPONENT. This file, `ProjectDetail` and everything below it stay
+        server-rendered; `ThemeToggle` is the route's first client boundary and
+        it is a leaf.
+
+        THE BOTTOM BACK-LINK ROW IS UNCHANGED — one toggle per route. A second
+        one at the foot would be a second control for a preference already set.
+      */}
+      <div className={`${CONTAINER} mb-lg flex items-center justify-between`}>
         <Link href={BACK_HREF} className={BACK_LINK}>
           {BACK_LINK_LABEL}
         </Link>
+        <ThemeToggle className={THEME_TOGGLE_ON_BASE} />
       </div>
 
       <ProjectDetail project={project} />

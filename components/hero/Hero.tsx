@@ -28,6 +28,10 @@ import { HeroHeadline } from "@/components/hero/HeroHeadline";
 import { HeroLoader } from "@/components/hero/HeroLoader";
 import { HeroScene, type SceneMeasurements } from "@/components/hero/HeroScene";
 import { SceneCanvas } from "@/components/hero/SceneCanvas";
+import {
+  ThemeToggle,
+  THEME_TOGGLE_ON_HERO,
+} from "@/components/ui/ThemeToggle";
 import { DURATION } from "@/lib/animation/easing";
 import { GSAP_EASE, gsap, ScrollTrigger } from "@/lib/animation/gsap";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
@@ -353,6 +357,50 @@ export function Hero() {
         fallback={heroFallback}
         cueActive={inView && tabVisible}
       />
+
+      {/*
+        THE THEME TOGGLE — `/`'s single instance. Ticket 11.
+
+        NOT GATED ON `revealed`, deliberately, and unlike the scroll cue. The
+        cue is mount-gated because it animates from opacity 0 and a focusable
+        element at opacity 0 puts keyboard focus on something invisible; this
+        control never animates and is at full opacity from first paint, so that
+        trap does not apply. Gating it would also mean a visitor who finds dark
+        mode hard to read waits out a 1.45s camera move before they can fix it,
+        and a control that fades in mid-load is itself a second load event.
+
+        NOTHING IN THE PHASE MACHINE, THE REFS OR THE SCROLLTRIGGER IS INVOLVED.
+        This is a sibling of the canvas, not a participant in the reveal.
+
+        z-30 sits above HeroLoader (z-20) and HeroHeadline (z-10). The loader is
+        `pointer-events-none` today, so z-30 is not strictly required for
+        clickability — but relying on another component's implementation detail
+        is how this breaks silently later.
+
+        `pointer-events-none` on the wrapper + `pointer-events-auto` on the
+        control is HeroHeadline's exact pattern, and it is what keeps the canvas
+        behind the full-width wrapper interactive.
+
+        THE CONTAINER IS BYTE-IDENTICAL to About / Skills / Projects /
+        Experience / Contact and to the detail route's CONTAINER, with
+        `justify-end`. Rule S-1 reserves the negative space on the right for
+        CONTENT; a control is not content, and anchoring it to the right inset
+        of the same container is the spine measured from the other side — its
+        right edge lands at 21 / 55 / 89px, mirroring the left spine at every
+        breakpoint. Nothing is centred and the void stays on the right; the
+        control sits at the EDGE of it, not in the middle.
+
+        `top-lg sm:top-xl` mirrors HeroLoader's `bottom-lg sm:bottom-xl`, so the
+        hero's two corner elements have a symmetric top/bottom margin. No new
+        values.
+      */}
+      <div className="pointer-events-none absolute inset-x-0 top-lg z-30 sm:top-xl">
+        <div className="mx-auto flex w-full max-w-[1440px] justify-end px-md sm:px-xl lg:px-2xl">
+          <ThemeToggle
+            className={`${THEME_TOGGLE_ON_HERO} pointer-events-auto`}
+          />
+        </div>
+      </div>
     </section>
   );
 }
