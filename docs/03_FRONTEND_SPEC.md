@@ -189,6 +189,20 @@ Recorded here rather than left in a handoff file because it already constrains l
 morphs a teal-bordered card into a neutral-bordered cover, and every later ticket putting an image on
 `bg-base` inherits the choice.
 
+> **Exercised in Ticket 6b, and the border deliberately does NOT animate.** The morph's travelling
+> element carries the destination's `border-fg/25` from frame 1; the card's `border-accent-working/30`
+> stays on the card and never participates. That is what Motion does by default with `layoutId` — the
+> newly-mounted element renders with its own className and is projected onto the source rect — so it
+> needed no code, only a decision not to fight it. A teal→neutral crossfade was rejected: it would put
+> `accent-working` around a static image for ~350ms, it would be the site's first accent-to-neutral
+> colour transition, and it would blur the exact read the split exists to produce. **The discontinuity
+> is the message:** identical borders read as "the card grew", different borders read as "the card
+> opened into a page".
+>
+> Known sub-pixel artefact, recorded so it is not rediscovered as a bug: Motion corrects
+> `border-radius` for layout scale but not `border-width`, so a 1px hairline on an element measured at
+> 912px and displayed at 428px renders at ~0.47px and grows to 1px across the morph.
+
 ### Section layout rules
 
 *Established in Ticket 4 and binding on every section ticket that follows. These lived only in an
@@ -232,6 +246,49 @@ ships `pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl` on a full-bleed `bg-hero-surface` `<fo
 - **It is a `<footer>`, a SIBLING of `<main>`,** so it is the `contentinfo` landmark. A `<footer>`
   nested inside `<main>` is scoped to `<main>` and is not a landmark at all — nothing errors and the
   benefit silently evaporates.
+
+**Rule S-3 (one frame owns the detail page's vertical chrome). Established in Ticket 6b, binding on
+every later edit to `/projects/<slug>`.** That URL has two rendering paths — the real route, and the
+intercepted overlay at `app/(site)/@modal/(.)projects/[slug]/` — and the cover image has to land at
+the same y position in both, because a refresh or a shared link silently swaps one for the other.
+
+`components/sections/ProjectDetailFrame.tsx` is therefore the single owner of everything above and
+below `<ProjectDetail>`: the page background, `pt-xl pb-2xl lg:pt-2xl`, the site container, the top
+row (affordance + the surface's one `<ThemeToggle>`) and the bottom row. **Both paths render it.**
+The route file owns only the routing contract; the overlay owns only the dialog.
+
+- **Vertical chrome added to either route file instead of the frame reintroduces the defect**, and
+  nothing — not `tsc`, not `lint`, not the build — will say so. `docs/04` recorded the offset as
+  106px below 1024px and 140px at and above it; those numbers are now a consequence of the frame's
+  three declarations rather than a measurement anyone has to keep in sync.
+- **Two required props, neither with a default.** `as: "main" | "div"` — a default would silently
+  nest a second `<main>` landmark under the homepage's while the overlay is open. `affordance:
+  ReactNode` — the route passes `All work`, the overlay passes `Close`; a `variant` string instead
+  would put a `router.back()` and a `"use client"` inside the frame and drag the whole detail page,
+  including SNA's ~1,400-character description, into the client bundle.
+- **The affordance is rendered twice**, top and bottom, as the same node. It therefore cannot carry
+  a once-per-document attribute — `autoFocus` in particular, which React applies by calling
+  `.focus()` on commit, so the bottom copy would win.
+
+**Rule S-4 (the overlay has no scrim, no radius, and three exits). Ticket 6b.** The project overlay
+is a full-viewport opaque `<dialog>` on `bg-base`, holding Rule S-1's spine byte-identically inside
+it. It is **not** a centred sheet: that would violate S-1 outright and would shrink the cover, which
+would destroy the geometry parity S-3 exists to guarantee.
+
+- **No scrim token was invented, and none should be.** The surface is opaque and covers the
+  viewport, so a scrim would tint nothing. `dialog::backdrop` is set to transparent in
+  `app/globals.css` so the UA's own translucent black never shows.
+- **The consequence is that there is no visible backdrop to click.** Dismissal is **Escape, the Close
+  control (top and bottom), and browser Back** — three exits, all keyboard-reachable. That is a
+  decision, not an omission; a backdrop-click affordance would require a visible backdrop, which
+  would require a scrim, which would require a token this site has decided not to have.
+- **The modal work is the platform's.** `dialog.showModal()` supplies initial focus, the focus trap,
+  background inerting and focus restoration to the originating card link. None of it is hand-rolled,
+  and `aria-modal` is not hand-written because `showModal()` implies it.
+- **Scroll is locked at the document, not just in Lenis.** `syncTouch: false` means touch scrolling
+  is native, and under reduced motion there is no Lenis instance at all, so `html[data-overlay-open]
+  { overflow: clip }` is what actually holds — with a JS-measured `padding-right` compensating for
+  the removed scrollbar. Never hard-code a scrollbar width.
 
 **Fonts:**
 - Space Grotesk — all headings, UI, body text

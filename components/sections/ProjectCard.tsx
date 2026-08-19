@@ -32,12 +32,18 @@ import type { Project } from "@/content/types";
  * card that is itself a link is a nested-interactive violation and doubles the
  * gallery's tab stops), `description` and `screenshots` (detail-page payload).
  *
- * NO `layoutId` ANYWHERE IN THIS FILE, not even an inert one. The shared-
- * element morph is Ticket 6b, scheduled after Ticket 7 (plan §0.3, G1 =
- * A-split), because the morph's destination geometry is Ticket 7's output. An
- * unmatched `layoutId` is not free: it still enrols the element in Framer's
- * layout-projection tree and measures it on mount. The insertion point is the
- * cover wrapper below, and it is documented there rather than stubbed.
+ * THE `layoutId` IS SHIPPED — Ticket 6b. It is on the cover wrapper below and
+ * NOWHERE ELSE IN THIS FILE. Its value is `project-cover-${slug}` and its only
+ * other holder is `<CoverFrame>` on the detail page, so five cards and one open
+ * cover can never contend. Do not add a second one anywhere: an unmatched
+ * `layoutId` is not free — it still enrols the element in Motion's
+ * layout-projection tree and measures it on mount.
+ *
+ * The morph only actually runs on a CLIENT navigation from the gallery, where
+ * `app/(site)/@modal/(.)projects/[slug]/page.tsx` intercepts the link and keeps
+ * `/` mounted behind the overlay. On a hard load of `/projects/<slug>` this
+ * component is not on the page at all, the `layoutId` has no partner, and the
+ * cover simply renders. Both paths are correct; only one of them animates.
  */
 
 /**
@@ -148,8 +154,23 @@ export function ProjectCard({
         THE COVER WRAPPER CONTAINS ONLY THE <Image>. Nothing else may be added
         to it — no overlay, no gradient scrim, no category badge, no caption,
         no "View project" hover panel, no play glyph. It is Ticket 6b's morph
-        SOURCE and it needs a stable, meaningful rect (plan §0.4). This is also
-        where 6b's `layoutId` goes; it is deliberately absent today.
+        SOURCE and it needs a stable, meaningful rect.
+
+        `layoutId` AND `whileHover`'s SCALE COEXIST ON THIS ONE ELEMENT, and
+        that is safe rather than lucky. The concern was that a card clicked
+        mid-hover would be measured at 1.02x and start the morph 2% too large.
+        It cannot: Motion's projection node calls `removeTransform()` before it
+        records a layout box, which strips `scale` out of the element's own
+        `latestValues` and out of every ancestor's. Verified by reading
+        `motion`'s projection source, not assumed — and it is the reason the
+        hover scale did NOT have to move to an inner element, which would have
+        broken the one-child rule above.
+
+        THE `transition` BELOW IS THE HOVER'S, NOT THE MORPH'S. A `layoutId`
+        animation reads `transition` from the component it is animating INTO —
+        `<CoverFrame>` on the detail page, which sets `DURATION.ui` +
+        `EASE.reveal`. `DURATION.micro` + `EASE.ui` here governs the 1.02 hover
+        only. The two are independent and both are correct; do not "unify" them.
 
         Scale 1.02, not 1.05: at a 428px slot 1.02 pushes the image edge 4.3px
         past the frame, which reads as the image pressing forward against its
@@ -164,6 +185,7 @@ export function ProjectCard({
         wayfinding.
       */}
       <motion.div
+        layoutId={`project-cover-${slug}`}
         variants={{ hover: { scale: 1.02 } }}
         transition={{ duration: DURATION.micro, ease: EASE.ui }}
       >

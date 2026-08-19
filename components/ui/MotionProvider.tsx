@@ -14,15 +14,18 @@ import { DURATION, EASE } from "@/lib/animation/easing";
  * without each section re-implementing its own media query.
  *
  * The default transition is the Tier 2/3 reveal curve, since that covers most
- * of the site. Two known places will override it locally rather than change it
- * here: Tier 1 hero beats (`DURATION.hero` / `EASE.hero`) and the Ticket 6b
- * `layoutId` card morph, which may want a spring instead of a tween.
+ * of the site. Two places override it locally rather than changing it here:
+ * Tier 1 hero beats (`DURATION.hero` / `EASE.hero`), and Ticket 6b's card→cover
+ * morph, which sets `DURATION.ui` + `EASE.reveal` on `CoverFrame`.
  *
- * That morph is TICKET 6b, NOT TICKET 6 — Ticket 6 shipped the gallery with
- * plain `Link` navigation and no `layoutId` at all (ticket-6-plan.md §0.3,
- * G1 = A-split). 6b is scheduled after Ticket 7, because the morph's
- * destination geometry is Ticket 7's output. If 6b is never built, nothing
- * here needs undoing; delete this sentence and the clause above it instead.
+ * THAT MORPH SHIPPED AS A TWEEN, NOT A SPRING. This header used to predict "it
+ * may want a spring instead of a tween"; the prediction was tested and
+ * rejected. A spring's overshoot would push the cover past its final rect —
+ * visibly, against the `<h1>`'s fixed left edge one row below — and it would
+ * introduce a fourth curve family into a three-ease system. `reducedMotion`
+ * below is what turns the whole morph off for a user who asks for that: it
+ * drops transform AND layout animation while keeping opacity, so the cover
+ * appears at its final rect and the overlay's fade still runs.
  *
  * Renders no DOM element, so it can wrap anything without affecting layout.
  */

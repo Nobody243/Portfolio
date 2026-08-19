@@ -121,6 +121,13 @@ carried by `StaticImageData` — no hand-copied width/height, no layout shift.
 > overlay top inset to compensate — it desynchronises silently the day anyone edits `pt-xl` or
 > `mb-lg` in the route file.
 >
+> **Correction to how that paragraph frames the problem, made while building 6b.** "It will jump
+> ~140px the moment a user refreshes" describes a morph artefact, and a refresh is a fresh document —
+> there is no morph to jump, and Motion never sees the two states. The real defect is **permanent
+> overlay-vs-route parity**: the same project, at the same URL, rendered at two different y positions
+> depending on how you arrived. The prescribed fix was right either way; the *test* is different — it
+> measures a static y position across a reload, not an animation frame.
+>
 > **On the other three criteria — corrected 2026-08-19.** An earlier version of this caveat said they
 > "were met as written". That overclaimed: two of the three are *"hover and entrance animations work
 > smoothly at 60fps on a mid-range laptop"* and *"no layout shift"*, and neither has been measured.
@@ -132,6 +139,44 @@ carried by `StaticImageData` — no hand-copied width/height, no layout shift.
 >
 > **Still needs a browser:** 60fps under a 4x CPU throttle, and CLS = 0 under network throttling.
 > Until someone runs those, they are unproven rather than met.
+
+> ### TICKET 6b — SHIPPED 2026-08-19. The shared-element morph and the overlay.
+>
+> Built in two commits: the frame/atom extraction, then the interception and the morph. **The
+> blocking gate (V1) passed** — all five `/projects/<slug>` routes are still `●` (SSG) after
+> interception, and the five intercepted variants prerender statically too. Nothing traded static
+> HTML for a transition.
+>
+> **What shipped:** `app/(site)/layout.tsx` (a fragment, receiving the slot), the `@modal` parallel
+> slot with a `null` default, the intercepting route at `@modal/(.)projects/[slug]/`,
+> `ProjectDetailFrame` (Rule S-3 in `docs/03`), `ProjectOverlay` (Rule S-4), `CoverFrame`, the
+> `layoutId` pair on the card's and the cover's wrappers, and two rules in `app/globals.css`
+> (the document scroll lock, a transparent `dialog::backdrop`).
+>
+> **What did NOT change:** `ProjectCard`'s `<Link>` — interception is a routing concern and the link
+> never learns about it, which is why the pre-6b state had zero sunk cost. No new token, no radius,
+> no shadow, no scrim, no backdrop-blur. No new easing or duration constant: the morph is
+> `DURATION.ui` + `EASE.reveal`, the fade is `DURATION.ui` + `EASE.ui`. `STAGGER.card` is still
+> unused. `Reveal` gained no prop.
+>
+> **Verified without a browser:** `tsc`, `lint` and `build` clean; every utility class used emits
+> real CSS (checked against the built stylesheet, since Tailwind renders nothing for an unknown
+> utility); the served DOM of all five detail pages and of `/` is **byte-identical to the pre-6b
+> build** after normalising chunk hashes, so the frame extraction changed no output; an unknown slug
+> still returns a server-rendered 404.
+>
+> **Still needs a browser, and is therefore unproven rather than met** — the same standard the
+> paragraph above applies to Ticket 6: the morph reading as continuous at 1440px; 60fps during it;
+> Escape closing the overlay *and* returning the URL; focus returning to the originating card;
+> the background genuinely not scrolling, including under touch; refresh parity (the cover at the
+> same y on both paths); reduced-motion round trip; the reverse projection when the overlay's cover
+> unmounts; and 360px. The implementation handoff lists these individually with what to look for.
+>
+> **The one honest correction to the plan:** deferring `router.back()` until the exit animation
+> finishes does not remove the reverse projection onto the card, it moves it — the cover stays
+> mounted for the whole fade, so the projection fires when the gallery is already visible. Named
+> fallback if it reads badly: drop the exit animation and call `router.back()` straight out of
+> `close()`, accepting a hard cut.
 
 **Dependencies:** Tickets 1, 2.
 

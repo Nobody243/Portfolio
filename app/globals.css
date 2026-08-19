@@ -373,3 +373,61 @@ body {
   color: var(--color-fg);
   font-family: var(--font-sans);
 }
+
+/* ---------------------------------------------------------------------------
+   OVERLAY — Ticket 6b. Two rules, NO TOKEN.
+
+   Nothing here adds a colour, a radius, a shadow, a scrim or a backdrop-blur.
+   The block above lists all four of those absences and this block does not
+   change the list. What it adds is one document-level lock and one UA-default
+   removal.
+
+   1. THE SCROLL LOCK, `html[data-overlay-open]`.
+
+   `ProjectOverlay` sets the attribute on <html> before it calls showModal(),
+   and removes it on close. `overflow: clip` on <html> is what ACTUALLY stops
+   the page behind the overlay from scrolling — three separate reasons, each of
+   which alone would be enough:
+     - LenisProvider ships `syncTouch: false`, so touch scrolling is NATIVE and
+       lenis.stop() does not touch it. A Lenis-only lock is broken on every
+       phone.
+     - Under `prefers-reduced-motion` LenisProvider does not instantiate Lenis
+       at all, so there is no instance to stop.
+     - Chrome does not reliably block wheel scrolling of the document behind a
+       modal <dialog>. Dialog inerting is for focus and the accessibility tree,
+       not for scroll.
+
+   `clip` rather than `hidden`, matching the value Lenis's own stylesheet uses
+   for `.lenis.lenis-stopped`: `hidden` makes the element a scroll container and
+   can be programmatically scrolled, `clip` cannot.
+
+   THE PADDING IS SCROLLBAR COMPENSATION, NOT SPACING. Removing the scrollbar
+   widens the viewport by ~15px on Windows and Linux, which would shift every
+   centred `max-w-[1440px]` container on the page behind. ProjectOverlay
+   measures `window.innerWidth - document.documentElement.clientWidth` and
+   writes it to the custom property immediately before setting the attribute.
+   On overlay-scrollbar platforms (macOS, iOS, Android) the measurement is 0px
+   and nothing moves, which is why the fallback in `var()` is `0px` rather than
+   a guessed width. Never hard-code a scrollbar width here.
+
+   2. `dialog::backdrop` TRANSPARENT.
+
+   A modal <dialog> gets a UA-painted backdrop — translucent black in Chrome.
+   The overlay is opaque, full-viewport `bg-base` and there is deliberately no
+   scrim, so that UA default would be a dark tint this site never asked for,
+   visible in the gap between the dialog entering the top layer and its own
+   surface finishing its fade in. Scoped to `dialog::backdrop` so it cannot
+   affect the `::backdrop` rules Tailwind's preflight emits for other purposes.
+
+   The consequence is stated where it belongs, in ProjectOverlay: with no
+   visible backdrop there is nothing to click, so dismissal is Escape, the
+   Close control, and browser Back.
+--------------------------------------------------------------------------- */
+html[data-overlay-open] {
+  overflow: clip;
+  padding-right: var(--overlay-scrollbar-width, 0px);
+}
+
+dialog::backdrop {
+  background: transparent;
+}

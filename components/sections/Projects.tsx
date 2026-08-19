@@ -83,10 +83,17 @@ import { projects } from "@/content/projects";
  * `--color-*` namespace precisely so no utility exists for it. Do not route
  * around that with an inline `var(--accent-hero)`.
  *
- * NO SHARED-ELEMENT MORPH IN THIS TICKET. Cards navigate with a plain `Link`.
- * The `layoutId` morph is Ticket 6b, scheduled AFTER Ticket 7 (plan §0.3,
- * G1 = A-split) — see ProjectCard.tsx for why an "inert, ready for later"
- * `layoutId` is not free.
+ * THE SHARED-ELEMENT MORPH SHIPPED IN TICKET 6b, AND NOTHING IN THIS FILE
+ * CHANGED FOR IT. Cards still navigate with a plain `<Link>`; the morph is
+ * `layoutId` on `ProjectCard`'s cover wrapper plus an intercepting route at
+ * `app/(site)/@modal/(.)projects/[slug]/page.tsx` that keeps this section
+ * mounted behind the overlay. This gallery has no overlay state, no click
+ * handler and no `router.push` — see ProjectCard.tsx for why an "inert, ready
+ * for later" `layoutId` was never stubbed here either.
+ *
+ * STILL NO STAGGER, and 6b did not change that: `STAGGER.card` remains unused
+ * for the reason stated below (a jump-link arrival on `#work` renders a row out
+ * of order), and the morph staggers nothing — it is one element.
  */
 export function Projects() {
   return (
