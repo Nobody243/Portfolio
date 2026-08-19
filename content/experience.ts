@@ -47,10 +47,20 @@ export const experience = [
     startDate: "2025-06",
     endDate: "2025-08",
     location: "Rawalpindi, DHA Phase 7",
-    // Saad's four, in his order. Matches aboutContent.ts beat 1 word for word;
-    // note skills.ts writes the third one as "Tailwind CSS" — same technology,
-    // and this file follows the wording Saad supplied for this role.
-    stack: ["React", "Next.js", "Tailwind", "Supabase"],
+    // Saad's four, in his order.
+    //
+    // "Tailwind CSS", not "Tailwind" — CANONICAL VENDOR CASING, the rule
+    // content/types.ts states for every stack array ("Next.js", "Apache
+    // Kafka"). skills.ts already ships "Tailwind CSS", and the two are rendered
+    // by sibling components as the same kind of thing: a list of technology
+    // names. Two spellings of one technology in one data layer reads as an
+    // oversight, and a reader scanning both sections sees it.
+    //
+    // aboutContent.ts beat 1 says "Tailwind" and STAYS THAT WAY. That is prose
+    // in a sentence, where the short form is what a person writes; this is a
+    // structured field. The registers are different and the divergence is
+    // deliberate — do not "reconcile" them by changing the prose.
+    stack: ["React", "Next.js", "Tailwind CSS", "Supabase"],
     // Verified 2026-08-19: HTTP 200, no redirect.
     url: "https://www.newweborder.us/",
     // "Two smaller products" is Saad's own framing and it opens the paragraph
