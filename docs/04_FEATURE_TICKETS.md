@@ -194,6 +194,32 @@ keyboard navigation, sufficient color contrast (verify `accent-working` against 
 (e.g. Lighthouse); reduced-motion users get a usable, non-broken experience.
 **Dependencies:** Tickets 1–11.
 
+> **AUDIT RUN 2026-08-19 — measured against a production build, not reasoned.** Full record in
+> `.claude/handoff/ticket-12-audit.md`; the cross-ticket conclusions are here because that file is
+> gitignored.
+>
+> **Passing:** contrast across 4 routes × 2 themes (zero real failures); horizontal overflow across
+> 24 viewport×route×theme combinations (zero); `prefers-reduced-motion` on every route (nothing
+> stranded at `opacity: 0`); keyboard order following visual order everywhere; heading outline with no
+> skipped levels. Card surfaces in light mode were measured for the first time — `bg-elevated` is a
+> 1.073 step against `bg-base` and the `accent-working/30` border is 1.52:1, weaker than dark's 1.73.
+> **No change: the surface step carries the card, the border is reinforcement.** Confirmed visually.
+>
+> **A method note worth keeping.** Tailwind v4 emits `oklab(… / 0.7)` for alpha modifiers, so parsing
+> `getComputedStyle().color` as RGB produces a page of false contrast failures. Resolve colours
+> through a canvas instead. Also scroll each page fully before asserting, or `Reveal`d elements below
+> the fold report `opacity: 0` and read as stranded when they are simply untriggered.
+>
+> **Still open after this pass, deliberately:**
+> - `bg-tint-cool` has no consumer, so light mode cannot be judged for it. It gets judged when it
+>   first gets one.
+> - `HeroLoader.tsx:167` renders at `text-hero-fg/50` = **4.60:1**. It **passes AA**, and the site's
+>   `/70` floor does not reach it — that floor exists because *light mode binds*, and the hero surface
+>   is pinned with no light variant. Left as Ticket 3 tuned it.
+> - Lighthouse was not run (no tooling available here). Its contrast, heading-order, viewport and
+>   reduced-motion checks are covered by direct measurement above; its **performance** scoring is not,
+>   and belongs with Ticket 13.
+
 ---
 
 ### TICKET 13 — Deploy to Vercel [M]
