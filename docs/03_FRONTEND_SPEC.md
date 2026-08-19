@@ -290,6 +290,28 @@ would destroy the geometry parity S-3 exists to guarantee.
   { overflow: clip }` is what actually holds — with a JS-measured `padding-right` compensating for
   the removed scrollbar. Never hard-code a scrollbar width.
 
+**Rule S-5 (custom breakpoints are declared in `rem`, never `px`). Established while adding the
+About portrait, binding on every breakpoint added from here on.**
+
+The site ships exactly one custom breakpoint — `--breakpoint-photo: 85rem` (1360px) in
+`app/globals.css` — for the one consumer that needs it, the About portrait's third column. Two rules
+come with it:
+
+- **The unit is not cosmetic.** Tailwind orders breakpoint media queries by comparing their declared
+  values, and its own defaults are rem: `lg` is `64rem`, `xl` `80rem`, `2xl` `96rem`. A `px` value
+  cannot be ordered against those, so a px breakpoint is emitted **before** every rem one regardless
+  of size — `@media (min-width:1360px)` lands ahead of `@media (min-width:64rem)`, and at equal
+  specificity `lg:` then wins at every width above the custom breakpoint. Declared in rem it sorts
+  into its correct slot between `xl` and `2xl`.
+- **This failure is silent in every check the project runs.** It was written as `1360px` first, and
+  the consequence was that About's prose measure collapsed from 544px to 489px above 1360px while
+  `tsc`, `eslint` and `next build` all stayed green and the rendered page looked entirely plausible.
+  It was caught only by measuring the computed `grid-template-columns` in a real browser. Treat any
+  breakpoint-scoped override that "should" apply but visibly does not as this bug until proven
+  otherwise, and confirm the emitted `@media` order in the built CSS rather than reasoning about it.
+- **Prefer no new breakpoint at all.** Five defaults plus this one is the whole system. A new one is
+  a design decision that needs a stated consumer, not a convenience.
+
 **Fonts:**
 - Space Grotesk — all headings, UI, body text
 - JetBrains Mono — technical labels, tags, stats, stack badges on project cards, hero name treatment
