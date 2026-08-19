@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import {
+  THEME_TOGGLE_ON_BASE,
+  ThemeToggle,
+} from "@/components/ui/ThemeToggle";
 
 /**
  * The site's runtime error boundary — Ticket 18, Tier 3.
@@ -109,7 +113,25 @@ export default function Error({
     <main className="w-full bg-base pt-2xl pb-2xl">
       <div className={CONTAINER}>
         {/* `text-h2`, never `text-h1` — the h1 step is the hero's alone. */}
-        <h1 className="text-h2 text-fg">{HEADING}</h1>
+        {/* THE THEME CONTROL, on the same row as the heading rather than
+            above it. Ticket 11's placement rule is one in-flow instance per
+            route, right edge mirroring the left spine — and these two pages
+            are route shapes it could not reach when it shipped, because both
+            files were being created by Ticket 18 in the same working tree at
+            the time. Wired 2026-08-19.
+
+            THIS PAGE THEMES, so the token is THEME_TOGGLE_ON_BASE. Using the
+            _ON_HERO constant here would put hero-accent teal on `bg-base`,
+            which is the §11.4 inversion the two constants exist to prevent.
+
+            An error or 404 page is exactly where a visitor might be reading in
+            the wrong theme and unable to fix it, so leaving the control off
+            these two routes would strand them on the one page with no other
+            way out. */}
+        <div className="flex items-start justify-between gap-lg">
+          <h1 className="text-h2 text-fg">{HEADING}</h1>
+          <ThemeToggle className={THEME_TOGGLE_ON_BASE} />
+        </div>
 
         {/* Primary content at full opacity, on the site's 34rem measure. */}
         <p className="mt-lg max-w-[34rem] text-body text-fg">{BODY}</p>

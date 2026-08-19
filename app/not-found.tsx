@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BACK_LINK_LABEL } from "@/components/sections/projectDetailContent";
+import {
+  THEME_TOGGLE_ON_BASE,
+  ThemeToggle,
+} from "@/components/ui/ThemeToggle";
 
 /**
  * The site's 404 — Ticket 18, Tier 3.
@@ -123,7 +127,25 @@ export default function NotFound() {
             element is still an `<h1>` because this is the page's only heading;
             the size class and the level are independent decisions. Weight is
             left at the inherited 400, as in every shipped section. */}
-        <h1 className="text-h2 text-fg">{HEADING}</h1>
+        {/* THE THEME CONTROL, on the same row as the heading rather than
+            above it. Ticket 11's placement rule is one in-flow instance per
+            route, right edge mirroring the left spine — and these two pages
+            are route shapes it could not reach when it shipped, because both
+            files were being created by Ticket 18 in the same working tree at
+            the time. Wired 2026-08-19.
+
+            THIS PAGE THEMES, so the token is THEME_TOGGLE_ON_BASE. Using the
+            _ON_HERO constant here would put hero-accent teal on `bg-base`,
+            which is the §11.4 inversion the two constants exist to prevent.
+
+            An error or 404 page is exactly where a visitor might be reading in
+            the wrong theme and unable to fix it, so leaving the control off
+            these two routes would strand them on the one page with no other
+            way out. */}
+        <div className="flex items-start justify-between gap-lg">
+          <h1 className="text-h2 text-fg">{HEADING}</h1>
+          <ThemeToggle className={THEME_TOGGLE_ON_BASE} />
+        </div>
 
         {/* Full opacity: this is the page's primary content, not metadata, so
             the `/70` floor never comes into it. `34rem` is the site's reading
