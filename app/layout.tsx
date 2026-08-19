@@ -3,6 +3,7 @@ import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { LenisProvider } from "@/components/ui/LenisProvider";
 import { MotionProvider } from "@/components/ui/MotionProvider";
+import { OG_IMAGE } from "@/lib/metadata";
 import { themeInitScript } from "@/lib/theme";
 
 // Both are variable fonts. `weight` is intentionally omitted so next/font loads
@@ -27,6 +28,24 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+/**
+ * ONE STRING, TWO SURFACES. It is the `<meta name="description">` and the
+ * `og:description`, and they must not be allowed to drift apart — a link
+ * preview that says something different from the search result is the kind of
+ * inconsistency nobody notices until it is embarrassing.
+ *
+ * The phrase "full-stack developer" is deliberately ABSENT and must not be
+ * reintroduced. An earlier draft used it and filed the conflict with
+ * CLAUDE.md's positioning rule as acceptable because a meta description is a
+ * "search-keyword surface". That reasoning was rejected: this is the line that
+ * appears beneath the site in every search result and every link preview,
+ * which makes it one of the most load-bearing positioning surfaces there is,
+ * not a technical field. It stays forward-looking ("heading into"), claiming
+ * no expertise Saad does not yet have.
+ */
+const SITE_DESCRIPTION =
+  "Portfolio of Muhammad Saad — software builder and IT undergraduate heading into cybersecurity and cloud infrastructure.";
+
 export const metadata: Metadata = {
   // TITLE TEMPLATE — adopted in Ticket 7 (gate G6).
   //
@@ -44,16 +63,59 @@ export const metadata: Metadata = {
     default: "Saad — Engineer & Builder",
     template: "%s — Saad",
   },
-  // The phrase "full-stack developer" is deliberately ABSENT and must not be
-  // reintroduced. An earlier draft used it here and filed the conflict with
-  // CLAUDE.md's positioning rule as acceptable because a meta description is a
-  // "search-keyword surface". That reasoning was rejected: this is the line
-  // that appears beneath the site in every search result and link preview,
-  // which makes it one of the most load-bearing positioning surfaces there is,
-  // not a technical field. Both strings stay forward-looking ("heading into"),
-  // claiming no expertise Saad does not yet have.
-  description:
-    "Portfolio of Muhammad Saad — software builder and IT undergraduate heading into cybersecurity and cloud infrastructure.",
+  description: SITE_DESCRIPTION,
+
+  /**
+   * THE PRODUCTION ORIGIN, and the thing every other absolute URL on the site
+   * is resolved against. Ticket 17.
+   *
+   * Until the deploy there was no correct value for this, which is why
+   * `og:image` and `alternates.canonical` were both deferred by name in
+   * `app/(site)/projects/[slug]/page.tsx` rather than guessed at. It is the
+   * apex-with-www form because that is what the custom domain actually serves;
+   * pointing it at the `.vercel.app` origin would emit canonicals and OG URLs
+   * for a host the site no longer presents itself as.
+   *
+   * Every relative URL below (`url: "/"`, the per-project canonicals) becomes
+   * absolute against this. Get it wrong and nothing errors — the tags simply
+   * point somewhere else.
+   */
+  metadataBase: new URL("https://www.saaddev.top"),
+
+  alternates: { canonical: "/" },
+
+  /**
+   * Pages that do NOT declare their own `openGraph` inherit this object whole,
+   * image included — which covers `not-found` and `error`. Pages that DO
+   * declare one replace it entirely and must spread `OG_IMAGE` themselves; see
+   * the header of `lib/metadata.ts` for the measurement that established this.
+   */
+  openGraph: {
+    images: [OG_IMAGE],
+    type: "website",
+    siteName: "Muhammad Saad",
+    locale: "en_US",
+    url: "/",
+    // Mirrors the `title` field above, template and all, so a page returning a
+    // bare `title` gets the same composed string in both places rather than a
+    // preview card that disagrees with the tab.
+    title: {
+      default: "Saad — Engineer & Builder",
+      template: "%s — Saad",
+    },
+    description: SITE_DESCRIPTION,
+  },
+
+  /**
+   * NO `twitter.images`, deliberately. X falls back to `og:image` when
+   * `twitter:image` is absent, so naming the file again here would mean a
+   * second copy of a 197KB asset in the repo to say the same thing. The card
+   * TYPE does have to be declared — without it X renders the small square
+   * `summary` card and crops a 1.91:1 hero into it.
+   */
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

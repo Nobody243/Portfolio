@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ProjectDetailFrame } from "@/components/sections/ProjectDetailFrame";
 import { BACK_LINK_LABEL } from "@/components/sections/projectDetailContent";
 import { STANDALONE_NAV } from "@/components/ui/standaloneNav";
+import { OG_IMAGE } from "@/lib/metadata";
 import { getProjectBySlug, projectSlugs } from "@/content/projects";
 
 /**
@@ -89,10 +90,13 @@ export function generateStaticParams() {
  * component below calls `notFound()` for the same slug, so no metadata is ever
  * rendered for it.
  *
- * NO `og:image` AND NO `alternates.canonical`. Both need `metadataBase` set to
- * the production origin, which is unknown until the deploy ticket. `og:image`
- * is missing site-wide and is now its own tracked ticket in
- * `docs/04_FEATURE_TICKETS.md` — it is a scheduled gap, not an oversight here.
+ * `og:image` AND `alternates.canonical` ARE NOW BOTH RESOLVED (Ticket 17).
+ * Both were blocked on `metadataBase`, which had no correct value until the
+ * site had a production origin; it is now set in `app/layout.tsx`.
+ *
+ * The image IS named here, in `openGraph.images`, and has to be: a segment
+ * that declares `openGraph` replaces the root's rather than merging into it.
+ * See `lib/metadata.ts`.
  */
 export async function generateMetadata({
   params,
@@ -105,6 +109,29 @@ export async function generateMetadata({
   return {
     title: project.title,
     description: project.oneLiner,
+    // Relative, resolved against `metadataBase`. Hard-coding the origin here
+    // would mean two places to change if the domain ever moves.
+    alternates: { canonical: `/projects/${slug}` },
+    openGraph: {
+      // `article` rather than the root's `website`: this is one dated piece of
+      // work, not the site itself.
+      type: "article",
+      // Both are repeated from the fields above rather than left to fall
+      // through. Next resolves `openGraph` per segment, so a partial object
+      // here is not merged into the root's — anything this page needs in its
+      // preview card, this page states.
+      title: project.title,
+      description: project.oneLiner,
+      siteName: "Muhammad Saad",
+      locale: "en_US",
+      url: `/projects/${slug}`,
+      // REQUIRED, not redundant. `openGraph` is resolved per segment and is not
+      // merged into the root's, so declaring the object above without this line
+      // strips the image from exactly these five pages — the most shareable
+      // URLs on the site — while every other route keeps it. That was the
+      // measured behaviour before this line existed.
+      images: [OG_IMAGE],
+    },
   };
 }
 

@@ -346,6 +346,45 @@ image is fabricated or shows content that is not really on the site.
 until the site is deployed. Raised repeatedly from Ticket 3 onward and written down here so it is not
 discovered from a bad link preview after launch.
 
+> ### ✅ TICKET 17 SHIPPED — 2026-08-19
+>
+> Deployed origin is `https://www.saaddev.top` (custom domain), so `metadataBase` finally had a
+> correct value and the two things blocked on it — `og:image` and `alternates.canonical` — both
+> landed together.
+>
+> **The image is a real screenshot of the settled hero**, dark mode, captured at 1200×630 with a 2×
+> DPR (2400×1260, 1.905:1, 197KB) from the live site. This is what `ticket-3-design.md` §17.4 asked
+> for by name, and §7.2's neutral fill light plus §8's "legible silhouette at zero motion" test are
+> why it needed no retouching. The only alteration is the theme toggle, hidden for the capture as
+> site chrome rather than hero content. Nothing invented, nothing brightened — the criterion that no
+> image may show content that is not really on the site is met literally.
+>
+> **The one real trap, and the reason `lib/metadata.ts` exists.** The Next file convention
+> (`app/opengraph-image.png`) was implemented first and is the idiomatic answer. It is inherited only
+> by routes that do **not** declare their own `openGraph` object — and `/projects/[slug]` declares
+> one, because title, description, type and canonical are all per-project. Measured result: the five
+> project detail pages, *the most shareable URLs on the site*, emitted **no `og:image` at all**, while
+> `/` and `not-found` looked perfect. `next build` was green. It surfaced only by grepping the
+> generated HTML. `openGraph` is resolved per segment and is **not** deep-merged into the parent's;
+> any page declaring it must spread `OG_IMAGE` itself.
+>
+> **Coverage, measured across every prerendered route:**
+>
+> | Route | `og:image` | `og:image:alt` | canonical |
+> |---|---|---|---|
+> | `/` | ✅ | ✅ | `https://www.saaddev.top` |
+> | `/projects/<slug>` ×5 | ✅ | ✅ | per-slug, correct |
+> | `(.)projects/<slug>` ×5 (intercept) | ✅ | ✅ | homepage — correct, the overlay is not an independently served document |
+> | `not-found` | ✅ | ✅ | inherits `/` |
+> | `_global-error` | ❌ | ❌ | — |
+>
+> `_global-error` is Next's internal runtime fallback, not a reachable or shareable URL, and is
+> deliberately left alone.
+>
+> **No `twitter.images` is declared.** X falls back to `og:image`, so naming the file again would put
+> a second copy of the asset in the repo to say the same thing. The card *type* is declared, without
+> which X renders the small square `summary` card and crops a 1.91:1 hero into it.
+
 ---
 
 ### TICKET 18 — Themed error and not-found pages [S]
