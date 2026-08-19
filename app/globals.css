@@ -308,6 +308,32 @@ html.light {
 }
 
 /* ---------------------------------------------------------------------------
+   OVERSCROLL CANVAS
+
+   `html` is painted with the PINNED HERO SURFACE, in both themes.
+
+   `body` carries `--color-base` and covers `html` completely, so this colour is
+   visible in exactly one place: the rubber-band area past either end of the
+   document. That area is not decoration — on a trackpad it is on screen every
+   time someone flicks past the top or bottom.
+
+   Hero-surface is the right value because the page is BOOKENDED by it: the
+   hero opens on `bg-hero-surface` and the Contact plate closes on it. So the
+   overscroll at each end continues the plate it is adjacent to, at both ends,
+   in both themes, with no new token and nothing theme-dependent.
+
+   Without this, light mode showed warm white (#FDFCFA) rubber-banding out from
+   under the dark Contact plate — measured 2026-08-19, Ticket 10 finding F4.
+   `color-scheme` alone does not fix it: it sets a UA default canvas, which
+   `body`'s own background then hides everywhere except here.
+
+   This is one of the three pinned tokens and does not theme. That is the point.
+--------------------------------------------------------------------------- */
+html {
+  background-color: var(--color-hero-surface);
+}
+
+/* ---------------------------------------------------------------------------
    BASE
 
    No border token. TWO border families ship, and the split is deliberate:

@@ -41,6 +41,12 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > CIE Lab's linear branch. Treat these numbers as "clears the bar computationally, proceed on design
 > grounds", not as "confirmed visible on every display". Verify tinted blocks on a dim screen.
 >
+> **LIGHT MODE CONFIRMED 2026-08-19.** `bg-tint-warm` on Skills' Core Dev block was the open question —
+> `#F8FBF8` on `#FDFCFA` was expected to be possibly imperceptible, and was accepted in advance as
+> acceptable-if-invisible. Rendered against the production build in light mode, **it is clearly
+> visible**: the block reads as a deliberate quiet field, not as an absent one. No compensating border
+> and no `bg-elevated` mat — both were pre-ruled-out and neither is needed.
+>
 > `app/globals.css` is the source of truth for all six hexes.
 
 > ### Opacity floor for text: `/70`. And check LIGHT mode, not dark.
@@ -169,11 +175,15 @@ static screenshot spends the accent on something you cannot click, and once two 
 border a reader stops reading it as a signal. An image frame exists only to stop the picture
 dissolving into `bg-base`, which is a boundary job, not an affordance.
 
-> **`border-fg/25` is PROVISIONAL.** Computed 1.99:1 dark and 1.73:1 light — computed, not observed.
-> Ticket 11 judges it for real, because the CCN and SNA covers are light-field images and light mode
-> is the binding constraint. Escalation path if it fails: `/30` if light covers still bleed, `/20` if
-> it reads heavy in dark. **Never to `accent-working`, never a `bg-elevated` mat.** Delete this note
-> when Ticket 11 confirms or replaces the value.
+> **`border-fg/25` is CONFIRMED — observed, not computed. 2026-08-19.** It was provisional pending a
+> real look, because 1.99:1 dark / 1.73:1 light are computed ratios and the CCN and SNA covers are
+> light-field images that decide it. Both were rendered against the production build in both themes
+> and screenshotted: the hairline holds the image boundary in light mode on both, including where
+> CCN's near-white Packet Tracer canvas meets `#FDFCFA`. **No escalation needed. The value stands.**
+>
+> Recorded for anyone tempted to strengthen it later: the escalation path was `/30` if light covers
+> bled, `/20` if it read heavy in dark, and **never** `accent-working` or a `bg-elevated` mat. It was
+> not needed.
 
 Recorded here rather than left in a handoff file because it already constrains later work: Ticket 6b
 morphs a teal-bordered card into a neutral-bordered cover, and every later ticket putting an image on
