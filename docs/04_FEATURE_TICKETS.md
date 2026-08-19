@@ -128,6 +128,36 @@ carried by `StaticImageData` — no hand-copied width/height, no layout shift.
 > depending on how you arrived. The prescribed fix was right either way; the *test* is different — it
 > measures a static y position across a reload, not an animation frame.
 >
+> ### ✅ TICKET 6b SHIPPED AND VERIFIED IN A BROWSER — 2026-08-19
+>
+> Commits `45737f3` (frame + nav atom extraction) and `fb074e3` (interception + morph). The
+> implementer had no browser and correctly reported the transition as **built but unproven**, per this
+> file's own "unmeasured is unproven" standard. It has since been measured with Playwright against a
+> production build, and all of it passes:
+>
+> | Check | Result |
+> |---|---|
+> | Static prerendering (the abort gate) | **14 pages, every one `●`, zero `ƒ`** — five intercepted variants added, five real routes untouched |
+> | **Vertical parity** — the C3 constraint | cover top is **141px in the overlay and 141px on the real route: identical** |
+> | Click → URL | `/` → `/projects/folio`, dialog opens |
+> | Escape | URL returns to `/`, dialog closes |
+> | Focus restoration | returns to the originating card link |
+> | Scroll position | restored exactly (3185 → 3185) |
+> | Scroll lock | a real wheel gesture does not move the page |
+> | Reduced motion | opens, closes, URL correct, zero stranded reveals |
+> | Unknown slug | 404 with the themed heading |
+>
+> **C3 is the one worth noting.** `docs/04` originally framed it as "the cover will jump ~140px on
+> refresh". The planner corrected that — a refresh is a fresh document, so Framer never sees two
+> states; the real defect was permanent **overlay-vs-route parity**, the same URL rendering at two y
+> positions depending on how you arrived. Extracting `ProjectDetailFrame` so both paths render the
+> same chrome fixes it by construction rather than by compensation, and the measured 141/141 is that
+> working.
+>
+> One number in the original brief did not survive and was reported rather than glossed: the build
+> emits **14** static pages, not 9. Adding a route made 9 arithmetically impossible; the condition
+> that actually mattered — every route static, the five real ones untouched — holds.
+
 > **On the other three criteria — corrected 2026-08-19.** An earlier version of this caveat said they
 > "were met as written". That overclaimed: two of the three are *"hover and entrance animations work
 > smoothly at 60fps on a mid-range laptop"* and *"no layout shift"*, and neither has been measured.
