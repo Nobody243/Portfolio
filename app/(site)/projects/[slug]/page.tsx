@@ -2,34 +2,44 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ProjectDetail } from "@/components/sections/ProjectDetail";
+import { ProjectDetailFrame } from "@/components/sections/ProjectDetailFrame";
 import { BACK_LINK_LABEL } from "@/components/sections/projectDetailContent";
-import {
-  ThemeToggle,
-  THEME_TOGGLE_ON_BASE,
-} from "@/components/ui/ThemeToggle";
+import { STANDALONE_NAV } from "@/components/ui/standaloneNav";
 import { getProjectBySlug, projectSlugs } from "@/content/projects";
 
 /**
- * Project detail route — Ticket 7, Tier 3.
+ * Project detail route — Ticket 7, Tier 3. Rewired by Ticket 6b.
  *
- * THIS FILE OWNS THE PAGE FRAME AND NOTHING ELSE: `<main>`, the page
- * background, the page's vertical padding, both back links, this route's one
- * `<ThemeToggle>` (Ticket 11), `generateStaticParams`, `generateMetadata` and
- * `notFound()`. Everything below the top row is `<ProjectDetail>`, which owns
- * the site container and the content.
+ * THIS FILE NOW OWNS THE ROUTING CONTRACT AND NOTHING VISUAL:
+ * `dynamicParams`, `generateStaticParams`, `generateMetadata`, the
+ * `getProjectBySlug`/`notFound()` guard, the back link's destination, and the
+ * decision that this path renders as `<main>`. Every pixel — the page
+ * background, the vertical padding, the top row, the theme toggle, the two
+ * affordance slots and `<ProjectDetail>` itself — is
+ * `components/sections/ProjectDetailFrame.tsx`.
  *
- * THE BACK LINKS ARE DELIBERATELY OUTSIDE `<ProjectDetail>`. That is what
- * reconciles two contracts from the 6/6b split: "the detail's first visual
+ * IT USED TO OWN THE FRAME, AND THAT IS THE CHANGE 6b MADE. The frame moved
+ * out because `/projects/<slug>` now has TWO rendering paths — this route, and
+ * the intercepted overlay at `app/(site)/@modal/(.)projects/[slug]/page.tsx` —
+ * and the cover has to land at the same y position in both. Keeping the
+ * padding here and compensating for it there is the silent desynchronisation
+ * `docs/04_FEATURE_TICKETS.md` warned against by name. ADDING VERTICAL CHROME
+ * BACK INTO THIS FILE REINTRODUCES THAT DEFECT; it goes in the frame.
+ *
+ * THE BACK LINK IS STILL DELIBERATELY OUTSIDE `<ProjectDetail>`, and now it is
+ * outside the frame too — it is passed IN as `affordance`. That is what
+ * reconciles the two contracts from the 6/6b split: "the detail's first visual
  * element is the cover image alone inside one wrapper" stays literally true,
- * and in Ticket 6b's overlay a "back to work" link would be wrong anyway — an
- * overlay closes, it does not navigate back, so 6b substitutes a close
- * affordance in the same slot. `<main>` living here is the other half of it:
- * 6b can render `<ProjectDetail>` inside a dialog without nesting a second
- * `<main>`. Do not move either inward.
+ * and the overlay passes a Close button into the same slot, because an overlay
+ * closes rather than navigating back. `<main>` is likewise a prop rather than
+ * markup, so the overlay renders the same frame as a `<div>` without nesting a
+ * second landmark.
  *
- * NO PART OF 6b IS BUILT HERE: no `layoutId`, no interception route, no
- * `@modal` slot, no overlay shell, no inert scaffolding.
+ * WHAT 6b BUILT, so this header stays checkable: the `@modal` parallel slot
+ * and its interception route, `ProjectDetailFrame`, `ProjectOverlay`,
+ * `CoverFrame`, and the `layoutId` pair on the card and the cover. What it did
+ * NOT build: any scrim, radius, shadow or backdrop-blur token; any second copy
+ * of the page's content; any change to this route's static prerendering.
  */
 
 /**
@@ -99,7 +109,8 @@ export async function generateMetadata({
 }
 
 /**
- * The back affordance, rendered twice — top and bottom, identical atom.
+ * The back affordance. It is passed to `ProjectDetailFrame` as `affordance`
+ * and the frame renders it TWICE — top and bottom, the same node both times.
  *
  * WHY TWICE. There is no `app/(site)/layout.tsx` and no site nav, so this link
  * and the browser Back button are the ONLY routes home — and a visitor
@@ -126,7 +137,11 @@ export async function generateMetadata({
  * NO UNDERLINE, unlike the external links in `ProjectDetail`: this is a
  * standalone nav affordance rather than an inline one, and the accent plus
  * isolation already reads as a link. Add `underline underline-offset-4` only if
- * review finds it ambiguous.
+ * review finds it ambiguous. The class string itself is now `STANDALONE_NAV`
+ * in `components/ui/standaloneNav.ts` — Ticket 6b's overlay close button was
+ * the fourth consumer of the atom, which is the trigger `app/not-found.tsx`
+ * had written down. The computed styles are unchanged; the three shipped
+ * copies were verified byte-identical before any was deleted.
  *
  * NEITHER IS WRAPPED IN A `Reveal`. The top one is above the fold and is the
  * page's only escape hatch; the bottom one is the same affordance. A
@@ -138,19 +153,12 @@ export async function generateMetadata({
  * viewport on any of the five pages. CCN is the shortest page and the one to
  * measure.
  */
-const BACK_LINK = `text-caption font-mono text-accent-working focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working`;
-
 /**
  * `/#work` is the gallery's anchor, and the id is derived from
  * `PROJECTS_HEADING` in `components/sections/projectsContent.ts`. That file
  * records that renaming "Work" is a three-file commit; this is the third file.
  */
 const BACK_HREF = "/#work";
-
-/** The site container, byte-identical to About / Skills / Projects and to
- *  `ProjectDetail`'s own `<article>` — Rule S-1's spine. The back links sit on
- *  the same left edge as the cover, the `<h1>` and every block below. */
-const CONTAINER = "mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl";
 
 export default async function ProjectDetailPage({
   params,
@@ -169,37 +177,18 @@ export default async function ProjectDetailPage({
   if (!project) notFound();
 
   return (
-    <main className="w-full bg-base pt-xl pb-2xl lg:pt-2xl">
-      {/*
-        THE TOP ROW CARRIES TWO THINGS AS OF TICKET 11: the back link on the
-        spine, and this route's single theme toggle at the mirrored right inset.
-        `justify-between` is safe here specifically because n is FIXED AT TWO —
-        `Contact.tsx` bans it for a list whose length can change, which this is
-        not. At 360px both are 12px mono inside a 318px content box; they cannot
-        collide.
-
-        IMPORTING A CLIENT COMPONENT DOES NOT MAKE THIS ROUTE A CLIENT
-        COMPONENT. This file, `ProjectDetail` and everything below it stay
-        server-rendered; `ThemeToggle` is the route's first client boundary and
-        it is a leaf.
-
-        THE BOTTOM BACK-LINK ROW IS UNCHANGED — one toggle per route. A second
-        one at the foot would be a second control for a preference already set.
-      */}
-      <div className={`${CONTAINER} mb-lg flex items-center justify-between`}>
-        <Link href={BACK_HREF} className={BACK_LINK}>
+    // `as="main"` IS REQUIRED AND IS THIS FILE'S CALL TO MAKE. The frame has no
+    // default for it on purpose: the overlay path passes `"div"`, and a default
+    // either way would silently nest or silently drop a landmark. This is the
+    // path that owns the page's `<main>`.
+    <ProjectDetailFrame
+      as="main"
+      project={project}
+      affordance={
+        <Link href={BACK_HREF} className={STANDALONE_NAV}>
           {BACK_LINK_LABEL}
         </Link>
-        <ThemeToggle className={THEME_TOGGLE_ON_BASE} />
-      </div>
-
-      <ProjectDetail project={project} />
-
-      <div className={`${CONTAINER} mt-2xl lg:mt-3xl`}>
-        <Link href={BACK_HREF} className={BACK_LINK}>
-          {BACK_LINK_LABEL}
-        </Link>
-      </div>
-    </main>
+      }
+    />
   );
 }

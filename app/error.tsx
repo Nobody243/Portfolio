@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { STANDALONE_NAV } from "@/components/ui/standaloneNav";
 import {
   THEME_TOGGLE_ON_BASE,
   ThemeToggle,
@@ -18,10 +19,17 @@ import {
  *
  * IT IS ALSO THE SITE'S SECOND CLIENT BOUNDARY, after `Reveal`. NOTHING
  * SERVER-ONLY MAY BE IMPORTED INTO THIS FILE — no `content/*` reader that
- * touches the filesystem, no `next/headers`, no server action. The only import
- * is `next/link`, and the copy below is local string constants precisely so
- * this file's dependency surface stays at one. If a future edit needs a shared
- * label here, import it only from a pure-string module.
+ * touches the filesystem, no `next/headers`, no server action. The copy below
+ * is local string constants precisely so this file's dependency surface stays
+ * small, and the rule this header has always stated — "if a future edit needs
+ * a shared label here, import it only from a pure-string module" — is what
+ * governs the imports it does have.
+ *
+ * THE IMPORTS ARE `next/link`, `ThemeToggle` and `standaloneNav` (Ticket 6b).
+ * This used to read "the only import is `next/link`"; `ThemeToggle` was wired
+ * in later, and `standaloneNav` arrived when the nav atom was extracted to one
+ * home. `standaloneNav.ts` is exactly the pure-string module the rule above
+ * names: no "use client", no React, no imports of its own.
  *
  * ------------------------------------------------------------------------
  * WHAT THIS FILE CATCHES, AND WHAT IT DOES NOT.
@@ -79,14 +87,15 @@ const HOME_HREF = "/";
 const CONTAINER = "mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl";
 
 /**
- * The standalone-nav atom from the detail page's back links, character for
- * character, and shared by the button and the link so the two read as one row
- * of peers. 12px mono, `accent-working` (this page is on `bg-base`, which
- * flips with the theme — never `hero-accent`, which is for the pinned dark
- * plate), no underline, no arrow glyph.
+ * The standalone-nav atom is now `STANDALONE_NAV`, imported above rather than
+ * copied here. The local `ACTION` constant it replaces was byte-identical to
+ * the shared string — verified by comparison before deletion — so this page
+ * renders exactly as it did.
+ *
+ * It is still shared by the button and the link below, so the two read as one
+ * row of peers; only `cursor-pointer` differs, and it is appended at the button
+ * call site because `<a href>` gets the pointer cursor from the UA for free.
  */
-const ACTION =
-  "text-caption font-mono text-accent-working focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working";
 
 export default function Error({
   reset,
@@ -157,7 +166,7 @@ export default function Error({
           <button
             type="button"
             onClick={() => reset()}
-            className={`${ACTION} cursor-pointer`}
+            className={`${STANDALONE_NAV} cursor-pointer`}
           >
             {RESET_LABEL}
           </button>
@@ -165,7 +174,7 @@ export default function Error({
           {/* The escape hatch for when `reset` fails twice. `next/link`, not
               `ExternalLink` — this is an in-app route, and `ExternalLink`
               would wrongly add `target="_blank"` and announce a new tab. */}
-          <Link href={HOME_HREF} className={ACTION}>
+          <Link href={HOME_HREF} className={STANDALONE_NAV}>
             {HOME_LINK_LABEL}
           </Link>
         </div>

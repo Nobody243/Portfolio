@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BACK_LINK_LABEL } from "@/components/sections/projectDetailContent";
+import { STANDALONE_NAV } from "@/components/ui/standaloneNav";
 import {
   THEME_TOGGLE_ON_BASE,
   ThemeToggle,
@@ -101,18 +102,15 @@ const HOME_HREF = "/";
 const CONTAINER = "mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl";
 
 /**
- * The same standalone-nav atom the detail page's back links use, character for
- * character: 12px mono, `accent-working`, no underline, no arrow glyph, no
- * pill. `accent-working` and not `hero-accent` because this page sits on
- * `bg-base`, which flips with the theme, rather than on the pinned dark plate.
- *
- * NOT EXTRACTED INTO A SHARED CONSTANT. Doing so would mean editing the
- * shipped detail route, which this ticket does not own, to save one string.
- * Extract it the moment a fourth consumer appears — that is the point at which
- * the duplication starts costing more than the refactor.
+ * NOW EXTRACTED, AND THIS FILE IS WHERE THE TRIGGER WAS WRITTEN. The local
+ * `LINK` copy that used to sit here said "Extract it the moment a fourth
+ * consumer appears". Ticket 6b's overlay close button is the fourth consumer,
+ * so the atom moved to `components/ui/standaloneNav.ts` and the three shipped
+ * copies (here, the detail route, `app/error.tsx`) now import it. The computed
+ * class string is unchanged — all three copies were verified byte-identical to
+ * the shared constant before any of them was deleted, so this page renders
+ * exactly as it did.
  */
-const LINK =
-  "text-caption font-mono text-accent-working focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working";
 
 export default function NotFound() {
   return (
@@ -158,10 +156,10 @@ export default function NotFound() {
             Work first: a visitor who reached a dead `/projects/<slug>` was
             looking for the gallery, not the top of the page. */}
         <div className="mt-xl flex flex-wrap gap-lg">
-          <Link href={WORK_HREF} className={LINK}>
+          <Link href={WORK_HREF} className={STANDALONE_NAV}>
             {BACK_LINK_LABEL}
           </Link>
-          <Link href={HOME_HREF} className={LINK}>
+          <Link href={HOME_HREF} className={STANDALONE_NAV}>
             {HOME_LINK_LABEL}
           </Link>
         </div>

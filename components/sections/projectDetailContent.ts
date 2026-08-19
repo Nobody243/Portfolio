@@ -1,7 +1,7 @@
 /**
  * Project detail page copy — Ticket 7.
  *
- * SIX STRINGS, ALL OF THEM FIXED UI LABELS. Every other word a detail page
+ * SEVEN STRINGS, ALL OF THEM FIXED UI LABELS. Every other word a detail page
  * renders — the title, the description, the credit, the stack entries, the
  * alt texts, the URLs — comes from `content/projects.ts`, which is the
  * collection layer and the file that gets hand-edited for a year. This module
@@ -9,10 +9,13 @@
  * `projectsContent.ts` do: fixed-arity chrome for one surface is not a
  * collection.
  *
- * All six were approved by Saad verbatim (ticket-7-plan.md §7, gates G1, G5
- * and G8; F-D2 in ticket-7-design.md §9 for `GITHUB_LINK_LABEL`). Do not
- * paraphrase, pluralise, abbreviate or reword any of them to fit a layout. If
- * the layout needs different text, that is a question back to Saad, not an
+ * The first six were approved by Saad verbatim (ticket-7-plan.md §7, gates G1,
+ * G5 and G8; F-D2 in ticket-7-design.md §9 for `GITHUB_LINK_LABEL`). The
+ * seventh, `CLOSE_LABEL`, arrived with Ticket 6b and is specified by
+ * ticket-6b-plan.md §4 step 12 rather than approved verbatim — that difference
+ * is stated rather than smoothed over, and it is at its own constant below. Do
+ * not paraphrase, pluralise, abbreviate or reword any of them to fit a layout.
+ * If the layout needs different text, that is a question back to Saad, not an
  * edit here.
  *
  * AND NO PER-PROJECT COPY OF ANY KIND. `content/projects.ts` is authoritative
@@ -42,6 +45,28 @@
  * file.
  */
 export const BACK_LINK_LABEL = "All work";
+
+/**
+ * The overlay's close affordance — Ticket 6b, top and bottom of the dialog.
+ *
+ * It occupies the SAME SLOT as `BACK_LINK_LABEL`: `ProjectDetailFrame` renders
+ * one caller-supplied affordance above the cover and one below it, and the
+ * route passes the back link where the overlay passes a close button. That is
+ * why the two labels live side by side here.
+ *
+ * `Close`, NOT `Back`, `← Back`, `Back to work`, `All work` or `Done`. An
+ * overlay closes; it does not navigate. Reusing `All work` would promise the
+ * gallery and deliver a dismissal, and on the real route — reached by refresh
+ * or a shared link — the very same slot really does say `All work`, so the two
+ * words have to stay distinguishable. `docs/04_FEATURE_TICKETS.md` already
+ * words the contract that way: the route "renders a back link above it, which
+ * 6b swaps for a close affordance".
+ *
+ * NO GLYPH. No `×`, no `✕`, no icon. The site ships no icon set, `×` read
+ * aloud is "times", and `BACK_LINK_LABEL` above already records rejecting an
+ * arrow on the same atom.
+ */
+export const CLOSE_LABEL = "Close";
 
 /**
  * The technology-list label.
