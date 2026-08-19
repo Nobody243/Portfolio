@@ -69,17 +69,30 @@ export const DURATION = {
 /** Delay between siblings in a staggered sequence, in seconds. */
 export const STAGGER = {
   /**
-   * Hero headline lines. CURRENTLY TIER 1 ONLY — the hero's two tagline units
-   * are its sole consumer.
+   * Hero headline lines. TWO CONSUMERS, BOTH TIER 1: the hero's two tagline
+   * units, and the Contact close beat's three blocks (Ticket 10). No Tier 2 or
+   * Tier 3 section consumes it, and none should without reading the invariant
+   * below.
    *
    * Ticket 4's About section was designed to reuse this for its first beat,
    * which is why no STAGGER.section entry was ever added. It then removed the
    * delay outright: after a scroll-cue click the heading and the first two
    * beats intersect on one observer tick, and a non-zero delay on beat 1 alone
-   * made the sequence render backwards. If a Tier 2 section ever wants a
-   * stagger again, reuse this rather than inventing a per-section cadence —
-   * but read About's comment first, because the same trap applies to anything
-   * a jump link can land on.
+   * made the sequence render backwards. If a section ever wants a stagger
+   * again, reuse this rather than inventing a per-section cadence — but read
+   * About's comment first, because the same trap applies to anything a jump
+   * link can land on.
+   *
+   * THE INVARIANT, stated precisely, because About's case is easy to over-read
+   * as "never stagger": DELAYS MUST INCREASE MONOTONICALLY IN DOCUMENT ORDER.
+   * About's defect was a NON-MONOTONIC sequence (0 / 0.10 / 0), which renders
+   * backwards when a jump lands every unit on one observer tick. Contact's
+   * 0 / 0.10 / 0.20 cannot: increasing delays still play top-to-bottom on a
+   * simultaneous tick. An INDEX CASCADE (`delay={index * STAGGER.line}`) is
+   * still wrong wherever units have independent triggers and a reader may
+   * arrive at one deliberately — the delay is then measured from the wrong
+   * origin. It is safe only where the units always enter together, as the
+   * Contact bookend panel's three blocks do.
    *
    * Retuned 0.08 -> 0.10 in Ticket 3.
    *

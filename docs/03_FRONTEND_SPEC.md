@@ -58,6 +58,28 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > | `/50` | — | — | 4.71:1 ✓ | **3.38:1 ✗** |
 > | `/70` | 8.41:1 ✓ | 6.69:1 ✓ | 8.18:1 ✓ | 6.48:1 ✓ |
 >
+> **`bg-hero-surface` is measured separately, and `/70` still ships. Ticket 10.** This surface
+> (`#07090C` with `--color-hero-fg` `#E8EAEC`) is PINNED in both themes, so the light-mode reasoning
+> below does not transfer to it and the arithmetic had to be redone:
+>
+> | | `bg-hero-surface` (pinned, both themes) |
+> |---|---|
+> | full | 16.5:1 ✓ |
+> | `/70` | **8.21:1 ✓** |
+> | `/55` | 5.38:1 ✓ |
+> | `/50` | 4.60:1 ✓ — 0.10 headroom |
+> | `/45` | 3.91:1 ✗ |
+>
+> The arithmetic floor here is `/50`, not `/70`. **Ship `/70` anyway.** Two reasons: 0.10 of headroom
+> is the same thin margin that got `/60` on `bg-elevated` rejected as unsafe below; and one site-wide
+> floor is worth more than a correct-but-different second one, because **the second floor is the one a
+> reviewer forgets exists.** `Contact.tsx`'s link labels are `text-hero-fg/70`.
+>
+> Two existing sub-`/70` values on this surface are NON-TEXT or transient and are not precedent for
+> text: `HeroHeadline`'s reduced-motion chevron at `text-hero-fg/55` is an **icon** on the 3:1 floor
+> (5.38:1), and `HeroLoader`'s percentage counter at `text-hero-fg/50` (4.60:1) clears AA but sits
+> below this rule — flagged, not changed, in Ticket 10; it belongs to whoever revisits the loader.
+>
 > **The trap is that dark mode is the default and light mode is the binding constraint.** `/50` on
 > `bg-elevated` passes in dark and fails in light, so an opacity tuned by eye in the default theme
 > ships an accessibility defect nobody sees. This has now been caught twice — Skills' entry counts at
@@ -70,8 +92,35 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > `aria-hidden` does not exempt anything here: it hides an element from screen readers, while 1.4.3
 > exists for low-vision users looking straight at it.
 
+> ### `accent-hero` has exactly ONE DOM consumer site-wide. Ticket 10.
+>
+> `--accent-hero` is registered **outside** Tailwind's `--color-*` namespace, so `text-accent-hero` /
+> `bg-accent-hero` **do not exist and never will**. That exclusion is a mechanical guard, not an
+> oversight, and it stands: **no `--color-accent-hero`, no `@utility`, no `@theme` entry, and no
+> hand-written class in `globals.css`.** Any of those would regenerate a general-purpose handle
+> usable from any file — the exact leak the guard prevents, renamed. Tailwind renders *nothing* for
+> an unknown utility rather than erroring, which is what makes the guard work.
+>
+> The hero reaches cyan through `lib/three/accentHero.ts` — a JS constant handed to a WebGL material,
+> not a DOM path. **The one licensed DOM path is an inline `style={{ backgroundColor:
+> "var(--accent-hero)" }}` on a single 34×3px `aria-hidden` bar in
+> `components/sections/Contact.tsx`.** `globals.css` names that mechanism itself ("Read it via
+> `var(--accent-hero)` (inline style / CSS) or as a JS constant"), and the point of it is that
+> reaching cyan in the DOM must be a **deliberate, visible, greppable act** rather than a class typed
+> by muscle memory: `grep -rn "accent-hero" components/` audits the whole rule in one command.
+>
+> **BEWARE THE NAME.** `hero-accent` (`#14B8A6` teal, HAS utilities) and `accent-hero` (`#00E5FF`
+> cyan, has none) are near-anagrams for different colours, and **both directions of the swap render
+> something plausible on a dark panel.** Teal is the affordance — links and focus rings. Cyan is a
+> marker of a beat and is never interactive, never text, and never on `bg-base`.
+>
+> `--color-hero-on-accent` is **not** shipped: nothing on this site yet renders text on a filled teal
+> or cyan surface. §11.5's rule is unchanged — it ships the moment one does, into the pinned
+> three-token block in `globals.css`, never as a loose fourth token elsewhere in the file.
+
 **Accent tuning clarification:** `accent-hero` is fixed across both themes (`#00E5FF`) — it's used only
-as a glow/lighting effect on the hero's 3D scene, never for text, so contrast rules don't apply to it.
+as a glow/lighting effect on the hero's 3D scene, and as the one bar in the Contact close beat above;
+never for text, so text contrast rules don't apply to it.
 `accent-working` may be contrast-tuned per theme (e.g. a slightly different exact hex in light vs. dark)
 to meet WCAG AA text-contrast requirements against that theme's specific background — this is expected
 and correct, not a violation of the design system. The rule is "one consistent teal hue family, tuned
@@ -152,6 +201,27 @@ documented exception: About opens at `spacing-3xl` (144px) at ≥640px, because 
 rather than immediately above a heading. **Sections that do not follow a hard edge do not pay that
 cost** — About's larger opening is hero debt, not precedent. The Contact section (Tier 1 echo, on its
 own dark surface) may set its own vertical rhythm, and must say so where it does.
+
+**S-2's Contact exception, exercised and recorded (Ticket 10).** `components/sections/Contact.tsx`
+ships `pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl` on a full-bleed `bg-hero-surface` `<footer>`.
+
+- **It is About's hard edge mirrored,** `bg-base` → `bg-hero-surface` instead of the other way round,
+  so it pays exactly what About's opening pays: `pt-2xl sm:pt-3xl`. Seam totals are **178px below
+  640px and 233px at 640px and above** (89 + 144 = 233 = `--spacing-4xl`, which the Fibonacci scale
+  lands on exactly). The preceding section's `pb-2xl` is **unchanged** — this section absorbs the
+  whole cost, as About did.
+- **No gradient fade at this seam,** for the same reason as the hero's: near-black ↔ warm-white
+  gradients muddy both colours and are a recognisable hero-fadeout trope.
+- **The bottom is symmetric with the top** because it is a plate, not a seam — a plate with a short
+  bottom reads as content that got cut off. Nothing comes after this section, so the padding is the
+  end of the document.
+- **Rule S-1 still holds byte-identically INSIDE the panel:**
+  `mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl`, exactly as the hero does inside its own
+  full-bleed dark plate. Holding the spine inside the panel is the main thing that stops it reading
+  as a bolted-on footer bar.
+- **It is a `<footer>`, a SIBLING of `<main>`,** so it is the `contentinfo` landmark. A `<footer>`
+  nested inside `<main>` is scoped to `<main>` and is not a landmark at all — nothing errors and the
+  benefit silently evaporates.
 
 **Fonts:**
 - Space Grotesk — all headings, UI, body text

@@ -222,3 +222,48 @@ export interface Experience {
    *  would rather not link it — a guessed URL is a fabricated one. */
   readonly url?: string;
 }
+
+/**
+ * One contact link — ADDED BY TICKET 10. Everything above this comment is
+ * Ticket 2's and Ticket 8's; nothing there was edited, renamed or reordered.
+ *
+ * WHY CONTACT LINKS ARE /content AND NOT SECTION-LOCAL COPY. The test is not
+ * "is this portfolio evidence" — it is "does this change without a code change,
+ * and is it needed outside the section". Both are yes: LinkedIn arrives by data
+ * edit, and `app/layout.tsx` metadata, Ticket 14's form and Ticket 15's CV all
+ * want the address and the GitHub URL. A server layout importing a URL out of
+ * `components/sections/` is backwards. The heading and the closing line are
+ * copy, not data, and stay in `components/sections/contactContent.ts`.
+ *
+ * ALL FOUR FIELDS ARE REQUIRED AND NOTHING IS DERIVED. Stripping "https://" off
+ * `href` to produce a display string would be a formatting function in the data
+ * layer, which the hard rules at the top of this file forbid, and it is fragile
+ * (trailing slash, "www."). Three strings carry three distinct facts.
+ *
+ * The absent-keys rule at the top of this file governs this type hardest: a
+ * link Saad has not supplied is an ABSENT ENTRY, never an entry with `href:
+ * "#"`, `href: ""` or a guessed profile URL. CLAUDE.md forbids placeholder
+ * social links by name.
+ */
+export interface ContactLink {
+  /** The register word: "Email", "GitHub". Never the URL, never a sentence. */
+  readonly label: string;
+  /**
+   * The VISIBLE string — the address itself, or host + handle. Never derived
+   * from `href`, and never a call to action ("Email me"): the point of showing
+   * the literal address is that a dead `mailto:` still leaves something
+   * selectable on screen.
+   */
+  readonly value: string;
+  /** Absolute. "mailto:" for an email, "https://" for everything else. */
+  readonly href: string;
+  /**
+   * Discriminant, EXPLICIT rather than sniffed from `href`. "web" renders
+   * through `<ExternalLink>` with target/rel and the new-tab note; "email"
+   * renders a plain <a>, because a mailto: does not open a tab and announcing
+   * one would be a lie. A `boolean external` or a `href.startsWith("http")`
+   * check would make a new kind a silent fallthrough; this makes it a compile
+   * error.
+   */
+  readonly kind: "email" | "web";
+}
