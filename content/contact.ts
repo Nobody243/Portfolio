@@ -18,12 +18,14 @@
  * — screenshots at 0/1/n, Skills' empty group, Experience's single-entry map,
  * and In Progress returning null at zero.
  *
- * LINKEDIN IS DELIBERATELY ABSENT. Saad has not supplied the URL. An absent
+ * LINKEDIN ARRIVED 2026-08-19 and was added as a third entry — four lines, no
+ * layout change, no code change, exactly as the paragraph above predicted. It
+ * was absent rather than stubbed for the two hours it was unknown: an absent
  * link is an ABSENT ENTRY — never `href: "#"`, never `href: ""`, never a
- * guessed profile URL, and never a disabled-looking item. ./types.ts states
- * that rule and CLAUDE.md forbids placeholder social links by name, citing the
- * old my-portfolio-ten-ruddy-35 site's fake socials as the thing this build
- * exists not to repeat. When the real URL arrives, add four lines below.
+ * guessed profile URL, never a disabled-looking item. ./types.ts states that
+ * rule and CLAUDE.md forbids placeholder social links by name, citing the old
+ * my-portfolio-ten-ruddy-35 site's fake socials as the thing this build exists
+ * not to repeat. Keep that standard for the next one.
  *
  * BOTH ENTRIES WERE VERIFIED 2026-08-19 (.claude/handoff/ticket-10-content.md):
  *   - saaddev.top has live MX records, so mail is deliverable. It has NO
@@ -31,6 +33,14 @@
  *     DOMAIN. It appears only inside the address string.
  *   - https://github.com/Nobody243 returned HTTP 200 with no redirect, so this
  *     is the canonical URL.
+ *   - LinkedIn COULD NOT BE MACHINE-VERIFIED and that is expected: LinkedIn
+ *     answers automated requests with HTTP 999, an anti-bot code, not a 404.
+ *     It is therefore neither evidence the profile exists nor evidence it does
+ *     not. The trailing-slash form Saad supplied 301s to the slash-less URL
+ *     stored below, which is the canonical one and avoids a redirect hop on
+ *     every click. THIS IS THE ONE LINK ON THE SITE NOTHING HERE CAN CHECK —
+ *     open it in a browser once before launch. A typo in the vanity slug would
+ *     produce a plausible-looking dead link. Logged as a Ticket 13 check.
  *
  * No Twitter/X, Instagram, Dribbble or Behance: docs/04 Ticket 10 says real
  * links only. No CV link either — there is no resume PDF yet, and that is
@@ -54,6 +64,13 @@ export const contact: readonly ContactLink[] = [
     label: "GitHub",
     value: "github.com/Nobody243",
     href: "https://github.com/Nobody243",
+    kind: "web",
+  },
+  {
+    label: "LinkedIn",
+    // Stored without the trailing slash Saad supplied: that form 301s here.
+    value: "linkedin.com/in/muhammad-saad-2911702a3",
+    href: "https://www.linkedin.com/in/muhammad-saad-2911702a3",
     kind: "web",
   },
 ];
