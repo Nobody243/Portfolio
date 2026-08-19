@@ -10,10 +10,20 @@
  * away the bug it exists to prevent.
  *
  * CALLERS: `components/sections/ProjectDetail.tsx` (Ticket 7) renders each
- * project's completion month through it. This line previously read "there is
+ * project's completion month through it, `components/sections/Experience.tsx`
+ * (Ticket 8) each end of a role's date range, and
+ * `components/sections/CurrentlyLearning.tsx` (Ticket 9) both an entry's dates
+ * and the section's last-reviewed stamp. This line previously read "there is
  * currently no caller, that is expected until Ticket 7" and was left stale when
- * Ticket 7 shipped — corrected 2026-08-19. Keep it accurate: a comment claiming
- * a function is unused is exactly the licence someone needs to delete it.
+ * Ticket 7 shipped — corrected 2026-08-19, and extended to the two later
+ * callers the same day. Keep it accurate: a comment claiming a function is
+ * unused is exactly the licence someone needs to delete it.
+ *
+ * ONE CALLER PASSES "YYYY-MM-DD", not "YYYY-MM": CurrentlyLearning's
+ * last-reviewed stamp. The split-and-index below takes the first two segments
+ * and ignores the third, so that input yields the month and year and drops the
+ * day. That is relied upon deliberately at that call site — do not "fix" it by
+ * rejecting longer inputs.
  */
 
 /**
