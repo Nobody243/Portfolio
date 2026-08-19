@@ -1,7 +1,10 @@
+import {
+  EXTERNAL_LINK_ON_BASE,
+  ExternalLink,
+} from "@/components/ui/ExternalLink";
 import { Reveal } from "@/components/ui/Reveal";
 import {
   EXPERIENCE_HEADING,
-  NEW_TAB_NOTE,
   ONGOING_LABEL,
   RANGE_SEPARATOR,
   STACK_LABEL,
@@ -101,30 +104,24 @@ const META = "text-caption font-mono text-fg/70";
 const LABEL_GAP = "mt-sm lg:mt-md";
 
 /**
- * The company link — DUPLICATED FROM `ProjectDetail.tsx`, DELIBERATELY, AND
- * NOT YET EXTRACTED.
+ * The company link — SHARED SINCE TICKET 10.
  *
- * These two class strings, the `target`/`rel` pair and the `sr-only` new-tab
- * note now exist in two files. Extracting a shared `<ExternalLink>` here would
- * be scope creep into a shipped file for a second consumer; `ProjectDetail`'s
- * constants are file-local by design. TICKET 10 (Contact) IS THE THIRD
- * CONSUMER AND THE RIGHT HOME FOR THAT REFACTOR — it will have three real link
- * sites of its own. Until then, `ProjectDetail.tsx` is the origin and any
- * change to the treatment changes both files in one commit.
+ * The class string, the focus ring, the `target`/`rel` pair and the `sr-only`
+ * new-tab note previously lived here as a deliberate copy of
+ * `ProjectDetail.tsx`'s. Ticket 10 extracted all four into
+ * `components/ui/ExternalLink.tsx`, which is now the one place any of them
+ * changes. Computed styles are unchanged by that move.
  *
- * NO HOVER STATE, and that is a contrast constraint rather than laziness: any
- * hover step that dims the teal needs a value below full `accent-working`, and
- * `accent-working` in light mode (#0f766e) is 5.34:1 on `bg-base` — at /70 it
- * falls to roughly 3.2:1 and fails AA outright. The only permitted hover device
- * is `hover:decoration-2` (underline thickness): never a colour change, never a
- * background, never a transform.
+ * `text-body` stays local, because the size legitimately differs per call site:
+ * here the link wraps the company name inside a `<p>`, while
+ * `CurrentlyLearning` passes the constant ALONE so its link inherits `text-h4`
+ * from the `<h3>` around it. That is why the shared component owns semantics
+ * and the caller owns size.
  *
- * The underline is not decoration — colour alone must not be a link's only
- * signal.
+ * The no-hover-state contrast constraint and the "underline is not decoration"
+ * rule are both recorded at the shared component.
  */
-const FOCUS_RING =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working";
-const EXTERNAL_LINK = `text-body text-accent-working underline underline-offset-4 ${FOCUS_RING}`;
+const EXTERNAL_LINK = `${EXTERNAL_LINK_ON_BASE} text-body`;
 
 export function Experience() {
   return (
@@ -216,19 +213,12 @@ export function Experience() {
                     Full opacity — primary content. */}
                 <p className="mt-xs text-body text-fg">
                   {entry.url ? (
-                    <a
-                      href={entry.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={EXTERNAL_LINK}
-                    >
+                    // The new-tab note is appended to the visible text by
+                    // `ExternalLink`, never as an `aria-label` replacing it —
+                    // see that component.
+                    <ExternalLink href={entry.url} className={EXTERNAL_LINK}>
                       {entry.company}
-                      {/* Appended to the visible text, never an `aria-label`
-                          replacing it — a hand-written accessible name that
-                          differs from the visible text is drift. The leading
-                          space keeps the name from reading as one word. */}
-                      <span className="sr-only">{` ${NEW_TAB_NOTE}`}</span>
-                    </a>
+                    </ExternalLink>
                   ) : (
                     entry.company
                   )}

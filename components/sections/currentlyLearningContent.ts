@@ -137,20 +137,3 @@ export const RANGE_SEPARATOR = " – ";
  * per-entry date label.
  */
 export const LAST_REVIEWED_LABEL = "Last reviewed";
-
-/**
- * Appended to an entry link's accessible name, never rendered visibly.
- *
- * A new tab that is not announced is sprung on a screen-reader user rather than
- * offered. The consumer renders it inside an `sr-only` span with a leading
- * space, so the accessible name reads "<the entry's title> (opens in a new
- * tab)". No example cert is named here — there are none, and a plausible one in
- * a comment is the first step toward one in the data file.
- *
- * NOT an `aria-label` on the anchor: a hand-written accessible name that
- * differs from the visible text is drift. This appends to the visible text
- * rather than replacing it. Duplicated verbatim from `experienceContent.ts` and
- * `projectDetailContent.ts` — see CurrentlyLearning.tsx on why the three are
- * not yet shared.
- */
-export const NEW_TAB_NOTE = "(opens in a new tab)";

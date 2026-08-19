@@ -1,6 +1,10 @@
 import Image from "next/image";
 import type { StaticImageData } from "next/image";
 
+import {
+  EXTERNAL_LINK_ON_BASE,
+  ExternalLink,
+} from "@/components/ui/ExternalLink";
 import { Reveal } from "@/components/ui/Reveal";
 import type { Project } from "@/content/types";
 import { formatMonthYear } from "@/lib/formatMonthYear";
@@ -9,7 +13,6 @@ import {
   GITHUB_LINK_LABEL,
   LINKS_LABEL,
   LIVE_LINK_LABEL,
-  NEW_TAB_NOTE,
   SCREENSHOTS_LABEL,
   STACK_LABEL,
 } from "./projectDetailContent";
@@ -201,28 +204,24 @@ const BLOCK_LABEL = "text-caption font-mono text-fg/70";
  *  Skills. */
 const LABEL_GAP = "mt-sm lg:mt-md";
 
-/** Explicit, on every focusable element on the page. Matches the site's
- *  shipped treatment. */
-const FOCUS_RING =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working";
-
 /**
  * External links: accent + underline, never a button.
  *
- * The underline is not decoration — colour alone must not be a link's only
- * signal. Ghost buttons were rejected: the page already carries bordered image
- * frames, two more outlined rectangles is a lot of chrome for Tier 3, and a
- * button implies an in-page action rather than leaving the site.
+ * SHARED SINCE TICKET 10. The class string, the focus ring, the `target`/`rel`
+ * pair and the `sr-only` new-tab note all now live in
+ * `components/ui/ExternalLink.tsx`; this file was the origin they were
+ * extracted from and its computed styles are unchanged. `text-body` stays
+ * local because the size legitimately differs per call site —
+ * `CurrentlyLearning` passes the constant alone so its link inherits `text-h4`.
  *
- * NO HOVER STATE, and that is a contrast constraint rather than laziness: any
- * hover step that dims the teal needs a value below full `accent-working`, and
- * `accent-working` in light mode (#0f766e) is 5.34:1 on `bg-base` — at /70 it
- * falls to roughly 3.2:1 and fails AA outright. There is no safe second teal.
- * If hover feedback ever proves necessary the only permitted device is
- * `hover:decoration-2` (underline thickness): never a colour change, never a
- * background, never a transform.
+ * Ghost buttons were rejected: the page already carries bordered image frames,
+ * two more outlined rectangles is a lot of chrome for Tier 3, and a button
+ * implies an in-page action rather than leaving the site. The underline is not
+ * decoration — colour alone must not be a link's only signal. Both of those,
+ * and the no-hover-state contrast constraint, are recorded at the shared
+ * component.
  */
-const EXTERNAL_LINK = `text-body text-accent-working underline underline-offset-4 ${FOCUS_RING}`;
+const EXTERNAL_LINK = `${EXTERNAL_LINK_ON_BASE} text-body`;
 
 export function ProjectDetail({ project }: { project: Project }) {
   /**
@@ -517,26 +516,14 @@ export function ProjectDetail({ project }: { project: Project }) {
             <h2 className={BLOCK_LABEL}>{LINKS_LABEL}</h2>
             <div className={`${LABEL_GAP} flex flex-wrap gap-x-md gap-y-sm`}>
               {github ? (
-                <a
-                  href={github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={EXTERNAL_LINK}
-                >
+                <ExternalLink href={github} className={EXTERNAL_LINK}>
                   {GITHUB_LINK_LABEL}
-                  <span className="sr-only">{` ${NEW_TAB_NOTE}`}</span>
-                </a>
+                </ExternalLink>
               ) : null}
               {live ? (
-                <a
-                  href={live}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={EXTERNAL_LINK}
-                >
+                <ExternalLink href={live} className={EXTERNAL_LINK}>
                   {LIVE_LINK_LABEL}
-                  <span className="sr-only">{` ${NEW_TAB_NOTE}`}</span>
-                </a>
+                </ExternalLink>
               ) : null}
             </div>
           </Reveal>

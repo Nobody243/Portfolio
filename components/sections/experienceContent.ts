@@ -75,18 +75,3 @@ export const ONGOING_LABEL = "Present";
  * not buried in JSX.
  */
 export const RANGE_SEPARATOR = " – ";
-
-/**
- * Appended to the company link's accessible name, never rendered visibly.
- *
- * A new tab that is not announced is sprung on a screen-reader user rather than
- * offered. The consumer renders it inside an `sr-only` span with a leading
- * space, so the accessible name reads "New Web Order (opens in a new tab)".
- *
- * NOT an `aria-label` on the anchor: a hand-written accessible name that
- * differs from the visible text is drift. This appends to the visible text
- * rather than replacing it. Duplicated verbatim from
- * `projectDetailContent.ts` — see Experience.tsx on why the two are not yet
- * shared.
- */
-export const NEW_TAB_NOTE = "(opens in a new tab)";

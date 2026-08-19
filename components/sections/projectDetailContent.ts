@@ -94,17 +94,3 @@ export const GITHUB_LINK_LABEL = "GitHub";
  * relabelling it.
  */
 export const LIVE_LINK_LABEL = "Live site";
-
-/**
- * Appended to every external link's accessible name, never rendered visibly.
- *
- * Both link kinds open in a new tab (G8), and a new tab that is not announced
- * is sprung on a screen-reader user rather than offered. The consumer renders
- * it inside an `sr-only` span with a leading space so the accessible name
- * reads "GitHub (opens in a new tab)", not "GitHub(opens in a new tab)".
- *
- * NOT an `aria-label` on the anchor: a hand-written accessible name that
- * differs from the visible text is the drift `ProjectCard` already rejected.
- * This appends to the visible text rather than replacing it.
- */
-export const NEW_TAB_NOTE = "(opens in a new tab)";

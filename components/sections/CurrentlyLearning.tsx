@@ -1,8 +1,11 @@
+import {
+  EXTERNAL_LINK_ON_BASE,
+  ExternalLink,
+} from "@/components/ui/ExternalLink";
 import { Reveal } from "@/components/ui/Reveal";
 import {
   IN_PROGRESS_HEADING,
   LAST_REVIEWED_LABEL,
-  NEW_TAB_NOTE,
   RANGE_SEPARATOR,
   STARTED_LABEL,
   STATUS_LABELS,
@@ -106,39 +109,26 @@ import { formatMonthYear } from "@/lib/formatMonthYear";
 const META = "text-caption font-mono text-fg/70";
 
 /**
- * An entry's title when it links out — DUPLICATED FROM `ProjectDetail.tsx` AND
- * `Experience.tsx`, DELIBERATELY, AND STILL NOT EXTRACTED.
+ * An entry's title when it links out — SHARED SINCE TICKET 10.
  *
- * These class strings, the `target`/`rel` pair and the `sr-only` new-tab note
- * now exist in three files, and this is the third consumer only in the sense of
- * being the third FILE — TICKET 10 (Contact) IS THE REFACTOR'S HOME, because it
- * will have three real link sites of its own and is the point at which the
- * shared component earns its API. Extracting it here would mean editing two
- * shipped files for a section that currently renders nothing.
- * `ProjectDetail.tsx` is the origin; any change to the treatment changes all
- * three files in one commit.
+ * The class string, the focus ring, the `target`/`rel` pair and the `sr-only`
+ * new-tab note previously lived here as a deliberate third copy of
+ * `ProjectDetail.tsx`'s. Ticket 10 extracted all four into
+ * `components/ui/ExternalLink.tsx`. Computed styles are unchanged.
  *
- * NO `text-body` SIZE CLASS, which is the one difference from Experience's copy
- * of this constant. There the link wraps the company name in a `<p>`; here it
- * wraps the title inside an `<h3 class="text-h4">`, so the size must be
- * INHERITED from the heading. Hardcoding `text-body` would silently shrink the
- * title to 16px the day an entry has a link — a bug that only appears with data
- * that does not exist yet, which is precisely the class of defect this ticket
- * was verified against with temporary fixtures.
+ * NO `text-body` SIZE CLASS, which is the one difference from Experience's and
+ * ProjectDetail's call sites, and it is why the shared component owns semantics
+ * while the CALLER owns size. There the link wraps the company name in a `<p>`;
+ * here it wraps the title inside an `<h3 class="text-h4">`, so the size must be
+ * INHERITED from the heading. Appending `text-body` here would silently shrink
+ * the title to 16px the day an entry has a link — a bug that only appears with
+ * data that does not exist yet, which is precisely the class of defect this
+ * section was verified against with temporary fixtures.
  *
- * NO HOVER STATE, and that is a contrast constraint rather than laziness: any
- * hover step that dims the teal needs a value below full `accent-working`, and
- * `accent-working` in light mode (#0f766e) is 5.34:1 on `bg-base` — at /70 it
- * falls to roughly 3.2:1 and fails AA outright. The only permitted hover device
- * is `hover:decoration-2` (underline thickness): never a colour change, never a
- * background, never a transform.
- *
- * The underline is not decoration — colour alone must not be a link's only
- * signal.
+ * The no-hover-state contrast constraint and the "underline is not decoration"
+ * rule are both recorded at the shared component.
  */
-const FOCUS_RING =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working";
-const EXTERNAL_LINK = `text-accent-working underline underline-offset-4 ${FOCUS_RING}`;
+const EXTERNAL_LINK = EXTERNAL_LINK_ON_BASE;
 
 export function CurrentlyLearning() {
   // THE ZERO-GATE. The only `.length` read in this file, and it is a whole-
@@ -242,19 +232,12 @@ export function CurrentlyLearning() {
                     overrides it and inherits the SIZE. See EXTERNAL_LINK. */}
                 <h3 className="text-h4 text-fg">
                   {entry.link ? (
-                    <a
-                      href={entry.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={EXTERNAL_LINK}
-                    >
+                    // The new-tab note is appended to the visible text by
+                    // `ExternalLink`, never as an `aria-label` replacing it —
+                    // see that component.
+                    <ExternalLink href={entry.link} className={EXTERNAL_LINK}>
                       {entry.title}
-                      {/* Appended to the visible text, never an `aria-label`
-                          replacing it — a hand-written accessible name that
-                          differs from the visible text is drift. The leading
-                          space keeps the name from reading as one word. */}
-                      <span className="sr-only">{` ${NEW_TAB_NOTE}`}</span>
-                    </a>
+                    </ExternalLink>
                   ) : (
                     entry.title
                   )}
