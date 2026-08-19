@@ -193,14 +193,24 @@ export function Contact() {
             teal, means "activate this". #00E5FF on #07090C is 12.96:1, against
             a 3:1 non-text floor.
 
-            `h-[3px]` is a literal because there is no 3px SIZE token —
-            `--spacing-3xs` is a spacing token — and globals.css names hairlines
-            as the documented exception to semantic spacing. `w-lg` is 34px.
-            `block` so it sits in normal flow with no absolute positioning.
-          */}
+            `h-3xs` is 3px from `--spacing-3xs`, NOT a literal. An earlier
+            version of this used `h-[3px]` and said "there is no 3px SIZE
+            token" — false, and `w-lg` on the same element disproves it: in
+            Tailwind v4 the `--spacing-*` namespace generates size utilities as
+            well as spacing ones, so `.h-3xs { height: var(--spacing-3xs) }` is
+            generated and verified in the built CSS. globals.css reserves
+            arbitrary and numeric values for 1-2px hairlines specifically
+            BECAUSE the Fibonacci scale covers everything from 3px up.
+
+            The bar is 34x3px on the pinned dark plate. globals.css's hard
+            constraint for this ticket is satisfied by the surface, not the
+            size: cyan is ~1.5:1 on `bg-base` and must never be a rule or
+            hairline drawn there, but this sits on `bg-hero-surface` at
+            12.96:1, which is the "its own dark surface" the rule requires.
+            */}
           <span
             aria-hidden="true"
-            className="mb-md block h-[3px] w-lg"
+            className="mb-md block h-3xs w-lg"
             style={{ backgroundColor: "var(--accent-hero)" }}
           />
           {/* Weight left at the inherited 400, as in all five shipped sections:
