@@ -109,11 +109,26 @@ const readPlayed = () => sessionStorage.getItem(SESSION_KEY) === "1";
 const readPlayedServer = () => false;
 
 type HeroLoaderProps = {
+  /**
+   * Gate on the handoff. The monogram forms on its own clock and then WAITS
+   * here until the owner says the thing behind the plate is actually ready to
+   * be seen — geometry built, shaders compiled. Lifting an opaque plate onto
+   * an unready scene shows a blank frame or a hitch at the exact moment the
+   * visitor is looking hardest.
+   *
+   * This is the one place the intro's fixed clock defers to a real event, and
+   * it is the right place: everything before it animates a UI element, while
+   * this step reveals a thing that either exists yet or does not.
+   */
+  canHandOff?: boolean;
   /** Fired once the plate is finished and can be unmounted. */
   onExited?: () => void;
 };
 
-export function HeroLoader({ onExited }: HeroLoaderProps) {
+export function HeroLoader({
+  canHandOff = true,
+  onExited,
+}: HeroLoaderProps) {
   const reducedMotion = useReducedMotion();
   const alreadyPlayed = useSyncExternalStore(
     noopSubscribe,
@@ -122,6 +137,13 @@ export function HeroLoader({ onExited }: HeroLoaderProps) {
   );
 
   const plateRef = useRef<HTMLDivElement | null>(null);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
+  /** True once the timeline has reached its pause and is holding. */
+  const holdingRef = useRef(false);
+  const canHandOffRef = useRef(canHandOff);
+  useEffect(() => {
+    canHandOffRef.current = canHandOff;
+  }, [canHandOff]);
   const charRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const onExitedRef = useRef(onExited);
   useEffect(() => {
@@ -171,7 +193,14 @@ export function HeroLoader({ onExited }: HeroLoaderProps) {
       gsap.set(drop, { display: "none" });
       gsap.set(keep, { color: "var(--accent-hero)" });
       const tl = gsap.timeline({ onComplete: finish });
+      // The gate applies here too — a reduced-motion visitor should not be
+      // handed a blank scene faster than everyone else.
+      tl.addPause(undefined, () => {
+        holdingRef.current = true;
+        if (canHandOffRef.current) tl.play();
+      });
       tl.to(plate, { autoAlpha: 0, duration: REDUCED_FADE_S, delay: 0.15 });
+      tlRef.current = tl;
       return () => {
         tl.kill();
       };
@@ -235,12 +264,30 @@ export function HeroLoader({ onExited }: HeroLoaderProps) {
     //    files — so that ending would fly the mark to an empty corner and
     //    leave it there. The brief's own stated fallback is taken instead:
     //    the monogram fades out in place while the hero is revealed beneath.
+    //
+    //    THE PAUSE. The formed monogram holds here until `canHandOff`. Both
+    //    orderings are covered and both happen in practice: the callback
+    //    handles "the scene was already ready when we arrived", and the effect
+    //    below handles "the scene became ready while we were holding". Wiring
+    //    only one of them leaves the plate stuck on whichever race it lost.
+    tl.addPause(undefined, () => {
+      holdingRef.current = true;
+      if (canHandOffRef.current) tl.play();
+    });
     tl.to(plate, { autoAlpha: 0, duration: HANDOFF_S, ease: "power2.inOut" });
 
+    tlRef.current = tl;
     return () => {
       tl.kill();
+      tlRef.current = null;
     };
   }, [alreadyPlayed, reducedMotion, initials]);
+
+  /* Release the hold once the scene is ready. No-op unless the timeline is
+     actually parked at the pause. */
+  useEffect(() => {
+    if (canHandOff && holdingRef.current) tlRef.current?.play();
+  }, [canHandOff]);
 
   if (alreadyPlayed) return null;
 
