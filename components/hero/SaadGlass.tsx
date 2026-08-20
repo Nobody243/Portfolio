@@ -84,6 +84,16 @@ type SaadGlassProps = {
 
 export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
   const reducedMotion = useReducedMotion();
+  /**
+   * True while the pointer is anywhere in the HERO — not only over the glyphs.
+   *
+   * It was glyph-gated first, which meant the liquid only existed once you
+   * were already on the letters. The ask is liquid that FOLLOWS the cursor and
+   * flows through the glass, so it has to be alive while the cursor is
+   * approaching, with the mask clipping it to the letterforms. The visible
+   * result is liquid welling toward whichever edge of the word the cursor is
+   * nearest, which is the behaviour glyph-gating made impossible.
+   */
   const [hovered, setHovered] = useState(false);
 
   const plateRef = useRef<HTMLDivElement | null>(null);
@@ -102,6 +112,7 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
   const flowId = `saad-flow-${uid}`;
   const inkId = `saad-ink-${uid}`;
   const blobId = `saad-blob-${uid}`;
+  const glassId = `saad-glass-${uid}`;
 
   /* Live input, written by listeners and read by the tick. Never state. */
   const tilt = useRef({ tx: 0, ty: 0, cx: 0, cy: 0 });
@@ -161,7 +172,9 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
     const onLeave = () => {
       tilt.current.tx = 0;
       tilt.current.ty = 0;
+      setHovered(false);
     };
+    const onEnter = () => setHovered(true);
 
     const tick = () => {
       raf = requestAnimationFrame(tick);
@@ -178,11 +191,13 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
     };
 
     container.addEventListener("pointermove", onMove);
+    container.addEventListener("pointerenter", onEnter);
     container.addEventListener("pointerleave", onLeave);
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
       container.removeEventListener("pointermove", onMove);
+      container.removeEventListener("pointerenter", onEnter);
       container.removeEventListener("pointerleave", onLeave);
     };
   }, [containerRef, reducedMotion]);
@@ -201,6 +216,10 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
     const onMove = (event: PointerEvent) => {
       const svgRect = plate.getBoundingClientRect();
       if (!svgRect.width || !svgRect.height) return;
+      // NOT clamped to the plate. A cursor to the left of the word maps to a
+      // negative viewBox x, the blobs chase it out past the S, and the mask
+      // keeps only the part still inside a letter — which is what reads as
+      // liquid draining toward the edge the cursor is on.
       // Client -> viewBox. The SVG scales uniformly, so this is a plain ratio
       // rather than a full CTM inverse.
       blobTarget.current.x =
@@ -260,8 +279,6 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
           ref={plateRef}
           className="pointer-events-auto"
           style={{ transformStyle: "preserve-3d", willChange: "transform" }}
-          onPointerEnter={() => setHovered(true)}
-          onPointerLeave={() => setHovered(false)}
         >
           <svg
             viewBox={`0 0 ${VB_W} ${VB_H}`}
@@ -342,6 +359,29 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
 
               {/* Radial, not flat — the brief is explicit, and it is what
                   sells the blobs as a material rather than as shapes. */}
+              {/*
+                THE GLASS BODY. Always present, unlike everything else in the
+                mask — this is what makes the wordmark read as a pane rather
+                than as an outline that fills in on hover.
+
+                It is a TRANSLUCENT fill, so the particle field genuinely shows
+                through the letters; it is not a blurred sample of the backdrop,
+                because SVG has no way to read what is behind an element
+                (`BackgroundImage` was never implemented anywhere). Over a dark
+                field the translucent-pane-plus-bright-rim reading is what sells
+                Apple's glass, and the field showing through is the part that
+                would otherwise be faked.
+
+                Top-lit: brightest at the top edge, falling to a cool accent
+                floor. That vertical gradient is doing the work of an
+                environment reflection.
+              */}
+              <linearGradient id={glassId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.26" />
+                <stop offset="42%" stopColor="#bfeeff" stopOpacity="0.11" />
+                <stop offset="100%" stopColor="var(--accent-hero)" stopOpacity="0.16" />
+              </linearGradient>
+
               <radialGradient id={blobId}>
                 <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
                 <stop offset="45%" stopColor="#bfeeff" stopOpacity="0.75" />
@@ -349,26 +389,10 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
               </radialGradient>
             </defs>
 
-            {/* ALWAYS VISIBLE. The letterforms must read with no cursor
-                anywhere near them; the liquid is an enhancement, never the
-                thing that defines the shapes. */}
-            <text
-              ref={textRef}
-              x={VB_W / 2}
-              y={VB_H / 2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize={FONT_SIZE}
-              fontWeight={500}
-              letterSpacing="-0.03em"
-              fill="none"
-              stroke="var(--accent-hero)"
-              strokeOpacity="0.55"
-              strokeWidth="1.5"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              {HERO_WORDMARK}
-            </text>
+            {/* The pane itself. Under the liquid and under the rim. */}
+            <g mask={`url(#${maskId})`}>
+              <rect x="0" y="0" width={VB_W} height={VB_H} fill={`url(#${glassId})`} />
+            </g>
 
             {hovered && !reducedMotion && (
               <g mask={`url(#${maskId})`}>
@@ -396,6 +420,38 @@ export function SaadGlass({ containerRef, onMeasure }: SaadGlassProps) {
                 </g>
               </g>
             )}
+
+            {/* ALWAYS VISIBLE. The letterforms must read with no cursor
+                anywhere near them; the liquid is an enhancement, never the
+                thing that defines the shapes.
+
+                RENDERED LAST, above the liquid. It was above the glass body
+                but below the liquid first, and the masked liquid then painted
+                over the inner half of the stroke wherever it welled up — the
+                letterforms lost their edge exactly when the effect was most
+                active. The rim has to be the topmost thing in the wordmark.
+
+                The rim is deliberately brighter and heavier than an outline
+                would need to be: on glass the edge is where refraction
+                concentrates, and a thin faint stroke reads as a wireframe
+                instead. */}
+            <text
+              ref={textRef}
+              x={VB_W / 2}
+              y={VB_H / 2}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={FONT_SIZE}
+              fontWeight={500}
+              letterSpacing="-0.03em"
+              fill="none"
+              stroke="var(--accent-hero)"
+              strokeOpacity="0.9"
+              strokeWidth="2.25"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              {HERO_WORDMARK}
+            </text>
           </svg>
         </div>
       </div>

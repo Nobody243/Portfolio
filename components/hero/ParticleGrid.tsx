@@ -52,18 +52,23 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * failed it. At 9,000 the spacing drops to ~95px against a 120px radius and
  * each node finds two to four neighbours, which is what makes triangles.
  *
- * 1440x820 -> 131 nodes, inside the 100-140 the acceptance criteria name.
+ * DENSER AGAIN on request. 9,000 gave 131 nodes on a 1440x820 hero, which
+ * triangulated but still read as sparse. 5,200 gives ~227 there — a properly
+ * woven field rather than a scattering with links.
+ *
+ * The link pass is O(n²), so this is the number that had to be re-measured
+ * rather than assumed: see the fps figure in the commit. The cheap
+ * axis-aligned reject before the sqrt is what keeps it affordable at this
+ * count, and it is not optional any more.
  */
-const AREA_PER_NODE = 9_000;
+const AREA_PER_NODE = 5_200;
 
 /**
- * Hard ceiling, independent of viewport. The link pass is O(n²) and the brief
- * explicitly says not to reach for spatial hashing below ~150 nodes — so the
- * honest move is to cap at the number that keeps that promise true rather than
- * to let an ultrawide monitor quietly walk into 400 nodes and 80,000 distance
- * checks a frame.
+ * Hard ceiling, independent of viewport, so an ultrawide monitor cannot walk
+ * the O(n²) link pass into six figures of distance checks a frame. Raised with
+ * the density; still a real cap.
  */
-const MAX_NODES = 150;
+const MAX_NODES = 300;
 const MIN_NODES = 24;
 
 /** Radius of the torn void, CSS px. Mid-point of the brief's 130-160. */
