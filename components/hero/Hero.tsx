@@ -390,9 +390,16 @@ export function Hero() {
         breakpoint. Nothing is centred and the void stays on the right; the
         control sits at the EDGE of it, not in the middle.
 
-        `top-lg sm:top-xl` mirrors HeroLoader's `bottom-lg sm:bottom-xl`, so the
-        hero's two corner elements have a symmetric top/bottom margin. No new
-        values.
+        `top-lg sm:top-xl` was chosen to mirror the loader's old bottom-left
+        track, which sat at `bottom-lg sm:bottom-xl`. That track is gone — the
+        loader is now a centred plate — so this is no longer a mirror of
+        anything. The values stay because they are the hero's corner inset and
+        the scroll cue still uses the bottom half of the pair; only the
+        justification changed. Do not "restore" symmetry with a bottom element
+        that does not exist.
+
+        The plate itself is z-40, ABOVE this z-30 wrapper, so it covers the
+        toggle while it is up.
       */}
       <div className="pointer-events-none absolute inset-x-0 top-lg z-30 sm:top-xl">
         <div className="mx-auto flex w-full max-w-[1440px] justify-end px-md sm:px-xl lg:px-2xl">

@@ -453,6 +453,27 @@ html[data-overlay-open] {
   padding-right: var(--overlay-scrollbar-width, 0px);
 }
 
+/* ---------------------------------------------------------------------------
+   THE HERO LOADER'S SCROLL LOCK, `html[data-hero-loading]`.
+
+   Same mechanism and the same three reasons as the overlay lock above — most
+   importantly that under reduced motion there is no Lenis instance at all, so
+   a JS-only lock would silently do nothing for exactly the visitors most
+   likely to notice the page moving under a plate they cannot see past.
+
+   NO `padding-right` COMPENSATION, unlike the overlay. That exists to stop the
+   page shifting when the scrollbar is removed from under content the visitor
+   is already looking at. Here the plate is opaque, covers the viewport edge to
+   edge, and is up before anything has been read — there is nothing visible to
+   shift. Adding the compensation would instead shift the plate itself.
+
+   `components/hero/HeroLoader.tsx` owns the attribute and removes it in the
+   same effect's cleanup, so an unmount mid-load cannot strand the document.
+--------------------------------------------------------------------------- */
+html[data-hero-loading] {
+  overflow: clip;
+}
+
 dialog::backdrop {
   background: transparent;
 }
