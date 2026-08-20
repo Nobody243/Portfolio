@@ -12,9 +12,11 @@
  * via `setError` -> `if (error) throw error`, so a throwing scene child DOES
  * arrive here as a normal render-phase error.
  *
- * WHAT IT CANNOT CATCH: WebGL context-creation failure. That is an unhandled
- * promise rejection inside R3F's async setup, not a render-phase throw — see
- * lib/hooks/useWebGLSupport.ts, which prevents it instead.
+ * WHAT IT CANNOT CATCH used to be listed here as WebGL context-creation
+ * failure, guarded by lib/hooks/useWebGLSupport.ts. Both are gone: the hero
+ * rebuild removed R3F, so there is no async renderer setup left to fail
+ * outside a render phase. Nothing replaced the hook because nothing needs to —
+ * Canvas2D and SVG have no equivalent construction step.
  */
 
 import { Component, type ErrorInfo, type ReactNode } from "react";

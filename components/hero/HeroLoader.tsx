@@ -1,353 +1,275 @@
 "use client";
 
 /**
- * The preloader: an opaque plate carrying a flat `SAAD` mark and the real
- * progress readout, wiped away by a circular `clip-path` to reveal the
- * extruded wordmark already rendering behind it.
+ * The monogram loader: "Muhammad Saad" collapses to "MS".
  *
- * WHAT THE WIPE REVEALS IS LIVE, NOT A STILL. `visible` goes false at exactly
- * the moment the hero enters `revealing`, so the 1.1s wipe and the 1.45s
- * camera pull-back run CONCURRENTLY. The plate opens onto a camera already in
- * motion and the two settle together. Sequencing them instead — wipe, then
- * pull-back — was the other option and it costs 2.5s before the hero is
- * readable, with the site's signature beat hidden behind an opaque plate for
- * the half of it that matters.
+ * Every letter but the two initials fades and shrinks out of the layout; the
+ * M and the S then SLIDE together to close the gap, recolour to the accent,
+ * and hand over to the hero.
  *
- * THE FLAT MARK IS DELIBERATELY FLAT. It is Space Grotesk, the same face the
- * extruded geometry is built from, so the wipe reads as the same word gaining
- * a third dimension rather than as one logo swapping for another. Rendering
- * real `Text3D` here would mean a second WebGL canvas, mounted during the
- * exact window where the first one is compiling shaders.
+ * THE SLIDE IS A REAL FLIP, MEASURED AT RUNTIME. First rects are recorded,
+ * the non-initial spans are collapsed, last rects are recorded, and the two
+ * initials are offset by the delta and animated back to zero. Nothing here
+ * knows a pixel distance: the brief's acceptance criteria require the two
+ * initials to be identified and moved correctly "regardless of font/kerning
+ * changes", and the only way to honour that is to measure after the collapse
+ * rather than to compute where the letters ought to end up.
  *
- * HONESTY RULES, both load-bearing and both PRESERVED from the bar-and-readout
- * loader this replaces:
+ * NO FLIP PLUGIN. GSAP 3.15's Flip would do this in fewer lines, but a
+ * four-rect manual FLIP is not where a plugin registration earns its keep, and
+ * `lib/animation/gsap.ts` exists precisely because an unregistered plugin
+ * fails silently in production.
  *
- * 1. NO MINIMUM DISPLAY DURATION, and no scripted reveal clock. The brief for
- *    this component specified a fixed timeline — mark at 150ms, recolour at
- *    650ms, wipe at 1050ms, done at 2650ms — and a fixed wipe time is a timer
- *    pretending to be progress, which is the one thing this component has
- *    always refused. What is kept is the LOOK; what drives it is the real
- *    event. The wipe fires when loading actually ends, whether that is at
- *    300ms or 6s. The only fixed timings below are the mark's own entrance,
- *    which animates a UI element rather than describing a download.
+ * WHY GSAP AND NOT FRAMER, given the house rule is "GSAP owns scroll-synced
+ * timelines, Framer owns DOM": this IS a timeline — five phases, a stagger and
+ * a measured FLIP in the middle of it — and expressing it as nested Framer
+ * variants with delay arithmetic is how the phase boundaries drift apart when
+ * one duration is retuned. The rule exists to stop the two libraries producing
+ * different CURVES for the same job; a one-shot intro sequence with no Framer
+ * counterpart is not that case.
  *
- *    The display THRESHOLD stays too: if loading finishes inside 180ms the
- *    plate never appears at all and the hero goes straight to its reveal. That
- *    is the honest inverse — it never invents time, it only declines to show a
- *    loader when there was effectively nothing to load.
- *
- * 2. NO WIDTH TRANSITION on the track. The value is real bytes; a 300ms eased
- *    width tween would make a fast load look like a slow one.
- *
- * COLOURS ARE TOKENS. The brief named `#3a4046` and `#bfeeff`; neither ships.
- * CLAUDE.md allows exactly two accents and `globals.css` is the source of
- * truth, so "muted" is `hero-fg` at low alpha and "ice" is `hero-fg` at full
- * strength lit by an `--accent-hero` glow. Same beat, no third accent.
+ * A SCRIPTED CLOCK IS HONEST HERE, AND WAS NOT BEFORE. The loader this
+ * replaces refused a fixed timeline because it sat in front of a real download
+ * (the Three.js typeface JSON) and a fixed duration would have been a timer
+ * impersonating progress. The hero rebuild removed that download along with
+ * the 3D scene, so there is now nothing to report and nothing to misrepresent.
+ * This is an intro, and an intro is allowed to know how long it is.
  */
 
-import { useEffect, useRef, useState } from "react";
-import { animate, motion, useMotionTemplate, useMotionValue } from "motion/react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 
-import { EASE } from "@/lib/animation/easing";
+import { gsap } from "@/lib/animation/gsap";
+import { HERO_NAME } from "@/components/hero/heroContent";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
-/** Milliseconds before the loader is allowed to appear at all. */
-export const DISPLAY_THRESHOLD_MS = 180;
-
-/**
- * Set once a plate has actually been shown and wiped. A return visit inside
- * the same tab skips the plate entirely.
- *
- * SESSION, NOT LOCAL, and that is the whole point: the typeface and the
- * compiled shaders are warm in this tab, so a second full play would be
- * theatre over an instant load. A new tab is a cold cache and earns the plate
- * again. Read in an effect and never during render — `sessionStorage` does not
- * exist on the server, and branching on it while rendering is a hydration
- * mismatch.
- */
+/** Shared with nothing else — the hero is the only surface with a loader. */
 const SESSION_KEY = "hero-loader-played";
 
 /**
- * Locks document scroll while the plate is up. Reuses the mechanism Ticket 6b
- * established for the project overlay — `overflow: clip` on <html>, declared
- * in `globals.css` — because Lenis does not exist under reduced motion and a
- * JS-only lock would silently do nothing there.
- *
- * No scrollbar-width compensation, unlike the overlay: the hero is the top of
- * the document and the plate covers it edge to edge, so there is no layout
- * behind it to shift.
+ * Locks document scroll while the plate is up. Declared in `globals.css` and
+ * shared with the project overlay's mechanism, because under reduced motion
+ * there is no Lenis instance and a JS-only lock would silently do nothing.
  */
 const SCROLL_LOCK_ATTR = "data-hero-loading";
 
-/**
- * Two curves that are NOT in `lib/animation/easing.ts`, deliberately.
- *
- * `EASE` is the cross-component vocabulary and its own header says to resist
- * adding a fourth entry without a real reason. These are single-component
- * curves used nowhere else, so promoting them would grow the shared system by
- * two for one consumer. Both come from the brief and are kept at its values.
- */
-const EASE_MARK_IN = [0.2, 0.9, 0.3, 1.3] as const; // slight overshoot
-const EASE_WIPE = [0.76, 0, 0.24, 1] as const; // heavy in-out
+/* Phase durations, seconds. These are the brief's, converted. */
+const HOLD_S = 0.1;
+const DROP_S = 0.4;
+const DROP_STAGGER_S = 0.015;
+const SLIDE_S = 0.45;
+const RECOLOUR_S = 0.4;
+const HANDOFF_S = 0.5;
+/** Reduced motion: straight to the formed monogram, then a short crossfade. */
+const REDUCED_FADE_S = 0.2;
 
-/** Seconds. The mark's entrance — a UI element, not a progress claim. */
-const MARK_IN_S = 0.5;
-/** Seconds. Recolour + label, starting as the mark lands. */
-const MARK_LIT_S = 0.4;
-/** Seconds. The circular wipe. */
-const WIPE_S = 1.1;
-/** Seconds. Reduced-motion crossfade, and the plate's own opacity fallback. */
-const FADE_S = 0.3;
+/**
+ * Indices of the characters that survive: the first letter of each word.
+ *
+ * DERIVED FROM THE STRING, never written down as `[0, 9]`. `HERO_NAME` is
+ * content and content moves; a hardcoded pair would keep animating
+ * confidently after an edit and simply preserve the wrong letters.
+ */
+function initialIndices(name: string): Set<number> {
+  const out = new Set<number>();
+  let atWordStart = true;
+  for (let i = 0; i < name.length; i++) {
+    const ch = name[i];
+    if (ch === " ") {
+      atWordStart = true;
+      continue;
+    }
+    if (atWordStart) {
+      out.add(i);
+      atWordStart = false;
+    }
+  }
+  return out;
+}
+
+/**
+ * The session read, as an external store rather than as `useState` +
+ * `useEffect`.
+ *
+ * Next 16's `react-hooks/set-state-in-effect` rule HARD-ERRORS on the obvious
+ * shape (read `sessionStorage` in an effect, `setSkipped(true)`), and it is
+ * right to: that is a cascading render, and it also renders the plate for one
+ * frame before removing it, which is a visible flash for exactly the returning
+ * visitor the flag exists to spare. A lazy `useState` initialiser is not the
+ * fix either — `sessionStorage` does not exist during prerender.
+ *
+ * `useSyncExternalStore` is the pattern `lib/hooks/useReducedMotion.ts` already
+ * uses for the same class of problem: a real server snapshot instead of a
+ * first-render lie corrected one paint later. `subscribe` is a no-op because
+ * nothing else writes this key while the page is alive.
+ */
+const noopSubscribe = () => () => {};
+const readPlayed = () => sessionStorage.getItem(SESSION_KEY) === "1";
+/** Prerender has no session, so assume a first visit and let the client
+ *  correct it during hydration. */
+const readPlayedServer = () => false;
 
 type HeroLoaderProps = {
-  /** 0-1. Meaningless when `indeterminate`. */
-  progress: number;
-  indeterminate: boolean;
-  /** False once loading has ended — in either branch. Drives the wipe. */
-  visible: boolean;
-  /** Fired when the wipe has actually finished, so the owner can unmount.
-   *  The exit therefore depends on this component's own lifecycle rather than
-   *  on how long some other phase happens to last. */
+  /** Fired once the plate is finished and can be unmounted. */
   onExited?: () => void;
 };
 
-export function HeroLoader({
-  progress,
-  indeterminate,
-  visible,
-  onExited,
-}: HeroLoaderProps) {
+export function HeroLoader({ onExited }: HeroLoaderProps) {
   const reducedMotion = useReducedMotion();
+  const alreadyPlayed = useSyncExternalStore(
+    noopSubscribe,
+    readPlayed,
+    readPlayedServer,
+  );
 
-  /**
-   * ARMED, not merely "past the threshold" — and once armed it stays armed.
-   *
-   * Two requirements pull in opposite directions here. The plate must survive
-   * past the end of loading so its wipe can play. But it must ALSO never
-   * appear if loading finished inside the threshold window — otherwise a fast
-   * load would pop an opaque plate over an already-visible hero 180ms in,
-   * purely because the timer was still pending. That flash is exactly the
-   * glitch the threshold exists to prevent, just moved later.
-   *
-   * So the timer arms the plate only if it is STILL loading when it fires.
-   */
-  const [armed, setArmed] = useState(false);
-
-  // Written in an effect rather than during render: the timeout below needs
-  // the current value at fire time, and putting `visible` in its dependency
-  // array would restart the threshold window every time the value changed.
-  const visibleRef = useRef(visible);
-  useEffect(() => {
-    visibleRef.current = visible;
-  }, [visible]);
-
-  // Same reason as `visibleRef`: the threshold timer must not restart just
-  // because the callback identity changed.
+  const plateRef = useRef<HTMLDivElement | null>(null);
+  const charRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const onExitedRef = useRef(onExited);
   useEffect(() => {
     onExitedRef.current = onExited;
   }, [onExited]);
 
-  useEffect(() => {
-    // A plate already played in this tab. Retire without ever rendering one —
-    // this is the route-nav case (leave `/`, come back, Hero remounts).
-    if (sessionStorage.getItem(SESSION_KEY) === "1") {
-      onExitedRef.current?.();
-      return;
-    }
+  const chars = useMemo(() => [...HERO_NAME], []);
+  const initials = useMemo(() => initialIndices(HERO_NAME), []);
 
-    const timer = window.setTimeout(() => {
-      if (visibleRef.current) {
-        setArmed(true);
-      } else {
-        // Loading already finished inside the threshold window, so this plate
-        // will never appear at all. Retire immediately rather than sitting
-        // mounted rendering null for the rest of the session — the owner keys
-        // the mount off this callback now, not off a phase.
-        //
-        // The session flag is NOT written here. Nothing was shown, so there is
-        // nothing to avoid repeating, and writing it would suppress the plate
-        // on a later visit that genuinely needs one.
-        onExitedRef.current?.();
-      }
-    }, DISPLAY_THRESHOLD_MS);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  /* -----------------------------------------------------------------------
-     Scroll lock. Attached only once the plate is actually on screen, so a
-     sub-threshold load never touches the document at all.
-  ----------------------------------------------------------------------- */
+  /* Retire immediately on a return visit. This calls a parent callback rather
+     than setting local state, so it is not the cascading-render shape the lint
+     rule rejects. */
   useEffect(() => {
-    if (!armed) return;
+    if (alreadyPlayed) onExitedRef.current?.();
+  }, [alreadyPlayed]);
+
+  useEffect(() => {
+    if (alreadyPlayed) return;
     const root = document.documentElement;
     root.setAttribute(SCROLL_LOCK_ATTR, "");
     return () => root.removeAttribute(SCROLL_LOCK_ATTR);
-  }, [armed]);
+  }, [alreadyPlayed]);
 
   /* -----------------------------------------------------------------------
-     The wipe.
-
-     Driven through a motion value and `useMotionTemplate` rather than by
-     handing Framer two `clip-path` STRINGS to interpolate. String
-     interpolation of `circle()` works until someone changes one side's
-     shape or units, at which point it stops animating and silently snaps —
-     with no error. A number tweened into a template cannot do that.
+     The sequence.
   ----------------------------------------------------------------------- */
-  const wipeRadius = useMotionValue(150);
-  const clipPath = useMotionTemplate`circle(${wipeRadius}% at 50% 50%)`;
-
   useEffect(() => {
-    if (!armed || visible) return;
+    if (alreadyPlayed) return;
+    const plate = plateRef.current;
+    if (!plate) return;
 
-    // Reduced motion takes the opacity branch below instead. Recording the
-    // session flag still happens, on the same terms.
-    if (reducedMotion) return;
+    const all = charRefs.current.filter(Boolean) as HTMLSpanElement[];
+    const keep = [...initials]
+      .sort((a, b) => a - b)
+      .map((i) => charRefs.current[i])
+      .filter(Boolean) as HTMLSpanElement[];
+    const drop = all.filter((el) => !keep.includes(el));
 
-    const controls = animate(wipeRadius, 0, {
-      duration: WIPE_S,
-      ease: [...EASE_WIPE],
-      onComplete: () => {
-        sessionStorage.setItem(SESSION_KEY, "1");
-        onExitedRef.current?.();
-      },
+    const finish = () => {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      onExitedRef.current?.();
+    };
+
+    if (reducedMotion) {
+      // Final state, immediately: monogram already formed and coloured. No
+      // letter-by-letter anything, then a short crossfade out.
+      gsap.set(drop, { display: "none" });
+      gsap.set(keep, { color: "var(--accent-hero)" });
+      const tl = gsap.timeline({ onComplete: finish });
+      tl.to(plate, { autoAlpha: 0, duration: REDUCED_FADE_S, delay: 0.15 });
+      return () => {
+        tl.kill();
+      };
+    }
+
+    const tl = gsap.timeline({ onComplete: finish });
+
+    // 1. Hold, so the name registers as a word rather than as a flash.
+    tl.to({}, { duration: HOLD_S });
+
+    // 2. Everything but the initials leaves.
+    tl.to(drop, {
+      opacity: 0,
+      scale: 0.6,
+      duration: DROP_S,
+      stagger: DROP_STAGGER_S,
+      ease: "power2.in",
     });
-    return () => controls.stop();
-  }, [armed, visible, reducedMotion, wipeRadius]);
 
-  if (!armed) return null;
+    // 3. FLIP the two survivors together.
+    tl.add(() => {
+      const first = keep.map((el) => el.getBoundingClientRect());
+      // Collapsing to display:none is what actually removes the width; opacity
+      // alone leaves the gap and the monogram never closes up.
+      gsap.set(drop, { display: "none" });
+      const last = keep.map((el) => el.getBoundingClientRect());
 
-  const percent = Math.round(Math.min(Math.max(progress, 0), 1) * 100);
+      keep.forEach((el, i) => {
+        const dx = first[i].x - last[i].x;
+        // Y is measured too and asserted to be zero-ish rather than assumed:
+        // on a narrow viewport the name can wrap, and a wrapped FLIP that only
+        // corrects X slides the S horizontally onto a different line.
+        const dy = first[i].y - last[i].y;
+        gsap.set(el, { x: dx, y: dy });
+        gsap.to(el, {
+          x: 0,
+          y: 0,
+          duration: SLIDE_S,
+          ease: "power3.inOut",
+        });
+      });
+    });
+
+    // 4. Recolour, overlapping the tail of the slide so the monogram arrives
+    //    already becoming accent rather than waiting, then changing.
+    tl.to(
+      keep,
+      {
+        color: "var(--accent-hero)",
+        duration: RECOLOUR_S,
+        ease: "power2.out",
+      },
+      `+=${SLIDE_S * 0.55}`,
+    );
+
+    // 5. Hand off.
+    //
+    //    The brief's preferred ending flies the monogram to "where the
+    //    persistent nav logo will live (top-left)". THERE IS NO NAV on this
+    //    site — it is a one-pager with no header, stated in three separate
+    //    files — so that ending would fly the mark to an empty corner and
+    //    leave it there. The brief's own stated fallback is taken instead:
+    //    the monogram fades out in place while the hero is revealed beneath.
+    tl.to(plate, { autoAlpha: 0, duration: HANDOFF_S, ease: "power2.inOut" });
+
+    return () => {
+      tl.kill();
+    };
+  }, [alreadyPlayed, reducedMotion, initials]);
+
+  if (alreadyPlayed) return null;
 
   return (
-    <motion.div
-      // z-40, ABOVE the hero's z-30 corner chrome. The plate is opaque and
-      // covers the viewport; a theme toggle floating over a loading screen is
-      // a leak, not a feature. It was z-20 first and the toggle punched
-      // straight through. The wipe then reveals the toggle naturally, because
-      // the clip-path removes the plate rather than fading it.
-      className="absolute inset-0 z-40 bg-hero-surface"
-      // Opacity is the reduced-motion exit AND the belt-and-braces path for a
-      // mid-load drop to the WebGL fallback, where the owner removes this
-      // element outright rather than letting the wipe run.
-      initial={{ opacity: 1 }}
-      animate={{ opacity: reducedMotion && !visible ? 0 : 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: FADE_S, ease: EASE.hero }}
-      // Only the wipe path uses this; under full motion `clipPath` stays at
-      // 150% until the wipe starts, which is a no-op mask over the whole plate.
-      style={{ clipPath: reducedMotion ? undefined : clipPath }}
-      onAnimationComplete={() => {
-        // Guarded on both: this also fires for the no-op 1 -> 1 settle on
-        // mount, and under full motion the wipe owns retirement.
-        if (reducedMotion && !visible) {
-          sessionStorage.setItem(SESSION_KEY, "1");
-          onExited?.();
-        }
-      }}
+    <div
+      ref={plateRef}
+      // FIXED, not absolute: the plate must cover the viewport rather than the
+      // hero section, so nothing can be revealed by a scroll that lands before
+      // the lock attaches.
+      className="fixed inset-0 z-50 flex items-center justify-center bg-hero-surface"
+      aria-hidden="true"
     >
-      <div className="flex h-full w-full flex-col items-center justify-center gap-lg">
-        {/*
-          Scale and opacity only — no `y`. A mark that also rises reads as a
-          card entering, and this is meant to read as the word resolving into
-          focus where it already is, on the spot the extruded one occupies.
-        */}
-        <motion.span
-          className="text-h1 leading-none font-medium"
-          initial={{ scale: 0.7, opacity: 0, color: "rgb(232 234 236 / 0.22)" }}
-          animate={{
-            scale: 1,
-            opacity: 1,
-            // The "muted -> ice" beat, in tokens. `hero-fg` at full strength is
-            // the ice; the glow is what makes it read as lit rather than merely
-            // brighter.
-            //
-            // THIS IS PART OF THE ENTRANCE AND IS NOT GATED ON LOADING ENDING.
-            // It was written the other way first — `visible ? muted : lit` —
-            // which is wrong in a way that looks right in the source: load
-            // completion is also what starts the wipe, so the recolour fired
-            // underneath a plate that was already dissolving and no visitor
-            // ever saw it. Measured at t=2100ms mid-load, still muted. The
-            // brief has this at 650-1050ms, i.e. during the load, and it is an
-            // entrance animation on a UI element rather than a claim about
-            // bytes, so a fixed delay is legitimate here.
-            color: "rgb(232 234 236 / 1)",
-            // TWO STOPS, not one. A single 32px/55% shadow was tried and the
-            // four glyphs' halos merged into one soft rounded slab behind the
-            // word — it read as a lit panel rather than as lit letters. A
-            // tight bright stop plus a wide faint one keeps the falloff on the
-            // letterforms.
-            textShadow:
-              "0 0 8px color-mix(in srgb, var(--accent-hero) 40%, transparent), 0 0 28px color-mix(in srgb, var(--accent-hero) 16%, transparent)",
-          }}
-          transition={{
-            scale: { duration: MARK_IN_S, ease: [...EASE_MARK_IN] },
-            opacity: { duration: MARK_IN_S, ease: [...EASE_MARK_IN] },
-            color: { duration: MARK_LIT_S, ease: EASE.hero, delay: MARK_IN_S },
-            textShadow: {
-              duration: MARK_LIT_S,
-              ease: EASE.hero,
-              delay: MARK_IN_S,
-            },
-          }}
-        >
-          SAAD
-        </motion.span>
-
-        {/*
-          The label under the mark IS the progress readout, not a decorative
-          caption. The brief asked for "label text fades in under the mark";
-          spending that slot on real bytes is what lets the plate look scripted
-          without being scripted.
-        */}
-        <motion.div
-          className="flex items-center gap-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: MARK_LIT_S,
-            ease: EASE.hero,
-            delay: MARK_IN_S,
-          }}
-        >
-          {/* 89px is spacing-2xl — the track is a Fibonacci-scale measure, not
-              an arbitrary width. */}
-          <div className="relative h-[2px] w-2xl overflow-hidden bg-hero-fg/12">
-            {indeterminate ? (
-              // "We cannot measure this", said honestly: a 24px segment
-              // traversing the track with a pause at each end. Not a
-              // barber-pole, not a pulse, not an infinite spinner — and under
-              // reduced motion it does not run at all.
-              reducedMotion ? null : (
-                <motion.div
-                  className="absolute inset-y-0 w-[24px] bg-hero-fg"
-                  initial={{ x: 0 }}
-                  animate={{ x: [0, 0, 65, 65] }}
-                  transition={{
-                    duration: 1.6,
-                    times: [0, 0.156, 0.844, 1],
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                />
-              )
-            ) : (
-              <div
-                className="absolute inset-y-0 left-0 bg-hero-fg"
-                style={{ width: `${percent}%` }}
-              />
-            )}
-          </div>
-
-          {/* The hero's ONE use of mono, and exactly the licensed one: a
-              technical numeric readout. No "%" glyph — the track supplies the
-              context. */}
-          <span className="text-caption font-mono text-hero-fg/50 tabular-nums">
-            {indeterminate ? "--" : percent}
+      {/* One span per character, space included, so each can be animated and
+          measured independently. `whitespace-pre` keeps the space span from
+          being collapsed away before the FLIP has measured it. */}
+      <div className="flex whitespace-pre text-h3 font-medium text-hero-fg/70 sm:text-h2">
+        {chars.map((ch, i) => (
+          <span
+            key={i}
+            ref={(el) => {
+              charRefs.current[i] = el;
+            }}
+            className="inline-block"
+          >
+            {ch}
           </span>
-        </motion.div>
+        ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
