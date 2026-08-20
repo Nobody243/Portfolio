@@ -1,200 +1,68 @@
 "use client";
 
 /**
- * Tier 1. The phase machine, the camera timeline, and all three WebGL failure
- * paths.
+ * The hero. Three layers, back to front: the constellation mesh on a 2D
+ * canvas, the SAAD glass wordmark, and the DOM text.
  *
- * TIER 1 DOES NOT MEAN "MANY THINGS MOVE." It means ONE expensive, well
- * executed move — the camera pull-back — against a field that was already
- * alive, plus quiet DOM motion on the Tier 1 curve. Four simultaneous entrance
- * animations is the anatomy of a template hero. If a fix makes this busier, it
- * is the wrong fix.
+ * NO WEBGL ANYWHERE. This replaced an R3F scene — extruded `Text3D`, a
+ * GPU particle field, a camera pull-back and three separate WebGL failure
+ * paths — with Canvas2D plus SVG. The consequences are worth stating, because
+ * a future reader will find the removed machinery in the history and wonder:
  *
- * OWNERSHIP, so there are never two clocks:
- *   GSAP        the WebGL camera, and nothing else
- *   Framer      all DOM (loader, headline, cue)
- *   React state the two handoffs between them
- * The camera and the headline never animate concurrently: the headline starts
- * when the camera FINISHES, via one `onComplete -> setPhase("settled")`.
+ *   - There is no `webglSupported` check, no context-loss handler and no
+ *     scene-init failure path, because none of those failures can occur. The
+ *     old file carried three of them and a DOM fallback mode; the fallback is
+ *     now simply what always renders.
+ *   - There is no typeface download. The old loader gated on fetching a
+ *     Three.js typeface JSON, which is why it reported real progress; the SVG
+ *     wordmark uses the webfont the rest of the page already loads. That is
+ *     what makes the new loader's fixed timeline honest — see its header.
+ *   - There is no camera, so there is no "revealing" phase. The hero is simply
+ *     present once the loader leaves, and `revealed` is exactly that.
+ *
+ * THE VOID IS MEASURED, NOT AGREED. `SaadGlass` reports its glyph box and this
+ * component forwards it to `ParticleGrid`, which tears a permanent hole in the
+ * mesh there. Nothing shares a hardcoded rectangle: a font swap or a width
+ * change moves the box and the void follows, which is the only version of this
+ * that cannot silently drift out of alignment with the letters.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "motion/react";
-import { invalidate } from "@react-three/fiber";
-import type { PerspectiveCamera as ThreePerspectiveCamera } from "three";
-import { Vector3 } from "three";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { HeroHeadline } from "@/components/hero/HeroHeadline";
 import { HeroLoader } from "@/components/hero/HeroLoader";
-import { HeroScene, type SceneMeasurements } from "@/components/hero/HeroScene";
-import { ParticleGrid } from "@/components/hero/ParticleGrid";
-import { SceneCanvas } from "@/components/hero/SceneCanvas";
+import { ParticleGrid, type VoidRect } from "@/components/hero/ParticleGrid";
+import { SaadGlass } from "@/components/hero/SaadGlass";
 import {
-  ThemeToggle,
   THEME_TOGGLE_ON_HERO,
+  ThemeToggle,
 } from "@/components/ui/ThemeToggle";
-import { DURATION } from "@/lib/animation/easing";
-import { GSAP_EASE, gsap, ScrollTrigger } from "@/lib/animation/gsap";
-import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
-import { useWebGLSupport } from "@/lib/hooks/useWebGLSupport";
-import { bucketForViewport, restingPose, startPose } from "@/lib/three/heroCamera";
-import { useTypefaceLoader } from "@/lib/three/useTypefaceLoader";
-
-const TYPEFACE_URL = "/fonts/space-grotesk-caps.typeface.json";
-
-type HeroPhase = "loading" | "revealing" | "settled";
+import { ScrollTrigger } from "@/lib/animation/gsap";
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
-  const cameraRef = useRef<ThreePerspectiveCamera | null>(null);
-  const measurementsRef = useRef<SceneMeasurements | null>(null);
 
-  const reducedMotion = useReducedMotion();
-  const webglSupported = useWebGLSupport();
-
-  const [revealComplete, setRevealComplete] = useState(false);
   const [loaderRetired, setLoaderRetired] = useState(false);
-  const [sceneReady, setSceneReady] = useState(false);
-  const [contextLost, setContextLost] = useState(false);
-  const [sceneInitFailed, setSceneInitFailed] = useState(false);
   const [inView, setInView] = useState(true);
   const [tabVisible, setTabVisible] = useState(true);
-
-  // `progress` and `indeterminate` are no longer destructured: the monogram
-  // loader reports no progress, so reading them here would be two unused
-  // bindings implying a readout that does not exist.
-  const { font, error } = useTypefaceLoader(TYPEFACE_URL);
+  const [voidRect, setVoidRect] = useState<VoidRect | null>(null);
 
   /**
-   * All three failure paths converge here, and the state lives OUTSIDE the
-   * canvas deliberately: the fallback must not depend on anything inside the
-   * thing that failed.
-   *
-   * A typeface that fails to load is included — without glyphs there is no
-   * wordmark, so the honest outcome is the same one.
+   * Stored only when it actually changes. `SaadGlass` re-measures on resize
+   * and on `fonts.ready`, and setting state with an equal-but-new object on
+   * every one of those would rerender the tree for nothing.
    */
-  const heroFallback =
-    !webglSupported || contextLost || sceneInitFailed || !!error;
-
-  // Bucketed ONCE at mount. A coarse bucket changes only on orientation, and
-  // reallocating particle buffers mid-scroll is worse jank than it saves.
-  const bucket = useMemo(
-    () => bucketForViewport(typeof window === "undefined" ? 1440 : window.innerWidth),
-    [],
-  );
-
-  const handleCamera = useCallback((camera: ThreePerspectiveCamera) => {
-    cameraRef.current = camera;
+  const handleMeasure = useCallback((rect: DOMRect) => {
+    setVoidRect((prev) =>
+      prev &&
+      prev.x === rect.x &&
+      prev.y === rect.y &&
+      prev.width === rect.width &&
+      prev.height === rect.height
+        ? prev
+        : { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+    );
   }, []);
-
-  const handleReady = useCallback((measurements: SceneMeasurements) => {
-    measurementsRef.current = measurements;
-    setSceneReady(true);
-  }, []);
-
-  /* ---------------------------------------------------------------------
-     Phase machine — DERIVED, not stored.
-
-     Written as a computation rather than a chain of effects calling setState
-     on purpose: the phase is a pure function of four booleans, and expressing
-     it that way makes the illegal states unrepresentable instead of merely
-     unreached. `revealComplete` is the only stored bit, and it is written from
-     a GSAP callback rather than from an effect.
-
-     Reduced motion skips "revealing" ENTIRELY rather than playing it fast —
-     the camera is already at its resting pose, which is the one frame such a
-     visitor will ever see.
-  --------------------------------------------------------------------- */
-
-  /**
-   * The reveal now waits on TWO things, not one.
-   *
-   * The old bar-and-readout loader was a transparent overlay, so the camera
-   * pull-back could start the moment the scene was ready and be watched
-   * through it. The monogram plate is OPAQUE and full-screen: start the
-   * pull-back on `sceneReady` alone and the site's signature move plays out
-   * entirely behind it, then the plate lifts on a hero that has already
-   * finished arriving.
-   *
-   * `loaderRetired` is therefore part of the gate. The plate, for its part,
-   * will not lift until `sceneReady` — see `canHandOff` below — so neither can
-   * strand the other: the scene waits for the plate, the plate waits for the
-   * scene, and each is waiting on a condition the other does not control.
-   */
-  const phase: HeroPhase = heroFallback
-    ? "settled"
-    : !sceneReady || !loaderRetired
-      ? "loading"
-      : reducedMotion || revealComplete
-        ? "settled"
-        : "revealing";
-
-  /* ---------------------------------------------------------------------
-     The camera pull-back. GSAP, one move, position + look-at target only.
-  --------------------------------------------------------------------- */
-
-  useEffect(() => {
-    if (phase !== "revealing") return;
-
-    const camera = cameraRef.current;
-    const measurements = measurementsRef.current;
-    // Defensive only, and cannot strand the phase: `sceneReady` is set by
-    // `handleReady`, which HeroScene calls in the same effect that has already
-    // populated both refs. If that ordering ever changes, this returns without
-    // animating rather than animating from a wrong pose.
-    if (!camera || !measurements) return;
-
-    const { center, stop, distance } = measurements;
-    const from = startPose(center, stop, distance);
-    const to = restingPose(center, stop, distance);
-
-    // Snap to the start pose, then animate back to the default. Building it
-    // this way round is what keeps the resting pose the CONSTRUCTED state.
-    camera.position.copy(from.position);
-    camera.lookAt(from.target);
-
-    const position = from.position.clone();
-    const target = from.target.clone();
-    const scratch = new Vector3();
-
-    // Tweening a plain proxy rather than the camera itself, because the look-at
-    // target has to be interpolated alongside the position — a bare
-    // `gsap.to(camera.position, ...)` cannot express that.
-    //
-    // NOTE for anyone reusing this: mutating `camera.position` only animates
-    // because the hero runs `frameloop="always"`. On a "demand" canvas the
-    // tween would run and nobody would re-render it. Position-only changes do
-    // NOT need `updateProjectionMatrix()`; FOV changes would, which is one more
-    // reason the reveal does not animate FOV.
-    const proxy = { t: 0 };
-
-    const tween = gsap.to(proxy, {
-      t: 1,
-      duration: DURATION.hero,
-      ease: GSAP_EASE.hero,
-      onUpdate: () => {
-        position.lerpVectors(from.position, to.position, proxy.t);
-        scratch.lerpVectors(from.target, to.target, proxy.t);
-        target.copy(scratch);
-        camera.position.copy(position);
-        camera.lookAt(target);
-      },
-      onComplete: () => setRevealComplete(true),
-    });
-
-    return () => {
-      tween.kill();
-    };
-  }, [phase]);
-
-  /* ---------------------------------------------------------------------
-     Frameloop policy.
-  --------------------------------------------------------------------- */
-
-  // The particle field drifts continuously, so without this a full rAF + GPU
-  // loop runs for the rest of a seven-section page — the majority of the
-  // session — for pixels nobody can see.
-  const frameloop = inView && tabVisible ? "always" : "demand";
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -216,102 +84,10 @@ export function Hero() {
   }, []);
 
   useEffect(() => {
-    // R3F does not do this for you.
     const onVisibility = () => setTabVisible(!document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
-
-  useEffect(() => {
-    // After switching always -> demand, paint once so the canvas holds a
-    // correct final frame rather than a stale one.
-    if (frameloop === "demand") invalidate();
-  }, [frameloop]);
-
-  /* ---------------------------------------------------------------------
-     Failure path 2 — runtime context loss.
-  --------------------------------------------------------------------- */
-
-  const handleCreated = useCallback(
-    (state: { gl: { domElement: HTMLCanvasElement } }) => {
-      const canvas = state.gl.domElement;
-
-      const onLost = () => setContextLost(true);
-      canvas.addEventListener("webglcontextlost", onLost);
-    },
-    [],
-  );
-
-  /*
-   * UNMOUNTING IS THE SOLE MECHANISM for staying in the fallback, and the
-   * causal chain matters because it is easy to describe wrongly:
-   *
-   * three registers its OWN `webglcontextlost` handler at renderer construction
-   * and calls `preventDefault()` unconditionally, so restoration is enabled no
-   * matter what we do — our listener is attached later and runs after it. That
-   * is fine, because setting `contextLost` unmounts <SceneCanvas>: the canvas
-   * element leaves the DOM, three's `dispose()` removes its listeners, and
-   * there is no live tree left to restore into. Do NOT attempt to beat three to
-   * the event with capture-phase tricks; the outcome is already achieved.
-   *
-   * Unmounting is also the right response on its own terms: on iOS the loss is
-   * CAUSED by memory pressure, so releasing the context and its buffers is
-   * correct, and immediately reallocating what was just reclaimed invites a
-   * loss loop. We therefore stay in the fallback for the rest of the session
-   * rather than rebuilding — replaying loader -> pull-back -> stagger after the
-   * user has already read the page would look like a bug.
-   */
-
-  /* ---------------------------------------------------------------------
-     Failure path 3 — the unhandled rejection from renderer construction.
-  --------------------------------------------------------------------- */
-
-  useEffect(() => {
-    // Scoped to the few hundred milliseconds where this failure is reachable.
-    if (phase !== "loading" || !webglSupported || heroFallback) return;
-
-    const onRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason;
-      // Filtered deliberately: three's own throw text contains "WebGL".
-      // Swallowing unrelated rejections would be worse than the bug being
-      // fixed, and `preventDefault()` is NOT called — the error should still
-      // reach the console for whoever is debugging.
-      if (reason instanceof Error && /webgl/i.test(reason.message)) {
-        setSceneInitFailed(true);
-      }
-    };
-
-    window.addEventListener("unhandledrejection", onRejection);
-    return () => window.removeEventListener("unhandledrejection", onRejection);
-  }, [phase, webglSupported, heroFallback]);
-
-  const showCanvas = !heroFallback && !!font;
-
-  /**
-   * MOUNTED UNTIL THE LOADER ITSELF SAYS IT IS DONE — not until a phase flips.
-   *
-   * Two earlier shapes were both wrong, in the same way, for different
-   * branches. `phase === "loading"` is exactly equivalent to `!sceneReady`, so
-   * the 85 -> 100 scene-ready segment could never render and `visible` was a
-   * constant `true`. Widening it to `phase !== "settled"` fixed the normal
-   * path but not the reduced-motion one, where the machine goes
-   * `loading -> settled` on a single tick and both conditions collapse
-   * together again.
-   *
-   * Keying the mount to the loader's own lifecycle fixes both branches at
-   * once, and removes a real fragility: the fade previously worked only
-   * because `revealing` happens to last ~1.45s, i.e. the exit was borrowing
-   * headroom from an unrelated phase's duration. `easing.ts` explicitly marks
-   * DURATION.hero as expected to be tuned, so the first person to shorten the
-   * camera move would have silently clipped the fade with no error.
-   *
-   * Note that <AnimatePresence> alone could NOT have delivered this: it
-   * renders an exiting child from the element it stored at removal time, so
-   * its props are frozen at that moment. On the reduced-motion tick those
-   * props still say 85%. Staying mounted for the render where `sceneReady` is
-   * true is what actually lets the bar reach 100 before it fades.
-   */
-  const showLoader = !heroFallback && !loaderRetired;
 
   return (
     <section
@@ -320,77 +96,26 @@ export function Hero() {
       // URL-bar-induced overflow would put a visible sliver of the hero surface
       // under the fold on mobile.
       //
-      // bg-hero-surface is a CSS background on this wrapper and is therefore
-      // entirely independent of WebGL — it is present in EVERY path, including
-      // the fallback where no canvas renders at all. That is what makes the
-      // fallback legible, and why its text uses hero-fg rather than fg.
+      // `bg-hero-surface` is a CSS background on this wrapper, so the hero is
+      // legible before a single pixel of canvas or SVG has painted.
       className="relative h-dvh w-full overflow-hidden bg-hero-surface"
     >
-      {/*
-        THE PARTICLE FIELD, a DOM canvas UNDER the WebGL one.
-        `SceneCanvas` runs `alpha: true`, so the transparent glass wordmark
-        composites over this rather than over a clear colour — which is the
-        whole reason the letters read as transparent at all. It is deliberately
-        outside the 3D scene: WebGL would have to own it for the glass to
-        REFRACT it, and this material does not refract, it transmits by alpha.
-        Keeping it in the DOM keeps it cheap and keeps its cursor interaction
-        in plain Canvas2D.
+      {/* Layer 1 — the mesh. Full-bleed, pointer-events-none; the pointer
+          listener lives on this section, which is why the canvas must not
+          intercept. */}
+      <ParticleGrid voidRect={voidRect} />
 
-        `voidRect={null}` — NO permanent void behind the wordmark, unlike the
-        SVG version. There the letters were opaque enough that particles behind
-        them read as noise; here they are 42% glass and seeing the field
-        through them is the point. Carving a hole would leave the word floating
-        over a suspicious empty patch.
-      */}
-      <ParticleGrid voidRect={null} />
+      {/* Layer 2 — the wordmark, right of centre, physically over the
+          permanent void it caused. */}
+      <SaadGlass containerRef={sectionRef} onMeasure={handleMeasure} />
 
-      {showCanvas ? (
-        <SceneCanvas
-          frameloop={frameloop}
-          className="absolute inset-0"
-          onCreated={handleCreated}
-          // Scene-graph fallback only (null): the DOM-level fallback is driven
-          // by onSceneError below, which unmounts this entirely.
-          sceneErrorFallback={null}
-          onSceneError={() => setSceneInitFailed(true)}
-        >
-          <HeroScene
-            font={font}
-            bucket={bucket}
-            onReady={handleReady}
-            onCamera={handleCamera}
-            applyRestingPose={phase !== "revealing"}
-          />
-        </SceneCanvas>
-      ) : null}
-
-      {/*
-        AnimatePresence covers the paths where the loader is torn out WITHOUT
-        getting to fade itself — chiefly a mid-load drop to `heroFallback`,
-        where the element simply stops being rendered. In the ordinary case the
-        fade has already completed before the unmount, so its exit is a no-op.
-      */}
-      <AnimatePresence>
-        {showLoader ? (
-          <HeroLoader
-            key="hero-loader"
-            // The monogram forms on its own clock, then HOLDS until the scene
-            // is actually ready. Without this the plate would lift on a hero
-            // whose geometry has not been built and whose shaders have not
-            // compiled — a blank frame, or a hitch, exactly at the handover.
-            //
-            // `heroFallback` counts as ready: there is no scene to wait for,
-            // and holding the plate open for a milestone that will never
-            // arrive would strand the visitor behind it forever.
-            canHandOff={sceneReady || heroFallback}
-            onExited={() => setLoaderRetired(true)}
-          />
-        ) : null}
-      </AnimatePresence>
-
+      {/* Layer 3 — the DOM text. `fallback` is false because there is now
+          always a visible wordmark layer; the prop survives because
+          HeroHeadline still uses it to decide whether its <h1> is the visible
+          headline or the accessible-only one. */}
       <HeroHeadline
-        revealed={phase === "settled"}
-        fallback={heroFallback}
+        revealed={loaderRetired}
+        fallback={false}
         cueActive={inView && tabVisible}
       />
 
@@ -400,42 +125,16 @@ export function Hero() {
         NOT GATED ON `revealed`, deliberately, and unlike the scroll cue. The
         cue is mount-gated because it animates from opacity 0 and a focusable
         element at opacity 0 puts keyboard focus on something invisible; this
-        control never animates and is at full opacity from first paint, so that
-        trap does not apply. Gating it would also mean a visitor who finds dark
-        mode hard to read waits out a 1.45s camera move before they can fix it,
-        and a control that fades in mid-load is itself a second load event.
+        control never animates and is at full opacity from first paint.
 
-        NOTHING IN THE PHASE MACHINE, THE REFS OR THE SCROLLTRIGGER IS INVOLVED.
-        This is a sibling of the canvas, not a participant in the reveal.
-
-        z-30 sits above HeroLoader (z-20) and HeroHeadline (z-10). The loader is
-        `pointer-events-none` today, so z-30 is not strictly required for
-        clickability — but relying on another component's implementation detail
-        is how this breaks silently later.
-
-        `pointer-events-none` on the wrapper + `pointer-events-auto` on the
-        control is HeroHeadline's exact pattern, and it is what keeps the canvas
-        behind the full-width wrapper interactive.
+        The loader plate is `fixed` at z-50, above this z-30 wrapper, so it
+        covers the toggle while it is up and reveals it on fade-out.
 
         THE CONTAINER IS BYTE-IDENTICAL to About / Skills / Projects /
         Experience / Contact and to the detail route's CONTAINER, with
         `justify-end`. Rule S-1 reserves the negative space on the right for
         CONTENT; a control is not content, and anchoring it to the right inset
-        of the same container is the spine measured from the other side — its
-        right edge lands at 21 / 55 / 89px, mirroring the left spine at every
-        breakpoint. Nothing is centred and the void stays on the right; the
-        control sits at the EDGE of it, not in the middle.
-
-        `top-lg sm:top-xl` was chosen to mirror the loader's old bottom-left
-        track, which sat at `bottom-lg sm:bottom-xl`. That track is gone — the
-        loader is now a centred plate — so this is no longer a mirror of
-        anything. The values stay because they are the hero's corner inset and
-        the scroll cue still uses the bottom half of the pair; only the
-        justification changed. Do not "restore" symmetry with a bottom element
-        that does not exist.
-
-        The plate itself is z-40, ABOVE this z-30 wrapper, so it covers the
-        toggle while it is up.
+        of the same container is the spine measured from the other side.
       */}
       <div className="pointer-events-none absolute inset-x-0 top-lg z-30 sm:top-xl">
         <div className="mx-auto flex w-full max-w-[1440px] justify-end px-md sm:px-xl lg:px-2xl">
@@ -444,6 +143,12 @@ export function Hero() {
           />
         </div>
       </div>
+
+      {/* Layer 4 — the loader, fixed and above everything. Rendered last so it
+          wins the paint order even before z-index is consulted. */}
+      {!loaderRetired ? (
+        <HeroLoader onExited={() => setLoaderRetired(true)} />
+      ) : null}
     </section>
   );
 }
