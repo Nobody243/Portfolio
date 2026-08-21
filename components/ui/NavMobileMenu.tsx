@@ -244,8 +244,18 @@ export function NavMobileMenu({
           </div>
 
           {/* The location line, which the bar drops below `sm`. It is context
-              rather than navigation, so it is last and quietest. */}
-          <span className="text-caption font-mono uppercase text-fg/55">
+              rather than navigation, so it is last and quietest — but quiet
+              stops at `/70`.
+
+              IT SHIPPED AT `/55`, WHICH FAILS. Measured 5.50:1 in dark and
+              **4.02:1 in light** on `bg-base`; the AA floor for 12px text is
+              4.5:1. `docs/03`'s opacity rule is explicit that `/70` is the
+              floor and that anything needing to recede further needs a
+              different device — size, weight, position — not less contrast.
+              Light mode is the binding case again, which is the third time
+              on this project: dark passed, so the value looked fine to
+              whoever set it in the default theme. */}
+          <span className="text-caption font-mono uppercase text-fg/70">
             {NAV_LOCATION}
           </span>
         </div>

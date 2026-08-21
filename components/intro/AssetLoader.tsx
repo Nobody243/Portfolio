@@ -245,7 +245,14 @@ export function AssetLoader({ onReady }: AssetLoaderProps) {
             style={{ transform: `scaleX(${progress})` }}
           />
         </div>
-        <span className="text-caption font-mono text-hero-fg/45 tabular-nums">
+        {/* `/50`, NOT `/45`. Measured on `bg-hero-surface`: /50 is 4.60:1 and
+            clears AA; /45 is 3.91:1 and does not. `docs/03` records the /50
+            figure and flags the readout as a carve-out — `aria-hidden`,
+            transient, purely decorative — so the RULE tolerated either. The
+            value had drifted down to /45 across the Loader/Intro split,
+            which moved it from passing to failing for no stated reason.
+            Restored to the number the doc actually records. */}
+        <span className="text-caption font-mono text-hero-fg/50 tabular-nums">
           {Math.round(progress * 100)}%
         </span>
       </div>

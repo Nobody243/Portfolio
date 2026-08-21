@@ -60,23 +60,32 @@ import { ScrollTrigger, gsap } from "@/lib/animation/gsap";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /**
- * THE EXPANSION — and it is now exactly as long as the Intro's phase E, not
- * longer.
+ * THE EXPANSION — 1.6s, DELIBERATELY LONGER than the navbar's 0.45s slide.
  *
- * This used to be 1.6s against a 0.95s zoom-in, on the rule that the incoming
- * half of a handoff must outlast the outgoing one or the seam becomes a cut.
- * That rule belonged to a CAMERA move: the mark accelerated out through the
- * viewport while the hero settled in behind it, and the settle had to still be
- * happening when the mark left. There is no camera any more. `docs/07` §3
- * step 5 replaces the zoom entirely with an expansion from one defined point,
- * and step 6 puts the navbar's entrance on the same beat — which
- * `.claude/handoff/intro-timing-design.md` §5 makes literal: same start, same
- * duration, for both. A hero still expanding 1.15s after the plate has gone
- * would be the third thing happening in a beat that has two.
+ * THE RULE: the incoming half of a handoff must OUTLAST the outgoing one, or
+ * the seam becomes a cut. The mark accelerates out through the viewport over
+ * `ZOOM_IN_S` (0.95s) and the hero's settle has to still be running when it
+ * leaves. 1.6s against 0.95s is that margin.
  *
- * The shared value lives in `lib/animation/handoff.ts` because it is one joint
- * between three components, and a duration written down twice is a duration
- * until someone retunes one copy.
+ * THIS BLOCK ARGUED THE OPPOSITE UNTIL 2026-08-22, AND THE ARGUMENT WAS A
+ * LANDMINE. It said "there is no camera any more", that the value was 0.45s
+ * and shared from `lib/animation/handoff.ts`, and that a hero still expanding
+ * after the plate had gone would be a third thing in a two-thing beat. Every
+ * sentence of that was true of the merge-to-a-point Intro, which was built,
+ * found broken and reverted in `1145a00`. The camera came back; the comment
+ * did not. `8875803` restored the value and rewrote the block four lines below
+ * this one, and left this one standing — so the file carried two adjacent
+ * constants with contradictory justifications for the same decision.
+ *
+ * The danger was specific: someone tuning the seam reads a confident argument
+ * for `HANDOFF_S`, applies it, and silently reintroduces the early-settle bug.
+ * Nothing errors and nothing looks broken — the hero simply finishes half a
+ * second early and the camera flies over a surface that has already arrived.
+ *
+ * IT IS NOT IMPORTED FROM `handoff.ts` AND MUST NOT BE. That module records the
+ * same fact from its side: what the three components share is the START
+ * INSTANT, not the duration. The navbar slides in 0.45s, the hero settles over
+ * 1.6s, and both begin on the same frame — measured 2205ms each.
  */
 const ARRIVAL_S = 1.6;
 /**

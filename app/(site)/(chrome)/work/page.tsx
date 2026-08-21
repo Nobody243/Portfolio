@@ -68,6 +68,18 @@ export default function WorkPage() {
     // exactly why it is written down in both files.
     <>
       <main>
+        {/*
+          THE PAGE OUTLINE STARTED AT `<h2>`. Four sections each render one,
+          and nothing above them named the document - an outline with no root.
+
+          `sr-only` and not visible, because `Projects` already renders a
+          visible "Work" as its own `<h2>`, and a second visible copy would be
+          a duplicate rather than a hierarchy. The mild spoken redundancy is
+          the cheap side of the trade; the alternative is threading a
+          `headingLevel` prop through a component shared with Home, where the
+          `<h1>` is already spent on the hero.
+        */}
+        <h1 className="sr-only">Work</h1>
         {/* Section order is fixed: the archive, then the internship, then
             what is in progress. Each is `bg-base` with Rule S-2's standard
             89/89 seam, so the three stack with no seam work needed here. */}

@@ -77,7 +77,28 @@ export function AboutScreen() {
   );
 
   return (
-    <section className="relative h-dvh w-full overflow-hidden bg-base">
+    <section
+      aria-labelledby="about-heading"
+      className="relative h-dvh w-full overflow-hidden bg-base"
+    >
+      {/*
+        THE PAGE HAD NO HEADING AT ALL, AND NO ACCESSIBLE NAME. Not a
+        deliberate omission — this file lists four of those (no scroll, no
+        footer, no scrub, no `Reveal`) and a heading was not among them.
+
+        It slipped because the restructure plan's landmark checklist is
+        meticulous about `<header>`, `<main>` and `<footer>` and never
+        mentions headings. So `/about` — the page the whole positioning
+        argument lives on, and the one most likely to be deep-linked — shipped
+        with nothing for a screen reader's heading shortcut to find.
+
+        `sr-only`, because the visual anchor is the mark and the page is
+        deliberately quiet. That matches Home, where `HeroHeadline` renders
+        the site's only other `<h1>` the same way.
+      */}
+      <h1 id="about-heading" className="sr-only">
+        About
+      </h1>
       {/* THE STAGE. `ParticleGrid` measures its own `parentElement` and hangs
           the pointer listener on it, so this wrapper must be the full-bleed box
           and the content must be INSIDE it — a content layer that were a
