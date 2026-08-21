@@ -44,16 +44,16 @@ export const skills = [
   // --- Core Dev ---------------------------------------------------------
   // Order is meaningful: leftmost/first reads as strongest. No notes here on
   // purpose — a note on every skill is noise.
-  { name: "React", group: "core-dev" },
-  { name: "Next.js", group: "core-dev" },
-  { name: "Flutter", group: "core-dev" },
-  { name: "ASP.NET", group: "core-dev" },
-  { name: "JavaScript", group: "core-dev" },
-  { name: "TypeScript", group: "core-dev" },
-  { name: "Tailwind CSS", group: "core-dev" },
-  { name: "Supabase", group: "core-dev" },
-  { name: "Firebase", group: "core-dev" },
-  { name: "Node.js", group: "core-dev" },
+  { name: "React", group: "core-dev", logo: "react" },
+  { name: "Next.js", group: "core-dev", logo: "nextdotjs" },
+  { name: "Flutter", group: "core-dev", logo: "flutter" },
+  { name: "ASP.NET", group: "core-dev", logo: "dotnet" },
+  { name: "JavaScript", group: "core-dev", logo: "javascript" },
+  { name: "TypeScript", group: "core-dev", logo: "typescript" },
+  { name: "Tailwind CSS", group: "core-dev", logo: "tailwindcss" },
+  { name: "Supabase", group: "core-dev", logo: "supabase" },
+  { name: "Firebase", group: "core-dev", logo: "firebase" },
+  { name: "Node.js", group: "core-dev", logo: "nodedotjs" },
 
   // --- Systems Foundation -----------------------------------------------
   // `name` is the course; `note` is what it covered. Never render one without
