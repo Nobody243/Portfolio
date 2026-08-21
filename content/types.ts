@@ -150,6 +150,23 @@ export interface Skill {
    * padded — a note on every skill is noise.
    */
   readonly note?: string;
+  /**
+   * REGISTRY ID ONLY — "react", "next-js". Never markup, never a URL, never a
+   * component, never a file path. Added by Phase 3 for the Stack section's
+   * Core Dev glyph column.
+   *
+   * The hard rules at the top of this file are what force that shape: an SVG
+   * path is styling, and styling is the consumer's job. The id is resolved by
+   * `components/sections/skillLogos.tsx`, which owns the geometry, the 16px
+   * box, the `currentColor` fill and the fallback. An unknown id is not an
+   * error — it falls through to the fallback glyph — so a typo degrades to the
+   * same rendering as an absent key rather than throwing.
+   *
+   * ABSENT IS A VALID, EXPECTED ANSWER, and today it is the answer for all ten
+   * Core Dev entries: no logo assets exist yet. Adding one later is a file drop
+   * plus this one field, never a component change.
+   */
+  readonly logo?: string;
 }
 
 export interface LearningEntry {

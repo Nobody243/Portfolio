@@ -1,10 +1,13 @@
 import type { ComponentType } from "react";
 
 import { Reveal } from "@/components/ui/Reveal";
-import { SKILLS_HEADING } from "@/components/sections/skillsContent";
+import {
+  SKILLS_EMPTY_GROUP_LINE,
+  SKILLS_HEADING,
+} from "@/components/sections/skillsContent";
 import {
   BuildingTowardList,
-  SkillNameFlow,
+  CoreDevGrid,
   SystemsFoundationList,
   type SkillGroupRendererProps,
 } from "@/components/sections/SkillGroupRenderers";
@@ -12,7 +15,16 @@ import { SKILL_GROUPS, getSkillsByGroup } from "@/content/skills";
 import type { SkillGroup } from "@/content/types";
 
 /**
- * Stack — Tier 2/3, the second section on `bg-base`, directly after About.
+ * Stack — TIER 3, the second section on `bg-base`, directly after Trajectory.
+ *
+ * "TIER 3" IS A CORRECTION, NOT A RESTATEMENT. This header said "Tier 2/3"
+ * until Phase 3. `docs/03_FRONTEND_SPEC.md`'s motion section lists Skills under
+ * Tier 3 — "simple fade/slide reveals only, no 3D, no parallax" — and
+ * `docs/07_SITE_RESTRUCTURE.md` §5's second resolution settles the ambiguity in
+ * that direction. It is not pedantry: reading this section as Tier 2 licenses
+ * hover states and a staggered entrance on a grid of brand marks, which are
+ * precisely the two generic treatments §6 of the design and this file's
+ * no-hover rule exist to prevent.
  *
  * DELIBERATELY A SERVER COMPONENT, exactly as About is. `Reveal` is the only
  * client boundary, so none of the 18 skill names or 8 notes reaches the client
@@ -35,9 +47,11 @@ import type { SkillGroup } from "@/content/types";
  * atom, same 34rem measure, same Fibonacci rhythm, same four-`Reveal` shape.
  *
  * NO ACCENT COLOUR AND NO BORDERS ANYWHERE IN THIS SECTION, following About and
- * for a stronger reason: 18 short strings laid out in a flow is precisely the
- * shape of a link list, and the first thing a reader does with a coloured word
- * is try to click it. Also absent by decision: `bg-elevated` and any border,
+ * for a stronger reason: 18 short strings in a column is precisely the shape of
+ * a link list, and the first thing a reader does with a coloured word is try to
+ * click it. Phase 3's glyph column makes that stronger again — a grid of brand
+ * marks is the most link-like arrangement on the page, and ten teal marks would
+ * read as ten buttons. Also absent by decision: `bg-elevated` and any border,
  * both of which would turn a group into a CARD (Ticket 6's affordance), any
  * rule or divider, `accent-hero` (Tier 1 only), and every hover state.
  */
@@ -53,13 +67,16 @@ import type { SkillGroup } from "@/content/types";
  * mapping is styling.
  *
  * `building-toward` intentionally reuses the Systems Foundation pair renderer;
- * see SkillGroupRenderers.tsx for why there is no empty-state component.
+ * see SkillGroupRenderers.tsx for why there is no empty-state component. Phase
+ * 3 did not add one either: the empty group's single line of copy is rendered
+ * by the group scaffold below, keyed on the COUNT, so all three renderers stay
+ * count-agnostic.
  */
 const GROUP_RENDERER: Record<
   SkillGroup,
   ComponentType<SkillGroupRendererProps>
 > = {
-  "core-dev": SkillNameFlow,
+  "core-dev": CoreDevGrid,
   "systems-foundation": SystemsFoundationList,
   "building-toward": BuildingTowardList,
 };
@@ -120,9 +137,9 @@ export function Skills() {
           space". */}
       <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
         <Reveal>
-          {/* Weight left at the inherited 400, as in About: the type scale
-              carries the size, and a bolder heading pulls a Tier 2/3 section
-              toward Tier 1. */}
+          {/* Weight left at the inherited 400, as in Trajectory: the type
+              scale carries the size, and a bolder heading pulls a Tier 3
+              section toward Tier 1. */}
           <h2 id="stack-heading" className="text-h2 text-fg">
             {SKILLS_HEADING}
           </h2>
@@ -263,17 +280,79 @@ export function Skills() {
                   </span>
                 </div>
 
-                {/* `min-h` is on ALL THREE content regions, one wrapper class,
-                    not an empty-state device. For the first two groups it is
-                    inert. For Currently Building Toward it holds 55px of
-                    reserved space sized to about one entry (a 25.6px name line
-                    plus a 16.8px note line, plus its trailing air) — the group
-                    is holding a seat, not an indefinite void, and the section's
-                    `pb-2xl` below it means the page ends on quiet rather than
-                    snapping shut under the last label, which is the shape that
-                    reads as truncation. */}
+                {/* `min-h` is on ALL THREE content regions, one wrapper class.
+                    For the first two groups it is inert. For Currently Building
+                    Toward it holds 55px of reserved space sized to about one
+                    entry (a 25.6px name line plus a 16.8px note line, plus its
+                    trailing air) — the group is holding a seat, not an
+                    indefinite void, and the section's `pb-2xl` below it means
+                    the page ends on quiet rather than snapping shut under the
+                    last label, which is the shape that reads as truncation.
+
+                    THIS COMMENT USED TO SAY "not an empty-state device", AND
+                    THAT WAS WRONG — corrected in Phase 3 before someone tidying
+                    "dead" CSS deleted the property. It is functionally half the
+                    empty-state treatment, and the half nothing else can supply:
+                    55px absorbs n = 0 (the line alone, 25.6px), n = 1 with a
+                    note (44.8px) and n = 1 without one (25.6px), so THE PAGE IS
+                    EXACTLY THE SAME HEIGHT BEFORE AND AFTER THE FIRST CERT
+                    LANDS. Reflow begins at the second entry, which is the point
+                    at which growth should be visible. Remove this and the
+                    footer jumps on a day nobody will connect to it. */}
                 <div className="mt-sm min-h-[var(--spacing-xl)] max-w-[34rem] lg:mt-md">
                   <GroupRenderer skills={groupSkills} />
+
+                  {/*
+                    THE EMPTY GROUP'S ONE DEVICE — the line, and nothing around
+                    it. No dashed box, no outline, no surface, no tint. That
+                    placeholder rectangle was proposed, designed, and dropped
+                    (`docs/07` §5, third resolution): this region already speaks
+                    on three non-overlapping channels — `00` states QUANTITY,
+                    the line states INTENT, the 55px states SPACE HELD — and a
+                    dashed box would state ABSENCE, the one fact the group label
+                    right above it already supplies. It would also be a third
+                    border family, a hard-cornered dropzone shape with no radius
+                    token, and the only part of the treatment that could not
+                    survive the first entry: everything here transitions with
+                    zero edits, while a box around one real cert becomes a CARD
+                    and has to be hand-deleted.
+
+                    KEYED ON THE COUNT, NEVER ON `group.id`. A
+                    `group.id === "building-toward"` check renders
+                    byte-identical output today and breaks the rule invisibly —
+                    if Core Dev were ever emptied the same honest line should
+                    appear, and BuildingTowardList's "n = 0, 1 and 6 are one
+                    code path" property depends on this conditional living here
+                    rather than inside a renderer.
+
+                    A <p>, and a SIBLING of the <dl> — never a <dd>. A <dd> with
+                    no <dt> is invalid, and this sentence is not the description
+                    of any term. Source order AFTER the renderer: with the group
+                    empty the <dl> has zero height so either order renders
+                    identically, and this is the only order that would still
+                    read correctly if the two ever coexisted.
+
+                    `text-body text-fg/70`, top-aligned in normal flow. Body
+                    scale because it is a full thought with two full stops — set
+                    in 12px mono it would read as a code comment or a TODO, on
+                    the one part of the site whose whole job is to be believed.
+                    /70 because at full strength the emptiest group would carry
+                    the loudest single line of prose in the section; /70 is this
+                    section's established annotation voice, so size says
+                    "statement" and opacity says "not an entry". 6.69:1 in light
+                    mode on `bg-base`, which is the binding case.
+
+                    DO NOT CENTRE IT IN THE 55px. Centring turns the reservation
+                    into padding around a message; top-aligned, the line labels
+                    the space and the space is visibly still there. And do not
+                    `aria-hidden` it — the region should read as "Currently
+                    Building Toward", "0 entries", then this sentence.
+                  */}
+                  {groupSkills.length === 0 ? (
+                    <p className="text-body text-fg/70">
+                      {SKILLS_EMPTY_GROUP_LINE}
+                    </p>
+                  ) : null}
                 </div>
               </Reveal>
             );

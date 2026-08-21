@@ -1,7 +1,40 @@
+import { SkillGlyph } from "@/components/sections/skillLogos";
 import type { Skill } from "@/content/types";
 
 /**
- * The two shapes a skill group takes on screen — Ticket 5.
+ * The two shapes a skill group takes on screen — Ticket 5, revised by Phase 3.
+ *
+ * WHAT PHASE 3 CHANGED, AND WHAT IT DID NOT. Core Dev gained a 1em monochrome
+ * glyph column and became a declared 5-row matrix instead of a wrap-flow; the
+ * inter-entry vertical gap unified at 21px across both variants. That is all.
+ * `SkillPairList` is untouched, every rule in this header still binds, and the
+ * empty-state line lives one level up in `Skills.tsx` so this file keeps its
+ * "n = 0, 1 and 6 are one code path" property.
+ *
+ * NEITHER VARIANT IS A CARD, and `docs/07_SITE_RESTRUCTURE.md` §5 saying "two
+ * card variants" does not make one. That doc's own resolution block settles it
+ * in favour of this file: "card" there means an ENTRY TREATMENT, not a drawn
+ * box. Read the two variants as one system carried by four shared axes, not by
+ * a shared rectangle:
+ *
+ *   Axis            Core Dev                  Systems Foundation
+ *   left edge       glyph, on the spine       course name, on the spine
+ *   first line      one 25.6px band           one 25.6px band
+ *   inter-entry     21px                      21px
+ *   subordinate     the glyph, LEFT of it     the note, BELOW it
+ *
+ * The subordinate voice appears in both — it only changes position. A Core Dev
+ * entry is a name with its context to the left; a Systems entry is a name with
+ * its context below. Same two parts, same weights, same rhythm, rotated. That
+ * is why they read as one system while carrying a 6:1 text-length ratio, and it
+ * is why EQUAL HEIGHTS ARE NOT THE GOAL: the two variants are never side by
+ * side, so forcing a Core Dev row to a Systems entry's height would buy ten
+ * rows of empty space and nothing else.
+ *
+ * CONSEQUENCE, STATED SO NOBODY "FIXES" IT: Core Dev's NAMES now sit 24px right
+ * of Systems Foundation's names, because the glyph is what starts on the spine.
+ * The thing that aligns down this section is each entry's leading element, not
+ * its first word. Do NOT indent the course names to match.
  *
  * Presentational, stateless, server components. No "use client": nothing here
  * has state, an event handler or a hover treatment, and the 18 strings must
@@ -46,34 +79,74 @@ export type SkillGroupRendererProps = {
 };
 
 /**
- * Core Dev — a borderless wrap-flow of names.
+ * Core Dev — a glyph column and a name, in a declared 5-row matrix.
  *
- * ORDER IS STRENGTH ORDER (content/skills.ts:38), so visual order must be array
- * order: React first, top left, always. `flex flex-wrap` preserves source order
- * strictly. Do NOT reach for CSS columns, masonry, `order`, alphabetical
- * sorting or column balancing — every one of those reflows items out of
- * sequence and destroys a content decision for a layout reason.
+ * WHY A GRID AT ALL. Marks only read as a set when they share a vertical
+ * alignment line, and a wrap-flow gives them none. The grid is not decoration
+ * and it is not "using the space": it exists to hold the glyph column straight.
  *
- * NO CHIP: no background, no border, no padding box, no radius (there is no
- * radius token, by decision, so a chip here would be a square box — and ten
- * square boxes in a flow read as tag INPUTS, a form control that invites a
- * click that does nothing). Borderless mono names read as a colophon instead:
- * quieter, and more confident than the badge-wall every stack section ships.
+ * COLUMN-MAJOR AT >=640px, AND THIS IS THE LOAD-BEARING LINE IN THIS FILE.
+ * `content/skills.ts` says leftmost/first reads as strongest. With 1fr tracks
+ * the two glyph columns sit ~251px apart while rows are 46.6px apart — a 5.4:1
+ * proximity ratio — so the eye groups COLUMNS, not rows, whatever the DOM says.
+ * Default row-major would therefore be READ as React, Flutter, JavaScript,
+ * Tailwind CSS, Firebase / Next.js, ASP.NET… i.e. the strength-ordered array
+ * visibly interleaved and scrambled. Column-major makes the perceived order and
+ * the array order the same order, and puts the top five literally in the left
+ * column.
  *
- * NO SEPARATOR GLYPH — no interpunct, no slash, no comma. A separator written
- * in JSX is a punctuation decision made in a component and invisible to anyone
- * editing skills.ts. The 21px column gap against mono's ~9.6px word space is a
- * 2.2x contrast, which is enough that "Tailwind CSS" and "Next.js" never blur
- * together.
+ * THIS IS NOT COLUMN BALANCING, and it is not what the old wrap-flow rejected.
+ * CSS multi-column and masonry were refused because they reflow items
+ * UNPREDICTABLY. `grid-rows-5` plus `grid-auto-flow: column` is a DECLARED
+ * matrix: item n lands at row n mod 5, column floor(n / 5), deterministically,
+ * with no `order` utility. DOM order is untouched at 1…10, so screen-reader and
+ * tab order remain array order. Still no sorting, no reversing, and no
+ * shuffling for visual balance.
+ *
+ * ONE COLUMN BELOW 640px, TWO ABOVE, NEVER THREE OR FOUR. Measured against the
+ * 34rem cap: the worst-case cell is 140px ("Tailwind CSS" at 16px mono plus the
+ * glyph and its 8px gap), and two 21px-gapped tracks at 360px come to 138px —
+ * a 2px overflow, which is what buys the single `sm:` change. Three columns
+ * fits above 640px and is rejected because 10 does not divide by 3: it strands
+ * Node.js, the last and by declaration weakest entry, alone in a final row,
+ * which reads as a layout accident. Four is arithmetically impossible at this
+ * measure at every breakpoint.
+ *
+ * `auto-cols-fr` IS REQUIRED, NOT TIDYING. The second column is IMPLICIT (one
+ * explicit track, ten items, five rows), and implicit tracks size to `auto`
+ * unless told otherwise — which would hand column 1 all the free space and
+ * break both the 251px track measurement and the alignment the grid exists for.
+ *
+ * GROWTH, so it is not rediscovered later: an 11th entry opens a third column
+ * holding one item (160px tracks at 1024px, comfortably over the 140px worst
+ * case). Above 12 entries raise `grid-rows` to 6 and then 7 — do NOT let a
+ * fourth column appear, because four do not fit at any breakpoint.
+ *
+ * NO CHIP, NO BORDER, NO SURFACE, NO RADIUS, NO SHADOW, NO HOVER — unchanged
+ * from the wrap-flow, and more important now: a grid of brand marks in boxes is
+ * exactly the "tech stack card grid" this section has twice been designed away
+ * from, and it would counterfeit the project gallery's card affordance.
  */
-export function SkillNameFlow({ skills }: SkillGroupRendererProps) {
+export function CoreDevGrid({ skills }: SkillGroupRendererProps) {
   return (
-    <ul className="flex flex-wrap gap-x-md gap-y-sm">
+    <ul className="grid grid-cols-1 gap-x-md gap-y-md sm:auto-cols-fr sm:grid-flow-col sm:grid-rows-5">
       {skills.map((skill) => (
-        // Full-strength `text-fg`, not a muted variant: this is the proof
-        // group and it should read at full confidence, not as metadata.
-        <li key={skill.name} className="text-body font-mono text-fg">
-          {skill.name}
+        // The <li> IS the cell. `items-center` centres the 16px glyph box on
+        // the 25.6px line box; `gap-x-xs` is 8px and is an INSIDE-the-object
+        // measure with no relationship to the 21px between-object gap — do not
+        // "unify" the two. No `min-h`: every cell is exactly one line box by
+        // construction, so a declared height would be dead CSS implying a
+        // raggedness that cannot occur.
+        //
+        // (`inline-flex` on a grid item is blockified to `flex` by the spec. It
+        // is written as `inline-flex` because that is what the cell is: a run
+        // of text with a mark in front of it.)
+        <li key={skill.name} className="inline-flex items-center gap-x-xs">
+          <SkillGlyph skill={skill} />
+          {/* Full-strength `text-fg`, not a muted variant: this is the proof
+              group and it should read at full confidence, not as metadata. The
+              /70 in this row belongs to the GLYPH, never to the name. */}
+          <span className="text-body font-mono text-fg">{skill.name}</span>
         </li>
       ))}
     </ul>
@@ -92,7 +165,10 @@ export function SkillNameFlow({ skills }: SkillGroupRendererProps) {
  *
  * The `<dd>` sits directly under its `<dt>` with NO margin, so the two line
  * boxes are adjacent; that adjacency against the 21px inter-pair gap is what
- * binds a name to its note. Nothing else is needed — no bracket, no indent, no
+ * binds a name to its note. `space-y-md` is UNCHANGED by Phase 3 — its 21px is
+ * now the whole section's shared inter-entry gap rather than a local choice,
+ * which strengthens the ratio rather than disturbing it. Same value, promoted
+ * to a rule: if it ever moves, Core Dev's `gap-y-md` moves with it. Nothing else is needed — no bracket, no indent, no
  * rule, no colon, no dash. (Browsers apply `margin-inline-start: 40px` to
  * `dd`; Tailwind v4's Preflight already zeroes it via the universal selector,
  * verified in node_modules/tailwindcss/preflight.css. Do NOT add a defensive
