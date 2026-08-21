@@ -76,44 +76,65 @@ transition. Do not mix the words again.
 > a point and an expansion out of it, and §2 retired the glass/liquid mark for
 > circuit-trace geometry. The phase split below is the one shipped.
 > The old table is in the history; do not restore it piecemeal.
+>
+> **AMENDED AGAIN — the mark is FACETED and phase C is a CROSSFADE.** The
+> circuit-trace mark above was itself replaced, on Saad's call, by eight filled
+> quadrilaterals (`docs/07` §2's superseded banner, and
+> `.claude/handoff/ms-mark-faceted-design.md`). **Only phase C's mechanism
+> changed with it. Every phase boundary, every duration and the 2.35s total are
+> untouched** — A, B, D and E are exactly as they were. What is gone is the
+> glyph-to-trace morph, the 80/100 split inside C, the node-dot power-up, and
+> D's `--ms-stroke` ramp.
 
-Five phases, **2.35s total** (measured: 2.354s from the Intro plate mounting to
-it unmounting). The per-phase split lives in `components/intro/Intro.tsx` as
+Five phases, **2.35s total** (measured: 2.350s from the Intro plate mounting to
+it unmounting, on the faceted build; 2.354s on the trace build before it). The per-phase split lives in `components/intro/Intro.tsx` as
 named constants, which is where it should be tuned.
 
 | | Phase | Duration | Starts | Ease |
 |---|---|---|---|---|
-| A | "Muhammad Saad" appears, as **stroked outlines** | 0.22 | 0.00 | `power2.out` |
+| A | "Muhammad Saad" appears, as **filled glyph outlines** | 0.22 | 0.00 | `power2.out` |
 | B | It holds, long enough to register as a name | 0.13 | 0.22 | — |
-| C | **The becoming** | 1.05 | 0.35 | see below |
+| C | **The merge** — approach, then a crossfade | 1.05 | 0.35 | see below |
 | D | Contraction to a point, then a 0.06 hold on it | 0.44 + 0.06 | 1.40 | `power2.in` |
 | E | Hero expansion **and** navbar entrance | 0.45 | 1.90 | `power2.out` |
 
 **A: the name is not DOM `<text>`.** It is Space Grotesk's own contours,
 pre-extracted at build time into `components/ui/msMarkGlyphs.ts` and rendered as
-strokes. Fill and stroke do not interpolate into each other, so a filled name
-would force a paint-mode swap mid-timeline, and any dressing of that swap is a
-crossfade — which is exactly what "a becoming, not a crossfade" rules out. One
-paint mode from the first frame to the last.
+**filled** paths, like the mark itself. The old reason for rendering outlines —
+that fill and stroke cannot interpolate, so a morph forbade a paint-mode swap —
+died with the morph. **The reason it is still right:** outlines put the name and
+the mark in ONE coordinate system, so each capital's travel is a tween to the
+*identity* transform and it lands on its faceted letter exactly, same baseline,
+same cap height, same left edge. DOM text would need a `TextMetrics` baseline
+probe to get within a few pixels of that, and this file deleted one already.
 
-**C is four tracks that deliberately do not finish together.** The two capitals
-translate and grow to centre over `0 → 0.80·C` (`power2.out`) while their `d`
-morphs into the mark's traces over the full `0 → 1.00·C` (linear). So the shape
-is **exactly 80% resolved at the instant the letters meet** (t = 1.19), and the
-last 20% completes with both letters stationary. That 0.21s tail is the phase's
-whole argument: the viewer watches the letterform resolve into trace *after*
-motion has stopped, which is the opposite of a swap hidden under movement.
-**Never let the tail reach zero.** Meanwhile the other ten glyphs collapse into
-their own word's initial and fade over the first 45% of C, staggered outward-in;
-and the twelve node dots fade up on an 18ms stagger across the tail, opacity
-only, one pass, in draw order.
+**C is three tracks that deliberately do not finish together.** The two capitals
+translate and grow to their positions in the mark over `0 → 0.80·C`
+(`power2.out`), arriving together at **t = 1.19 — the meeting, at dead centre**.
+The other ten glyphs collapse into their own word's initial and fade over the
+first 45% of C, staggered outward-in. At the meeting the two capitals
+**crossfade** into the faceted letters they have arrived on top of, over 0.15s,
+both halves on a LINEAR ramp — two opposed linear opacity ramps sum to a roughly
+constant apparent density, whereas eased ones dip in the middle and the dip is
+what makes a crossfade read as a flicker. That leaves **0.06s of the settled
+mark standing still** before the contraction. **Never let that tail reach
+zero**: the merge would land on the same frame the contraction starts and the
+mark would never exist as a finished object.
 
-**D's stroke ramp is a correctness requirement, not polish.**
-`vector-effect="non-scaling-stroke"` holds stroke width constant in device
-pixels *regardless of scale*, so a mark shrinking toward a point with a fixed
-weight thickens into a blob. `--ms-stroke` ramps down 0.36× in lockstep with the
-scale. The 60ms hold on the resulting single disc is the beat that stops the
-contraction and the expansion reading as one rubber-band motion through zero.
+> The 80/100 morph split, the 0.21s morph tail and the node-dot power-up are all
+> gone with the trace mark. They are recorded here because the *meeting instant*
+> they produced — 1.19 — is unchanged, and someone comparing timelines will
+> otherwise assume the phase was retuned. It was not.
+
+**D is ONE tween now.** The wrapper group scales to zero about `(296, 288)` and
+that is the whole contraction. The `--ms-stroke` ramp that used to run alongside
+it was a correctness requirement for a stroked mark — `non-scaling-stroke` holds
+weight constant in device pixels, so a mark collapsing inside a fixed outline
+thickens into a blob — and **filled shapes scale their own ink, so it is deleted
+rather than retuned.** One consequence: the old hold sat on a visible disc,
+because a stroked path at `scale: 0` still paints its round caps; filled shapes
+leave nothing. The 60ms hold still stops the contraction and the expansion
+reading as one rubber-band motion through zero, which was always its main job.
 
 **E is a two-sided move and all three sides are required.** `Intro` fires
 `onHandoff` as the expansion *starts*, not when it ends. `Hero` uses that to
@@ -135,9 +156,9 @@ quarter and — measured on the running timeline — finished the arrival while 
 plate was still 74% opaque, i.e. entirely off-screen.
 
 **Under `prefers-reduced-motion` none of A–E runs.** The settled mark fades in
-at About-instance size (72px, 3px stroke), holds, and cross-fades to the hero
-and the navbar: 0.20 + 0.10 + 0.25 = **0.55s** total, measured 0.51s. No name,
-no approach, no morph, no contraction, and the mark never appears mid-ramp.
+at About-instance size (72px), holds, and cross-fades to the hero and the
+navbar: 0.20 + 0.10 + 0.25 = **0.55s** total, measured 0.57s. No name, no
+approach, no merge, no contraction.
 Someone who asked for less motion is not owed a shorter version of the
 spectacle, they are owed its absence. `onHandoff` still fires on that path, so
 no consumer has to special-case "the intro did not run".

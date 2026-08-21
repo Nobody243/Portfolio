@@ -3,7 +3,7 @@
  *
  *   node scripts/extract-glyph-outlines.mjs
  *
- * Space Grotesk glyph outlines for the Intro's morph, converted once at build
+ * Space Grotesk glyph outlines for the Intro's NAME, converted once at build
  * time from `public/fonts/space-grotesk-latin.typeface.json`. See that file's
  * README for the asset's provenance and
  * `scripts/extract-glyph-outlines.mjs` for what this conversion does and why

@@ -1,53 +1,42 @@
 /**
- * THE MARK'S GEOMETRY, and the Intro morph's other half.
+ * THE MARK'S GEOMETRY, and the Intro's name layout.
  *
  * One dataset, no component, no React. `MonogramMark` renders it, `Intro`
- * animates it, and every number either side of the morph is stated here so the
- * two ends cannot drift apart. `docs/07_SITE_RESTRUCTURE.md` §3.1 asks for
- * exactly that — "one dataset then holds both the source and the target of the
- * morph" — and `.claude/handoff/ms-mark-design.md` F-3 records that the mark is
- * one artifact with no build smell to raise.
+ * animates it, and every number either side of the merge is stated here so the
+ * two ends cannot drift apart.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THE MARK IS A CIRCUIT TRACE, NOT A LETTERFORM. M and S are drawn as thin
- * connected segments with node dots at the joints, echoing `ParticleGrid`'s
- * material — hairline links, dots at the junctions, dots carrying more weight
- * than the links. What is NOT borrowed is the field's randomness: every segment
- * here is horizontal, vertical, or a true 45°, which is PCB routing discipline
- * and is what makes the mark read as *routed* rather than *drawn*. A mark of
- * arbitrary-angle segments would be a screenshot of the background, not a logo.
+ * THE MARK IS FACETED, FILLED SHAPES — eight quadrilaterals, three for the M
+ * and five for the S, every edge orthogonal or a true 45°. It replaces a
+ * circuit-trace mark built from thin strokes and node dots, and the replacement
+ * is structural rather than stylistic. `.claude/handoff/ms-mark-faceted-design.md`
+ * carries the full argument; the operative half of it is this:
  *
- * HOW IT SURVIVES 17px, which is the constraint that shapes everything below.
- * The navbar renders the mark at `h-[17px]` against `VB_H = 320` — 18.8 viewBox
- * units per CSS pixel. Any stroke authored in viewBox units is multiplied by
- * 0.053 on the way to the screen, so a 2.25-unit rim becomes 0.12px and
- * disappears. `vector-effect="non-scaling-stroke"` resolves the stroke in the
- * coordinate system in effect BEFORE the viewBox transform, so weight is
- * authored and rendered in CSS PIXELS and the scale factor never touches it.
+ *   `MonogramMark.tsx`'s ORIGINAL objection was that a rim authored in viewBox
+ *   units is 0.15 CSS pixels at nav size, and that OUTLINED letterforms do not
+ *   survive that reduction while FILLED ones do. The trace mark answered it
+ *   with `vector-effect="non-scaling-stroke"`, which is true but bought a
+ *   second problem each time: a stroke ramp during the contraction (because a
+ *   non-scaling stroke thickens into a blob as its geometry collapses), node
+ *   dots as round-capped micro-segments (because `r` is in user units), a
+ *   minimum-height floor derived from dot clearance, and finally an extra
+ *   terminal flag on the S because a stroked S and a stroked 5 are the same
+ *   skeleton in a 0/45/90 vocabulary.
  *
- * This is not a workaround for the small case; it inverts the relationship in
- * the right direction. Stroke weight stops being a scale artifact and becomes a
- * variant-level design parameter — one CSS custom property, `--ms-stroke`, set
- * on the `<svg>` root and inherited by every child. Without it every responsive
- * instance would silently re-weight the logo at each breakpoint.
+ *   FILLED SHAPES DO NOT HAVE THE PROBLEM TO BEGIN WITH. Ink scales with the
+ *   mark, so there is nothing to hold constant and nothing to ramp. At the
+ *   navbar's 17px the bars are 2.98px wide against the trace mark's 1.25px.
  *
- * `MonogramMark.tsx`'s STANDING OBJECTION IS TRUE BUT SCOPED, and it is kept
- * there rather than deleted: outlined letterforms really do turn to mush at nav
- * size *when the stroke scales with the viewBox*. These do not. Anyone
- * authoring a rim in user units will hit the original wall exactly as described.
+ * WHAT IS RETIRED WITH IT, so it is not reintroduced by halves: `--ms-stroke`,
+ * `--ms-node`, `msStroke()`, `NODE_RATIO`, `capFromHeight()`, `VERTICES`,
+ * `TRACE`, `NODES`, the twelve node dots and every count derived from them.
+ * Nothing in this module is stroked. If a future variant needs a rim, note that
+ * the original objection still binds for anything authored in USER UNITS.
  *
- * NODE DOTS ARE ROUND-CAPPED MICRO-SEGMENTS, NEVER `<circle>`. `r` is in user
- * units and `non-scaling-stroke` governs the stroke, not the fill geometry — an
- * 8-unit-radius circle renders at 0.42px in the navbar, which reintroduces the
- * exact failure the traces just escaped. A round cap projects a semicircle of
- * radius strokeWidth/2 past each endpoint, so a `l.01 0` subpath renders a disc
- * whose diameter IS the stroke width, in CSS pixels, at every size. Dot size
- * becomes a second non-scaling number rather than a geometric radius.
- *
- * `l.01 0` and not a zero-length `L`: the spec's handling of zero-length
- * subpaths with round caps is correct on paper and has a history of being
- * dropped by rasterisers. 0.01 units is 0.0005px at nav scale — a circle for
- * all practical purposes, and impossible to optimise away.
+ * S-VS-5 IS STRUCTURAL NOW, NOT PATCHED. The S carries two 45° chamfers,
+ * top-right and bottom-left, diagonally opposite each other. That opposition is
+ * the S's rotational character and is exactly what a 5 does not have — a 5 has
+ * a square top-right terminal and a bowl at the bottom.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -62,54 +51,58 @@ import { HERO_NAME } from "@/components/hero/heroContent";
 /* -------------------------------------------------------------------------
    The box. ONE viewBox for every variant and every state.
 
-   `MonogramMark.tsx` has always claimed "identical viewBox proportions" as the
-   actual same-mark claim, and the shipped code contradicted it four lines
-   below: `VB_W = { intro: 560, nav: 420 }` against a shared `VB_H = 320` —
-   1.75:1 against 1.31:1. The intro box was padded so the glass rim and
-   turbulence had bleed room. That dressing is gone, the bleed is solved by
-   geometry inset instead, and the claim is true for the first time.
-
-   `Intro.tsx` USED TO MIRROR THIS, as `MARK_VB_W = 560`, under a comment
-   reading "MIRRORED FROM `MonogramMark.tsx` AND ONLY VALID WHILE THEY MATCH".
-   It imports the value now, so the mirror — and the silent drift its own
-   comment predicted — is gone rather than merely re-synced.
+   Unchanged by the faceted rebuild, deliberately: keeping the box identical is
+   what lets the Intro's positioning maths, the contraction point and the
+   navbar's `h-[17px]` carry over without re-derivation.
 ------------------------------------------------------------------------- */
 export const VB_W = 592;
 export const VB_H = 320;
 
-/**
- * Every edge is inset by one module, and the number is stroke-bleed clearance
- * rather than aesthetic padding. The widest paint anywhere is the nav node dot
- * at 2.75px, whose half-width is 1.375px = 25.9 viewBox units at nav scale.
- * 32 clears it with six units to spare, which is what lets the SVG ship with no
- * `overflow: visible` and no per-variant box padding — the thing that killed
- * the old mark's single-viewBox claim.
- */
+/** Every edge is inset by one module. Content occupies x 32 → 560, y 32 → 288.
+ *  With nothing stroked there is no bleed past the geometry at all, so the
+ *  inset is now plain optical padding — and the SVG still ships with no
+ *  `overflow: visible` and no per-variant box padding. */
 export const INSET = 32;
 
-/** Cap height in viewBox units: y 32 → 288, exactly eight modules of 32. Every
- *  coordinate below is a multiple of 16 — half a module — and that is a
- *  checkable invariant, not a stylistic note. */
+/** Cap height in viewBox units: y 32 → 288, exactly eight modules of 32. */
 export const CAP = VB_H - INSET * 2;
 
 /** The baseline. Everything in the mark and in the Intro's name sits on it. */
 export const BASELINE = VB_H - INSET;
 
+/* -------------------------------------------------------------------------
+   Module sizes. Every coordinate below is built from these four and INSET.
+
+   | Quantity        | Units | At nav (17px) |
+   |-----------------|-------|---------------|
+   | Cap height      | 256   | 13.60px       |
+   | Bar thickness   |  56   |  2.98px       |
+   | M bar gap       |  40   |  2.12px       |
+   | M → S gap       |  64   |  3.40px       |
+   | 45° chamfer     |  56   |  2.98px       |
+------------------------------------------------------------------------- */
+/** Bar and stem thickness — the mark's one ink weight. */
+export const BAR = 56;
+/** Clear air between the M's three bars. The tightest gap in the mark, and
+ *  therefore the number `MIN_HEIGHT_PX` is derived from. */
+export const M_BAR_GAP = 40;
+/** Clear air between the M and the S. Wider than the M's internal gaps, which
+ *  is what keeps the pair reading as two letters rather than five bars. */
+export const LETTER_GAP = 64;
+
 /**
  * THE CONTRACTION POINT — horizontal centre, ON THE BASELINE. Not the bounding
- * box centre `(296, 160)`, and not a node.
+ * box centre `(296, 160)`, and it is retained verbatim from the trace mark.
  *
  * Promoted to `docs/07` §3.2 because it constrains layout and not just motion.
  * Two things follow from it that are easy to miss:
  *
  *   1. WHY NOT THE BOX CENTRE. Collapsing toward y = 160 makes the mark cross
- *      itself — M1 `(32,288)` travels UP while M2 `(32,32)` travels DOWN, so
- *      the left stem passes through itself for roughly 150ms. That is a
- *      scribble arriving at exactly the beat the spec wants to read as
- *      deliberate. On the baseline every one of the twelve nodes travels
- *      monotonically down-and-inward or straight along it; nothing crosses
- *      anything, and the read is drainage along a route. §12's new node at
- *      `(560,112)` is no exception — it travels down-and-inward like the rest.
+ *      itself — the M's bars travel in opposite vertical directions and pass
+ *      through each other for roughly 150ms. That is a scribble arriving at
+ *      exactly the beat the spec wants to read as deliberate. On the baseline
+ *      every shape travels monotonically down-and-inward or straight along it;
+ *      nothing crosses anything.
  *   2. THE MARK IS POSITIONED BY THIS POINT, NOT BY ITS BOX. `(296, 288)` is
  *      what sits at dead viewport centre during the Intro, which puts the box
  *      centre 128 units — about 193px at Intro scale — ABOVE centre. The mark
@@ -117,8 +110,8 @@ export const BASELINE = VB_H - INSET;
  *      screen. That is the intended composition, not an offset to correct.
  *
  * `x = 296` is the horizontal centre of the drawn box AND falls inside the
- * 112-unit letter gap, so the mark drains into its own seam: the final frame is
- * a single dot where the M and the S shake hands.
+ * 64-unit letter gap (M ends at 280, S starts at 344), so the mark drains into
+ * its own seam.
  */
 export const CONTRACT_X = 296;
 export const CONTRACT_Y = BASELINE;
@@ -126,236 +119,170 @@ export const CONTRACT_Y = BASELINE;
 export type MarkLetter = "m" | "s";
 
 /* -------------------------------------------------------------------------
-   The traces.
+   THE SHAPES.
 
-   M — 5 vertices, 4 segments, both diagonals exactly 45° (Δ112, Δ112). The apex
-   sits at y = 144, which is 44% down the cap height and deliberately shallow: a
-   deep display-M vertex closes its two diagonals into a solid wedge once the
-   strokes are 1.25px on a 13.6px cap. At 44% the aperture stays open at nav
-   size.
+   M — three separate quadrilaterals. THE ANGLED TOPS ARE WHAT MAKE IT AN M
+   rather than three lines, and they are the only non-orthogonal edges in the
+   letter. Read the three top edges left to right: 32 → 88, then 144, then
+   88 → 32. High, falling; low; rising, high. That is the M silhouette, carried
+   entirely by the two cuts, and both are true 45° (56 across, 56 down).
 
-   S — 7 vertices, 6 segments, orthogonal. The M carries the 45°s; a real board
-   mixes orthogonal runs with 45° corners freely. THE THREE HORIZONTAL BARS ARE
-   DELIBERATELY UNEQUAL — 160 / 112 / 144, top to bottom. A seven-segment digit
-   has all three equal, and equal bars are exactly what makes a squared S read
-   as a blocky LED glyph. The two overhanging terminals (S2 overhangs the right
-   stem by 48 units, S7 the left stem by 32) do a lot of the work keeping this
-   from looking like a digit.
+   S — five quadrilaterals: three horizontal bars at y 32–88, 132–188 and
+   232–288, with the two 44-unit gaps between them bridged on ALTERNATING sides
+   by the two stems. The two 45° chamfers sit diagonally opposite — top-right on
+   the top bar, bottom-left on the bottom bar — and they are the whole S-vs-5
+   argument.
 
-   THEY WERE NOT ENOUGH ON THEIR OWN, and this is a measured result rather than
-   a taste revision. In a vocabulary restricted to 0/45/90 a squared S and a
-   squared 5 are THE SAME SKELETON, and the shipped six-vertex S — built exactly
-   as `ms-mark-design.md` §3 specified it — read plausibly as "M5" at 17px, and
-   worse anywhere the mark stands alone with no context: favicon, OG image, the
-   reveal-footer stamp. The single difference between the two glyphs is what
-   happens at the top right: a 5 stops flat there, an S TURNS DOWN.
-
-   §12's fix is one segment, inside the existing vocabulary: an 80-unit vertical
-   flag descending from the top-right corner, `(560,32) → (560,112)`, drawn
-   FIRST so the trace starts at its tip. Not a second small-size glyph — forking
-   the asset re-creates by hand the synchronisation problem the single-viewBox
-   rule exists to prevent (F-1, and §2's one-asset rule).
-
-   80 UNITS IS THE BALANCE POINT, and both ends of the range are hard. The flag's
-   tip carries a node and that node approaches the waist-right node at
-   `(512,160)`; at nav scale (17/320) with 2.75px dots the clearances are 48u →
-   2.21px clear but only a 2.55px tick (reads as a fat corner dot, not a
-   terminal), 80u → 0.86px clear and a 4.25px tick, 96u → 0.31px, 112u → the two
-   dots OVERLAP. §4 rejected midpoint nodes at 0.23px of clear air as visibly
-   touching; 80u leaves roughly four times that margin while giving a tick large
-   enough to see. 64u — tip `(560,96)`, 1.50px clear, 3.40px tick — is the
-   documented fallback if the pair ever crowds; it was not needed.
-
-   MEASURED, NOT ONLY COMPUTED: sampling the rendered navbar at 17px along the
-   line joining the two dots gives 3.605px centre-to-centre and 0.777px of
-   unpainted air — the 0.08px shortfall against the 0.86px figure above is
-   antialiasing on both discs, and it is why the number is recorded here rather
-   than left as arithmetic. At 2× DPR that reads as a clean dark channel; at 1×
-   it is one partially-inked pixel, separated but softly. Anything that would
-   push it lower — a heavier node ratio, a longer flag — has to be re-measured
-   at 17px, not re-derived.
-
-   THE GAP IS 112 UNITS and it, not the stroke width, sets the minimum legible
-   render size: at 17px it is 5.95px of centreline separation, and subtracting
-   the two facing node dots leaves 3.2px of clear air — just above the ~3px
-   floor at which a letter pair starts to fuse. See `MIN_HEIGHT_PX`.
+   S IS NARROWER THAN M BY DESIGN — 216 against 248. Space Grotesk's own
+   advances are 613 and 865, a far wider ratio; 216:248 is the monogram
+   compromise, close enough to read as a pair and different enough not to look
+   like a mistake.
 ------------------------------------------------------------------------- */
+type Point = readonly [number, number];
 
-/** Vertices in drawing order. The node dots are these points and nothing else:
- *  joints and terminals only, no midpoints — twelve in total (5 + 7).
- *
- *  MIDPOINTS ARE EXCLUDED BY ARITHMETIC, NOT BY TASTE. The binding constraint
- *  at nav size is dot separation, not stroke width. The tightest segment is the
- *  S waist at 112 units = 5.95px, leaving 3.20px clear between 2.75px dots.
- *  Adding midpoints halves that: 2.98px between dot CENTRES against a 2.75px
- *  dot DIAMETER — the dots would touch and the waist would render as a
- *  caterpillar. Since one geometry serves every size, unavailable at nav means
- *  unavailable everywhere. It is also what a circuit actually looks like: pads
- *  sit where traces change direction or terminate, not at arbitrary points
- *  along a run. */
-export const VERTICES: Readonly<Record<MarkLetter, readonly (readonly [number, number])[]>> = {
+const POLYGONS: Readonly<Record<MarkLetter, readonly (readonly Point[])[]>> = {
   m: [
-    [32, 288], // M1 bottom-left terminal
-    [32, 32], // M2 top-left
-    [144, 144], // M3 apex
-    [256, 32], // M4 top-right
-    [256, 288], // M5 bottom-right terminal
+    // bar 1 — top cut DOWN to the right
+    [
+      [32, 32],
+      [88, 88],
+      [88, 288],
+      [32, 288],
+    ],
+    // bar 2 — flat top, shortest: the M's valley
+    [
+      [128, 144],
+      [184, 144],
+      [184, 288],
+      [128, 288],
+    ],
+    // bar 3 — top cut UP to the right
+    [
+      [224, 88],
+      [280, 32],
+      [280, 288],
+      [224, 288],
+    ],
   ],
   s: [
-    [560, 112], // S1 top-right terminal — the flag's tip, 80 units below S2
-    [560, 32], // S2 top-right corner
-    [400, 32], // S3 top-left corner
-    [400, 160], // S4 waist-left
-    [512, 160], // S5 waist-right
-    [512, 288], // S6 bottom-right
-    [368, 288], // S7 bottom-left terminal
+    // top bar — 45° chamfer, TOP-RIGHT
+    [
+      [344, 32],
+      [504, 32],
+      [560, 88],
+      [344, 88],
+    ],
+    // left stem — bridges the upper gap on the left
+    [
+      [344, 88],
+      [400, 88],
+      [400, 132],
+      [344, 132],
+    ],
+    // middle bar
+    [
+      [344, 132],
+      [560, 132],
+      [560, 188],
+      [344, 188],
+    ],
+    // right stem — bridges the lower gap on the right
+    [
+      [504, 188],
+      [560, 188],
+      [560, 232],
+      [504, 232],
+    ],
+    // bottom bar — 45° chamfer, BOTTOM-LEFT
+    [
+      [344, 232],
+      [560, 232],
+      [560, 288],
+      [400, 288],
+    ],
   ],
 };
 
+function polygonPath(points: readonly Point[]): string {
+  return `${points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x} ${y}`).join("")}Z`;
+}
+
 /**
- * THE TRACES ARE CLOSED, DOUBLED-BACK POLYLINES — walked out along the
- * skeleton and back along the identical vertices, then closed.
- *
- * The return leg lies exactly on the outbound leg, so this renders
- * pixel-identical to the open polyline when stroked. What it buys is the morph:
- * a glyph contour ends with `Z` and a polyline does not, so open-vs-closed is
- * the one topology mismatch that would otherwise exist. Closing both ends it,
- * and the point counts rise from 5 and 7 to 9 and 13 against glyph contours of
- * 16 and 39 — a far better match, and better matches are what make a morph read
- * as deformation rather than as replacement.
- *
- * The S's 13 is §12's number, up from 11 before the terminal flag. Still far
- * enough below the glyph's 39 that MorphSVG's subdivision is unaffected; what it
- * does shift is the point CORRESPONDENCE, since index 0 is now the flag's tip
- * `(560,112)` rather than the top-right corner. Verified against a mid-morph
- * frame, not assumed.
- *
- * TWO CONSEQUENCES THAT MUST NOT BE FORGOTTEN:
- *   - NEVER fade the mark with `stroke-opacity`. The doubled path compounds
- *     with itself and reads denser than intended. Fade the GROUP's `opacity`,
- *     which composites once.
- *   - EVERY JOIN AND CAP IS ROUND. With `stroke-linejoin: miter` the 180°
- *     turnaround at M5 and S6 produces an infinite spike.
+ * ONE PATH PER LETTER, subpaths joined, filled `nonzero`. The shapes abut
+ * rather than overlap, so the fill rule is belt-and-braces rather than
+ * load-bearing.
  *
  * One string per letter, used by every instance including the navbar. Two `d`
  * strings for the same visual shape is a divergence waiting to happen.
  */
-function doubledBack(points: readonly (readonly [number, number])[]): string {
-  const out = points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x} ${y}`);
-  for (let i = points.length - 2; i >= 1; i--) out.push(`L${points[i][0]} ${points[i][1]}`);
-  return `${out.join("")}Z`;
-}
-
-export const TRACE: Readonly<Record<MarkLetter, string>> = {
-  m: doubledBack(VERTICES.m),
-  s: doubledBack(VERTICES.s),
+export const LETTER_PATH: Readonly<Record<MarkLetter, string>> = {
+  m: POLYGONS.m.map(polygonPath).join(""),
+  s: POLYGONS.s.map(polygonPath).join(""),
 };
 
-/** One subpath per node, in the trace's own drawing order — which is what the
- *  Intro's power-up stagger keys off. Separate paths rather than one per
- *  letter, because the stagger needs a handle on each dot and twelve
- *  three-command paths cost nothing at any size. */
-export const NODES: Readonly<Record<MarkLetter, readonly string[]>> = {
-  m: VERTICES.m.map(([x, y]) => `M${x} ${y}l.01 0`),
-  s: VERTICES.s.map(([x, y]) => `M${x} ${y}l.01 0`),
+/** Each letter's leftmost x — derived from the shapes rather than written down,
+ *  because the Intro anchors each capital of the name on the letter it becomes
+ *  and an indexed constant is a silent one-glyph offset waiting to happen. */
+export const LETTER_LEFT: Readonly<Record<MarkLetter, number>> = {
+  m: Math.min(...POLYGONS.m.flat().map(([x]) => x)),
+  s: Math.min(...POLYGONS.s.flat().map(([x]) => x)),
 };
 
-/* -------------------------------------------------------------------------
-   Weight.
-------------------------------------------------------------------------- */
-
 /**
- * `--ms-stroke` from cap height, both in CSS pixels.
+ * The mark's minimum legible rendered height. Pass/fail, not a preference —
+ * `docs/07` §2.1 promotes it because it binds the navbar, About, the
+ * reveal-footer stamp and any future favicon or OG use.
  *
- * THE EXPONENT IS DERIVED, NOT TUNED. Cap height spans 13.6px (nav) to ~386px
- * (Intro at 1440) — 28.4× — while the weight should span 1.25px to 10px, which
- * is 8×. `ln 8 / ln 28.4 = 0.622`. Moving it moves one of the two anchors, and
- * both are load-bearing: 1.25px is the nav legibility floor, and 10px is the
- * heaviest the Intro mark can be before it stops reading as a routed trace.
+ * THE DERIVATION IS NEW, THE NUMBER IS NOT. The old floor came from node-dot
+ * clearance across the 112-unit letter gap; there are no dots any more and the
+ * gap is 64. What binds now is the M's 40-UNIT BAR GAP — the tightest clear air
+ * anywhere in the mark. Keeping ~2px of it needs 40 / 2 = 20 units per pixel,
+ * i.e. **16.0px of rendered height**; below that the three bars start to fuse
+ * and the M reads as a block. 17px gives 2.12px of air and 6% of margin for
+ * antialiasing, so the shipped floor stays where it was.
  *
- * A CONSTANT ratio — the naive choice — would put the Intro stroke at 9.2% of
- * 386px = 35px. That is not a trace, it is a slab. Apparent weight has to fall
- * as size rises; it is the same optical sizing that makes a display cut of a
- * typeface lighter than its text cut.
- *
- * WHY 1.25px AT NAV, on two independent checks: below ~1px a stroke is entirely
- * antialiased and loses contrast against `bg-base` in light mode; and the mark
- * sits beside JetBrains Mono at `text-caption`, whose stems land around
- * 1.1–1.3px there. Matching the mono's stem weight is what makes the left
- * cluster read as one object rather than a logo parked next to some text — the
- * stronger of the two reasons, and one to re-check if `text-caption` changes.
+ * INK IS NO LONGER THE BINDING CONSTRAINT and that is the point of the rebuild:
+ * at 17px the bars are 2.98px wide, well clear of the ~1.25px floor at which a
+ * stroke goes entirely to antialiasing. Air is what runs out first now.
  */
-export const NAV_CAP_PX = 13.6;
-export const NAV_STROKE_PX = 1.25;
-
-export function msStroke(capPx: number): number {
-  const w = NAV_STROKE_PX * Math.pow(capPx / NAV_CAP_PX, 0.62);
-  return Math.min(12, Math.max(NAV_STROKE_PX, w));
-}
-
-/**
- * Node diameter as a multiple of trace weight.
- *
- * 2.2 is chosen so the difference survives a 1× DPR display. At 2.0× the nav
- * dot would be 2.50px against a 1.25px trace, and antialiasing largely eats a
- * 1.25px difference. At 2.2× the difference is 1.50px and clearly perceptible.
- * Above ~2.5× the dots start to bulge the corners into blobs at About size.
- *
- * If at 1× DPR and 17px the dots do not read as distinct beads on the traces,
- * raise this to 2.4. DO NOT thin the trace to manufacture the contrast — 1.25px
- * is the legibility floor and is not available as a variable.
- */
-export const NODE_RATIO = 2.2;
-
-/** Cap height is always 0.8 of the rendered SVG height (256 of 320 units). */
-export function capFromHeight(heightPx: number): number {
-  return heightPx * (CAP / VB_H);
-}
-
-/**
- * The mark's minimum legible rendered height, and it is pass/fail rather than a
- * preference. `docs/07` §2.1 promotes it out of the design brief because it
- * binds the navbar, About, the reveal footer and any future favicon or OG use.
- *
- * The binding number is the 112-unit letter gap: keeping 3px of clear air
- * between the two facing node dots needs 112 / (3 + 2.75) = 19.48 units per
- * pixel, i.e. ≥ 16.4px of rendered height. The navbar's 17px has 0.6px of
- * margin. 16px fuses the pair; 14px is illegible. Anything that renders the
- * mark smaller than this is a design change, not a layout tweak.
- */
-export const MIN_HEIGHT_PX = 16.4;
+export const MIN_HEIGHT_PX = 17;
 
 /** The navbar's instance. Do not reduce it — see `MIN_HEIGHT_PX`. */
 export const NAV_HEIGHT_PX = 17;
 
 /* -------------------------------------------------------------------------
-   The Intro's name — the morph's SOURCE half.
+   The Intro's name — the merge's SOURCE half.
 
    "Muhammad Saad" is twelve letters plus a space and the mark is two letters.
-   There is NO twelve-to-two morph here, and attempting one would read as mush
-   at exactly the midpoint the spec most wants legible.
+   There is NO twelve-to-two anything here.
 
-   THE CAPITAL M OF "Muhammad" MORPHS INTO THE MARK'S M; THE CAPITAL S OF
-   "Saad" MORPHS INTO THE MARK'S S. One-to-one, twice. The other TEN inked
-   glyphs never morph — the space carries advance width and no ink, so it is
-   not one of them — they translate toward their own word's capital and fade, so
-   each word visibly COLLAPSES INTO ITS OWN INITIAL. That is not a shortcut, it
-   is the concept made literal: a monogram is the initials that survived.
+   THE CAPITAL M OF "Muhammad" BECOMES THE MARK'S M; THE CAPITAL S OF "Saad"
+   BECOMES THE MARK'S S. One-to-one, twice. The other TEN inked glyphs — the
+   space carries advance width and no ink, so it is not one of them — translate
+   toward their own word's capital and fade, so each word visibly COLLAPSES INTO
+   ITS OWN INITIAL. That is not a shortcut, it is the concept made literal: a
+   monogram is the initials that survived.
 
-   EVERYTHING IS STROKED AND NOTHING IS EVER FILLED. Fill and stroke do not
-   interpolate into each other, so a filled name would force a paint-mode swap
-   mid-timeline, and any dressing of that swap is the crossfade `docs/07` §3
-   step 2 explicitly rules out. Keeping one paint mode from the first frame to
-   the last is what makes "a becoming, not a crossfade" true rather than
-   aspirational — and it means the name is already made of the same thin lines
-   the mark is, so step 2 changes SHAPE ONLY.
+   THE NAME IS RENDERED FROM OUTLINES, NOT DOM `<text>`, and the reason has
+   CHANGED with the faceted rebuild. It used to be that fill and stroke do not
+   interpolate, so a morph forbade a paint-mode swap. There is no morph now. The
+   reason it still holds: the name and the mark are then in ONE coordinate
+   system, so each capital's travel is `x: 0, scale: 1` — the identity transform
+   — and it lands on the faceted letter EXACTLY, at the same baseline and the
+   same cap height, with no DOM-to-SVG alignment probe anywhere. That exactness
+   is what makes the crossfade at the meeting point invisible instead of a
+   double image. A `TextMetrics` baseline probe was deleted from this project
+   once already; this is what replaced it.
+
+   EVERYTHING IS FILLED, name and mark alike. The old "nothing is ever filled"
+   rule was a morph constraint and is void.
 ------------------------------------------------------------------------- */
 
 /**
- * Font units → viewBox units. Sized so a glyph's cap height equals the trace's:
+ * Font units → viewBox units. Sized so a glyph's cap height equals the mark's:
  * 700 font units become 256 viewBox units. The glyph M is then 258 units wide
- * against the trace M's 224, and the glyph S 189 against 192 — close enough
- * that the morph is a deformation rather than a resize.
+ * against the faceted M's 248, and the glyph S 189 against 216 — close enough
+ * that each capital dissolves into a shape of its own size and position.
  */
 const K = CAP / CAP_HEIGHT;
 
@@ -363,22 +290,14 @@ const K = CAP / CAP_HEIGHT;
  * The name is laid out to fill the drawn box exactly — 528 units, inset to
  * inset — which fixes its scale without a magic number and keeps it inside the
  * viewBox at every viewport. At the Intro's desktop size that is a cap height
- * of roughly 54px, within a pixel or two of what the outgoing DOM name rendered
- * at (`text-h2`, 68px type, 47.6px cap), so the opening beat is not quietly
- * larger or smaller than the one it replaces.
- *
- * `ms-mark-design.md` §5 estimates this cap at "~90px at desktop" and derives a
- * 4px stroke from it. That estimate assumed an Intro mark 893px wide, which is
- * itself inconsistent with the same section's `min(62vw, 720px)` rule — `min`
- * of those two at 1440 is 720, not 893. The RULE is kept and the estimate is
- * not: every weight here comes from `msStroke()` applied to the cap height that
- * is actually rendered, which is the section's own stated mechanism.
+ * of roughly 54px.
  */
 const NAME_WIDTH = VB_W - INSET * 2;
 
 export type IntroGlyph = {
   readonly char: string;
-  /** Set for the two capitals that morph; `null` for the ten that do not. */
+  /** Set for the two capitals that become the mark; `null` for the ten that
+   *  collapse and fade. */
   readonly letter: MarkLetter | null;
   /** Outline path in viewBox units, anchored at its MARK position. */
   readonly d: string;
@@ -428,18 +347,10 @@ function placePath(d: string, tx: number, ty: number, k: number): string {
 
 /**
  * WHERE THE TWO CAPITALS SIT IN THE SETTLED MARK. Each word is anchored so its
- * capital's ink starts on the same vertical as the trace it becomes: the M's
- * left edge at x = 32, the S's at x = 368.
+ * capital's ink starts on the same vertical as the shape it becomes: the M's
+ * left edge at x = 32, the S's at x = 344.
  */
-const LETTER_ORIGIN: Record<MarkLetter, number> = {
-  m: INSET,
-  /* The S's leftmost point, DERIVED rather than indexed. It used to read
-     `VERTICES.s[5][0]` — correct only while S6 happened to sit at index 5, and
-     §12's terminal flag pushed it to 6. The rule is "the letter's left edge",
-     so state the rule; an index into a list the next amendment may reorder is a
-     silent one-glyph offset waiting to happen. */
-  s: Math.min(...VERTICES.s.map(([x]) => x)),
-};
+const LETTER_ORIGIN: Record<MarkLetter, number> = LETTER_LEFT;
 
 function buildIntroGlyphs(): readonly IntroGlyph[] {
   const chars = [...HERO_NAME];
@@ -532,24 +443,16 @@ function buildIntroGlyphs(): readonly IntroGlyph[] {
   return out;
 }
 
+/** The name, in document order. The two capitals carry a `letter`; the ten
+ *  others do not, and that flag is the only thing that distinguishes them —
+ *  `Intro.tsx` indexes elements against this array position for position. */
 export const INTRO_GLYPHS = buildIntroGlyphs();
-
-/** The two capitals that morph, by the mark letter each becomes. */
-export const INTRO_INITIALS: Readonly<Record<MarkLetter, IntroGlyph>> = {
-  m: INTRO_GLYPHS.find((g) => g.letter === "m") as IntroGlyph,
-  s: INTRO_GLYPHS.find((g) => g.letter === "s") as IntroGlyph,
-};
-
-/** The ten that do not — in document order, which is the order they are
- *  rendered in and the order `fadeOrder` is applied against. */
-export const INTRO_REST = INTRO_GLYPHS.filter((g) => g.letter === null);
 
 /**
  * How much smaller the opening name is than the settled mark, as a scale
- * factor on each glyph group. The two capitals tween from this to 1 while the
- * morph runs; the other ten hold it and fade, because a non-initial that
- * also grew would be near full size at the moment it is supposed to be
- * disappearing.
+ * factor on each glyph group. The two capitals tween from this to 1 while they
+ * travel; the other ten hold it and fade, because a non-initial that also grew
+ * would be near full size at the moment it is supposed to be disappearing.
  */
 export const NAME_SCALE = (() => {
   const total = [...HERO_NAME].reduce(
@@ -558,10 +461,6 @@ export const NAME_SCALE = (() => {
   );
   return total > 0 ? NAME_WIDTH / total / K : 1;
 })();
-
-/** Cap height of the opening name, in viewBox units. `Intro.tsx` converts it to
- *  pixels against the rendered box and feeds it to `msStroke()`. */
-export const NAME_CAP_UNITS = CAP * NAME_SCALE;
 
 /**
  * The glyph dataset is generated for one specific string. A hero rename would

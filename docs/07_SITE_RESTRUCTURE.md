@@ -49,39 +49,72 @@ ones.
 
 ## 2. The MS Mark
 
-**Direction: circuit / trace.** M and S built from thin connected line segments with small node-dots
-at the joints, echoing the particle-network background already built. Chosen over a geometric/faceted
-or blocky LED mark specifically so the logo belongs to the site's existing visual system rather than
-being a fourth unrelated style.
+> ### ⚠️ SUPERSEDED 2026-08-21 — the mark is FACETED, not circuit/trace.
+>
+> The direction below was shipped and then replaced, on Saad's call, after the trace mark spent two
+> sessions fighting its own smallest case. Full argument in
+> `.claude/handoff/ms-mark-faceted-design.md`; the operative summary:
+>
+> **The mark is eight filled quadrilaterals — three bars for the M with 45° cut tops, five for the S
+> with two 45° chamfers at diagonally opposite corners.** Every edge is orthogonal or a true 45°, so
+> the PCB-routing discipline that made the trace mark belong to `ParticleGrid` is kept; what is
+> dropped is the hairline-and-dots *material*.
+>
+> **Why, in one line:** a stroked mark needs `non-scaling-stroke`, a contraction-time stroke ramp,
+> round-capped micro-segments instead of circles, a floor derived from dot clearance, and a patched
+> terminal to stop the S reading as a 5. **A filled mark has none of those problems**, and at 17px its
+> bars are 2.98px against the trace's 1.25px stroke.
+>
+> **What this supersedes, precisely:** the "circuit / trace" direction in this section, the
+> `non-scaling-stroke` / node-dot mechanism in §2.1, the morph in §3 step 2 and all of §3.1, and the
+> `--ms-stroke` ramp in §3.2's execution note. **Everything else in §2, §2.1, §3 and §3.2 stands** —
+> the single-source-of-truth rule, the 17px floor as a number, the monochrome rule, the 592 × 320
+> viewBox, the merge at dead centre, the contraction point `(296, 288)` and the two-sided handoff.
+>
+> The original text is kept below because its *reasoning* still governs: whatever the mark is made of,
+> it has to belong to the site's visual system rather than be a fourth unrelated style.
 
-**Single source of truth.** Designed **once**. Every appearance — mid-morph in the Intro, the
+**Direction (SUPERSEDED — see above): circuit / trace.** M and S built from thin connected line
+segments with small node-dots at the joints, echoing the particle-network background already built.
+Chosen over a geometric/faceted or blocky LED mark specifically so the logo belongs to the site's
+existing visual system rather than being a fourth unrelated style.
+
+**Single source of truth.** Designed **once**. Every appearance — mid-merge in the Intro, the
 contraction/expansion point, the static navbar version, the About page — is the same artifact at a
 different scale or state, never separately hand-matched assets. **If the implementation cannot
 literally reuse one component across all these states, that is a build smell to raise, not to route
 around silently.**
 
-**Colour.** Monochrome throughout the Intro's morph. No gradient or fill animation concurrent with
+**Colour.** Monochrome throughout the Intro's merge. No gradient or fill animation concurrent with
 shape animation. Any colour on the resting state (navbar, About) is a separate static treatment
 applied after the shape has settled.
 
 ### 2.1 The 17px floor — promoted from the design brief, because it binds more than one ticket
 
 **The mark's minimum legible rendered height is 17px, and that is a pass/fail, not a preference.**
-Full derivation in `.claude/handoff/ms-mark-design.md`; the binding number is the **112-unit letter
-gap**, which needs ≥16.4px of rendered height to keep ~3px of clear air between the two facing node
-dots. 17px leaves 0.6px of margin.
+
+**THE NUMBER IS UNCHANGED; ITS DERIVATION IS NOT.** The old floor came from node-dot clearance across
+the 112-unit letter gap — 16.4px to keep ~3px of clear air between the two facing dots. There are no
+dots any more and the letter gap is 64 units. **What binds now is the M's 40-unit bar gap**, the
+tightest clear air anywhere in the mark: keeping ~2px of it needs `40 / 2 = 20` units per pixel, i.e.
+**16.0px of rendered height**. Below that the three bars start to fuse and the M reads as a block.
+17px gives 2.12px of air — about 6% of margin for antialiasing — so the shipped floor stays where it
+was. The number lives in code as `MIN_HEIGHT_PX` in `components/ui/msMarkGeometry.ts`.
 
 **Anything that renders the mark smaller than 17px is a design change, not a layout tweak** — the
 navbar, the About page, the reveal-footer stamp, and any future favicon or OG usage. Raise it rather
 than shrinking the mark.
 
-**How the mark survives that scale at all:** `vector-effect="non-scaling-stroke"`. Stroke width
-resolves *before* the viewBox transform, so it is authored and rendered in CSS pixels and the ~0.053
-nav scale factor never touches it. Node dots are **round-capped micro-segments**, not `<circle>`,
-because a circle's radius does scale — a round cap renders a disc of the stroke's width, so dot size
-becomes a second non-scaling value. This is what answers `MonogramMark.tsx`'s standing objection that
-"outlined letterforms do not survive that reduction"; that paragraph is **true but over-scoped** — it
-holds for viewBox-relative strokes, which these are not. Re-scope it, do not delete it.
+**How the mark survives that scale at all — it is filled.** At 17px the bars are **2.98px** wide, so
+ink is no longer anywhere near the ~1.25px floor at which a stroke goes entirely to antialiasing; air
+is what runs out first, which is why the floor is now derived from a gap rather than from a weight.
+
+`vector-effect="non-scaling-stroke"`, the round-capped node dots and the `--ms-stroke` custom property
+are all **retired with the trace mark** — nothing in `MonogramMark.tsx` is stroked. What that restores
+is `MonogramMark.tsx`'s original objection, in its original form: **outlined letterforms do not
+survive this reduction; filled ones do.** It still binds for anything authored in **user units** — a
+rim, a hairline or a dot radius specified in viewBox units is ~0.05× on screen at nav size. The mark's
+answer is not to have one.
 
 ### 2.2 The viewBox is unified at 592 × 320 — and one mirrored constant must move with it
 
@@ -143,16 +176,40 @@ sits ~193px above viewport centre, and the mark hangs upper-middle with its base
 the centre of the screen. **Step 1's name has the identical requirement**, or the merge in §3 step 3
 lands somewhere other than where the contraction begins.
 
-Execution: a group scale about `transform-origin: 296px 288px` with a **simultaneous `--ms-stroke`
-ramp** — without it, non-scaling-stroke makes the shrinking mark *thicken into a blob*. Final frame is
-a single disc at dead centre, a short hold, then the hero expands from that pixel.
+Execution: a group scale about `transform-origin: 296px 288px`, and **that is the whole contraction.**
+
+> **AMENDED with the faceted mark.** This used to require a *simultaneous `--ms-stroke` ramp*, because
+> `non-scaling-stroke` holds weight constant in device pixels while the geometry collapses inside it,
+> so the mark thickened into a blob. **Filled shapes scale their own ink, so the ramp is deleted, not
+> retuned** — one tween, no correctness hazard. One consequence: a stroked mark at `scale: 0` still
+> painted its round caps, so the old hold sat on a visible disc; filled shapes scale to zero area and
+> leave nothing. The 60ms hold still does its primary job, which is separating two moves that would
+> otherwise read as one continuous scale through zero. The hero expands from the point the mark
+> arrived at, exactly as before.
 
 ### 3.1 Glyph outlines are pre-extracted at build time — a funded step, not an assumption
 
+> **AMENDED 2026-08-21 with the faceted mark. THE OUTLINES STAY; THE MORPH DOES NOT.**
+>
+> **`MorphSVGPlugin` is no longer registered** (`lib/animation/gsap.ts`). It had exactly one consumer,
+> the glyph-to-trace morph, and filled shapes do not interpolate into each other — the merge is a
+> convergence plus a crossfade now. Checked before removal: no `morphSVG` tween exists anywhere, and
+> the project-card transition is Framer Motion's shared layout, not GSAP.
+>
+> **Everything else in this section still holds, for a different reason.** The name is still rendered
+> from pre-extracted Space Grotesk outlines (`components/ui/msMarkGlyphs.ts`) rather than DOM `<text>`,
+> and `opentype.js` still never reaches the browser. The reason is no longer "MorphSVG cannot consume
+> `<text>`" — it is that outlines put the name and the mark in **one coordinate system**, so each
+> capital's journey is a tween to the *identity* transform and it lands on its faceted letter exactly:
+> same baseline, same cap height, same left edge. That exactness is what makes the crossfade read as
+> one letterform settling into another instead of two misaligned images dissolving, and it is what
+> keeps a `TextMetrics` baseline probe out of the file. Rendering the name as DOM text would put that
+> probe back.
+
 `gsap/MorphSVGPlugin.js` is present and is the unrestricted 3.15.0 build (verified: zero trial, Club
 or license-key strings). Its headline capability — interpolating paths with mismatched point and
-subpath counts — is exactly step 2's problem, which makes the morph a tooling question rather than a
-research one.
+subpath counts — was exactly the old step 2's problem, which made the morph a tooling question rather
+than a research one.
 
 **But MorphSVG morphs `path` → `path`, and the Intro's source is `<text>`.** `convertToPath()` handles
 `rect` / `circle` / `ellipse` / `line` / `polygon` / `polyline` — **not `text`** (verified against the
@@ -160,25 +217,28 @@ shipped plugin). Something must produce outline path data for the letterforms, a
 missing from the phase list.
 
 - **Pre-extract the Space Grotesk outlines at build time**, into the same geometry module that holds
-  the mark's trace geometry. One dataset then holds both the source and the target of the morph, which
-  is what D9's "one asset, reused everywhere" actually buys.
+  the mark's own geometry. One dataset then holds both halves of the merge, which is what D9's "one
+  asset, reused everywhere" actually buys.
 - **Do not add `opentype.js` at runtime.** That puts a new dependency on the first-paint path to solve
   a problem with a static answer.
-- **Step 1 should render those outlines, not DOM `<text>`.** Two reasons: it removes the morph's
-  runtime font dependency entirely, and a DOM-text-to-SVG handover is a **crossfade** however it is
-  dressed — which §3 step 2 explicitly rules out. Rendering the outlines from the first frame is what
-  makes "a becoming, not a crossfade" literally true rather than aspirational.
-- Registration goes through `lib/animation/gsap.ts`. That module exists because an unregistered plugin
-  fails **silently in production**. `Intro.tsx:47`'s "NO FLIP PLUGIN" is not a blanket ban — its stated
-  test is whether a registration earns its keep. A four-rect manual FLIP does not; mismatched-point
-  path morphing plainly does.
+- **Step 1 renders those outlines, not DOM `<text>`** — see the amendment above for the reason, which
+  has changed even though the instruction has not.
+- Plugin registration, if one is ever needed again, goes through `lib/animation/gsap.ts` and nowhere
+  else. That module exists because an unregistered plugin fails **silently in production**.
 
 **Sequence (replaces the old phase table):**
 
-1. Full name "Muhammad Saad" appears.
-2. Letters begin approaching and deforming toward the mark's final geometry **while still in motion** —
-   by the time they meet they should already read as ~80% of the way into the mark's shape. The meeting
-   is the final joining beat, not the trigger for a separate swap. **A "becoming", not a crossfade.**
+1. Full name "Muhammad Saad" appears, as filled glyph outlines.
+2. Each word collapses into its own initial while the two capitals travel and grow into the mark's own
+   positions. **The meeting is the final joining beat** — and at it, the two capitals **crossfade**
+   into the faceted letters they have arrived on top of, over 0.15s, leaving 0.06s of the settled mark
+   standing still before it contracts.
+   > **This reverses "a becoming, not a crossfade", deliberately and on Saad's instruction.** That rule
+   > was written for a stroked mark, where a morph was available and a swap would have been a dodge.
+   > A filled mark cannot morph from a letterform without path interpolation nobody needs, and
+   > `.claude/handoff/ms-mark-faceted-design.md` §8 states the requirement as *simpler and more
+   > robust, not more clever*. What makes the crossfade honest rather than a cover-up is that both
+   > halves occupy the same box at the same instant — see §3.1.
 3. The merge point is **dead centre** of the screen. This is a real layout constraint on steps 1–2: the
    name's layout and the letters' approach paths must be designed so the merge lands exactly at centre.
 4. Once formed, the mark **contracts to a single point** at that same centre. It does not zoom up.

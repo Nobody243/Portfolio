@@ -22,25 +22,24 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { CustomEase } from "gsap/CustomEase";
-import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
 
 import { EASE, type EaseName } from "./easing";
 
 /**
- * MorphSVGPlugin is registered here and NOWHERE ELSE, which is the whole point
- * of this module — an unregistered plugin fails silently in production, and a
- * morph that silently no-ops leaves the Intro's letters translating into a
- * shape they never become.
+ * MORPHSVGPLUGIN WAS REGISTERED HERE AND IS NOT ANY MORE. It had exactly one
+ * consumer — the Intro's glyph-contour-to-circuit-trace morph — and the faceted
+ * mark rebuild replaced that morph with a convergence and a crossfade, because
+ * filled shapes do not need to interpolate into each other. Checked before
+ * removal rather than assumed: no `morphSVG` tween exists anywhere in `app/`,
+ * `components/` or `lib/`, and the project-card transition in
+ * `CoverFrame`/`ProjectOverlay` is Framer Motion's shared-layout, not GSAP.
  *
- * WHY IT EARNS ITS REGISTRATION when `Intro.tsx` explicitly declined Flip's.
- * That file's "NO FLIP PLUGIN" note is not a blanket ban; its stated test is
- * whether a registration earns its keep, and a four-rect manual FLIP did not.
- * This does: `docs/07` §3 step 2 asks for glyph contours to deform into trace
- * polylines with mismatched point counts (16 → 9 and 39 → 13), which is
- * MorphSVG's headline capability and nothing else's. The shipped build is the
- * unrestricted 3.15.0 one.
+ * The plugin file is still in `node_modules` (unrestricted 3.15.0). If a real
+ * path-to-path morph ever appears, re-register it HERE and nowhere else — an
+ * unregistered plugin fails silently in production, which is the whole reason
+ * this module exists.
  */
-gsap.registerPlugin(ScrollTrigger, CustomEase, MorphSVGPlugin);
+gsap.registerPlugin(ScrollTrigger, CustomEase);
 
 /**
  * GSAP ease names for the shared curves in `easing.ts`.

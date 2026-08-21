@@ -5,27 +5,39 @@ in it. DOM text uses next/font's self-hosted woff2, configured in `app/layout.ts
 
 ## What it is for
 
-**The Intro's morph source.** `docs/07_SITE_RESTRUCTURE.md` §3 specifies a sequence where the letters
-of "Muhammad Saad" deform into the MS mark's circuit traces — "a becoming, not a crossfade." GSAP's
-`MorphSVGPlugin` interpolates `path` → `path`, and it happily handles mismatched point and subpath
-counts, but it cannot consume `<text>`: `convertToPath()` covers `rect` / `circle` / `ellipse` /
-`line` / `polygon` / `polyline` and not text. Something has to supply glyph outlines as path data, and
-this file is that something.
+**The Intro's name.** `docs/07_SITE_RESTRUCTURE.md` §3 opens the site with "Muhammad Saad", which then
+merges into the MS mark. Step 1 renders that name from THESE OUTLINES rather than as DOM `<text>`, and
+`components/ui/msMarkGlyphs.ts` is the committed conversion of the glyphs it needs.
+
+**THE REASON CHANGED ON 2026-08-21 AND THE ASSET DID NOT — read this before deleting anything.** This
+README used to say the file existed because GSAP's `MorphSVGPlugin` interpolates `path` → `path` and
+cannot consume `<text>`, so a morph from letterforms into the mark's circuit traces needed outline
+data. **That morph is gone.** The mark is filled faceted shapes now, `MorphSVGPlugin` is no longer
+registered, and phase C is a convergence plus a crossfade.
+
+**What keeps the outlines is a different, still-live property:** they put the name and the mark in
+**one coordinate system**. `msMarkGeometry.ts` places each glyph at its position in the settled mark,
+so a capital's journey through phase C is a tween to the IDENTITY transform — it lands on its faceted
+letter exactly, same baseline, same cap height, same left edge. That exactness is what makes the
+crossfade read as one letterform settling into another rather than two misaligned images dissolving.
+DOM text would need a `TextMetrics` baseline probe to approximate it, and `Intro.tsx` deleted one of
+those already.
 
 Two consequences worth stating, because both are easy to get wrong later:
 
 - **It is read at build time, never at runtime.** No `opentype.js` on the first-paint path. §3.1 of
   `docs/07` rules that out explicitly — a runtime font parser to solve a problem with a static answer.
-- **Step 1 of the Intro renders these outlines, not DOM text.** Fill and stroke do not interpolate, so
-  a filled name would force a paint-mode swap mid-sequence, and any dressing of that swap is exactly
-  the crossfade §3 rules out.
+- **The name is FILLED**, like the mark. The old "everything is stroked, nothing is ever filled" rule
+  was a morph constraint (fill and stroke do not interpolate) and is void.
 
 > **This file previously served the 3D hero wordmark** (`SaadGlass`, `TextGeometry`), and this README
 > described that purpose — including a note about `Text3D` using `size ≈ 1.4286` to make cap height
 > exactly one world unit. **That component and the entire R3F scene are deleted**; the hero is Canvas2D
 > plus SVG. The asset survived the deletion unreferenced and its documentation kept describing a live
 > dependency that no longer existed. Recorded rather than quietly overwritten, because "the docs
-> described something that had been deleted" has now happened seven times on this project.
+> described something that had been deleted" has now happened seven times on this project — and the
+> paragraph above is the eighth near-miss, caught deliberately: the asset stayed live, its stated
+> reason did not.
 
 ## Source
 
@@ -88,16 +100,18 @@ produces a glyph that is subtly wrong rather than obviously broken.
 
 ## Regression check — run this after any regeneration
 
-**`M` and `S` are the two glyphs the Intro actually morphs**, so they are the ones that must not drift:
+**`M` and `S` are the two glyphs that have to land on the faceted mark**, so they are the ones that
+must not drift:
 
 | Glyph | Contours | Commands | Advance |
 |---|---|---|---|
 | `M` | 1 | 16 `lineTo`, **0 curves** | 865 |
 | `S` | 1 | 20 `lineTo` + 31 quadratics | 613 |
 
-Both are single-contour, which is what makes the 1-to-1 morph topologically sound. `M` being pure
-straight lines is why it morphs into a straight-segment trace almost for free; `S`'s 31 quadratics are
-the expensive half.
+Placed at the mark's cap height these are 258 and 189 viewBox units wide, against the faceted M's 248
+and S's 216. **That near-match is the crossfade's whole quality argument** — each capital dissolves
+into a shape of its own size in its own place. A regeneration that changed these advances would move
+the name off the mark, so they are recorded as the check.
 
 When this file was regenerated from caps-only to full Latin, **all 27 original glyphs came out
 byte-identical** — not just `M` and `S` — along with `ascender` (984), `descender` (−292),

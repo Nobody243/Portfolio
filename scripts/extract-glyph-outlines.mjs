@@ -4,10 +4,30 @@
  *   node scripts/extract-glyph-outlines.mjs
  *
  * Reads `public/fonts/space-grotesk-latin.typeface.json` and writes
- * `components/ui/msMarkGlyphs.ts` — the Intro morph's SOURCE half. The mark's
- * trace geometry (the TARGET half) is hand-authored in
- * `components/ui/msMarkGeometry.ts`, which is the module both halves are
- * consumed through.
+ * `components/ui/msMarkGlyphs.ts` — the outlines the Intro's NAME is drawn
+ * from. The mark's own geometry is hand-authored in
+ * `components/ui/msMarkGeometry.ts`, which is the module both are consumed
+ * through.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * AMENDED 2026-08-21 — THERE IS NO MORPH ANY MORE, AND TWO THINGS BELOW ARE
+ * NOW INERT. The mark was rebuilt as filled faceted shapes, `MorphSVGPlugin`
+ * is unregistered, and the Intro's phase C is a convergence plus a crossfade
+ * (`docs/06` §2, `docs/07` §3.1). The outlines themselves are still live — the
+ * name is rendered from them so that it shares the mark's coordinate system —
+ * but two morph-specific steps in this file no longer serve anything:
+ *
+ *   1. `PINNED_START` — pinning contour vertex 0 mattered because MorphSVG's
+ *      `shapeIndex: "auto"` is not deterministic across font versions.
+ *   2. The collinear-point stripping — it existed to give MorphSVG fewer
+ *      redundant anchors to pair up.
+ *
+ * NEITHER CHANGES THE RENDERED SHAPE — one reorders commands, the other drops
+ * anchors that lie on a straight line — so both are KEPT rather than removed,
+ * because ripping them out would rewrite every path string in the committed
+ * output for no visual difference. Anyone regenerating is free to delete them;
+ * anyone reading them should not go looking for the morph they describe.
+ * ─────────────────────────────────────────────────────────────────────────
  *
  * WHY A GENERATOR AND NOT A RUNTIME PARSE. `docs/07_SITE_RESTRUCTURE.md` §3.1
  * rules out `opentype.js` on the first-paint path: a font parser shipped to the
@@ -322,7 +342,7 @@ const banner = `/**
  *
  *   node scripts/extract-glyph-outlines.mjs
  *
- * Space Grotesk glyph outlines for the Intro's morph, converted once at build
+ * Space Grotesk glyph outlines for the Intro's NAME, converted once at build
  * time from \`public/fonts/space-grotesk-latin.typeface.json\`. See that file's
  * README for the asset's provenance and
  * \`scripts/extract-glyph-outlines.mjs\` for what this conversion does and why
