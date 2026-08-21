@@ -64,6 +64,40 @@ around silently.**
 shape animation. Any colour on the resting state (navbar, About) is a separate static treatment
 applied after the shape has settled.
 
+### 2.1 The 17px floor — promoted from the design brief, because it binds more than one ticket
+
+**The mark's minimum legible rendered height is 17px, and that is a pass/fail, not a preference.**
+Full derivation in `.claude/handoff/ms-mark-design.md`; the binding number is the **112-unit letter
+gap**, which needs ≥16.4px of rendered height to keep ~3px of clear air between the two facing node
+dots. 17px leaves 0.6px of margin.
+
+**Anything that renders the mark smaller than 17px is a design change, not a layout tweak** — the
+navbar, the About page, the reveal-footer stamp, and any future favicon or OG usage. Raise it rather
+than shrinking the mark.
+
+**How the mark survives that scale at all:** `vector-effect="non-scaling-stroke"`. Stroke width
+resolves *before* the viewBox transform, so it is authored and rendered in CSS pixels and the ~0.053
+nav scale factor never touches it. Node dots are **round-capped micro-segments**, not `<circle>`,
+because a circle's radius does scale — a round cap renders a disc of the stroke's width, so dot size
+becomes a second non-scaling value. This is what answers `MonogramMark.tsx`'s standing objection that
+"outlined letterforms do not survive that reduction"; that paragraph is **true but over-scoped** — it
+holds for viewBox-relative strokes, which these are not. Re-scope it, do not delete it.
+
+### 2.2 The viewBox is unified at 592 × 320 — and one mirrored constant must move with it
+
+`MonogramMark.tsx:34` states that "identical viewBox proportions" is the actual "same mark" claim.
+**The shipped code contradicts it four lines below**: `VB_W = { intro: 560, nav: 420 }` against a
+shared `VB_H = 320` — 1.75:1 versus 1.31:1. The claim is simply false today. Seventh instance of this
+class on the project.
+
+The mark unifies at **592 × 320 for every variant**, which makes that header claim true for the first
+time.
+
+> **`Intro.tsx:98` mirrors `MARK_VB_W = 560`, with its own comment reading "MIRRORED FROM
+> `MonogramMark.tsx` AND ONLY VALID WHILE THEY MATCH."** The Intro uses it to align SVG glyphs onto DOM
+> letters. **It must change in the same commit as the viewBox**, or the alignment drifts silently — the
+> exact failure its comment predicts.
+
 ---
 
 ## 3. Intro
@@ -91,6 +125,27 @@ resolving, or to a visited flag, is **removed, not tuned**.
 > justification, observes it no longer holds, and deletes the Loader, taking the tagline's FOUT
 > protection with it. That is a conclusion-right / reason-wrong comment, the class this project has
 > shipped six of.
+
+### 3.2 The contraction point is `(296, 288)`, and the mark is POSITIONED BY IT
+
+Promoted from the design brief because it constrains layout, not just motion.
+
+**Why the baseline and not the bbox centre.** Collapsing toward `(296, 160)` makes the mark cross
+itself: the M's outer stems travel in opposite vertical directions, so the left stem passes through
+itself for roughly 150ms — a scribble at exactly the beat §3 wants to read as deliberate. On the
+baseline, all eleven nodes travel monotonically down-and-inward or straight along it; nothing crosses.
+The baseline is also the one line both letters share, so they arrive together, and `x = 296` falls
+inside the letter gap — **the mark drains into its own seam.**
+
+**The layout consequence, which is real and easy to miss.** The Intro's mark is positioned so its
+*contraction point* sits at dead viewport centre — **not its bounding box.** The box centre therefore
+sits ~193px above viewport centre, and the mark hangs upper-middle with its baseline running through
+the centre of the screen. **Step 1's name has the identical requirement**, or the merge in §3 step 3
+lands somewhere other than where the contraction begins.
+
+Execution: a group scale about `transform-origin: 296px 288px` with a **simultaneous `--ms-stroke`
+ramp** — without it, non-scaling-stroke makes the shrinking mark *thicken into a blob*. Final frame is
+a single disc at dead centre, a short hold, then the hero expands from that pixel.
 
 ### 3.1 Glyph outlines are pre-extracted at build time — a funded step, not an assumption
 
@@ -127,6 +182,8 @@ missing from the phase list.
 3. The merge point is **dead centre** of the screen. This is a real layout constraint on steps 1–2: the
    name's layout and the letters' approach paths must be designed so the merge lands exactly at centre.
 4. Once formed, the mark **contracts to a single point** at that same centre. It does not zoom up.
+   **That point is `(296, 288)` in the mark's viewBox — horizontal centre, on the baseline. NOT the
+   bounding-box centre `(296, 160)`; see §3.2.**
 5. The hero **expands outward from that exact point.** This replaces the scale-17 zoom entirely — a
    single defined origin, not an open-ended scale-up.
 6. **Simultaneously** with step 5, the navbar slides down (§1). One beat.
