@@ -59,7 +59,11 @@ const OUT = join(ROOT, "components", "ui", "msMarkGlyphs.ts");
  *
  * `ms-mark-design.md` §6 fixes the two anchors: M enters at its bottom-left
  * extreme (which pairs with the trace's M1 `32,288`), S at its top-right
- * terminal (pairs with S1 `560,32`). Both are restated below as arithmetic in
+ * terminal — which pairs with the trace's S1, `560,112` since §12's terminal
+ * flag moved the S's start point to the flag's tip. The glyph-side rule is
+ * unchanged by that amendment and this file emits the same anchor it always
+ * did; only the trace point it lands on has moved 80 units down the same
+ * terminal. Both anchors are restated below as arithmetic in
  * the font's own Y-UP space, because "top-right" eyeballed once is not a thing
  * a later reader can re-derive.
  *

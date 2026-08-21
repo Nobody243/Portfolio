@@ -106,9 +106,10 @@ export const BASELINE = VB_H - INSET;
  *      itself — M1 `(32,288)` travels UP while M2 `(32,32)` travels DOWN, so
  *      the left stem passes through itself for roughly 150ms. That is a
  *      scribble arriving at exactly the beat the spec wants to read as
- *      deliberate. On the baseline every one of the eleven nodes travels
+ *      deliberate. On the baseline every one of the twelve nodes travels
  *      monotonically down-and-inward or straight along it; nothing crosses
- *      anything, and the read is drainage along a route.
+ *      anything, and the read is drainage along a route. §12's new node at
+ *      `(560,112)` is no exception — it travels down-and-inward like the rest.
  *   2. THE MARK IS POSITIONED BY THIS POINT, NOT BY ITS BOX. `(296, 288)` is
  *      what sits at dead viewport centre during the Intro, which puts the box
  *      centre 128 units — about 193px at Intro scale — ABOVE centre. The mark
@@ -133,13 +134,46 @@ export type MarkLetter = "m" | "s";
    strokes are 1.25px on a 13.6px cap. At 44% the aperture stays open at nav
    size.
 
-   S — 6 vertices, 5 segments, orthogonal. The M carries the 45°s; a real board
+   S — 7 vertices, 6 segments, orthogonal. The M carries the 45°s; a real board
    mixes orthogonal runs with 45° corners freely. THE THREE HORIZONTAL BARS ARE
    DELIBERATELY UNEQUAL — 160 / 112 / 144, top to bottom. A seven-segment digit
    has all three equal, and equal bars are exactly what makes a squared S read
-   as a blocky LED glyph. The two overhanging terminals (S1 overhangs the right
-   stem by 48 units, S6 the left stem by 32) are the single detail doing the
-   most work to keep this from looking like a digit.
+   as a blocky LED glyph. The two overhanging terminals (S2 overhangs the right
+   stem by 48 units, S7 the left stem by 32) do a lot of the work keeping this
+   from looking like a digit.
+
+   THEY WERE NOT ENOUGH ON THEIR OWN, and this is a measured result rather than
+   a taste revision. In a vocabulary restricted to 0/45/90 a squared S and a
+   squared 5 are THE SAME SKELETON, and the shipped six-vertex S — built exactly
+   as `ms-mark-design.md` §3 specified it — read plausibly as "M5" at 17px, and
+   worse anywhere the mark stands alone with no context: favicon, OG image, the
+   reveal-footer stamp. The single difference between the two glyphs is what
+   happens at the top right: a 5 stops flat there, an S TURNS DOWN.
+
+   §12's fix is one segment, inside the existing vocabulary: an 80-unit vertical
+   flag descending from the top-right corner, `(560,32) → (560,112)`, drawn
+   FIRST so the trace starts at its tip. Not a second small-size glyph — forking
+   the asset re-creates by hand the synchronisation problem the single-viewBox
+   rule exists to prevent (F-1, and §2's one-asset rule).
+
+   80 UNITS IS THE BALANCE POINT, and both ends of the range are hard. The flag's
+   tip carries a node and that node approaches the waist-right node at
+   `(512,160)`; at nav scale (17/320) with 2.75px dots the clearances are 48u →
+   2.21px clear but only a 2.55px tick (reads as a fat corner dot, not a
+   terminal), 80u → 0.86px clear and a 4.25px tick, 96u → 0.31px, 112u → the two
+   dots OVERLAP. §4 rejected midpoint nodes at 0.23px of clear air as visibly
+   touching; 80u leaves roughly four times that margin while giving a tick large
+   enough to see. 64u — tip `(560,96)`, 1.50px clear, 3.40px tick — is the
+   documented fallback if the pair ever crowds; it was not needed.
+
+   MEASURED, NOT ONLY COMPUTED: sampling the rendered navbar at 17px along the
+   line joining the two dots gives 3.605px centre-to-centre and 0.777px of
+   unpainted air — the 0.08px shortfall against the 0.86px figure above is
+   antialiasing on both discs, and it is why the number is recorded here rather
+   than left as arithmetic. At 2× DPR that reads as a clean dark channel; at 1×
+   it is one partially-inked pixel, separated but softly. Anything that would
+   push it lower — a heavier node ratio, a longer flag — has to be re-measured
+   at 17px, not re-derived.
 
    THE GAP IS 112 UNITS and it, not the stroke width, sets the minimum legible
    render size: at 17px it is 5.95px of centreline separation, and subtracting
@@ -148,7 +182,7 @@ export type MarkLetter = "m" | "s";
 ------------------------------------------------------------------------- */
 
 /** Vertices in drawing order. The node dots are these points and nothing else:
- *  joints and terminals only, no midpoints — eleven in total.
+ *  joints and terminals only, no midpoints — twelve in total (5 + 7).
  *
  *  MIDPOINTS ARE EXCLUDED BY ARITHMETIC, NOT BY TASTE. The binding constraint
  *  at nav size is dot separation, not stroke width. The tightest segment is the
@@ -168,12 +202,13 @@ export const VERTICES: Readonly<Record<MarkLetter, readonly (readonly [number, n
     [256, 288], // M5 bottom-right terminal
   ],
   s: [
-    [560, 32], // S1 top-right terminal
-    [400, 32], // S2 top-left corner
-    [400, 160], // S3 waist-left
-    [512, 160], // S4 waist-right
-    [512, 288], // S5 bottom-right
-    [368, 288], // S6 bottom-left terminal
+    [560, 112], // S1 top-right terminal — the flag's tip, 80 units below S2
+    [560, 32], // S2 top-right corner
+    [400, 32], // S3 top-left corner
+    [400, 160], // S4 waist-left
+    [512, 160], // S5 waist-right
+    [512, 288], // S6 bottom-right
+    [368, 288], // S7 bottom-left terminal
   ],
 };
 
@@ -185,9 +220,15 @@ export const VERTICES: Readonly<Record<MarkLetter, readonly (readonly [number, n
  * pixel-identical to the open polyline when stroked. What it buys is the morph:
  * a glyph contour ends with `Z` and a polyline does not, so open-vs-closed is
  * the one topology mismatch that would otherwise exist. Closing both ends it,
- * and the point counts rise from 5 and 6 to 9 and 11 against glyph contours of
+ * and the point counts rise from 5 and 7 to 9 and 13 against glyph contours of
  * 16 and 39 — a far better match, and better matches are what make a morph read
  * as deformation rather than as replacement.
+ *
+ * The S's 13 is §12's number, up from 11 before the terminal flag. Still far
+ * enough below the glyph's 39 that MorphSVG's subdivision is unaffected; what it
+ * does shift is the point CORRESPONDENCE, since index 0 is now the flag's tip
+ * `(560,112)` rather than the top-right corner. Verified against a mid-morph
+ * frame, not assumed.
  *
  * TWO CONSEQUENCES THAT MUST NOT BE FORGOTTEN:
  *   - NEVER fade the mark with `stroke-opacity`. The doubled path compounds
@@ -212,7 +253,7 @@ export const TRACE: Readonly<Record<MarkLetter, string>> = {
 
 /** One subpath per node, in the trace's own drawing order — which is what the
  *  Intro's power-up stagger keys off. Separate paths rather than one per
- *  letter, because the stagger needs a handle on each dot and eleven
+ *  letter, because the stagger needs a handle on each dot and twelve
  *  three-command paths cost nothing at any size. */
 export const NODES: Readonly<Record<MarkLetter, readonly string[]>> = {
   m: VERTICES.m.map(([x, y]) => `M${x} ${y}l.01 0`),
@@ -290,13 +331,14 @@ export const NAV_HEIGHT_PX = 17;
 /* -------------------------------------------------------------------------
    The Intro's name — the morph's SOURCE half.
 
-   "Muhammad Saad" is thirteen glyphs and the mark is two letters. There is NO
-   13→2 morph here, and attempting one would read as mush at exactly the
-   midpoint the spec most wants legible.
+   "Muhammad Saad" is twelve letters plus a space and the mark is two letters.
+   There is NO twelve-to-two morph here, and attempting one would read as mush
+   at exactly the midpoint the spec most wants legible.
 
    THE CAPITAL M OF "Muhammad" MORPHS INTO THE MARK'S M; THE CAPITAL S OF
-   "Saad" MORPHS INTO THE MARK'S S. One-to-one, twice. The other eleven glyphs
-   never morph — they translate toward their own word's capital and fade, so
+   "Saad" MORPHS INTO THE MARK'S S. One-to-one, twice. The other TEN inked
+   glyphs never morph — the space carries advance width and no ink, so it is
+   not one of them — they translate toward their own word's capital and fade, so
    each word visibly COLLAPSES INTO ITS OWN INITIAL. That is not a shortcut, it
    is the concept made literal: a monogram is the initials that survived.
 
@@ -336,7 +378,7 @@ const NAME_WIDTH = VB_W - INSET * 2;
 
 export type IntroGlyph = {
   readonly char: string;
-  /** Set for the two capitals that morph; `null` for the eleven that do not. */
+  /** Set for the two capitals that morph; `null` for the ten that do not. */
   readonly letter: MarkLetter | null;
   /** Outline path in viewBox units, anchored at its MARK position. */
   readonly d: string;
@@ -391,7 +433,12 @@ function placePath(d: string, tx: number, ty: number, k: number): string {
  */
 const LETTER_ORIGIN: Record<MarkLetter, number> = {
   m: INSET,
-  s: VERTICES.s[5][0], // S6, the S's leftmost point
+  /* The S's leftmost point, DERIVED rather than indexed. It used to read
+     `VERTICES.s[5][0]` — correct only while S6 happened to sit at index 5, and
+     §12's terminal flag pushed it to 6. The rule is "the letter's left edge",
+     so state the rule; an index into a list the next amendment may reorder is a
+     silent one-glyph offset waiting to happen. */
+  s: Math.min(...VERTICES.s.map(([x]) => x)),
 };
 
 function buildIntroGlyphs(): readonly IntroGlyph[] {
@@ -493,14 +540,14 @@ export const INTRO_INITIALS: Readonly<Record<MarkLetter, IntroGlyph>> = {
   s: INTRO_GLYPHS.find((g) => g.letter === "s") as IntroGlyph,
 };
 
-/** The eleven that do not — in document order, which is the order they are
+/** The ten that do not — in document order, which is the order they are
  *  rendered in and the order `fadeOrder` is applied against. */
 export const INTRO_REST = INTRO_GLYPHS.filter((g) => g.letter === null);
 
 /**
  * How much smaller the opening name is than the settled mark, as a scale
  * factor on each glyph group. The two capitals tween from this to 1 while the
- * morph runs; the other eleven hold it and fade, because a non-initial that
+ * morph runs; the other ten hold it and fade, because a non-initial that
  * also grew would be near full size at the moment it is supposed to be
  * disappearing.
  */

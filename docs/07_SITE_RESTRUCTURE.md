@@ -133,7 +133,7 @@ Promoted from the design brief because it constrains layout, not just motion.
 **Why the baseline and not the bbox centre.** Collapsing toward `(296, 160)` makes the mark cross
 itself: the M's outer stems travel in opposite vertical directions, so the left stem passes through
 itself for roughly 150ms — a scribble at exactly the beat §3 wants to read as deliberate. On the
-baseline, all eleven nodes travel monotonically down-and-inward or straight along it; nothing crosses.
+baseline, all twelve nodes travel monotonically down-and-inward or straight along it; nothing crosses.
 The baseline is also the one line both letters share, so they arrive together, and `x = 296` falls
 inside the letter gap — **the mark drains into its own seam.**
 

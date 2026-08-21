@@ -36,7 +36,7 @@ import { EASE, type EaseName } from "./easing";
  * That file's "NO FLIP PLUGIN" note is not a blanket ban; its stated test is
  * whether a registration earns its keep, and a four-rect manual FLIP did not.
  * This does: `docs/07` §3 step 2 asks for glyph contours to deform into trace
- * polylines with mismatched point counts (16 → 9 and 39 → 11), which is
+ * polylines with mismatched point counts (16 → 9 and 39 → 13), which is
  * MorphSVG's headline capability and nothing else's. The shipped build is the
  * unrestricted 3.15.0 one.
  */

@@ -105,7 +105,7 @@ whole argument: the viewer watches the letterform resolve into trace *after*
 motion has stopped, which is the opposite of a swap hidden under movement.
 **Never let the tail reach zero.** Meanwhile the other ten glyphs collapse into
 their own word's initial and fade over the first 45% of C, staggered outward-in;
-and the eleven node dots fade up on an 18ms stagger across the tail, opacity
+and the twelve node dots fade up on an 18ms stagger across the tail, opacity
 only, one pass, in draw order.
 
 **D's stroke ramp is a correctness requirement, not polish.**

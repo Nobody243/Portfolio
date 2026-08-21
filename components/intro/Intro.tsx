@@ -17,7 +17,7 @@
  *   B  0.22 → 0.35   It holds, long enough to read as a name.
  *   C  0.35 → 1.40   THE BECOMING. The two capitals travel to dead centre and
  *                    deform into the mark's traces while still in motion; the
- *                    other eleven glyphs collapse into their own word's initial
+ *                    other ten glyphs collapse into their own word's initial
  *                    and fade. The letters MEET at 1.19 with the shape exactly
  *                    80% resolved, and the last 20% completes with both letters
  *                    stationary.
@@ -131,7 +131,7 @@ const BECOMING_S = 1.05;
  */
 const BECOMING_MEET_RATIO = 0.8;
 
-/** The eleven non-initials are gone by 45% of C. */
+/** The ten non-initials are gone by 45% of C. */
 const GLYPH_FADE_RATIO = 0.45;
 /**
  * Per-glyph delay, ordered OUTWARD-IN from each word's end — the last letter
@@ -385,7 +385,7 @@ export function Intro({
       /* ---------------------------------------------------------------
          Opening state: the name, in outline, invisible.
 
-         `--ms-glyph-stroke` is set for the eleven non-initials and is NOT
+         `--ms-glyph-stroke` is set for the ten non-initials and is NOT
          ramped. They keep the name's weight while the two capitals grow into
          the mark's, because a glyph getting heavier while it shrinks out of
          view blots rather than fades.
@@ -502,7 +502,7 @@ export function Intro({
        approach; a third author on the same transform is how two systems start
        fighting the moment anyone reuses the component.
 
-       At `scale: 0` all eleven nodes coincide and the traces are zero-length
+       At `scale: 0` all twelve nodes coincide and the traces are zero-length
        round caps, so the composite final frame is a single disc at dead
        viewport centre — one defined origin for the hero to expand from, with no
        open-ended scale value anywhere.

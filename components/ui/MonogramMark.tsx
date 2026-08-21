@@ -166,7 +166,7 @@ export function MonogramMark({
       Effects run after paint, so a group left at opacity 1 gets one composited
       frame at its SETTLED size and position before the Intro's timeline poses
       it into the name — two 311px capitals flashing on screen, measured at
-      147ms on a cold load, which is nine frames and unmissable. The eleven
+      147ms on a cold load, which is nine frames and unmissable. The ten
       non-initials and the node dots below have the same requirement for the
       same reason. `opacity` and never `stroke-opacity`: the traces are
       doubled-back paths, so a stroke-level fade compounds with itself.
@@ -184,7 +184,7 @@ export function MonogramMark({
         {...STROKE_ATTRS}
       />
       {/*
-        THE NODES ARE NEVER A MORPH TARGET. Eleven detached micro-subpaths
+        THE NODES ARE NEVER A MORPH TARGET. Twelve detached micro-subpaths
         reconciled against one closed glyph contour is a topology MorphSVG will
         resolve somehow, and that somehow is dots smeared out of the letter's
         outline. They fade in instead — which is also correct conceptually: the
@@ -215,7 +215,7 @@ export function MonogramMark({
       <g data-ms-wrapper="">
         {isIntro
           ? INTRO_REST.map((g, i) => (
-              /* The eleven glyphs that are not initials. They translate into
+              /* The ten glyphs that are not initials. They translate into
                  their own word's capital and fade over the first 45% of the
                  approach; they never morph, and they hold the name's stroke
                  weight rather than the ramping one, because a glyph that grew
