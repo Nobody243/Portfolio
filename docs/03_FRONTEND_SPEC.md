@@ -235,6 +235,24 @@ true of chrome, and the rule is corrected here rather than left to be discovered
   diverge — the spine sits 89px in and centred, the bar sits 34px out — and that is the intended
   result, not a defect. If the divergence ever reads as detachment, the fix is a **larger gutter**
   (`px-xl`), never a restored cap: the cap is precisely what §1 removed.
+- **Checked at 2560 on 2026-08-21 — it does not read as detachment, and the escalation above is a
+  weaker lever than it looks.** Measured: the bar spans `0 → 2560` with a 34px gutter both sides (mark
+  left edge `34.00`, LinkedIn right edge `2526.00`, symmetric); the spine's box sits at `560.00` with
+  `padding-left: 89px`, so content begins at `649.00`. The divergence is **615px**. Raising the gutter
+  to `px-xl` makes it **594px** — a 21px move against a 615px gap, **3.4%**. The divergence is produced
+  by the 560px centring offset, and no gutter value can touch that. `px-xl` is therefore the plausible
+  fix for the wrong cause: applying it would *look* like the criterion had been discharged without
+  discharging it, and would then read as verified on every future pass. **If this ever genuinely needs
+  closing, the lever is the spine's cap, not the chrome's gutter** — which is a change to content, and
+  so not this rule's to make.
+- **The counter-argument, recorded so it is not rediscovered as an oversight.** The gutter was chosen
+  proportionally: `21/1440 = 1.46%` was rejected as reading like an accident of margin collapse, and
+  `34/1440 = 2.36%` was chosen. But `34/2560 = 1.33%` falls *below* the band that was rejected.
+  Honouring that would need a third breakpoint step — an escalating chrome inset, which is precisely
+  the spine behaviour §1 removed. **Two values, deliberately, not three.**
+- **The criterion is also rarer than it sounds.** `Navbar.tsx` hides the bar on scroll-down
+  (`translate3d(0,-105%,0)`), so past the hero the bar and a spine-aligned section are only co-visible
+  at scroll-top or while scrolling up. Judge the divergence there, not from a static full-page render.
 - **Rule and code ship together.** This project has been bitten four times by a spec that described
   something the code stopped doing. The navbar's own container comment states the same carve-out in
   the same words, and both were changed in one commit.
