@@ -373,6 +373,50 @@ come with it:
 - Card → detail transition: shared-element morph (Framer Motion `layoutId`) — the card itself
   visually expands/settles into the detail page rather than a hard route cut
 
+### Scroll-scrub — Home only, and the vocabulary it uses
+
+Added 2026-08-22. This section had no scrub vocabulary at all, which is how Home's scrub reached an
+implementer with a name and a scope but no property, range or end state. It binds every section ticket
+from here on, so it lives here rather than in a handoff — the same failure that hid Rules S-1 and S-2
+until a Ticket 5 review found them.
+
+**Scope: the Home page only, and within it only Trajectory and the featured projects.** Both are
+Tier 2. **Stack is Tier 3 and is never scrubbed** — it pops while its neighbours track, and that
+discrete-versus-continuous difference IS the tier boundary made visible. If that reads as broken, the
+fix is dropping Stack's opacity leg, never scrubbing Stack.
+
+**Property: `y` only, 21px → 0, upward. Opacity never scrubs.**
+
+The 21px ceiling applies to *timed* reveals, where the cap's stated reason is that beyond it "the eye
+tracks moving text instead of reading it" — a claim about speed. A scrubbed 21px cannot outrun a
+reader, because the reader is driving it and it is at rest whenever they are. **13px stays the value
+for every timed reveal on the site.**
+
+**Why opacity is excluded, and it is not the obvious reason.** A scrub abolishes the
+transient/state distinction the `/70` floor relies on: a timed reveal may pass through `opacity: 0`
+because it self-completes in 350ms, but **every frame of a scrub is a resting frame**, so the floor
+binds all of them. And **element opacity MULTIPLIES through to children** — a wrapper at 0.7 over a
+`text-fg/70` label renders it at 0.49, which is 3.33:1 in light and fails AA.
+
+Measured, the legal wrapper range is **0.836 → 1.0**. Opacity is dropped because a 16% change spread
+over ~400px of scroll is not a fade anyone perceives — **not because no legal range exists.** Stating
+it as impossible invites the disproof, and the person who finds 0.85 works ships the multiplication
+bug.
+
+> **The floor is on RENDERED alpha, not on the token.** `docs/03`'s opacity rule reasons about tokens
+> and says nothing about composited ancestors. Any wrapper carrying an opacity must be checked against
+> the *worst child under it*, not against its own value.
+
+**The guarantee this buys, which is the point:** every scrub frame is visually identical to the end
+state except for up to 21px of vertical position. Nothing about the animation touches legibility,
+contrast, size, sharpness or colour. Fully visible implies fully arrived, by construction.
+
+**Below 768px there is no scrub.** Home uses the same reveals as every other page. Two behaviours
+site-wide — the site's reveal, and Home's desktop scrub — never a third mobile-specific one.
+
+**Reduced motion: neither scrub nor parallax.** A 0.35s opacity fade with no Y, matching
+`MotionProvider`'s existing contract.
+
 **Project detail, Skills, Experience, Currently Learning (Tier 3, minimal):**
 - Simple fade/slide reveals only, no 3D, no parallax
 - Motion exists to support readability (guide the eye), never to compete with it
