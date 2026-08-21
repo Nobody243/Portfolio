@@ -20,7 +20,7 @@
  * prop goes with it.
  *
  * WHY THE INTRO STATE LIVES HERE AND NOT IN `Intro.tsx`. `docs/07` §2 asks for
- * every appearance of the mark — mid-merge, contracting, settled in the navbar,
+ * every appearance of the mark — mid-sequence, settled in the navbar,
  * static on About — to be literally one artifact, and calls a second SVG a
  * build smell to raise rather than route around. The name is the merge's source
  * half and the mark is its target half, so the component that renders the
@@ -33,9 +33,9 @@
  *
  *   1. `vector-effect="non-scaling-stroke"` — gone. Filled shapes scale their
  *      own ink; there is nothing to hold constant.
- *   2. `--ms-stroke` / `--ms-node` and the contraction's weight ramp — gone.
- *      A non-scaling stroke thickens into a blob as its geometry collapses; a
- *      fill does not, so the contraction is now a plain group scale.
+ *   2. `--ms-stroke` / `--ms-node` and the weight ramp that rode the Intro's
+ *      scale changes — gone. A non-scaling stroke thickens into a blob as its
+ *      geometry shrinks; a fill does not, so a plain group scale is correct.
  *   3. Node dots as round-capped micro-segments — gone with the traces.
  *
  *   THE ORIGINAL OBJECTION STILL BINDS, and is kept rather than deleted: a rim
@@ -66,11 +66,25 @@
  *
  * TWO `<g data-ms-letter>` ELEMENTS, NEVER THE STRING "MS". Splitting the pair
  * is what makes the navbar's hover micro-motion possible — the two letters part
- * slightly and close again, which is the Intro's own contraction played as a
- * two-frame gesture. `Navbar.tsx` reaches them through these hooks. NOTHING
- * ELSE MAY WRITE A TRANSFORM TO THEM: the Intro's contraction targets the
- * wrapper `<g>` above them and its approach targets the NAME's glyph groups, so
- * the three transform layers never collide.
+ * slightly and close again. `Navbar.tsx` reaches them through these hooks.
+ *
+ * FOUR TRANSFORM LAYERS, ONE AUTHOR EACH. This is the invariant that keeps two
+ * animation systems off the same property, and it is why the DOM below is
+ * shaped the way it is rather than flattened:
+ *
+ *   | Layer                    | Author            | What it does          |
+ *   |--------------------------|-------------------|-----------------------|
+ *   | the host/stage `<div>`s  | `Intro.tsx`       | the camera zoom       |
+ *   | `<g data-ms-glyph>` ×12  | `Intro.tsx`       | the name's own layout |
+ *   | `<g data-ms-wrapper>`    | `Intro.tsx`       | text scale → mark     |
+ *   | `<g data-ms-letter>` ×2  | `Navbar.tsx`      | the hover gesture     |
+ *
+ * THE NAME IS OUTSIDE THE WRAPPER, and that is load-bearing rather than
+ * cosmetic. The wrapper's job is to render the settled mark at the cap height
+ * of the name it is replacing; if the name were inside it, the name would be
+ * scaled twice and the crossfade would have nothing to fade between. It used to
+ * be inside, because the wrapper's job used to be a contraction that legitimately
+ * moved everything — see `docs/07` §3 for why that mechanic was reverted.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -123,42 +137,43 @@ export function MonogramMark({
 
   return (
     <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className={className} style={style} {...a11y}>
-      {/* THE WRAPPER EXISTS FOR THE INTRO'S CONTRACTION and is inert everywhere
-          else. One transform layer per concern: the contraction scales this,
-          the approach translates the name's glyph groups, and the navbar's
-          hover translates the two letter groups. None of the three collide. */}
-      <g data-ms-wrapper="">
-        {/*
-          THE NAME — the merge's source half, and only in the Intro.
+      {/*
+        THE NAME — the Intro's source half, and only in the Intro.
 
-          Space Grotesk's own contours, pre-extracted at build time, placed by
-          `msMarkGeometry.ts` into the MARK's coordinate system and posed back
-          into the name layout by `Intro.tsx`. Filled, like everything else: the
-          old "nothing is ever filled" rule was a morph constraint and the morph
-          is gone.
+        Space Grotesk's own contours, pre-extracted at build time, placed by
+        `msMarkGeometry.ts` into the MARK's coordinate system and posed into the
+        name layout by `Intro.tsx`. Filled, like everything else.
 
-          IT RENDERS INVISIBLE IN THE MARKUP, NOT IN AN EFFECT. Effects run
-          after paint, so a group left at opacity 1 gets one composited frame at
-          its SETTLED size and position before the timeline poses it — measured
-          at 147ms on a cold load, which is nine frames and unmissable.
+        A SIBLING OF THE MARK, NOT A CHILD OF IT. See the transform table in the
+        header: the wrapper below carries the text-scale-to-mark-scale change,
+        and the name must not inherit it.
 
-          Document order is `INTRO_GLYPHS` order, and `Intro.tsx` indexes
-          against it position for position.
-        */}
-        {isIntro
-          ? INTRO_GLYPHS.map((g, i) => (
-              <g
-                key={`${g.char}-${i}`}
-                data-ms-glyph=""
-                data-ms-initial={g.letter ?? undefined}
-                style={{ opacity: 0 }}
-              >
-                <path d={g.d} fill="currentColor" fillRule="nonzero" />
-              </g>
-            ))
-          : null}
+        IT RENDERS INVISIBLE IN THE MARKUP, NOT IN AN EFFECT. Effects run after
+        paint, so a group left at opacity 1 gets one composited frame at its
+        SETTLED size and position before the timeline poses it — measured at
+        147ms on a cold load, which is nine frames and unmissable.
+
+        Document order is `INTRO_GLYPHS` order, and `Intro.tsx` indexes against
+        it position for position.
+      */}
+      {isIntro
+        ? INTRO_GLYPHS.map((g, i) => (
+            <g
+              key={`${g.char}-${i}`}
+              data-ms-glyph=""
+              data-ms-initial={g.letter ?? undefined}
+              style={{ opacity: 0 }}
+            >
+              <path d={g.d} fill="currentColor" fillRule="nonzero" />
+            </g>
+          ))
+        : null}
+      {/* THE MARK PROPER — the two letters as ONE object, so the Intro can
+          scale and fade the pair without touching either letter's own
+          transform. Inert everywhere else; the navbar renders it untouched. */}
+      <g data-ms-wrapper="" style={isIntro ? { opacity: 0 } : undefined}>
         {(["m", "s"] as const).map((key) => (
-          <g key={key} data-ms-letter={key} style={isIntro ? { opacity: 0 } : undefined}>
+          <g key={key} data-ms-letter={key}>
             <path d={LETTER_PATH[key]} fill="currentColor" fillRule="nonzero" />
           </g>
         ))}

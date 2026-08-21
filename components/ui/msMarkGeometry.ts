@@ -105,30 +105,36 @@ export const M_BAR_GAP = 40;
 export const LETTER_GAP = 64;
 
 /**
- * THE CONTRACTION POINT — horizontal centre, ON THE BASELINE. Not the bounding
- * box centre `(296, 160)`, and it is retained verbatim from the trace mark.
+ * THE MARK'S ANCHOR — horizontal centre, ON THE BASELINE. Not the bounding box
+ * centre `(296, 160)`, and it is retained verbatim from the trace mark.
  *
  * Promoted to `docs/07` §3.2 because it constrains layout and not just motion.
- * Two things follow from it that are easy to miss:
+ * It is the one point the whole entry sequence is built around, and it wears
+ * three hats at once:
  *
- *   1. WHY NOT THE BOX CENTRE. Collapsing toward y = 160 makes the mark cross
- *      itself — the M's stems and the vee between them travel in opposite
- *      vertical directions and pass through each other for roughly 150ms. That is a scribble arriving at
- *      exactly the beat the spec wants to read as deliberate. On the baseline
- *      every shape travels monotonically down-and-inward or straight along it;
- *      nothing crosses anything.
- *   2. THE MARK IS POSITIONED BY THIS POINT, NOT BY ITS BOX. `(296, 288)` is
- *      what sits at dead viewport centre during the Intro, which puts the box
- *      centre 128 units — about 193px at Intro scale — ABOVE centre. The mark
- *      visibly hangs upper-middle with its baseline through the middle of the
- *      screen. That is the intended composition, not an offset to correct.
+ *   1. THE MARK IS POSITIONED BY THIS POINT, NOT BY ITS BOX. `(296, 288)` is
+ *      what sits at dead viewport centre during the Intro. The box centre is
+ *      128 units above it, so the mark visibly hangs upper-middle with its
+ *      baseline through the middle of the screen. That is the intended
+ *      composition, not an offset to correct.
+ *   2. IT IS THE ORIGIN OF THE INTRO'S TEXT→MARK SCALE. `Intro.tsx` renders the
+ *      settled mark at `NAME_SCALE` about this point so it lands at exactly the
+ *      cap height of the name it replaces. `x = 296` is also the mark's INK
+ *      centre — the M runs 32→280 and the S 344→560 — which is why scaling
+ *      about it keeps the pair optically centred at every scale.
+ *   3. IT IS THE CAMERA'S FIXED POINT. The zoom-out and the zoom-in both pivot
+ *      here, so the move pushes into dead viewport centre, which is the pixel
+ *      `Hero.tsx` expands out of.
  *
- * `x = 296` is the horizontal centre of the drawn box AND falls inside the
- * 64-unit letter gap (M ends at 280, S starts at 344), so the mark drains into
- * its own seam.
+ * PREVIOUSLY NAMED `CONTRACT_X` / `CONTRACT_Y`, for a contraction-to-a-point
+ * that was built, shipped and reverted (see `docs/07` §3). The point survived
+ * the revert because it was never really about the contraction; the name was.
+ *
+ * `x = 296` also falls inside the 64-unit letter gap, so anything that collapses
+ * here drains into the mark's own seam.
  */
-export const CONTRACT_X = 296;
-export const CONTRACT_Y = BASELINE;
+export const ANCHOR_X = 296;
+export const ANCHOR_Y = BASELINE;
 
 export type MarkLetter = "m" | "s";
 
@@ -491,9 +497,15 @@ export const INTRO_GLYPHS = buildIntroGlyphs();
 
 /**
  * How much smaller the opening name is than the settled mark, as a scale
- * factor on each glyph group. The two capitals tween from this to 1 while they
- * travel; the other ten hold it and fade, because a non-initial that also grew
- * would be near full size at the moment it is supposed to be disappearing.
+ * factor on each glyph group.
+ *
+ * IT IS THE ONLY SCALE ON SCREEN FOR THE WHOLE OPENING, and that is the point.
+ * Every glyph of the name holds it, both survivors hold it through the drop and
+ * the slide, and the settled mark is rendered at it too — so the text-to-mark
+ * crossfade swaps two letterforms of identical cap height. The version this
+ * replaced tweened the two capitals from `NAME_SCALE` to 1 WHILE the other ten
+ * were still at `NAME_SCALE`, which put two type scales on screen at once and
+ * is exactly the defect that got it reverted (`docs/07` §3).
  */
 export const NAME_SCALE = (() => {
   const total = [...HERO_NAME].reduce(
@@ -501,6 +513,47 @@ export const NAME_SCALE = (() => {
     0,
   );
   return total > 0 ? NAME_WIDTH / total / K : 1;
+})();
+
+/**
+ * WHERE THE TWO SURVIVORS PARK once the other ten have gone — each capital's
+ * pen-origin x, in viewBox units, for the closed-up "MS" pair.
+ *
+ * WHAT THIS REPLACES, and why it is arithmetic now rather than a measurement.
+ * The original DOM Intro did this as a real FLIP: it collapsed the non-initial
+ * `<span>`s to `display: none`, let the flex row reflow, and read the survivors'
+ * new rects back out. There is no layout inside an SVG to reflow, so the same
+ * two facts — the pair set solid, and the pair re-centred in the box — are
+ * computed instead. Both ends still come from the FONT's own advance widths, so
+ * a font swap moves this exactly as it moved the measured version.
+ *
+ * ADVANCE-SET AND ADVANCE-CENTRED. The letters are laid nose-to-tail on their
+ * advance widths, which is what a text run does, and the resulting box is
+ * centred on `VB_W / 2` — which is `ANCHOR_X`, which is where the settled mark's
+ * ink is centred. That identity is what lets the crossfade be a swap in place:
+ * the mark drawn at `NAME_SCALE` about `ANCHOR_X` and the parked pair share a
+ * centre without a correction term.
+ *
+ * DERIVED FROM `INTRO_GLYPHS`, never from the literal "MS" — the capitals are
+ * whichever characters start the words of `HERO_NAME`.
+ */
+export const SLIDE_X: Readonly<Record<MarkLetter, number>> = (() => {
+  // `NAME_SCALE` is per-glyph-group, i.e. relative to the mark's own `K`. Font
+  // units reach viewBox units through both.
+  const nameScale = NAME_SCALE * K;
+  const capitals = INTRO_GLYPHS.filter(
+    (g): g is IntroGlyph & { letter: MarkLetter } => g.letter !== null,
+  );
+  const widths = capitals.map((g) => (GLYPHS[g.char]?.ha ?? 0) * nameScale);
+  const pairWidth = widths.reduce((sum, w) => sum + w, 0);
+
+  const out = {} as Record<MarkLetter, number>;
+  let pen = (VB_W - pairWidth) / 2;
+  capitals.forEach((g, i) => {
+    out[g.letter] = pen;
+    pen += widths[i];
+  });
+  return out;
 })();
 
 /**

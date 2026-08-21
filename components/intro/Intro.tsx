@@ -5,92 +5,78 @@
  *
  * IT IS NOT A LOADER AND IT NEVER WAS. A loader answers "are the assets ready".
  * This answers nothing; it is a scripted timeline with known durations whose
- * only job is how the site feels in its first two and a half seconds.
- * `AssetLoader.tsx` is the loader, it gates this component, and by the time
- * this plays everything it needs is already in.
+ * only job is how the site feels in its first three seconds. `AssetLoader.tsx`
+ * is the loader, it gates this component, and by the time this plays everything
+ * it needs is already in.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THE SEQUENCE — `docs/07_SITE_RESTRUCTURE.md` §3, split per phase in
- * `.claude/handoff/intro-timing-design.md`:
+ * THE SEQUENCE — seven phases, restored. `docs/06_INTRO_AND_CHROME.md` §2 and
+ * `docs/07_SITE_RESTRUCTURE.md` §3.
  *
- *   A  0.00 → 0.22   "Muhammad Saad" appears, as FILLED GLYPH OUTLINES.
- *   B  0.22 → 0.35   It holds, long enough to read as a name.
- *   C  0.35 → 1.40   THE MERGE. The two capitals travel and grow into the
- *                    mark's own positions while the other ten glyphs collapse
- *                    into their word's initial and fade. The capitals arrive at
- *                    1.19 — the meeting, at dead centre — and CROSSFADE into
- *                    the faceted letters over 0.15s, leaving 0.06s of the
- *                    settled mark standing still before D.
- *   D  1.40 → 1.90   The mark contracts to a point at `(296, 288)` — its own
- *                    seam — then holds there for 60ms.
- *   E  1.90 → 2.35   The hero expands out of that point and the navbar slides
- *                    down, on the same start and the same duration.
+ *   1  0.000 → 0.300  HOLD.      "Muhammad Saad", still, long enough to read
+ *                                as a name rather than as a flash.
+ *   2  0.300 → 0.785  DROP.      The ten non-initials shrink and fade, left to
+ *                                right. Only M and S are left standing.
+ *   3  0.785 → 1.205  SLIDE.     The two survivors close up into a solid "MS",
+ *                                re-centred in the box.
+ *   4  0.995 → 1.395  MORPH.     Text becomes mark. The letterforms crossfade
+ *                                into the faceted monogram AT THE SAME CAP
+ *                                HEIGHT, overlapping the tail of the slide.
+ *   5  1.395 → 1.995  ZOOM OUT.  The camera backs off to 0.82. A settling, not
+ *                                a second move.
+ *   6  1.995 → 2.215  BREATH.    Nothing happens. That is the phase.
+ *   7  2.215 → 3.165  ZOOM IN.   ×17, straight through the viewport and into
+ *                                the Hero. THE ZOOM-IN IS THE TRANSITION.
  *
- * WHAT REPLACED THE OLD SHAPE, and why the total fell from ~3.24s to 2.35s:
- * the zoom-out and the breath (0.82s between them) are GONE, not shortened.
- * §3 replaces steps 3–4 with a contraction to a point, so there is no backing-
- * off beat to pay for. Setup only needed a modest trim — 1.47 → 1.40 — and the
- * handoff is held at 0.95s, the exact weight the old `ZOOM_IN_S` had. Reading
- * "trim the early setup harder" as an instruction to absorb the whole saving
- * would leave the name on screen for under half a second, and §3 step 1 asks
- * for it to register as a NAME.
+ * WHY THIS SHAPE AND NOT THE ONE IT REPLACES. A "merge to a point" version
+ * shipped in between: the two capitals travelled and GREW into the mark's
+ * positions while the other ten glyphs were still collapsing. It was reverted
+ * because the two halves of that idea collide on screen. Frame captures show
+ * the name correct at 250ms and, by 500ms, the M and S at full mark scale
+ * sitting on top of "uhammad" and "aad" still at text scale — an overlapping
+ * mess, not a becoming. That mechanic is preserved on the branch
+ * `intro-merge-to-point-backup` and the tag `intro-plan-a`; `docs/07` §3
+ * records the reasoning as superseded rather than deleting it.
  *
- * WHAT CHANGED WITH THE FACETED MARK, and what deliberately did not. The mark
- * is filled shapes now, so there is no path interpolation anywhere: C's old
- * 80/100 morph split and D's `--ms-stroke` ramp are BOTH DELETED, not adapted.
- * `.claude/handoff/ms-mark-faceted-design.md` §8 asks for "a convergence plus a
- * clean crossfade at the meeting point", explicitly preferring it over anything
- * that interpolates paths — simpler and more robust rather than cleverer. Every
- * phase BOUNDARY is unchanged: A, B, D and E are untouched and C still runs
- * 0.35 → 1.40 with the meeting at 1.19.
- * ─────────────────────────────────────────────────────────────────────────
+ * THE STRUCTURAL PROPERTY THAT MAKES THIS ONE SAFE, and the reason the phase
+ * ORDER matters more than any of the durations: THERE IS NEVER MORE THAN ONE
+ * TYPE SCALE ON SCREEN. The non-initials leave first (phase 2), the survivors
+ * then move at a constant scale (phase 3), and the scale change is deferred to
+ * phase 4 — by which point the only things on screen are two letterforms
+ * occupying the same box. Anything reintroduced here that grows one glyph while
+ * another is still at name scale reintroduces the bug.
  *
- * THE NAME IS NOT DOM `<text>`, and the reason has changed. It used to be that
- * fill and stroke do not interpolate, so a morph forbade a paint-mode swap.
- * There is no morph. What still holds is that outlines put the name and the
- * mark in ONE coordinate system: each capital's journey is a tween to the
- * IDENTITY transform, so it lands on its faceted letter exactly — same
- * baseline, same cap height, same left edge. That exactness is what makes the
- * crossfade read as one letterform settling into another rather than as two
- * misaligned images dissolving. Everything is filled, name and mark alike.
+ * THE NAME IS SVG, NOT DOM `<text>`, and that is the one thing this restoration
+ * keeps from the version it reverts. Outlines put the name and the mark in ONE
+ * coordinate system — `components/ui/msMarkGeometry.ts` — which is what deletes
+ * the old `TextMetrics` baseline probe, the three mirrored mark constants and
+ * the measured FLIP along with it. The FLIP's two facts survive as arithmetic:
+ * `SLIDE_X` sets the pair solid on the font's own advances and re-centres it.
  *
- * THE `TextMetrics` BASELINE PROBE IS GONE, along with the three mirrored mark
- * constants it fed. An older cut measured DOM letters at runtime to place an
- * SVG `<text>` of the same font on top of them; there is no font size to match
- * and no DOM baseline to align to any more, because both ends of the merge are
- * path data in one coordinate system. `components/ui/msMarkGeometry.ts` holds
- * that system and every number in it.
- *
- * REPLAYABLE BY CONSTRUCTION. The timeline is BUILT FRESH on every play, keyed
- * off `playToken`, and `sequence="mark"` plays the handoff half alone (D and E,
- * starting from the settled mark) which is the shape a section transition
- * needs. What it deliberately does NOT own is the scroll lock — see
- * `IntroGate.tsx`.
+ * REPLAYABLE BY CONSTRUCTION, and that is a requirement rather than a nicety.
+ * The timeline is BUILT FRESH on every play, keyed off `playToken`, and
+ * `sequence="mark"` plays phases 4–7 alone (no name) which is the shape a
+ * section transition needs. What it deliberately does NOT own is the scroll
+ * lock — see `IntroGate.tsx`.
  *
  * WHY GSAP AND NOT FRAMER, given the house rule is "GSAP owns scroll-synced
- * timelines, Framer owns DOM": this IS a timeline — five phases, a stagger, a
+ * timelines, Framer owns DOM": this IS a timeline — seven phases, a stagger, a
  * crossfade and a two-sided handoff in the middle of it — and expressing it as
  * nested Framer variants with delay arithmetic is how phase boundaries drift
  * apart when one duration is retuned.
- *
- * THE EASES ARE GSAP BUILT-INS HERE, NOT THE SHARED `GSAP_EASE` SET, and that
- * is a change from the file this replaces. The timing brief names them
- * individually — `power2.out` for A and E, `power2.in` for D — and its
- * reasoning for D is the one the old file already carried for its zoom-in:
- * every shared curve DECELERATES into its end state, which is right for
- * something arriving and wrong for something leaving. The one place a shared
- * curve still applies is the plate dissolve, which is a UI fade.
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 import { useEffect, useMemo, useRef } from "react";
 
 import { MonogramMark } from "@/components/ui/MonogramMark";
 import {
+  ANCHOR_X,
+  ANCHOR_Y,
   BASELINE,
-  CONTRACT_X,
-  CONTRACT_Y,
   INTRO_GLYPHS,
   NAME_SCALE,
+  SLIDE_X,
   type MarkLetter,
 } from "@/components/ui/msMarkGeometry";
 import { GSAP_EASE, gsap } from "@/lib/animation/gsap";
@@ -98,108 +84,66 @@ import { HANDOFF_S, NAV_ENTRANCE_ATTR } from "@/lib/animation/handoff";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /* -------------------------------------------------------------------------
-   Phase durations, seconds. Every value is from
-   `.claude/handoff/intro-timing-design.md` §7. Read the header before moving
-   any of them.
+   Phase durations, seconds. Every value below is the ORIGINAL sequence's,
+   restored verbatim from commit `f640107`. Tuning them is a design act; read
+   the sequence table above before moving any of them, because several overlap
+   on purpose.
 ------------------------------------------------------------------------- */
-/** A — the name arrives. */
-const NAME_IN_S = 0.22;
-/** B — it holds. Short, but §3 step 1 asks for the name to register. */
-const NAME_HOLD_S = 0.13;
-/** C — the approach and the merge, the phase the sequence is named for. */
-const BECOMING_S = 1.05;
-
+/** 1. */
+const HOLD_S = 0.3;
+/** 2. */
+const DROP_S = 0.35;
+const DROP_STAGGER_S = 0.015;
 /**
- * WHERE THE LETTERS MEET, as a fraction of C. 0.80 · 1.05 = 0.84, so the
- * meeting is at t = 1.19 absolute — unchanged from the morph version, because
- * the meeting instant is a layout fact (`docs/07` §3 step 3: the merge lands at
- * dead centre) and not a property of the technique that gets it there.
+ * How far a departing glyph shrinks, as a fraction of the name's own scale.
  *
- * WHAT IS NOT CARRIED OVER. The 80/100 split existed so that the morph was
- * exactly 80% resolved on arrival and the last 20% completed with the letters
- * stationary — a tail that made "a becoming, not a crossfade" observable. There
- * is no morph and no interpolation now, so the split has nothing to split:
- * translation simply ends at the meeting.
+ * RELATIVE, NOT ABSOLUTE, and that is the whole translation from the DOM
+ * version. There it was `scale: 0.6` on a `<span>` whose resting scale was 1.
+ * Here every glyph group already carries `NAME_SCALE`, so a literal `0.6` would
+ * be an eight-fold JUMP UP at the exact moment the letter is meant to be
+ * leaving.
  */
-const BECOMING_MEET_RATIO = 0.8;
-
+const DROP_SCALE = 0.6;
+/** 3. */
+const SLIDE_S = 0.42;
+/** 4. Text out, mark in. Overlaps the tail of the slide so the material
+ *  changes while the letters are still closing, rather than after they have
+ *  parked. */
+const MORPH_S = 0.4;
+/** How far into the slide the morph begins — the overlap, as a fraction. */
+const MORPH_OVERLAP = 0.5;
+/** The name's small swell as it dissolves, so it reads as being replaced from
+ *  underneath rather than simply switched off. */
+const MORPH_SWELL = 1.04;
+/** And the mark's matching settle inward, from slightly over-size. */
+const MORPH_MARK_FROM = 1.1;
+/** 5. Long and soft — this beat exists to be a pause, so it must not read as
+ *  another move. */
+const ZOOM_OUT_S = 0.6;
+const ZOOM_OUT_SCALE = 0.82;
+/** 6. The breath at the bottom of the zoom-out, before the camera commits. */
+const BREATH_S = 0.22;
+/** 7. */
+const ZOOM_IN_S = 0.95;
+const ZOOM_IN_SCALE = 17;
 /**
- * THE CROSSFADE, and how the remaining 0.21s of C is spent.
+ * The plate dissolves over the back two-thirds of the zoom.
  *
- * The two capitals arrive on their faceted letters — same baseline, same cap
- * height, same left edge, because the name is authored in the mark's own
- * coordinate system — and dissolve into them over 0.15s, leaving 0.06s of the
- * settled mark standing perfectly still before the contraction starts.
- *
- * `ease: "none"` on BOTH halves, and that is the one thing here that is not
- * arbitrary: two opposed linear opacity ramps sum to a roughly constant
- * apparent density, whereas a pair of eased ones dips (both near 50%) or bulges
- * (both near 100%) in the middle. The dip is what makes a crossfade read as a
- * flicker.
- *
- * THE STILL TAIL IS NOT DECORATION. The old tail existed to let the viewer
- * watch a shape resolve after motion stopped; this one exists so the mark is
- * seen SETTLED, as itself, for a beat before it is taken away. Both fail the
- * same way at zero — the merge would land on the same frame the contraction
- * starts, and the mark would never exist as a finished object.
+ * NOT AT THE TOP: the mark is still small at that point and would read as an
+ * object sitting on the hero rather than as something the camera is moving
+ * through. NOT AT THE VERY END EITHER, which is where the original started — a
+ * fade confined to the last third meant the hero underneath had finished its
+ * own arrival before anyone could see it, and the hand-off collapsed back into
+ * the cut this whole sequence exists to avoid.
  */
-const CROSSFADE_S = 0.15;
+const PLATE_DISSOLVE_RATIO = 0.66;
 
-/** The ten non-initials are gone by 45% of C. */
-const GLYPH_FADE_RATIO = 0.45;
-/**
- * Per-glyph delay, ordered OUTWARD-IN from each word's end — the last letter
- * leaves first. Inward-out leaves the two capitals momentarily alone with a gap
- * where the word was, which reads as deletion rather than as reduction.
- */
-const GLYPH_STAGGER_S = 0.014;
-
-/** D — the contraction, then the beat that makes it read as an arrival. */
-const CONTRACT_S = 0.44;
-/**
- * THE HOLD IS THE WHOLE BEAT. Without it the contraction and the expansion read
- * as one continuous rubber-band motion through zero. With it, the mark arrives,
- * the plate is briefly empty, and then the site opens out of the point it
- * arrived at.
- *
- * ONE CONSEQUENCE OF THE FACETED MARK, recorded because it is a real change: a
- * stroked mark at `scale: 0` still painted its round caps, so the old hold sat
- * on a visible disc. Filled shapes have no such residue — they scale to zero
- * area and vanish. The hold's primary job, separating two moves that would
- * otherwise read as one, is unaffected.
- */
-const CONTRACT_HOLD_S = 0.06;
-
-/*
- * THE `--ms-stroke` RAMP THAT USED TO LIVE HERE IS DELETED, NOT RETUNED.
- *
- * It was a correctness requirement for a STROKED mark:
- * `vector-effect="non-scaling-stroke"` holds stroke width constant in device
- * pixels regardless of scale, so a mark shrinking toward a point with a fixed
- * weight thickens into a blob as its geometry collapses inside its own outline.
- * The ramp cancelled that.
- *
- * FILLED SHAPES SCALE THEIR OWN INK, so the hazard does not exist and a plain
- * group scale is now correct. Recorded rather than silently dropped, because
- * "there used to be a second tween here" is the kind of thing someone
- * reintroduces by analogy.
- */
-
-/** E — both halves of the handoff. Shared with `Hero.tsx` and `Navbar.tsx`
- *  through one constant, because "simultaneous" written twice is not. */
-const EXPAND_S = HANDOFF_S;
-/**
- * The plate finishes dissolving BEFORE the expansion does.
- *
- * The old timeline had the hero's arrival finishing while the plate was still
- * 74% opaque — by the time anyone could see it, it had already happened.
- * Front-loading the dissolve is the inverse of that mistake: the last third of
- * the hero's expansion happens in front of the visitor.
- */
-const PLATE_DISSOLVE_S = 0.3;
+/** Both halves of the handoff. Shared with `Hero.tsx` and `Navbar.tsx` through
+ *  one constant, because "simultaneous" written twice is not. */
+const HANDOFF_DURATION_S = HANDOFF_S;
 
 /* Reduced motion: a different, shorter thing — not this sequence slowed down.
-   §6 of the timing brief; §8 of `docs/07`. */
+   `docs/07` §8. */
 const REDUCED_MARK_IN_S = 0.2;
 const REDUCED_HOLD_S = 0.1;
 const REDUCED_FADE_S = 0.25;
@@ -208,21 +152,41 @@ const REDUCED_FADE_S = 0.25;
  *  full Tier 1 scale. */
 const REDUCED_MARK_H = 72;
 
-/* Absolute phase boundaries, so the timeline reads the same way the brief's
-   table does and nothing depends on the order tweens happen to be added in. */
-const T_BECOMING = NAME_IN_S + NAME_HOLD_S; // 0.35
-const T_CONTRACT = T_BECOMING + BECOMING_S; // 1.40
-const T_EXPAND = T_CONTRACT + CONTRACT_S + CONTRACT_HOLD_S; // 1.90
-export const INTRO_TOTAL_S = T_EXPAND + EXPAND_S; // 2.35
+/**
+ * How many glyphs actually leave in phase 2, and therefore how long phase 2
+ * runs once the stagger is counted.
+ *
+ * DERIVED, NOT WRITTEN DOWN. It is ten today because "Muhammad Saad" is twelve
+ * inked characters and two of them are word-initial; `HERO_NAME` is content and
+ * content moves. The space is not in `INTRO_GLYPHS` at all — it carries advance
+ * but no ink — which is the one place this differs measurably from the DOM
+ * original, where the space was a `<span>` and took a stagger slot of its own.
+ * Phase 2 is 15ms shorter as a result.
+ */
+const DROP_COUNT = INTRO_GLYPHS.filter((g) => g.letter === null).length;
+const DROP_TOTAL_S = DROP_S + Math.max(0, DROP_COUNT - 1) * DROP_STAGGER_S;
+
+/* Absolute phase boundaries, so the timeline reads the way the table above does
+   and nothing depends on the order tweens happen to be added in. The original
+   built these with relative positions and a detached `gsap.to` for the slide;
+   stating them absolutely is the same timing with the arithmetic visible. */
+const T_DROP = HOLD_S; // 0.300
+const T_SLIDE = T_DROP + DROP_TOTAL_S; // 0.785
+const T_MORPH = T_SLIDE + SLIDE_S * MORPH_OVERLAP; // 0.995
+/** The mark is formed and still. Phases 5–7 hang off this. */
+const T_SETTLED = T_MORPH + MORPH_S; // 1.395
+
+export const INTRO_TOTAL_S =
+  T_SETTLED + ZOOM_OUT_S + BREATH_S + ZOOM_IN_S; // 3.165
 
 export type IntroSequence = "full" | "mark";
 
 type IntroProps = {
   /**
-   * `"full"` — A through E, the entry sequence.
-   * `"mark"` — D and E only, starting from the settled mark. No name, no
-   * approach, no morph: the contraction and the handoff, which is the shape a
-   * section transition wants.
+   * `"full"` — all seven phases, the first-visit entry.
+   * `"mark"` — phases 4 through 7 only, starting from the formed monogram. No
+   * name, no drop, no slide: the mark and the camera move that carries you
+   * somewhere else, which is the shape a section transition wants.
    */
   sequence?: IntroSequence;
   /**
@@ -232,12 +196,12 @@ type IntroProps = {
    */
   playToken?: number;
   /**
-   * Fired as the EXPANSION begins, not when it ends.
+   * Fired as the ZOOM-IN begins, not when it ends.
    *
    * This is the signal the hero uses to start its own arrival, and the overlap
    * between the two is what makes the handoff continuous instead of a cut.
    * `docs/06` §2 requires it, and collapsing it into `onComplete` turns the
-   * seam back into a cut. The navbar now rides the same instant.
+   * seam back into a cut. The navbar rides the same instant.
    */
   onHandoff?: () => void;
   /** Fired once the plate is finished and can be unmounted. */
@@ -253,7 +217,8 @@ export function Intro({
   const reducedMotion = useReducedMotion();
 
   const plateRef = useRef<HTMLDivElement | null>(null);
-  const markRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const hostRef = useRef<HTMLDivElement | null>(null);
 
   /* Callbacks through refs, so a parent re-render that produces new function
      identities cannot restart a running timeline. */
@@ -264,7 +229,7 @@ export function Intro({
     onCompleteRef.current = onComplete;
   }, [onHandoff, onComplete]);
 
-  /** The mark's letters, derived from the geometry module's own derivation of
+  /** The mark's letters, from the geometry module's own derivation of
    *  `HERO_NAME` — never the literal "MS". */
   const letters = useMemo(
     () => INTRO_GLYPHS.filter((g) => g.letter).map((g) => g.letter as MarkLetter),
@@ -273,19 +238,19 @@ export function Intro({
 
   useEffect(() => {
     const plate = plateRef.current;
-    const host = markRef.current;
-    if (!plate || !host) return;
+    const stage = stageRef.current;
+    const host = hostRef.current;
+    if (!plate || !stage || !host) return;
 
     const svg = host.querySelector("svg");
     if (!svg) return;
 
-    /* The faceted mark — the merge's TARGET half. Two groups, no transform
-       written to them by this file: the navbar's hover owns their `transform`
-       and the contraction owns the wrapper's. All this timeline does to them is
-       opacity. */
-    const letterEls = letters
-      .map((key) => svg.querySelector<SVGGElement>(`[data-ms-letter="${key}"]`))
-      .filter((el): el is SVGGElement => el !== null);
+    /* The faceted mark — phase 4's TARGET half, addressed as one object. This
+       timeline writes `scale` and `opacity` to the wrapper and NEVER to the two
+       `data-ms-letter` groups inside it: those belong to the navbar's hover
+       gesture, and a second author on the same transform is how two systems
+       start fighting the moment anyone reuses the component. */
+    const wrapper = svg.querySelector<SVGGElement>("[data-ms-wrapper]");
     /* The name — document order, which is `INTRO_GLYPHS` order, which is what
        every index below is against. */
     const glyphEls = [...svg.querySelectorAll<SVGGElement>("[data-ms-glyph]")];
@@ -294,8 +259,7 @@ export function Intro({
     const initialEls = letters
       .map((key) => svg.querySelector<SVGGElement>(`[data-ms-initial="${key}"]`))
       .filter((el): el is SVGGElement => el !== null);
-    const wrapper = svg.querySelector<SVGGElement>("[data-ms-wrapper]");
-    if (!wrapper || letterEls.length !== letters.length) return;
+    if (!wrapper) return;
     if (sequence === "full" && initialEls.length !== letters.length) return;
 
     /* The navbar's entrance. It is a SIBLING of everything this component can
@@ -312,17 +276,27 @@ export function Intro({
     */
     const reset = () => {
       gsap.set(plate, { autoAlpha: 1 });
-      gsap.set(wrapper, { scale: 1, svgOrigin: `${CONTRACT_X} ${CONTRACT_Y}` });
+      // The camera's fixed point, written here rather than as a Tailwind
+      // `origin-` class so that ONE author owns it: GSAP writes this
+      // element's `transform`, and a transform origin living in a class is a
+      // value nobody sees when they read the tween.
+      gsap.set(stage, { scale: 1, transformOrigin: "50% 90%" });
+      gsap.set(wrapper, {
+        svgOrigin: `${ANCHOR_X} ${ANCHOR_Y}`,
+        scale: NAME_SCALE,
+        opacity: 0,
+      });
       if (nav) gsap.set(nav, { yPercent: 0 });
     };
 
-    /** Put a letter or glyph group at its position in the OPENING NAME.
+    /** Put a glyph at its position in the OPENING NAME.
      *
-     *  Both poses are expressed against the same origin — the glyph's own ink
-     *  origin in the settled mark — so "settled" is the identity transform and
-     *  the tween back to it needs no correction term. `svgOrigin` and not
-     *  `transformOrigin`: the former is in the SVG's user coordinate system,
-     *  which is the space every number in the geometry module is stated in. */
+     *  Both ends of phase 3 are expressed against the same origin — the glyph's
+     *  own pen origin on the baseline, in the settled mark's space — so the
+     *  slide is a pure `x` tween with no correction term and no origin change
+     *  mid-flight. `svgOrigin` and not `transformOrigin`: the former is in the
+     *  SVG's user coordinate system, which is the space every number in the
+     *  geometry module is stated in. */
     const namePose = (el: Element, markX: number, x: number) =>
       gsap.set(el, {
         svgOrigin: `${markX} ${BASELINE}`,
@@ -337,10 +311,9 @@ export function Intro({
     /* -------------------------------------------------------------------
        REDUCED MOTION — a fade to the settled mark and an instant reveal.
 
-       Not the sequence at another speed: no name, no approach, no morph, no
-       contraction, and the mark never appears mid-ramp. Somebody who asked for
-       less motion is not owed a shorter version of the spectacle, they are owed
-       its absence.
+       Not the sequence at another speed: no name, no drop, no slide, no morph,
+       no camera. Somebody who asked for less motion is not owed a shorter
+       version of the spectacle, they are owed its absence.
 
        THE DOM IS IDENTICAL ON BOTH PATHS, deliberately. `useReducedMotion`
        returns `false` during prerender and corrects on hydration, so a branch
@@ -350,150 +323,212 @@ export function Intro({
     if (reducedMotion) {
       reset();
       // The box shrinks to the About instance and re-centres on its own middle
-      // rather than on the contraction point: with no contraction there is
-      // nothing for that offset to serve, and a settled mark hanging above
-      // centre would just look misplaced.
-      gsap.set(host, { width: "auto", xPercent: -50, yPercent: -50 });
+      // rather than on the anchor: with no camera move there is nothing for
+      // that offset to serve, and a settled mark hanging above centre would
+      // just look misplaced.
+      //
+      // THE OVERRIDE IS ON `translate`, NOT ON `transform`, and that is not
+      // interchangeable here. Tailwind v4 compiles `-translate-x-1/2
+      // -translate-y-[90%]` to the standalone `translate` property, which
+      // COMPOSES with `transform` rather than being replaced by it — so a GSAP
+      // `xPercent`/`yPercent` here does not re-centre the box, it adds a second
+      // offset to the first and pushes the mark off the top of the screen.
+      // Setting the same property the class set is what actually overrides it.
+      host.style.translate = "-50% -50%";
+      gsap.set(host, { width: "auto" });
       gsap.set(svg, { height: REDUCED_MARK_H, width: "auto" });
       gsap.set(glyphEls, { display: "none" });
-      gsap.set(letterEls, { clearProps: "transform" });
-      gsap.set(letterEls, { opacity: 0 });
+      gsap.set(wrapper, { clearProps: "transform" });
+      gsap.set(wrapper, { opacity: 0 });
 
       const tl = gsap.timeline({ onComplete: finish });
-      tl.to(letterEls, { opacity: 1, duration: REDUCED_MARK_IN_S, ease: "power2.out" });
+      tl.to(wrapper, { opacity: 1, duration: REDUCED_MARK_IN_S, ease: "power2.out" });
       tl.to({}, { duration: REDUCED_HOLD_S });
       tl.to(plate, { autoAlpha: 0, duration: REDUCED_FADE_S, onStart: handoff });
       return () => {
         tl.kill();
+        if (nav) gsap.set(nav, { yPercent: 0 });
       };
     }
 
     reset();
     gsap.set(svg, { clearProps: "width,height,transform" });
     gsap.set(host, { clearProps: "transform,width" });
+    // Hand `translate` back to the Tailwind class. Only ever set by the reduced
+    // branch above, and only reachable from here if the OS preference flipped
+    // mid-session and re-ran this effect — but a stale inline override would
+    // silently move the whole composition off its anchor.
+    host.style.translate = "";
 
     const tl = gsap.timeline({ onComplete: finish });
 
     if (sequence === "full") {
       /* ---------------------------------------------------------------
-         Opening state: the name, posed into its own layout, invisible; the
-         faceted mark sitting at rest underneath it, also invisible.
+         Opening state: the whole name posed into its own layout, at one
+         scale, visible. The mark sits underneath it at the same cap height,
+         invisible.
       --------------------------------------------------------------- */
       gsap.set(glyphEls, { display: "" });
       INTRO_GLYPHS.forEach((g, i) => namePose(glyphEls[i], g.markX, g.nameX));
-      gsap.set(glyphEls, { opacity: 0 });
-      gsap.set(letterEls, { opacity: 0 });
+      gsap.set(glyphEls, { opacity: 1 });
 
-      // A — the name arrives.
+      // 1. HOLD. A gap, not a tween: nothing animates before 0.300.
+
+      /* 2. DROP. The ten non-initials shrink toward their own baseline origin
+            and fade, staggered left to right in document order.
+
+            THE ORIGIN IS THE PEN ORIGIN, NOT THE GLYPH'S BOX CENTRE, which is
+            the one visible difference from the DOM original — a `<span>`
+            scaled about its middle, this scales about its bottom-left. The
+            drift is a few pixels and it happens under a `power2.in` fade that
+            is already past half-transparent by the time the shrink is
+            noticeable. Correcting it would mean per-glyph ink bounds and a
+            compensating translation on a group that is disappearing. */
+      const dropEls = glyphEls.filter((_, i) => INTRO_GLYPHS[i].letter === null);
       tl.to(
-        glyphEls,
-        { opacity: 1, duration: NAME_IN_S, ease: "power2.out" },
-        0,
-      );
-
-      // B is a gap, not a tween: nothing is animating between 0.22 and 0.35.
-
-      /* ---------------------------------------------------------------
-         C — the merge. Three tracks that deliberately do not finish
-         together, and the spread between them IS the phase.
-      --------------------------------------------------------------- */
-
-      /* 1. The two capitals travel and grow into the mark's own positions,
-            arriving together at 0.80·C. The target is the IDENTITY transform
-            — `namePose` expressed the opening state against each glyph's own
-            mark-space origin precisely so that this tween needs no correction
-            term and lands exactly on the faceted letter beneath it. */
-      tl.to(
-        initialEls,
+        dropEls,
         {
-          x: 0,
-          y: 0,
-          scale: 1,
-          duration: BECOMING_S * BECOMING_MEET_RATIO,
-          ease: "power2.out",
+          opacity: 0,
+          scale: NAME_SCALE * DROP_SCALE,
+          duration: DROP_S,
+          stagger: DROP_STAGGER_S,
+          ease: "power2.in",
         },
-        T_BECOMING,
+        T_DROP,
       );
 
-      /* 2. Each word collapses into its own initial and fades, staggered
-            outward-in from the word's end, gone by 45% of C. */
+      /* 3. SLIDE. The two survivors close up into a solid pair, re-centred.
+            SCALE IS UNTOUCHED HERE — it is the constant that keeps a single
+            type scale on screen, and `SLIDE_X` is a pen-origin x in the same
+            space `nameX` was, so this is one tween per letter on one property.
+
+            No `y` term, unlike the DOM original: that measured `dy` existed
+            because a flexed name can WRAP on a narrow viewport and a wrapped
+            FLIP that only corrects x slides the S onto a different line. An
+            SVG scales instead of wrapping, so there is no second line to
+            land on. */
       INTRO_GLYPHS.forEach((g, i) => {
-        if (g.letter) return; // the two capitals are track 1
+        if (!g.letter) return;
         tl.to(
           glyphEls[i],
           {
-            x: g.wordNameX - g.markX,
-            opacity: 0,
-            duration: BECOMING_S * GLYPH_FADE_RATIO,
-            ease: "power1.in",
+            x: SLIDE_X[g.letter] - g.markX,
+            duration: SLIDE_S,
+            ease: "power3.inOut",
           },
-          T_BECOMING + g.fadeOrder * GLYPH_STAGGER_S,
+          T_SLIDE,
         );
       });
 
-      /* 3. THE CROSSFADE, at the meeting instant. Two linear opacity ramps in
-            opposite directions between two shapes that occupy the same box —
-            see `CROSSFADE_S`. It finishes 0.06s before the contraction, so the
-            mark exists as a finished object for a beat rather than being
-            handed straight on to the next phase. */
-      const meet = T_BECOMING + BECOMING_S * BECOMING_MEET_RATIO;
-      tl.to(initialEls, { opacity: 0, duration: CROSSFADE_S, ease: "none" }, meet);
-      tl.to(letterEls, { opacity: 1, duration: CROSSFADE_S, ease: "none" }, meet);
+      /* 4. MORPH. The material change, overlapping the tail of the slide: the
+            letterforms are still closing when the mark comes up underneath
+            them. Both halves are at the SAME CAP HEIGHT and share a centre —
+            `NAME_SCALE` about `ANCHOR_X` on the mark's side, `SLIDE_X`'s
+            advance-centred pair on the name's — so this is a swap in place
+            rather than a dissolve between two sizes. */
+      tl.to(
+        initialEls,
+        {
+          opacity: 0,
+          scale: NAME_SCALE * MORPH_SWELL,
+          duration: MORPH_S,
+          ease: GSAP_EASE.ui,
+        },
+        T_MORPH,
+      );
+      tl.fromTo(
+        wrapper,
+        { opacity: 0, scale: NAME_SCALE * MORPH_MARK_FROM },
+        {
+          opacity: 1,
+          scale: NAME_SCALE,
+          duration: MORPH_S,
+          ease: GSAP_EASE.hero,
+        },
+        T_MORPH,
+      );
     } else {
-      // sequence === "mark": already settled. D and E only.
+      // sequence === "mark": start already formed. Phases 4 through 7.
       gsap.set(glyphEls, { display: "none" });
-      gsap.set(letterEls, { clearProps: "transform" });
-      gsap.set(letterEls, { opacity: 1 });
+      tl.fromTo(
+        wrapper,
+        { opacity: 0, scale: NAME_SCALE * MORPH_MARK_FROM },
+        {
+          opacity: 1,
+          scale: NAME_SCALE,
+          duration: MORPH_S,
+          ease: GSAP_EASE.hero,
+        },
+        0,
+      );
     }
 
+    /* The mark is formed and still from here. The two entry points converge:
+       `"full"` has spent its setup, `"mark"` has only paid for the morph. */
+    const tSettled = sequence === "full" ? T_SETTLED : MORPH_S;
+    const tZoomIn = tSettled + ZOOM_OUT_S + BREATH_S;
+
     /* -------------------------------------------------------------------
-       D — the contraction.
+       5. ZOOM OUT. The whole stage, so the mark backs off as one object.
 
-       ONE TWEEN, WHICH IS THE FACETED MARK'S DOING. The wrapper `<g>` scales
-       about `(296, 288)` — the baseline, in the 64-unit gap between the two
-       letters — and that is the entire contraction. The stroke ramp that used
-       to run alongside it is deleted: filled shapes scale their own ink, so
-       there is no blob to cancel.
-
-       THE SCALE TARGETS THE WRAPPER, NEVER THE TWO `data-ms-letter` GROUPS.
-       Those hooks belong to the navbar's hover gesture; a second author on the
-       same transform is how two systems start fighting the moment anyone reuses
-       the component.
-
-       `scale: 0` is a defined end state rather than an open-ended shrink: the
-       mark converges on one point at dead viewport centre, which is the origin
-       the hero then expands out of.
+       `GSAP_EASE.hero` is the long front-loaded tail: it arrives quickly and
+       then almost stops, which is what makes this read as settling rather than
+       as a second move.
     ------------------------------------------------------------------- */
     tl.to(
-      wrapper,
-      { scale: 0, duration: CONTRACT_S, ease: "power2.in" },
-      T_CONTRACT,
+      stage,
+      { scale: ZOOM_OUT_SCALE, duration: ZOOM_OUT_S, ease: GSAP_EASE.hero },
+      tSettled,
     );
 
+    /* 6. BREATH. Nothing is scheduled between the zoom-out and the zoom-in.
+          It is a named phase rather than a `+=0.22` buried in a call signature
+          because a designer has to be able to retune it. */
+
     /* -------------------------------------------------------------------
-       E — the two-sided beat.
+       7. ZOOM IN, which IS the transition.
 
-       `onHandoff` fires HERE, at the start, and the hero begins expanding while
-       the plate is still dissolving. The navbar rides the same instant and the
-       same duration, in this timeline, because "simultaneous" arranged as two
-       adjacent calls is simultaneous until one of them is retuned.
+       `power2.in` and not one of the shared curves, and this is the single
+       deliberate exception in the file. Every shared curve DECELERATES into its
+       end state, which is correct for something ARRIVING. This is the opposite:
+       the camera commits slowly and then accelerates past the viewport, and it
+       is the HERO underneath that decelerates into place. An eased-out zoom
+       here would put the brakes on at the exact frame the move is supposed to
+       be handing over, which reads as a stop followed by a cut.
     ------------------------------------------------------------------- */
-    tl.call(handoff, undefined, T_EXPAND);
+    tl.to(
+      stage,
+      {
+        scale: ZOOM_IN_SCALE,
+        duration: ZOOM_IN_S,
+        ease: "power2.in",
+        onStart: handoff,
+      },
+      tZoomIn,
+    );
 
+    /* The navbar rides the same instant and the same shared duration, in THIS
+       timeline, because "simultaneous" arranged as two adjacent calls is
+       simultaneous until one of them is retuned. `Hero.tsx` starts its own
+       arrival off `onHandoff` above, on the same constant. */
     if (nav) {
       gsap.set(nav, { yPercent: -100 });
-      tl.to(nav, { yPercent: 0, duration: EXPAND_S, ease: "power2.out" }, T_EXPAND);
+      tl.to(
+        nav,
+        { yPercent: 0, duration: HANDOFF_DURATION_S, ease: "power2.out" },
+        tZoomIn,
+      );
     }
 
     tl.to(
       plate,
-      { autoAlpha: 0, duration: PLATE_DISSOLVE_S, ease: GSAP_EASE.ui },
-      T_EXPAND,
+      {
+        autoAlpha: 0,
+        duration: ZOOM_IN_S * PLATE_DISSOLVE_RATIO,
+        ease: GSAP_EASE.ui,
+      },
+      tZoomIn + ZOOM_IN_S * (1 - PLATE_DISSOLVE_RATIO),
     );
-    // The timeline must still be 2.35s long even though the dissolve is shorter
-    // than E, so that `onComplete` lands on the phase boundary rather than
-    // 0.15s early.
-    tl.to({}, { duration: 0 }, INTRO_TOTAL_S);
 
     return () => {
       tl.kill();
@@ -519,26 +554,41 @@ export function Intro({
       aria-hidden="true"
     >
       {/*
-        POSITIONED BY THE CONTRACTION POINT, NOT BY THE BOX.
+        POSITIONED BY THE MARK'S ANCHOR, NOT BY THE BOX.
 
         `(296, 288)` has to land on dead viewport centre, and it sits at 50% of
         the mark's width and 90% of its height. So the box is offset by exactly
-        that: `-translate-x-1/2 -translate-y-[90%]`. The mark therefore hangs in
-        the upper-middle of the screen with its baseline running through the
-        centre — which is the intended composition, not an offset to correct
-        (`docs/07` §3.2). The name inherits it for free, because the name is
-        drawn on the same baseline in the same viewBox, which is what makes the
-        merge in §3 step 3 land where the contraction begins.
+        that: `-translate-x-1/2 -translate-y-[90%]`. The name inherits it for
+        free, because the name is drawn on the same baseline in the same
+        viewBox (`docs/07` §3.2).
 
         The width cap keeps the spectacle from becoming a billboard on an
         ultrawide.
       */}
       <div
-        ref={markRef}
+        ref={hostRef}
         className="absolute left-1/2 top-1/2 w-[min(84vw,420px)] -translate-x-1/2 -translate-y-[90%] md:w-[min(62vw,720px)]"
-        style={{ willChange: "transform, opacity" }}
       >
-        <MonogramMark variant="intro" className="block h-auto w-full" />
+        {/*
+          THE CAMERA, and it is a separate element from the one above on
+          purpose: that div owns the composition's offset and this one owns the
+          zoom, so GSAP never has to share the `transform` property with a
+          Tailwind class.
+
+          IT IS AN HTML ANCESTOR OF THE SVG RATHER THAN A `<g>` INSIDE IT. An
+          `<svg>` clips to its own viewport, so a ×17 scale applied within the
+          coordinate system would be thrown away at the box edge — the mark
+          would grow into an invisible frame. Scaling the element that CONTAINS
+          the svg scales the viewport too, and the plate's `overflow-hidden` is
+          then the only thing doing any clipping.
+
+          Its transform origin is set in `reset()` — `50% 90%`, the anchor
+          again, so the camera's fixed point is the same `(296, 288)` that sits
+          at dead viewport centre, which is the pixel `Hero.tsx` expands out of.
+        */}
+        <div ref={stageRef} style={{ willChange: "transform" }}>
+          <MonogramMark variant="intro" className="block h-auto w-full" />
+        </div>
       </div>
     </div>
   );

@@ -69,99 +69,123 @@ transition. Do not mix the words again.
 
 ## 2. The Intro's confirmed sequence
 
-> **REWRITTEN IN PHASE 1 OF THE RESTRUCTURE.** The four-step sequence this
-> section used to describe — name, contraction to the liquid-glass mark, a small
-> zoom-out, then a `scale: 17` zoom-in that carried into the hero — is gone.
-> `docs/07_SITE_RESTRUCTURE.md` §3 replaced steps 3 and 4 with a contraction to
-> a point and an expansion out of it, and §2 retired the glass/liquid mark for
-> circuit-trace geometry. The phase split below is the one shipped.
-> The old table is in the history; do not restore it piecemeal.
+> **THE ORIGINAL SEQUENCE IS BACK, 2026-08-22.** This section described a
+> five-phase merge-to-a-point for one day. It was built, shipped, captured, found
+> broken, and reverted on Saad's instruction. **`docs/07` §3 carries the full
+> reversal notice, the frame evidence and the recovery refs** —
+> branch `intro-merge-to-point-backup`, tag `intro-plan-a` — and is the
+> authority on *why*. This section is the authority on *what*: the phase table,
+> the durations and the eases.
 >
-> **AMENDED AGAIN — the mark is FACETED and phase C is a CROSSFADE.** The
-> circuit-trace mark above was itself replaced, on Saad's call, by eight filled
-> quadrilaterals (`docs/07` §2's superseded banner, and
-> `.claude/handoff/ms-mark-faceted-design.md`). **Only phase C's mechanism
-> changed with it. Every phase boundary, every duration and the 2.35s total are
-> untouched** — A, B, D and E are exactly as they were. What is gone is the
-> glyph-to-trace morph, the 80/100 split inside C, the node-dot power-up, and
-> D's `--ms-stroke` ramp.
+> **What did NOT revert with it.** The mark is still the faceted one (`docs/07`
+> §2), the name is still pre-extracted outlines rather than DOM `<text>`, and
+> `AssetLoader` still gates this component. Only the *sequence* went back.
 
-Five phases, **2.35s total** (measured: 2.350s from the Intro plate mounting to
-it unmounting, on the faceted build; 2.354s on the trace build before it). The per-phase split lives in `components/intro/Intro.tsx` as
+Seven phases, **3.17s total** (measured: 3.174s from the Intro plate mounting to
+it unmounting). The per-phase split lives in `components/intro/Intro.tsx` as
 named constants, which is where it should be tuned.
 
 | | Phase | Duration | Starts | Ease |
 |---|---|---|---|---|
-| A | "Muhammad Saad" appears, as **filled glyph outlines** | 0.22 | 0.00 | `power2.out` |
-| B | It holds, long enough to register as a name | 0.13 | 0.22 | — |
-| C | **The merge** — approach, then a crossfade | 1.05 | 0.35 | see below |
-| D | Contraction to a point, then a 0.06 hold on it | 0.44 + 0.06 | 1.40 | `power2.in` |
-| E | Hero expansion **and** navbar entrance | 0.45 | 1.90 | `power2.out` |
+| 1 | **HOLD** — "Muhammad Saad", as filled glyph outlines, still | 0.30 | 0.000 | — |
+| 2 | **DROP** — the ten non-initials shrink and fade, staggered | 0.35 (+0.015 stagger) | 0.300 | `power2.in` |
+| 3 | **SLIDE** — the two survivors close up and re-centre | 0.42 | 0.785 | `power3.inOut` |
+| 4 | **MORPH** — text becomes mark, overlapping the slide's tail | 0.40 | 0.995 | `GSAP_EASE.ui` / `.hero` |
+| 5 | **ZOOM OUT** — the stage backs off to 0.82 | 0.60 | 1.395 | `GSAP_EASE.hero` |
+| 6 | **BREATH** — nothing happens | 0.22 | 1.995 | — |
+| 7 | **ZOOM IN** — `scale: 17`, into the Hero | 0.95 | 2.215 | `power2.in` |
 
-**A: the name is not DOM `<text>`.** It is Space Grotesk's own contours,
+Phase 2's stagger makes it 0.485s wide for the ten glyphs that leave, which is
+why phase 3 starts at 0.785 rather than 0.650. **The count is derived from
+`HERO_NAME`, never written down** — and it is 10 rather than the DOM original's
+11, because the space is not in `INTRO_GLYPHS` at all (it carries advance, no
+ink). Phase 2 is 15ms shorter than the original's as a result. That is the only
+duration in the table that is not `f640107`'s verbatim.
+
+**THE ONE INVARIANT THAT MATTERS MORE THAN ANY DURATION HERE: there is never
+more than one type scale on screen.** The non-initials leave in phase 2, the
+survivors move at a constant scale in phase 3, and the scale change is deferred
+to phase 4 — by which point the only things on screen are two letterforms
+occupying the same box. The reverted merge grew the two capitals *while* the
+other ten were still at name scale, and they collided. Anything that replaces
+this sequence later has to preserve the ordering, not just the beats.
+
+**Phase 1: the name is not DOM `<text>`.** It is Space Grotesk's own contours,
 pre-extracted at build time into `components/ui/msMarkGlyphs.ts` and rendered as
-**filled** paths, like the mark itself. The old reason for rendering outlines —
-that fill and stroke cannot interpolate, so a morph forbade a paint-mode swap —
-died with the morph. **The reason it is still right:** outlines put the name and
-the mark in ONE coordinate system, so each capital's travel is a tween to the
-*identity* transform and it lands on its faceted letter exactly, same baseline,
-same cap height, same left edge. DOM text would need a `TextMetrics` baseline
-probe to get within a few pixels of that, and this file deleted one already.
+**filled** paths, like the mark itself. Outlines put the name and the mark in ONE
+coordinate system, which is what deletes the `TextMetrics` baseline probe, the
+three mirrored mark constants and the measured FLIP that the DOM version needed.
+DOM text would put all three back.
 
-**C is three tracks that deliberately do not finish together.** The two capitals
-translate and grow to their positions in the mark over `0 → 0.80·C`
-(`power2.out`), arriving together at **t = 1.19 — the meeting, at dead centre**.
-The other ten glyphs collapse into their own word's initial and fade over the
-first 45% of C, staggered outward-in. At the meeting the two capitals
-**crossfade** into the faceted letters they have arrived on top of, over 0.15s,
-both halves on a LINEAR ramp — two opposed linear opacity ramps sum to a roughly
-constant apparent density, whereas eased ones dip in the middle and the dip is
-what makes a crossfade read as a flicker. That leaves **0.06s of the settled
-mark standing still** before the contraction. **Never let that tail reach
-zero**: the merge would land on the same frame the contraction starts and the
-mark would never exist as a finished object.
+**Phase 3 is arithmetic where the original was a measured FLIP.** The DOM Intro
+collapsed the non-initial `<span>`s to `display: none`, let the flex row reflow,
+and read the survivors' new rects back out. There is no layout inside an SVG to
+reflow, so `SLIDE_X` in `msMarkGeometry.ts` computes the same two facts — the
+pair set solid on the font's own advance widths, and the pair re-centred in the
+box — from the same font metrics. A font swap still moves it. There is also no
+`dy` term any more: the measured version corrected `y` because a flexed name can
+**wrap** on a narrow viewport, and an SVG scales instead of wrapping.
 
-> The 80/100 morph split, the 0.21s morph tail and the node-dot power-up are all
-> gone with the trace mark. They are recorded here because the *meeting instant*
-> they produced — 1.19 — is unchanged, and someone comparing timelines will
-> otherwise assume the phase was retuned. It was not.
+**Phase 4 is a swap in place, not a dissolve between two sizes.** The parked
+pair is advance-centred on `VB_W / 2`, which is `ANCHOR_X`, which is where the
+settled mark's ink is centred — and both are rendered at `NAME_SCALE`, so the
+cap heights are identical. The mark eases in from 1.1× while the letterforms
+swell to 1.04× and fade, which is what makes it read as a replacement from
+underneath rather than a switch. It starts at 50% of phase 3, deliberately: the
+material changes while the letters are still closing.
 
-**D is ONE tween now.** The wrapper group scales to zero about `(296, 288)` and
-that is the whole contraction. The `--ms-stroke` ramp that used to run alongside
-it was a correctness requirement for a stroked mark — `non-scaling-stroke` holds
-weight constant in device pixels, so a mark collapsing inside a fixed outline
-thickens into a blob — and **filled shapes scale their own ink, so it is deleted
-rather than retuned.** One consequence: the old hold sat on a visible disc,
-because a stroked path at `scale: 0` still paints its round caps; filled shapes
-leave nothing. The 60ms hold still stops the contraction and the expansion
-reading as one rubber-band motion through zero, which was always its main job.
+**Phase 7 is the transition, not a step before one.** `scale: 17` on an HTML
+ancestor of the SVG — **not a `<g>` inside it**, because an `<svg>` clips to its
+own viewport and a ×17 scale applied in the coordinate system would be thrown
+away at the box edge. The camera's fixed point is `(296, 288)`, i.e. dead
+viewport centre, which is the pixel `Hero.tsx` expands out of. The plate
+dissolves over the **back two-thirds** of the move: not at the top, where the
+mark is still small and would read as an object sitting on the hero rather than
+something the camera is moving through; and not confined to the last third,
+which is where the original started and which meant the hero had finished
+arriving before anyone could see it.
 
-**E is a two-sided move and all three sides are required.** `Intro` fires
-`onHandoff` as the expansion *starts*, not when it ends. `Hero` uses that to
-expand out of the contraction pixel — scale `0 → 1` about a `50% 50%` origin,
-opacity `0 → 1` — and the **navbar slides down on the same start and the same
-duration, from the same timeline**, because `docs/07` §1 and §3 step 6 ask for
-one beat rather than two adjacent ones. The shared length is `HANDOFF_S` in
-`lib/animation/handoff.ts`; a duration written down twice is a duration until
-someone retunes one copy. Collapsing `onHandoff` and `onComplete` into a single
-callback turns the seam back into a cut. The plate finishes dissolving at 0.30
-of E's 0.45, so the last third of the expansion happens in front of the visitor.
+**The handoff is two-sided and all three sides are required.** `Intro` fires
+`onHandoff` as the **zoom-in starts**, not when it ends. `Hero` uses that to
+begin its arrival, and the **navbar slides down on the same start, from the same
+timeline**, because `docs/07` §1 asks for one beat rather than two adjacent
+ones. The shared length is `HANDOFF_S` in `lib/animation/handoff.ts`; a duration
+written down twice is a duration until someone retunes one copy. Collapsing
+`onHandoff` and `onComplete` into a single callback turns the seam back into a
+cut. **Measured on the running timeline: the hero's arrival and the navbar's
+slide both begin at 2.205s** — within one frame of the zoom-in's 2.215s.
 
-The eases are deliberate exceptions to the shared curves in
-`lib/animation/easing.ts`, for one reason: every shared curve decelerates into
-its end state, which is right for something *arriving* and wrong for something
-*leaving*. D uses `power2.in`; the expansion uses `power2.out` rather than
-`GSAP_EASE.hero`, because easeOutExpo spends 80% of its travel in the first
-quarter and — measured on the running timeline — finished the arrival while the
-plate was still 74% opaque, i.e. entirely off-screen.
+> **OPEN, and deliberately not fixed inside the revert.** `HANDOFF_S` is 0.45s,
+> which was tuned for the merge's expansion out of a *point*. Against a 0.95s
+> zoom-in the hero is fully settled ~0.42s before the plate clears, so the camera
+> passes over a hero that has already arrived. The original paired the zoom with
+> a hero settling out of a matching **over-scale** for 1.6s. Nothing looks
+> broken; the two halves of the seam are simply no longer describing the same
+> move. `Hero.tsx`'s header still describes the contraction it expanded from, and
+> will need the same pass.
 
-**Under `prefers-reduced-motion` none of A–E runs.** The settled mark fades in
+Phase 7's `power2.in` is a deliberate exception to the shared curves in
+`lib/animation/easing.ts`: every shared curve *decelerates* into its end state,
+which is right for something **arriving** and wrong for something **leaving**.
+The camera commits slowly and then accelerates past the viewport; it is the hero
+underneath that decelerates into place. An eased-out zoom would put the brakes on
+at the exact frame the move is supposed to be handing over.
+
+**Under `prefers-reduced-motion` none of the seven phases run.** The settled mark fades in
 at About-instance size (72px), holds, and cross-fades to the hero and the
 navbar: 0.20 + 0.10 + 0.25 = **0.55s** total, measured 0.57s. No name, no
 approach, no merge, no contraction.
 Someone who asked for less motion is not owed a shorter version of the
 spectacle, they are owed its absence. `onHandoff` still fires on that path, so
 no consumer has to special-case "the intro did not run".
+
+> **One trap, recorded because it was shipped.** The reduced-motion path
+> re-centres the mark's box on its own middle, and it has to do that by writing
+> the **`translate`** property — not by GSAP's `xPercent`/`yPercent`. Tailwind v4
+> compiles `-translate-x-1/2 -translate-y-[90%]` to the standalone `translate`
+> property, which **composes with** `transform` rather than being replaced by it,
+> so a GSAP transform adds a second offset to the first and pushes the mark off
+> the top of the screen. Same property, or no override.
 
 ### Replayability is a requirement, not a nicety
 
@@ -171,8 +195,8 @@ beat**. `Intro` is therefore built to be re-run:
 - the timeline is **built fresh on every play**, keyed off a `playToken` prop;
 - a `reset()` runs first, so a second play is identical to the first rather than
   inheriting whatever transform the last one left behind;
-- `sequence="mark"` plays **phases D and E** without the name — starting from
-  the settled mark — which is the shape a transition wants.
+- `sequence="mark"` plays **phases 4 through 7** without the name — starting
+  from the settled mark — which is the shape a transition wants.
 
 It deliberately does **not** own the scroll lock (see §3).
 

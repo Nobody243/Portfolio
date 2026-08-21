@@ -135,6 +135,34 @@ time.
 
 ## 3. Intro
 
+> ### ⛔ SUPERSEDED 2026-08-22 — the merge-to-a-point sequence was built, shipped, found broken in practice, and REVERTED.
+>
+> **What this section used to specify**, and what the code actually shipped: the name's two capitals
+> *travelled and grew* into the mark's positions while the other ten glyphs collapsed and faded, the
+> formed mark then *contracted to a point* at `(296, 288)`, and the hero *expanded out of that point*.
+> Step 5 said in as many words that this **"replaces the scale-17 zoom entirely"**. **That is now
+> reversed.** The seven-phase sequence below — hold, drop, slide, morph, zoom-out, breath, zoom-in — is
+> what ships, and the `scale: 17` zoom-in is the transition again.
+>
+> **Why it was reverted, from capture rather than from taste.** The merge puts two type scales on
+> screen at the same time and they collide. At 250ms the name renders correctly as "Muhammad Saad" at
+> text scale. By 500ms the M and S have reached full mark scale **while "uhammad" and "aad" are still
+> at text scale**, so the two capitals sit on top of the small letters as an overlapping mess. The
+> "becoming" never becomes anything. Saad's call: *"the intro is still fucked up so move it back to
+> what it was originally — the name merged into MS and then it zooms in to the hero section."*
+>
+> **The structural property the old sequence has and the merge lost**, which is the actual lesson and
+> is binding on anything that replaces this later: the non-initials **leave first**, the survivors
+> **then** move at a constant scale, and the scale change is deferred until the only things on screen
+> are two letterforms occupying the same box. **There is never more than one type scale on screen.**
+> Any future mechanic that grows one glyph while another is still at name scale reproduces this bug.
+>
+> **Nothing is lost and the reasoning below is not deleted.** The merge-to-point implementation is
+> preserved on branch **`intro-merge-to-point-backup`** and tag **`intro-plan-a`**, and its per-phase
+> timing brief is `.claude/handoff/intro-timing-design.md` (marked superseded at the top). The mark
+> itself is **not** reverted — §2's faceted geometry stays exactly as it is, and the restored sequence
+> drives it.
+
 **Trigger — fixed.** Plays on **actual document load or browser refresh only**. Not gated on
 asset-load speed. Not skipped by a "seen this session" flag. Client-side route navigation back to Home
 from About/Work does **not** replay it. Any existing logic tying Intro visibility to the Loader
@@ -159,33 +187,44 @@ resolving, or to a visited flag, is **removed, not tuned**.
 > protection with it. That is a conclusion-right / reason-wrong comment, the class this project has
 > shipped six of.
 
-### 3.2 The contraction point is `(296, 288)`, and the mark is POSITIONED BY IT
+### 3.2 The mark's anchor is `(296, 288)`, and the mark is POSITIONED BY IT
 
 Promoted from the design brief because it constrains layout, not just motion.
 
-**Why the baseline and not the bbox centre.** Collapsing toward `(296, 160)` makes the mark cross
-itself: the M's outer stems travel in opposite vertical directions, so the left stem passes through
-itself for roughly 150ms — a scribble at exactly the beat §3 wants to read as deliberate. On the
-baseline, all twelve nodes travel monotonically down-and-inward or straight along it; nothing crosses.
-The baseline is also the one line both letters share, so they arrive together, and `x = 296` falls
-inside the letter gap — **the mark drains into its own seam.**
+> **RENAMED 2026-08-22.** This was "the contraction point", and the constants were `CONTRACT_X` /
+> `CONTRACT_Y`. The contraction is gone (see §3's superseded banner) but the point survived it,
+> because the point was never really about the contraction — the name was. It is now `ANCHOR_X` /
+> `ANCHOR_Y` in `components/ui/msMarkGeometry.ts`.
 
-**The layout consequence, which is real and easy to miss.** The Intro's mark is positioned so its
-*contraction point* sits at dead viewport centre — **not its bounding box.** The box centre therefore
-sits ~193px above viewport centre, and the mark hangs upper-middle with its baseline running through
-the centre of the screen. **Step 1's name has the identical requirement**, or the merge in §3 step 3
-lands somewhere other than where the contraction begins.
+**It wears three hats, and all three are live.**
 
-Execution: a group scale about `transform-origin: 296px 288px`, and **that is the whole contraction.**
+1. **Composition.** The Intro's mark is positioned so *this point* sits at dead viewport centre —
+   **not its bounding box.** The box centre therefore sits ~193px above viewport centre, and the mark
+   hangs upper-middle with its baseline running through the centre of the screen. The name has the
+   identical requirement, and gets it for free by being drawn on the same baseline in the same
+   viewBox.
+2. **The text→mark scale.** The settled mark is rendered at `NAME_SCALE` **about this point**, so it
+   appears at exactly the cap height of the name it replaces. `x = 296` is the mark's own **ink**
+   centre — the M runs 32→280 and the S 344→560 — which is what keeps the pair optically centred at
+   any scale and lets the crossfade be a swap in place rather than a dissolve between two sizes.
+3. **The camera's fixed point.** The zoom-out and the zoom-in both pivot here, so the move pushes into
+   dead viewport centre — which is the pixel `Hero.tsx` expands out of.
 
-> **AMENDED with the faceted mark.** This used to require a *simultaneous `--ms-stroke` ramp*, because
-> `non-scaling-stroke` holds weight constant in device pixels while the geometry collapses inside it,
-> so the mark thickened into a blob. **Filled shapes scale their own ink, so the ramp is deleted, not
-> retuned** — one tween, no correctness hazard. One consequence: a stroked mark at `scale: 0` still
-> painted its round caps, so the old hold sat on a visible disc; filled shapes scale to zero area and
-> leave nothing. The 60ms hold still does its primary job, which is separating two moves that would
-> otherwise read as one continuous scale through zero. The hero expands from the point the mark
-> arrived at, exactly as before.
+`x = 296` also falls inside the 64-unit letter gap, so anything that collapses here drains into the
+mark's own seam.
+
+> **RECORDED, NOT DELETED — why the baseline and not the bbox centre.** The original argument was
+> about the contraction: collapsing toward `(296, 160)` makes the mark cross itself, because the M's
+> outer stems travel in opposite vertical directions and the left stem passes through itself for
+> roughly 150ms — a scribble at exactly the beat that is supposed to read as deliberate. That
+> particular hazard died with the contraction. The conclusion did not, for hats 1 and 3 above, and the
+> argument is kept here so that anyone who reintroduces a collapse knows why the box centre is wrong.
+
+> **ALSO RECORDED — the `--ms-stroke` ramp.** A stroked mark needed a *simultaneous weight ramp*
+> whenever it changed scale, because `non-scaling-stroke` holds weight constant in device pixels while
+> the geometry shrinks inside it, so the mark thickened into a blob. **Filled shapes scale their own
+> ink, so the ramp is deleted, not retuned.** This matters again now: the restored sequence scales the
+> mark twice (to `NAME_SCALE`, then by the camera) and neither needs a correction.
 
 ### 3.1 Glyph outlines are pre-extracted at build time — a funded step, not an assumption
 
@@ -199,12 +238,24 @@ Execution: a group scale about `transform-origin: 296px 288px`, and **that is th
 > **Everything else in this section still holds, for a different reason.** The name is still rendered
 > from pre-extracted Space Grotesk outlines (`components/ui/msMarkGlyphs.ts`) rather than DOM `<text>`,
 > and `opentype.js` still never reaches the browser. The reason is no longer "MorphSVG cannot consume
-> `<text>`" — it is that outlines put the name and the mark in **one coordinate system**, so each
-> capital's journey is a tween to the *identity* transform and it lands on its faceted letter exactly:
-> same baseline, same cap height, same left edge. That exactness is what makes the crossfade read as
-> one letterform settling into another instead of two misaligned images dissolving, and it is what
-> keeps a `TextMetrics` baseline probe out of the file. Rendering the name as DOM text would put that
-> probe back.
+> `<text>`" — it is that outlines put the name and the mark in **one coordinate system**, so both
+> halves of every phase are stated in the same units and there is nothing to measure at runtime. That
+> is what keeps a `TextMetrics` baseline probe out of the file. Rendering the name as DOM text would
+> put it back.
+>
+> **AMENDED AGAIN 2026-08-22, when the merge was reverted.** The specific claim above used to be *"each
+> capital's journey is a tween to the identity transform and it lands on its faceted letter exactly"*.
+> That was the merge's mechanic and it is gone. The one coordinate system now buys two different
+> things, and they are worth more than the one it replaced:
+>
+>   - **The slide is arithmetic instead of a measured FLIP.** The original DOM Intro collapsed the
+>     non-initial `<span>`s to `display: none`, let the flex row reflow, and read the survivors' new
+>     rects back out. There is no layout inside an SVG to reflow, so `SLIDE_X` computes the same two
+>     facts — the pair set solid on the font's own advances, and re-centred in the box — from the same
+>     font metrics. A font swap still moves it.
+>   - **The crossfade is a swap in place.** The parked pair is advance-centred on `VB_W / 2`, which is
+>     `ANCHOR_X`, which is where the settled mark's ink is centred, and both are rendered at
+>     `NAME_SCALE`. Same cap height, same centre, no correction term.
 
 `gsap/MorphSVGPlugin.js` is present and is the unrestricted 3.15.0 build (verified: zero trial, Club
 or license-key strings). Its headline capability — interpolating paths with mismatched point and
@@ -226,32 +277,45 @@ missing from the phase list.
 - Plugin registration, if one is ever needed again, goes through `lib/animation/gsap.ts` and nowhere
   else. That module exists because an unregistered plugin fails **silently in production**.
 
-**Sequence (replaces the old phase table):**
+**Sequence — seven phases, restored 2026-08-22.** The per-phase table with eases lives in
+`docs/06_INTRO_AND_CHROME.md` §2; the constants live in `components/intro/Intro.tsx`, which is where
+they are tuned. This is the shape, not the tuning.
 
-1. Full name "Muhammad Saad" appears, as filled glyph outlines.
-2. Each word collapses into its own initial while the two capitals travel and grow into the mark's own
-   positions. **The meeting is the final joining beat** — and at it, the two capitals **crossfade**
-   into the faceted letters they have arrived on top of, over 0.15s, leaving 0.06s of the settled mark
-   standing still before it contracts.
-   > **This reverses "a becoming, not a crossfade", deliberately and on Saad's instruction.** That rule
-   > was written for a stroked mark, where a morph was available and a swap would have been a dodge.
-   > A filled mark cannot morph from a letterform without path interpolation nobody needs, and
-   > `.claude/handoff/ms-mark-faceted-design.md` §8 states the requirement as *simpler and more
-   > robust, not more clever*. What makes the crossfade honest rather than a cover-up is that both
-   > halves occupy the same box at the same instant — see §3.1.
-3. The merge point is **dead centre** of the screen. This is a real layout constraint on steps 1–2: the
-   name's layout and the letters' approach paths must be designed so the merge lands exactly at centre.
-4. Once formed, the mark **contracts to a single point** at that same centre. It does not zoom up.
-   **That point is `(296, 288)` in the mark's viewBox — horizontal centre, on the baseline. NOT the
-   bounding-box centre `(296, 160)`; see §3.2.**
-5. The hero **expands outward from that exact point.** This replaces the scale-17 zoom entirely — a
-   single defined origin, not an open-ended scale-up.
-6. **Simultaneously** with step 5, the navbar slides down (§1). One beat.
+1. **HOLD.** Full name "Muhammad Saad" appears as filled glyph outlines and is *held still*, long
+   enough to read as a name rather than as a flash.
+2. **DROP.** The ten non-initials shrink and fade, staggered left to right. Only M and S are left
+   standing. **They leave before anything else moves** — that ordering is the whole point of this
+   sequence and is the property the reverted merge lost.
+3. **SLIDE.** The two survivors close up into a solid "MS" and re-centre. **Scale is untouched here.**
+4. **MORPH.** Text becomes mark: the letterforms crossfade into the faceted monogram **at the same cap
+   height, on the same centre**. It overlaps the tail of the slide, so the material changes while the
+   letters are still closing rather than after they have parked.
+   > **The crossfade is still a crossfade, and "a becoming, not a crossfade" is still reversed.** That
+   > rule was written for a stroked mark, where a morph was available. A filled mark cannot morph from
+   > a letterform without path interpolation nobody needs, and
+   > `.claude/handoff/ms-mark-faceted-design.md` §8 states the requirement as *simpler and more robust,
+   > not more clever*. What makes it honest rather than a cover-up is that both halves occupy the same
+   > box at the same instant — see §3.1.
+5. **ZOOM OUT.** A small backing-off of the whole stage. A settling beat, not a second move.
+6. **BREATH.** Nothing happens. That is the phase — it is what makes the zoom-in read as a decision.
+7. **ZOOM IN.** `scale: 17`, accelerating past the viewport and into the Hero. **The zoom-in IS the
+   transition**, not a step that happens before one: the plate never cuts, it dissolves over the back
+   two-thirds of the move while the hero arrives underneath.
+   - **Simultaneously with the start of step 7**, the navbar slides down (§1) and `Hero` begins its
+     arrival. One beat, one shared duration (`HANDOFF_S` in `lib/animation/handoff.ts`).
 
-**Timing.** Total **~2.2–2.6s**, down from ~3.2s. Trim the early setup (hold on the name, letter
-approach) harder; keep the contraction→expansion handoff near its previous weight (**~0.8s**) — that is
-the moment that must read as deliberate rather than rushed. The per-phase split is a design judgment
-within that budget, not a fixed table.
+**Timing.** Total **3.17s**, measured plate-mount to plate-unmount. The `~2.2–2.6s` budget this
+section used to set belonged to the reverted merge and does not apply: the zoom-out and the breath are
+back, and they cost 0.82s between them. The zoom-in is held at **0.95s**, which is the weight it has
+always had.
+
+**The seam is currently mismatched and it is a known open item, not an oversight.** `Hero.tsx` still
+carries the merge's arrival — `scale 0 → 1` over `HANDOFF_S` (0.45s) — because it expanded out of a
+*point*. Against a 0.95s zoom-in the hero is fully settled ~0.42s before the plate finishes
+dissolving, so the camera passes over a hero that has already arrived. The original paired the zoom
+with a hero settling out of a matching *over-scale* for 1.6s. Nothing looks broken, but the two halves
+of the seam are no longer describing the same move. **Deciding that is Saad's, and it is deliberately
+not bundled into the revert.**
 
 **Reduced motion.** Collapses to something minimal — a quick fade to the settled mark plus an instant
 hero reveal — rather than the full choreography at a different speed. See §8.
