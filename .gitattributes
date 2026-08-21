@@ -1,0 +1,38 @@
+# Line endings — normalise in the INDEX, leave the working tree to the platform.
+#
+# WHY THIS FILE EXISTS. `core.autocrlf=true` is set locally, and today every
+# committed blob is LF (`git ls-files --eol` reports `i/lf` across the tree).
+# But autocrlf is a *per-clone config*, not a property of the repository: a
+# collaborator, a CI runner, or this same machine after a fresh clone with a
+# different setting can commit CRLF blobs, and the next diff comes back full of
+# phantom line-ending changes that bury the real one.
+#
+# `text=auto` moves that guarantee from a machine's config into the repo, where
+# it belongs. Checkout still respects the platform, so Windows working files
+# stay CRLF and nothing about the local workflow changes.
+#
+# THIS ALSO MATTERS FOR REVIEW ON THIS PROJECT SPECIFICALLY. `git status`,
+# `git diff --numstat`, `grep -c $'\r'` and `cat -A` have all misreported
+# working-tree line-ending damage here, because MSYS translates on read and
+# autocrlf normalises on staging. That near-miss is recorded in the Ticket 3
+# handoff. Verify line endings by byte count, never by git.
+* text=auto
+
+# Binary — never normalise, never diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.mp4 binary
+*.webm binary
+
+# Generated — collapse in diffs and mark as such in language stats.
+package-lock.json linguist-generated=true -diff

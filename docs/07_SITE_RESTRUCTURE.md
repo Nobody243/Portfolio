@@ -73,6 +73,51 @@ asset-load speed. Not skipped by a "seen this session" flag. Client-side route n
 from About/Work does **not** replay it. Any existing logic tying Intro visibility to the Loader
 resolving, or to a visited flag, is **removed, not tuned**.
 
+> ### ✅ D7 RESOLVED 2026-08-21 — the Loader SURVIVES. Only the coupling goes.
+>
+> "Not gated on asset-load speed" above means **the Intro's timeline is not driven by progress**. It
+> does not mean `AssetLoader` is deleted. `docs/06` §1 already draws this line: *"By the time it plays,
+> the Loader has already guaranteed everything it measures against is in. Its timings are entirely
+> about feel."* What is removed is the **visited flag** and any logic that lets asset progress shape
+> the Intro's *behaviour* — not the readiness gate itself.
+>
+> **The reason is load-bearing, so it is recorded precisely.** The Loader stays because `docs/06` §1
+> scopes it to *"the two webfonts, at the two weights used above the fold. Nothing else."* The hero
+> tagline (Space Grotesk, `text-h4`) and the navbar (JetBrains Mono, `text-caption`) are above the fold
+> and need those faces **whatever the mark does**.
+>
+> **Do NOT record "the morph needs Space Grotesk outlines" as the reason.** It is true today and it
+> dissolves the moment §3.1's outlines are pre-extracted — after which someone reads that
+> justification, observes it no longer holds, and deletes the Loader, taking the tagline's FOUT
+> protection with it. That is a conclusion-right / reason-wrong comment, the class this project has
+> shipped six of.
+
+### 3.1 Glyph outlines are pre-extracted at build time — a funded step, not an assumption
+
+`gsap/MorphSVGPlugin.js` is present and is the unrestricted 3.15.0 build (verified: zero trial, Club
+or license-key strings). Its headline capability — interpolating paths with mismatched point and
+subpath counts — is exactly step 2's problem, which makes the morph a tooling question rather than a
+research one.
+
+**But MorphSVG morphs `path` → `path`, and the Intro's source is `<text>`.** `convertToPath()` handles
+`rect` / `circle` / `ellipse` / `line` / `polygon` / `polyline` — **not `text`** (verified against the
+shipped plugin). Something must produce outline path data for the letterforms, and that step was
+missing from the phase list.
+
+- **Pre-extract the Space Grotesk outlines at build time**, into the same geometry module that holds
+  the mark's trace geometry. One dataset then holds both the source and the target of the morph, which
+  is what D9's "one asset, reused everywhere" actually buys.
+- **Do not add `opentype.js` at runtime.** That puts a new dependency on the first-paint path to solve
+  a problem with a static answer.
+- **Step 1 should render those outlines, not DOM `<text>`.** Two reasons: it removes the morph's
+  runtime font dependency entirely, and a DOM-text-to-SVG handover is a **crossfade** however it is
+  dressed — which §3 step 2 explicitly rules out. Rendering the outlines from the first frame is what
+  makes "a becoming, not a crossfade" literally true rather than aspirational.
+- Registration goes through `lib/animation/gsap.ts`. That module exists because an unregistered plugin
+  fails **silently in production**. `Intro.tsx:47`'s "NO FLIP PLUGIN" is not a blanket ban — its stated
+  test is whether a registration earns its keep. A four-rect manual FLIP does not; mismatched-point
+  path morphing plainly does.
+
 **Sequence (replaces the old phase table):**
 
 1. Full name "Muhammad Saad" appears.
