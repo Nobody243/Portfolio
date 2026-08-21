@@ -13,6 +13,14 @@
  * `featured` or `order` field — an explicit ordering field that duplicates
  * array position is a second source of truth that will drift.
  *
+ * THAT RULE SURVIVED PHASE 3 INTACT. Home shows three of these five, and it
+ * still has no `featured` field: `FEATURED_SLUGS` at the bottom of this file is
+ * a MEMBERSHIP SET — which three, never in what sequence — and the derived
+ * `featuredProjects` filters this array, so array order supplies Home's order
+ * for free. Read that export's own header before touching it; an ordered
+ * featured LIST is the second source of truth this paragraph rejects, and rev 1
+ * of the restructure plan proposed exactly that before correcting itself.
+ *
  * IMAGES ARE STATIC IMPORTS, never string paths. A missing or misnamed file is
  * then a BUILD ERROR instead of a broken <img> in production, and
  * StaticImageData carries real intrinsic width/height so next/image prevents
@@ -263,6 +271,55 @@ export type ProjectSlug = (typeof projects)[number]["slug"];
 
 /** For Ticket 7's generateStaticParams. */
 export const projectSlugs = projects.map((project) => project.slug);
+
+/**
+ * The three projects Home features — Phase 3.
+ *
+ * A SET, NOT AN ARRAY, AND THAT IS THE ENTIRE POINT. This expresses MEMBERSHIP
+ * ONLY: which three, never in what sequence. An ordered featured list would be
+ * the `order` field the header rejects, wearing a different name — a second
+ * source of truth for display order that drifts from the array the moment
+ * someone reorders one and not the other. A `Set` has no display order anyone
+ * can be tempted to read, and `featuredProjects` below takes its order from the
+ * array, so the two can never disagree.
+ *
+ * THE ENTRIES ARE LISTED ALPHABETICALLY ON PURPOSE, precisely so this literal
+ * is visibly NOT the rendered order. Home renders FOLIO -> Aero-Grid ->
+ * ClashChat because that is the array order. Do not "fix" this list to match
+ * what the page shows.
+ *
+ * TYPED `ProjectSlug`, so a typo or a deleted project is a COMPILE ERROR rather
+ * than a silently shorter Home gallery.
+ *
+ * WHICH THREE, AND WHY, per docs/07_SITE_RESTRUCTURE.md §5: the most polished
+ * and actually-deployed of the five. CCN and SNA are archive-only — they are
+ * real, hands-on coursework and they stay on `/work` in full, which is also the
+ * ONLY route that links to their detail pages. Changing this set is Saad's
+ * call, not a layout decision.
+ */
+export const FEATURED_SLUGS: ReadonlySet<ProjectSlug> = new Set([
+  "aero-grid",
+  "clashchat",
+  "folio",
+]);
+
+/**
+ * The featured three, in array order. Derived, never hand-maintained.
+ *
+ * `.filter` on the source array is what makes array order the single source of
+ * display order for both pages: Home passes this to `<Projects />`, `/work`
+ * passes `projects`, and the component sorts and filters NOTHING. If Home's
+ * three should appear in a different sequence, that is a request to reorder
+ * `projects` — which reorders both pages, and that is the correct answer rather
+ * than a second list.
+ *
+ * A filter is a trivial lookup, which is the one kind of function this data
+ * layer permits (content/types.ts, hard rules). Nothing is formatted, sorted or
+ * computed here.
+ */
+export const featuredProjects = projects.filter((project) =>
+  FEATURED_SLUGS.has(project.slug),
+);
 
 /**
  * Takes `slug: string`, NOT ProjectSlug — deliberate, do not "tighten" it.

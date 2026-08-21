@@ -1,23 +1,40 @@
 import { Reveal } from "@/components/ui/Reveal";
 import { ProjectCard } from "@/components/sections/ProjectCard";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
-import { projects } from "@/content/projects";
+import type { Project } from "@/content/types";
 
 /**
- * Work — Tier 2, the third section on `bg-base`, directly after Stack.
+ * Work — Tier 2. The third section on Home (after Stack, three cards) and the
+ * first on `/work` (the full archive, five cards). One component, two pages.
+ *
+ * IT TAKES ITS LIST AS A PROP AND DOES NOT FILTER, SORT OR SLICE — Phase 3,
+ * and the rule is the point. Home passes `featuredProjects`, `/work` passes
+ * `projects`; both are ordered by `content/projects.ts`'s array, which is the
+ * single source of display order for the whole site. A `featured` prop, a
+ * `limit` prop or a `.slice(0, 3)` here would each put a second copy of that
+ * decision in a component, where nobody editing the data file would find it.
+ * The membership set that picks the three lives in the data file and expresses
+ * MEMBERSHIP ONLY, never sequence.
  *
  * DELIBERATELY A SERVER COMPONENT, exactly as About and Skills are. The client
  * boundary is `Reveal` and `ProjectCard`, and `ProjectCard` receives only the
  * five fields a card draws — so no `description` (the longest strings in the
  * data file), no `links` and no `credit` reach the client bundle.
  *
- * COMPOSITION — heading, then a capped two-column grid of five cards. Nothing
- * else. No intro sentence, no "click a card" instruction, no project count, no
- * filter chips, no "view all". Filter chips are the single most recognisable
- * portfolio-template control and would be inert theatre here anyway (four of
- * five projects share one `category`). A count is the one register CLAUDE.md
- * bans by name — Skills' `00` is honest because it makes an EMPTY group
- * visible; five is not a number that needs announcing.
+ * COMPOSITION — heading, then a capped two-column grid of however many cards
+ * it was handed. Nothing else. No intro sentence, no "click a card"
+ * instruction, no project count, no filter chips, no "view all". Filter chips
+ * are the single most recognisable portfolio-template control and would be
+ * inert theatre here anyway (four of five projects share one `category`). A
+ * count is the one register CLAUDE.md bans by name — Skills' `00` is honest
+ * because it makes an EMPTY group visible; three or five is not a number that
+ * needs announcing.
+ *
+ * AND STILL NO "VIEW ALL" LINK ON HOME, now that Home shows a subset. The route
+ * to the archive is the navbar's WORK entry, which is present on every page and
+ * is the site's one answer to "where is everything" — a second, section-local
+ * link to the same place would be the template affordance this section has
+ * refused since Ticket 6.
  *
  * GRID WIDTH IS A DOCUMENTED DEPARTURE FROM THE 34rem MEASURE — the one place
  * this site has two void widths instead of one, and it is deliberate.
@@ -95,7 +112,19 @@ import { projects } from "@/content/projects";
  * for the reason stated below (a jump-link arrival on `#work` renders a row out
  * of order), and the morph staggers nothing — it is one element.
  */
-export function Projects() {
+/**
+ * `projects` is `readonly Project[]`, not `ProjectSlug[]` and not a filter
+ * descriptor: the caller hands over the records it wants rendered, in the order
+ * it wants them rendered. There is no default value — an omitted list would
+ * silently fall back to "all five" and a page that forgot to pass its list
+ * would look correct on Home and wrong on nothing, which is the worst kind of
+ * bug to find. Making it required means the mistake is a compile error.
+ */
+type ProjectsProps = {
+  projects: readonly Project[];
+};
+
+export function Projects({ projects }: ProjectsProps) {
   return (
     <section
       id="work"
@@ -120,9 +149,11 @@ export function Projects() {
         </Reveal>
 
         {/*
-          A REAL LIST, so a screen reader announces "list, 5 items" — a
-          genuinely useful count when browsing a gallery. Tailwind's preflight
-          already removes the markers.
+          A REAL LIST, so a screen reader announces "list, 3 items" on Home
+          and "list, 5 items" on `/work` — a genuinely useful count when
+          browsing a gallery, and it comes from the markup rather than from a
+          number anyone has to keep true. Tailwind's preflight already removes
+          the markers.
 
           THE GAP UNDER THE HEADING IS LARGER THAN THE GAP BETWEEN CARDS
           (55 > 34, 89 > 55), for the same reason it is in About and Skills:
@@ -154,14 +185,14 @@ export function Projects() {
           its place on the border argument alone; the slack now falls below the
           last line of text inside each card.
 
-          THE LAST ROW IS AN ORPHAN AND STAYS ONE CARD WIDE. No
-          `last:col-span-2`, no `justify-center`, no `place-items-center`, no
-          "featured" full-width treatment: `content/projects.ts` removed
-          `featured` as a field deliberately, and a stretched final card would
-          reintroduce it as a layout accident — while handing the newest,
-          softest, most academic cover the largest frame on the page. A normal
-          card on the spine with void to its right is the composition About and
-          Skills already use.
+          THE LAST ROW IS AN ORPHAN AND STAYS ONE CARD WIDE — at three cards
+          and at five, both of which are odd. No `last:col-span-2`, no
+          `justify-center`, no `place-items-center`, no "featured" full-width
+          treatment: `content/projects.ts` removed `featured` as a field
+          deliberately, and a stretched final card would reintroduce it as a
+          layout accident — while handing whichever project happens to be last
+          the largest frame on the page. A normal card on the spine with void to
+          its right is the composition Trajectory and Stack already use.
 
           IF ANY OF THESE VALUES CHANGE, the `sizes` string in ProjectCard.tsx
           must change in the SAME COMMIT. It encodes the column count, both
@@ -170,13 +201,16 @@ export function Projects() {
         */}
         <ul className="mt-xl grid max-w-[27rem] grid-cols-1 gap-lg md:max-w-[57rem] md:grid-cols-2 lg:mt-2xl lg:gap-xl">
           {/*
-            ARRAY ORDER IS DISPLAY ORDER. No sort, no filter, no reverse, and
-            no `[...projects].sort(...)`. content/projects.ts states the order
-            is deliberately NOT date order — it is strength-first, SNA is the
-            newest entry and sits last on purpose, and there is intentionally
-            no `featured` or `order` field because an explicit ordering field
-            that duplicates array position is a second source of truth that
-            will drift.
+            PROP ORDER IS DISPLAY ORDER. No sort, no filter, no reverse, no
+            slice, and no `[...projects].sort(...)` — this component renders
+            exactly what it was given, exactly in the order it was given.
+            content/projects.ts states the order is deliberately NOT date
+            order — it is strength-first, SNA is the newest entry and sits last
+            on purpose, and there is intentionally no `featured` or `order`
+            field because an explicit ordering field that duplicates array
+            position is a second source of truth that will drift. Home's three
+            arrive already in that order because `featuredProjects` filters the
+            same array.
 
             `key={project.slug}` — stable, unique, and already the URL
             identity.

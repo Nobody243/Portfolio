@@ -3,6 +3,7 @@ import { About } from "@/components/sections/About";
 import { Skills } from "@/components/sections/Skills";
 import { Projects } from "@/components/sections/Projects";
 import { Contact } from "@/components/sections/Contact";
+import { featuredProjects } from "@/content/projects";
 
 export default function Page() {
   return (
@@ -30,11 +31,17 @@ export default function Page() {
         <Hero />
         <About />
         <Skills />
-        {/* All five projects, still. The featured-three cut is Phase 3 —
-            `content/projects.ts` is untouched by this commit and `Projects`
-            takes no props yet. Until then Home and `/work` render the same
-            gallery, which is redundant but not wrong. */}
-        <Projects />
+        {/* THREE CARDS — FOLIO, Aero-Grid, ClashChat, in that order, and the
+            order is not written anywhere in this file. `featuredProjects` is
+            `content/projects.ts`'s array filtered by a membership SET, so the
+            sequence comes from the array and cannot drift from `/work`'s. If
+            Home's three should appear differently, reorder the array; that
+            reorders both pages, which is the right answer.
+
+            CCN and SNA are archive-only and appear only on `/work`, which is
+            therefore the ONLY route that links to their detail pages — and the
+            only place their card -> overlay morph can be tested at all. */}
+        <Projects projects={featuredProjects} />
         {/* EXPERIENCE AND CURRENTLY LEARNING LIVE ON `/work` NOW, per
             `docs/07_SITE_RESTRUCTURE.md` §5: they are "the complete record" and
             belong beside the full archive in the quiet readable tier, not in

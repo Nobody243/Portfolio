@@ -5,6 +5,7 @@ import { Experience } from "@/components/sections/Experience";
 import { CurrentlyLearning } from "@/components/sections/CurrentlyLearning";
 import { Contact } from "@/components/sections/Contact";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
+import { projects } from "@/content/projects";
 
 /**
  * `/work` — the complete record.
@@ -28,9 +29,11 @@ import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
  * NO PINNING AND NO SCRUBBING, EVER. `docs/07` §5 closes that question by name:
  * scroll-scrubbed animation is Home only. About and Work are normal scroll.
  *
- * `<Projects />` TAKES NO PROPS AND RENDERS ALL FIVE, which is the array in
- * `content/projects.ts` as-is. The `projects` prop and `FEATURED_SLUGS` arrive
- * in Phase 3; this page will keep passing the full list.
+ * `<Projects />` IS HANDED THE WHOLE ARRAY, and that is this page's definition:
+ * Home gets `featuredProjects` (three), this gets `projects` (all five). The
+ * component itself filters, sorts and slices nothing, so "the complete record"
+ * is enforced by what is passed here rather than by a flag inside a component.
+ * Never pass a subset from this page — that is what Home is for.
  *
  * NO `<Hero />`, which the navbar has to cope with: its palette starts in the
  * past-hero branch here rather than transparent-over-nothing. See `Navbar.tsx`.
@@ -63,7 +66,7 @@ export default function WorkPage() {
         {/* Section order is fixed: the archive, then the internship, then
             what is in progress. Each is `bg-base` with Rule S-2's standard
             89/89 seam, so the three stack with no seam work needed here. */}
-        <Projects />
+        <Projects projects={projects} />
         <Experience />
         {/* Renders NOTHING while `content/currentlyLearning.ts` is empty — the
             component returns `null`, so no section, no heading and no seam
