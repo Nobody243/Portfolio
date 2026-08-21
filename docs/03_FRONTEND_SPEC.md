@@ -218,6 +218,27 @@ The hero established this deliberately — its wordmark is an object in a space 
 annotation anchored to the frame. Re-centring any later section would retroactively demote that to an
 artefact of the 3D layout rather than a compositional claim.
 
+**S-1's chrome carve-out — REVERSED for chrome only, 2026-08-21, per `docs/07_SITE_RESTRUCTURE.md`
+§1.** S-1 originally read "the site has one spine and chrome does not get its own." That is no longer
+true of chrome, and the rule is corrected here rather than left to be discovered in a diff.
+
+- **Chrome is full-bleed.** `components/ui/Navbar.tsx` spans the viewport with a single small fixed
+  gutter — `px-md` (21px) below 640px, `px-lg` (34px) at 640px and above — and carries **no `mx-auto`
+  and no `max-w-[1440px]`**. The mark sits hard left, the LinkedIn icon hard right, at that gutter.
+  Vertical padding (`py-sm sm:py-md`) is unchanged.
+- **Content sections keep the spine, byte-identically.** Every Tier 2 and Tier 3 section, the detail
+  route's frame (S-3), the Contact panel's inner container and the project overlay (S-4) still ship
+  `mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl`. **Only the chrome half is reversed.**
+  Nothing above changes for content.
+- **Why the two do not have to match.** The spine is a compositional claim about where content begins;
+  the bar is not content and never aligns to it in the reading sense. Above 1440px they visibly
+  diverge — the spine sits 89px in and centred, the bar sits 34px out — and that is the intended
+  result, not a defect. If the divergence ever reads as detachment, the fix is a **larger gutter**
+  (`px-xl`), never a restored cap: the cap is precisely what §1 removed.
+- **Rule and code ship together.** This project has been bitten four times by a spec that described
+  something the code stopped doing. The navbar's own container comment states the same carve-out in
+  the same words, and both were changed in one commit.
+
 **Rule S-2 (section seam).** The standard seam between two adjacent `bg-base` sections is
 `spacing-2xl` bottom + `spacing-2xl` top = **178px, uniform at all breakpoints**. There is exactly one
 documented exception: About opens at `spacing-3xl` (144px) at ≥640px, because the hero ends in a hard

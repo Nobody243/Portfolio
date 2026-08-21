@@ -240,11 +240,38 @@ export function Navbar() {
         className="pointer-events-none fixed inset-x-0 top-0 z-40 transition-transform duration-[420ms] ease-out will-change-transform motion-reduce:transition-none"
       >
         {/*
-          THE CONTAINER IS BYTE-IDENTICAL to About / Skills / Projects /
-          Experience / Contact and to the detail route's container. Rule S-1:
-          the site has one spine and chrome does not get its own.
+          FULL-BLEED, AND DELIBERATELY NOT THE SITE SPINE.
+
+          This container used to be byte-identical to About / Skills /
+          Projects / Experience / Contact and to the detail route's, under
+          Rule S-1 — "the site has one spine and chrome does not get its own".
+          THAT HALF OF S-1 IS NOW REVERSED. `docs/07_SITE_RESTRUCTURE.md` §1
+          takes the chrome off the spine, and `docs/03_FRONTEND_SPEC.md`
+          records the carve-out next to the rule itself so the two cannot
+          drift: chrome is full-bleed; content sections keep the spine. S-1
+          still binds every content section — do NOT "restore" this container
+          to match them.
+
+          So: no `mx-auto`, no `max-w-[1440px]`, and one small fixed gutter in
+          place of the spine's escalating inset — `px-md` (21px) below 640px,
+          `px-lg` (34px) at and above it. Both are existing Fibonacci steps, so
+          nothing new is introduced. 21px against a 1440px viewport reads as an
+          accident of margin collapse; 34px reads as a chosen edge. Mobile does
+          not move because 21px already reads as full-bleed on a bar that is
+          tight for room. VERTICAL PADDING IS UNCHANGED.
+
+          THE ABSOLUTE CENTRING BELOW STILL LANDS ON THE VIEWPORT CENTRE, and
+          now does so directly rather than by coincidence: with the cap gone
+          this element IS the viewport width, so the centre cluster's
+          `left-1/2` is the viewport's midpoint. Before, it was the capped
+          container's midpoint, which only equalled the viewport's because the
+          container was centred with symmetric padding.
+
+          IF AT 2560px THE BAR READS AS DETACHED from the content below it, the
+          fix is to RAISE the gutter (`px-xl`), never to restore the cap —
+          restoring the cap re-creates the exact thing §1 removed.
         */}
-        <div className="relative mx-auto flex w-full max-w-[1440px] items-center px-md py-sm sm:px-xl sm:py-md lg:px-2xl">
+        <div className="relative flex items-center px-md py-sm sm:px-lg sm:py-md">
           {/* ---------------------------------------------------------------
               LEFT — the mark, then the place.
           --------------------------------------------------------------- */}
