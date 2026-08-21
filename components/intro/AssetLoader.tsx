@@ -24,9 +24,24 @@
  *   - THE TWO WEBFONTS. Both surfaces are typographic. The Intro's opening
  *     beat measures "Muhammad Saad" at runtime and FLIPs the two initials by
  *     the measured delta; run that against fallback metrics and the letters
- *     slide to the wrong place, then jump when the real face lands. The hero
- *     wordmark has the same exposure — `SaadGlass` re-measures on
- *     `fonts.ready` for exactly this reason.
+ *     slide to the wrong place, then jump when the real face lands.
+ *
+ *     THIS CLAUSE USED TO CITE A SECOND REASON — "the hero wordmark has the
+ *     same exposure, `SaadGlass` re-measures on `fonts.ready`". `SaadGlass`
+ *     was deleted with the R3F hero; there is no wordmark and no WebGL. It was
+ *     written in the present tense about a component that no longer exists,
+ *     and it was one of only two stated justifications for tracking the fonts
+ *     at all — so it read as though half the reason had survived when none of
+ *     it had.
+ *
+ *     THE REMAINING REASON IS STILL TRUE, AND HAS A KNOWN EXPIRY. The Intro
+ *     measures the name at runtime today, so the gate is load-bearing today.
+ *     Phase 1 replaces that measurement with pre-extracted outline data from
+ *     `public/fonts/space-grotesk-latin.typeface.json`, after which the INTRO
+ *     no longer needs the face — but the gate still does, because the hero
+ *     tagline and the navbar are above the fold and set in these two families.
+ *     Re-read this comment when Phase 1 lands; do not let the Intro's release
+ *     be mistaken for the Loader's.
  *   - NOTHING ELSE, TODAY, AND THAT IS A FINDING RATHER THAN AN OMISSION. The
  *     hero is Canvas2D plus SVG since the R3F scene was removed: no GLTF, no
  *     textures, no WASM, and no `<img>` above the fold. The project cover
