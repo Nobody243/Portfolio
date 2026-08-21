@@ -40,8 +40,23 @@ export default function Page() {
 
             CCN and SNA are archive-only and appear only on `/work`, which is
             therefore the ONLY route that links to their detail pages — and the
-            only place their card -> overlay morph can be tested at all. */}
-        <Projects projects={featuredProjects} />
+            only place their card -> overlay morph can be tested at all.
+
+            `motion="scrub"` IS THIS PAGE'S DECISION AND IS REQUIRED — the same
+            component on `/work` passes `"reveal"`. `docs/03_FRONTEND_SPEC.md`'s
+            "Scroll-scrub — Home only" scopes the scrub to Home's Trajectory and
+            Home's featured cards, so the page that knows which route it is says
+            so. There is no default: omitting it is a compile error rather than
+            a page that quietly animates like the wrong one.
+
+            TRAJECTORY ABOVE NEEDS NO SUCH PROP because it renders on Home only
+            and imports `ScrubReveal` directly. STACK BETWEEN THEM IS NOT
+            SCRUBBED AND THAT IS THE DESIGN — it is Tier 3, it keeps `Reveal`,
+            and it pops while its two neighbours track. That
+            discrete-versus-continuous difference IS the tier boundary made
+            visible. If it ever reads as broken rather than as quiet, the fix is
+            dropping Stack's opacity leg, never scrubbing Stack. */}
+        <Projects projects={featuredProjects} motion="scrub" />
         {/* EXPERIENCE AND CURRENTLY LEARNING LIVE ON `/work` NOW, per
             `docs/07_SITE_RESTRUCTURE.md` §5: they are "the complete record" and
             belong beside the full archive in the quiet readable tier, not in

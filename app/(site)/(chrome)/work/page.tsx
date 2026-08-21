@@ -28,6 +28,11 @@ import { projects } from "@/content/projects";
  *
  * NO PINNING AND NO SCRUBBING, EVER. `docs/07` §5 closes that question by name:
  * scroll-scrubbed animation is Home only. About and Work are normal scroll.
+ * `docs/03_FRONTEND_SPEC.md`'s "Scroll-scrub — Home only" says the same thing in
+ * the tracked spec, and `motion="reveal"` below is where this page enforces it.
+ * That prop is REQUIRED and has no default precisely so this page cannot
+ * silently inherit Home's motion — the omission would be invisible in review
+ * and correct-looking on Home, which is the worst way to find a bug.
  *
  * `<Projects />` IS HANDED THE WHOLE ARRAY, and that is this page's definition:
  * Home gets `featuredProjects` (three), this gets `projects` (all five). The
@@ -66,7 +71,7 @@ export default function WorkPage() {
         {/* Section order is fixed: the archive, then the internship, then
             what is in progress. Each is `bg-base` with Rule S-2's standard
             89/89 seam, so the three stack with no seam work needed here. */}
-        <Projects projects={projects} />
+        <Projects projects={projects} motion="reveal" />
         <Experience />
         {/* Renders NOTHING while `content/currentlyLearning.ts` is empty — the
             component returns `null`, so no section, no heading and no seam

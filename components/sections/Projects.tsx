@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/ui/Reveal";
+import { ScrubReveal } from "@/components/ui/ScrubReveal";
 import { ProjectCard } from "@/components/sections/ProjectCard";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
 import type { Project } from "@/content/types";
@@ -17,9 +18,10 @@ import type { Project } from "@/content/types";
  * MEMBERSHIP ONLY, never sequence.
  *
  * DELIBERATELY A SERVER COMPONENT, exactly as About and Skills are. The client
- * boundary is `Reveal` and `ProjectCard`, and `ProjectCard` receives only the
- * five fields a card draws — so no `description` (the longest strings in the
- * data file), no `links` and no `credit` reach the client bundle.
+ * boundary is the motion wrapper (`Reveal` or `ScrubReveal`) and `ProjectCard`,
+ * and `ProjectCard` receives only the five fields a card draws — so no
+ * `description` (the longest strings in the data file), no `links` and no
+ * `credit` reach the client bundle.
  *
  * COMPOSITION — heading, then a capped two-column grid of however many cards
  * it was handed. Nothing else. No intro sentence, no "click a card"
@@ -110,7 +112,12 @@ import type { Project } from "@/content/types";
  *
  * STILL NO STAGGER, and 6b did not change that: `STAGGER.card` remains unused
  * for the reason stated below (a jump-link arrival on `#work` renders a row out
- * of order), and the morph staggers nothing — it is one element.
+ * of order), and the morph staggers nothing — it is one element. The scrub does
+ * not reintroduce it either: a scrub has no `delay` to stagger with, which is
+ * why arriving at `#work` by jump renders exactly what arriving by scroll does.
+ *
+ * THE MOTION OWNER IS THE CALLER'S DECISION — `motion`, below. Home scrubs,
+ * `/work` reveals, and this file does not know which page it is on.
  */
 /**
  * `projects` is `readonly Project[]`, not `ProjectSlug[]` and not a filter
@@ -120,11 +127,53 @@ import type { Project } from "@/content/types";
  * would look correct on Home and wrong on nothing, which is the worst kind of
  * bug to find. Making it required means the mistake is a compile error.
  */
+/**
+ * `motion` PICKS THE MOTION OWNER, AND IT IS REQUIRED WITH NO DEFAULT — the
+ * same rule as `projects` above, for the same reason.
+ *
+ * `docs/03_FRONTEND_SPEC.md`'s "Scroll-scrub — Home only" scopes the scrub to
+ * Home's Trajectory and Home's featured cards. This component renders on Home
+ * AND on `/work`, so it is the one place on the site where the same JSX has two
+ * legitimate answers, and the page must supply it: Home passes `"scrub"`,
+ * `/work` passes `"reveal"`.
+ *
+ * NOT `scrubbed?: boolean`. A defaulting boolean is exactly the failure the
+ * `projects` docstring above rejects: `/work` would forget it, silently inherit
+ * whichever default was chosen, and render correctly on the page it was tested
+ * on. A required string union makes the omission a compile error, and it makes
+ * the call sites readable — `motion="reveal"` states a decision, `scrubbed`
+ * absent states nothing at all.
+ *
+ * A UNION AND NOT TWO COMPONENTS: splitting this file into `ProjectsScrub` and
+ * `ProjectsReveal` would duplicate every layout decision in the header — the
+ * two caps, the column rule, the orphan row — across two files that must then
+ * be kept byte-identical by hand. The motion owner is the only thing that
+ * differs between the two pages, so it is the only thing that varies.
+ */
 type ProjectsProps = {
   projects: readonly Project[];
+  motion: "scrub" | "reveal";
 };
 
-export function Projects({ projects }: ProjectsProps) {
+export function Projects({ projects, motion }: ProjectsProps) {
+  /*
+    RESOLVED ONCE, FOR THE WHOLE SECTION. Both the heading and every card read
+    this one binding, so there is no arrangement of this file in which the
+    heading scrubs and the cards do not — a split that would read as a bug and
+    be hard to trace back to a second ternary.
+
+    Both components take the same two props (`children`, `className`), which is
+    what makes the substitution legal. `Reveal` also accepts `delay`; nothing
+    here passes it, and nothing should — see the no-stagger note on the card
+    below.
+
+    EXACTLY ONE OF THEM RENDERS PER ELEMENT. This is a choice, never a nesting:
+    a `Reveal` inside a `ScrubReveal` would put Framer Motion and GSAP on the
+    same element's transform, and the last writer of each frame would win
+    intermittently. That failure is untraceable from the symptom, so the rule is
+    structural rather than a thing to remember.
+  */
+  const Unit = motion === "scrub" ? ScrubReveal : Reveal;
   return (
     <section
       id="work"
@@ -139,14 +188,14 @@ export function Projects({ projects }: ProjectsProps) {
           is 21 / 55 / 89px. Only the inner cap differs, and only here — see
           the header. */}
       <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
-        <Reveal>
+        <Unit>
           {/* Weight left at the inherited 400, as in About and Skills: the type
               scale carries the size, and a bolder heading pulls a Tier 2
               section toward Tier 1. */}
           <h2 id="work-heading" className="text-h2 text-fg">
             {PROJECTS_HEADING}
           </h2>
-        </Reveal>
+        </Unit>
 
         {/*
           A REAL LIST, so a screen reader announces "list, 3 items" on Home
@@ -242,8 +291,16 @@ export function Projects({ projects }: ProjectsProps) {
                 five-card mobile stack fires when 200px is visible, so the last
                 cards finish animating entirely off-screen and are never seen
                 to reveal at all.
+
+                THE SCRUB DID NOT CHANGE THAT, AND IT MAKES IT STRICTER. One
+                wrapper per card, each owning its own trigger: a grid-length
+                scrub window would put the `end` anchor far past `bottom bottom`
+                and break the invariant that a scrub unit is shorter than the
+                viewport. `Reveal` itself still gains no prop — the prop is on
+                THIS component, and `ScrubReveal` is a sibling of `Reveal`, not
+                a variant of it.
               */}
-              <Reveal className="h-full">
+              <Unit className="h-full">
                 <ProjectCard
                   slug={project.slug}
                   title={project.title}
@@ -251,7 +308,7 @@ export function Projects({ projects }: ProjectsProps) {
                   stack={project.stack}
                   coverImage={project.coverImage}
                 />
-              </Reveal>
+              </Unit>
             </li>
           ))}
         </ul>

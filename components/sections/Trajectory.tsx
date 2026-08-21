@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import portrait from "@/public/images/about/portrait.jpg";
-import { Reveal } from "@/components/ui/Reveal";
+import { ScrubReveal } from "@/components/ui/ScrubReveal";
 import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
 
 /**
@@ -20,8 +20,29 @@ import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
  * `docs/07`'s `/about` page gets its OWN content module, so there is no second
  * collision waiting.
  *
- * DELIBERATELY A SERVER COMPONENT. `Reveal` is the only client boundary here,
- * which keeps the copy out of the client bundle's critical path.
+ * DELIBERATELY A SERVER COMPONENT. `ScrubReveal` is the only client boundary
+ * here, which keeps the copy out of the client bundle's critical path.
+ *
+ * ITS FIVE UNITS SCRUB, THEY DO NOT REVEAL — the <h2>, the portrait and each of
+ * the three beats. `docs/03_FRONTEND_SPEC.md`, "Scroll-scrub — Home only",
+ * scopes the scrub to this section and to Home's three featured project cards,
+ * and to nothing else on the site.
+ *
+ * IT IMPORTS `ScrubReveal` DIRECTLY AND TAKES NO PROP TO CHOOSE, because this
+ * section renders on Home and only on Home — there is no second caller to
+ * disagree with. `Projects` is shared with `/work` and therefore does take a
+ * required `motion` prop. If Trajectory ever gains a second route, it needs the
+ * same required prop, never a default: a silently-defaulting motion owner would
+ * scrub a page the spec says is normal scroll, and it would look right on the
+ * page it was tested on.
+ *
+ * WHAT CHANGED VISIBLY: the fade is gone here. Each unit rises 21px into place
+ * at full opacity, across exactly the span of scroll during which it is
+ * arriving on screen, and it runs backwards when you scroll back up. Opacity
+ * does not scrub, and the arithmetic that rules it out is in `ScrubReveal.tsx`'s
+ * header — a wrapper alpha multiplies through to the `text-fg/70` beat labels
+ * below, so the legal range is 0.836 -> 1.0 and too narrow to perceive. Do not
+ * reintroduce an opacity leg here to "restore the fade".
  *
  * COMPOSITION — this inherits the hero's left anchor rather than resetting to
  * a centred column. The prose is capped at a 34rem measure and the remaining
@@ -49,10 +70,11 @@ import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
  *     rail does not shift when the merge kicks in at 1360px. The two
  *     templates must move together, exactly like the 34rem pair below.
  *   - `display: contents` on the beats is the obvious way to flatten them into
- *     the parent grid and it is WRONG here: `Reveal` animates transform and
- *     opacity, and neither applies to a `display: contents` box, so every beat
- *     would silently stop revealing. That is why this is col-span-2 plus an
- *     inner grid and not the shorter thing.
+ *     the parent grid and it is WRONG here: the beat wrapper is animated with a
+ *     transform, and a transform does not apply to a `display: contents` box, so
+ *     every beat would silently stop moving. That was as true of the reveal this
+ *     section used to run as it is of the scrub it runs now. That is why this is
+ *     col-span-2 plus an inner grid and not the shorter thing.
  *   - Below 1360px the photo is not in this column at all. It is the first
  *     child of the beats container, which places it between the <h2> and beat
  *     1 in plain source order — no `order` utility, and no second <Image> to
@@ -84,13 +106,13 @@ export function Trajectory() {
       className="w-full bg-base pt-2xl pb-2xl sm:pt-3xl"
     >
       <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
-        <Reveal>
+        <ScrubReveal>
           {/* Weight is left at the inherited 400. The type scale carries the
               size; a bolder heading would pull Tier 2 toward Tier 1. */}
           <h2 id="trajectory-heading" className="text-h2 text-fg">
             {ABOUT_HEADING}
           </h2>
-        </Reveal>
+        </ScrubReveal>
 
         {/*
           The gap under the title is LARGER than the gap between beats, on
@@ -108,7 +130,7 @@ export function Trajectory() {
             `space-y-*` is sibling margin, so it must be zeroed when the
             container turns into a grid or it fights `gap-y`.
           */}
-          <Reveal className="photo:col-start-3 photo:row-span-2 photo:row-start-1 photo:self-start">
+          <ScrubReveal className="photo:col-start-3 photo:row-span-2 photo:row-start-1 photo:self-start">
             {/*
               NO RADIUS, no border, no shadow. Not an omission — there is not a
               single `rounded-*` anywhere in this codebase, and a soft-cornered
@@ -134,10 +156,10 @@ export function Trajectory() {
               placeholder="blur"
               className="aspect-[4/5] w-full max-w-[320px] object-cover object-[55%_center] photo:max-w-none"
             />
-          </Reveal>
+          </ScrubReveal>
 
           {ABOUT_BEATS.map((beat) => (
-            <Reveal
+            <ScrubReveal
               key={beat.label}
               // NO DELAY ON ANY BEAT — uniform, and that uniformity is the
               // point. An earlier version staggered beat 1 by STAGGER.line on
@@ -198,7 +220,7 @@ export function Trajectory() {
                   </p>
                 ))}
               </div>
-            </Reveal>
+            </ScrubReveal>
           ))}
         </div>
       </div>
