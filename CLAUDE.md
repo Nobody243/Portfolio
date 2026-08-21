@@ -6,6 +6,9 @@ Full planning documents live in `docs/`. Read the relevant one before working on
 - `docs/02_TECHNICAL_ARCHITECTURE.md` — stack reasoning, folder structure, content shapes, env/config notes
 - `docs/03_FRONTEND_SPEC.md` — color tokens, type scale, motion system, component styles
 - `docs/04_FEATURE_TICKETS.md` — the 16 build tickets, prioritized, with acceptance criteria
+- `docs/06_INTRO_AND_CHROME.md` — the Loader/Intro split and the Intro's confirmed sequence;
+  the navbar's scope, its legibility escalation, and where the theme toggle lives now.
+  Read it before touching anything named "loader", "intro", "nav", or the theme toggle.
 
 ## Who this is for
 Muhammad Saad — IT undergrad (Bahria University, 7th semester), completed a 2-month fullstack internship
@@ -87,6 +90,10 @@ for contrast):**
 - No serif fonts anywhere (serif reads editorial/creative-agency, wrong signal for this direction)
 
 ## Site structure
+0. **Chrome** — a fixed, transparent navbar on `/` only (MS mark + location, ABOUT/[icon]/WORK,
+   copy-to-clipboard email + LinkedIn). NO theme toggle in it, deliberately. Entry is a real
+   asset Loader followed by the choreographed Intro, whose zoom-in *is* the transition into the
+   Hero. Both are specified in `docs/06_INTRO_AND_CHROME.md` — do not re-derive either.
 1. **Hero** (Tier 1) — name, one-line identity statement (not "full-stack developer" — something that
    signals the trajectory), big 3D moment, scroll cue.
 2. **About / Trajectory** (Tier 2) — dev foundation → systems coursework → deliberate pivot narrative.
