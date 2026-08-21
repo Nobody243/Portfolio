@@ -3,8 +3,19 @@
 /**
  * The theme toggle — Ticket 11. SEMANTICS ONLY; the caller owns the colour.
  *
- * ONE INSTANCE PER ROUTE, IN FLOW, AT THE TOP. There is no header, no nav and
- * no persistent chrome on this site, and this is its first global control.
+ * ONE INSTANCE PER ROUTE, IN FLOW, AT THE TOP.
+ *
+ * THE "THERE IS NO NAV ON THIS SITE" PREMISE BELOW IS NO LONGER TRUE, and the
+ * paragraph is kept rather than rewritten because its ARGUMENT still holds and
+ * still constrains where this control may go. `/` now carries a fixed,
+ * transparent navbar (`components/ui/Navbar.tsx`) — and that navbar
+ * deliberately does NOT contain this toggle, for exactly the reason spelled out
+ * two sentences down: a fixed control that crosses three surface contexts needs
+ * a plate of its own, and the plate is what cannot be afforded. What changed is
+ * that the hero no longer hosts an instance either, because the navbar now
+ * occupies that rectangle. See `docs/06_INTRO_AND_CHROME.md` §5.
+ *
+ * The original reasoning, still load-bearing:
  * Fixed/floating chrome was rejected on a concrete ground rather than on taste:
  * a fixed control crosses three surface contexts on `/` (`bg-hero-surface`,
  * `bg-base`, `bg-hero-surface` again), so it would need a plate of its own —

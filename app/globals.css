@@ -454,7 +454,16 @@ html[data-overlay-open] {
 }
 
 /* ---------------------------------------------------------------------------
-   THE HERO LOADER'S SCROLL LOCK, `html[data-hero-loading]`.
+   THE ENTRY GATE'S SCROLL LOCK, `html[data-intro-active]`.
+
+   RENAMED FROM `data-hero-loading`, and the rename is the point rather than
+   tidiness. That name described a single component that was calling itself a
+   loader while actually being a choreographed intro, and the conflation had
+   already produced a fixed timeline standing in for real progress. The two are
+   now separate components — `components/intro/AssetLoader.tsx` measures
+   readiness, `components/intro/Intro.tsx` performs — and this attribute covers
+   the whole gate, both plates, from first paint to hand-off.
+   `docs/06_INTRO_AND_CHROME.md` §1 has the full split.
 
    Same mechanism and the same three reasons as the overlay lock above — most
    importantly that under reduced motion there is no Lenis instance at all, so
@@ -467,11 +476,116 @@ html[data-overlay-open] {
    edge, and is up before anything has been read — there is nothing visible to
    shift. Adding the compensation would instead shift the plate itself.
 
-   `components/hero/HeroLoader.tsx` owns the attribute and removes it in the
-   same effect's cleanup, so an unmount mid-load cannot strand the document.
+   `components/intro/IntroGate.tsx` is the SINGLE owner: it sets the attribute
+   and removes it in the same effect's cleanup, so an unmount mid-sequence
+   cannot strand the document. Neither child touches it — two owners of one
+   attribute with overlapping lifetimes is how a page ends up permanently
+   locked.
 --------------------------------------------------------------------------- */
-html[data-hero-loading] {
+html[data-intro-active] {
   overflow: clip;
+}
+
+/* ---------------------------------------------------------------------------
+   THE MOBILE NAV MENU'S SCROLL LOCK, `html[data-nav-open]`.
+
+   Deliberately its OWN attribute rather than a second writer of
+   `data-overlay-open`. The mechanism is identical and so is the reasoning
+   (see the overlay block above), but the owners are different components with
+   independent lifetimes, and the failure mode of sharing one attribute is that
+   whichever closes first unlocks the document while the other is still up.
+
+   It DOES take the scrollbar compensation, unlike the intro lock and like the
+   overlay: the menu opens over content the visitor has already been reading,
+   so removing the scrollbar would visibly shift the page behind it. The width
+   is measured by the menu before it locks; on overlay-scrollbar platforms the
+   measurement is 0px and the fallback in the `var()` keeps that honest rather
+   than substituting a guess.
+--------------------------------------------------------------------------- */
+html[data-nav-open] {
+  overflow: clip;
+  padding-right: var(--nav-scrollbar-width, 0px);
+}
+
+/* ---------------------------------------------------------------------------
+   THE NAVBAR'S ADAPTIVE PALETTE, `[data-nav-root]`.
+
+   The bar is fixed and transparent, and it crosses three different grounds on
+   `/`: the hero (`bg-hero-surface`, PINNED DARK in both themes), the mid-page
+   sections (`bg-base`, which FLIPS), and the Contact plate (dark again). One
+   fixed colour cannot serve all three — light text vanishes on #FDFCFA, dark
+   text vanishes on the hero — so the bar swaps its palette at the hero's edge.
+   `components/ui/Navbar.tsx` has the measured contrast figures.
+
+   WHY THIS IS CSS AND NOT AN INLINE STYLE OBJECT. The first version computed
+   these three values in React from an `overHero` state flag. That is a
+   `setState` inside an effect, which Next 16's `react-hooks/set-state-in-effect`
+   rule hard-errors on — correctly, because it is a cascading render — and it
+   also re-rendered the entire bar, SVG mark and Framer-animated copy control
+   included, to change three strings. The bar now toggles ONE ATTRIBUTE from a
+   ref and the cascade below does the rest, with no render at all.
+
+   THE DEFAULT IS THE PAST-HERO PALETTE and the hero case is the override. That
+   ordering is deliberate: a route with no hero (and any future consumer) gets
+   the `bg-base` palette by simply not carrying the attribute, rather than by
+   having to know to remove something.
+
+   `color-mix` rather than `text-[var(--nav-fg)]/72` at the call sites: Tailwind
+   resolves an opacity modifier on a `var()` input inconsistently across
+   versions, and per CLAUDE.md a class Tailwind cannot build renders NOTHING
+   rather than erroring. A dimmed label silently becoming an undimmed one is
+   survivable; the same failure on a colour is an invisible navbar.
+--------------------------------------------------------------------------- */
+[data-nav-root] {
+  --nav-fg: var(--color-fg);
+  --nav-fg-dim: color-mix(in oklab, var(--color-fg) 72%, transparent);
+  --nav-accent: var(--color-accent-working);
+}
+
+[data-nav-root][data-over-hero] {
+  --nav-fg: var(--color-hero-fg);
+  --nav-fg-dim: color-mix(in oklab, var(--color-hero-fg) 72%, transparent);
+  --nav-accent: var(--color-hero-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   THE SCRIM — past the hero only. A DELIBERATE, MEASURED DEVIATION FROM THE
+   NAVBAR SPEC, which asks for a transparent bar with no background fill.
+
+   THE SPEC SAYS TO FLAG THIS RATHER THAN ADD A FILL SILENTLY, so: it is
+   flagged, in `docs/06_INTRO_AND_CHROME.md` §6, and this is why it was added
+   anyway.
+
+   Adaptive colour (above) solves contrast against the BACKGROUND. It does
+   nothing about the body text that scrolls underneath a fixed bar, and the
+   failure is not theoretical — it was screenshotted. Over the About section the
+   centre cluster lands directly on top of a paragraph and BOTH become
+   unreadable: the nav labels and the sentence they are sitting on. No amount of
+   colour tuning fixes two texts occupying the same pixels.
+
+   The escalation was taken in this order, and each step is still in force:
+     1. Adaptive colour        — fixes the background case.
+     2. Hide on scroll-down    — removes the bar entirely while reading.
+     3. This scrim             — for the remaining case: revealed by a
+                                 scroll-up, mid-page, over live text.
+
+   SCOPED TO `:not([data-over-hero])`, which is the part that keeps the spec's
+   intent. The hero is where the transparency actually reads as design — it is
+   the Tier 1 surface, the bar's home, and the only place a visitor sees it
+   against a composed image rather than against a paragraph. There, the bar is
+   still completely transparent with no fill and no blur.
+
+   `color-mix` on `--color-base` rather than a hex: `base` FLIPS with the theme,
+   so this is one rule that is near-black in dark mode and warm-white in light,
+   and it can never disagree with the page it is tinting.
+--------------------------------------------------------------------------- */
+[data-nav-root]:not([data-over-hero]) {
+  background-color: color-mix(in oklab, var(--color-base) 80%, transparent);
+  /* The blur is what stops the tint reading as a flat grey band: descenders and
+     stems behind it dissolve instead of showing through as ghosting. Both
+     spellings, because Safari still needs the prefix. */
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 dialog::backdrop {

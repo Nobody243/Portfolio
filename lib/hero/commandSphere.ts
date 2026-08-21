@@ -430,8 +430,23 @@ export function placeCommandSphere(
   height: number,
   compact: boolean,
 ): void {
+  // COMPACT IS CENTRED; WIDE INHERITS THE WORDMARK'S BLOCK.
+  //
+  // The 0.42 offset exists because `SaadGlass` was a WIDE HORIZONTAL BLOCK and
+  // had to leave the hero's left third for the DOM tagline sitting beside it.
+  // A sphere on a narrow viewport has no such neighbour — the tagline stacks
+  // BELOW it, not next to it — so the offset buys nothing there and costs
+  // everything: at 360px it put the rim at exactly 360.0px, the viewport edge,
+  // before any fragment's text width was even counted, and rim text ran ~78px
+  // off-screen.
+  //
+  // The design spec carried the desktop formula into the compact branch by
+  // omission. Corrected here rather than in the spec alone, because the spec is
+  // not what renders.
   const blockWidth = Math.min(BLOCK_WIDTH_FRACTION * width, BLOCK_MAX_WIDTH);
-  sphere.centreX = BLOCK_LEFT_FRACTION * width + blockWidth / 2;
+  sphere.centreX = compact
+    ? width / 2
+    : BLOCK_LEFT_FRACTION * width + blockWidth / 2;
   sphere.centreY = height / 2;
 
   let diameter = compact

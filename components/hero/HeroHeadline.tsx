@@ -5,17 +5,21 @@
  *
  * COMPOSITION — deliberately asymmetric, and this is the decision that most
  * distinguishes the hero from the default. The generic hero is a vertically
- * centred stack (name / tagline / centred cue). Here the 3D wordmark is an
+ * centred stack (name / tagline / centred cue). Here the command sphere is an
  * object floating in a space and this text is an annotation anchored to the
  * bottom-left of the frame — two different registers, which also quietly
- * reinforces the split between "the geometry is a logotype" and "the DOM is
+ * reinforces the split between "the canvas is the spectacle" and "the DOM is
  * the content". Bottom-right stays empty; the negative space is load-bearing.
  */
 
 import { motion } from "motion/react";
 import { useLenis } from "lenis/react";
 
-import { HERO_NAME, HERO_TAGLINE_UNITS } from "@/components/hero/heroContent";
+import {
+  HERO_NAME,
+  HERO_SPHERE_DESCRIPTION,
+  HERO_TAGLINE_UNITS,
+} from "@/components/hero/heroContent";
 import { ABOUT_HEADING } from "@/components/sections/aboutContent";
 import { DURATION, EASE, STAGGER } from "@/lib/animation/easing";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
@@ -26,7 +30,16 @@ const INSET_CLASSES = "left-md sm:left-xl lg:left-2xl bottom-lg sm:bottom-xl";
 type HeroHeadlineProps = {
   /** The staggered reveal is gated on the camera finishing. */
   revealed: boolean;
-  /** No 3D layer: the <h1> becomes the visible headline. */
+  /**
+   * No canvas subject: the <h1> becomes the visible headline and this whole
+   * block moves from bottom-anchored to vertically centred.
+   *
+   * THE LIVE HERO PASSES FALSE, and deleting the SAAD wordmark did not change
+   * that. It is tempting — there is no visible name on the surface now — but
+   * flipping it also moves the tagline, and the name is deliberately delivered
+   * by the Intro and carried afterwards by the navbar's MS mark rather than
+   * restated here.
+   */
   fallback: boolean;
   /** False when the hero is scrolled out of view or the tab is hidden — an
    *  infinite DOM loop otherwise keeps a rAF alive for the whole page. */
@@ -63,11 +76,13 @@ export function HeroHeadline({
             snapshot) and a post-hydration class swap is a normal attribute
             update.
 
-            Hidden in the normal path because its visible rendering IS the 3D
-            logotype, and two typographic treatments of the same word in one
-            viewport is the thing to avoid. When there is no logotype that
-            justification evaporates, so it becomes visible — otherwise a
-            portfolio hero would show no name at all.
+            Hidden in the normal path. The justification used to be that its
+            visible rendering WAS the 3D logotype and two typographic treatments
+            of one word in a viewport is the thing to avoid. The logotype is
+            gone, and the reason is now the Intro: it delivers the full name at
+            full size and contracts it into the navbar's mark, so the identity
+            is stated as a move rather than as a heading. In the fallback
+            arrangement there is no such move to lean on, so it becomes visible.
           */}
           <h1
             className={
@@ -115,6 +130,26 @@ export function HeroHeadline({
               </span>
             ))}
           </p>
+
+          {/*
+            THE SPHERE'S ONE LINE OF ACCESSIBLE TEXT.
+
+            The canvas is `aria-hidden`, which on its own would leave a screen
+            reader with silence exactly where this site spends its one spectacle
+            beat. `Skills.tsx` records the same trap and the same fix: hiding a
+            visual device is right, hiding it with NOTHING in its place is the
+            bug. One sentence stating what is on screen is the substitute — not
+            ninety command strings, which would be an unstructured word salad
+            spoken ahead of the positioning statement.
+
+            AFTER the tagline, deliberately. The stance gets said first; the
+            sphere is decoration that happens to be informative.
+
+            Not `role="img"` + `aria-label` on the <canvas>: support for that
+            pattern is inconsistent, and it would put the string outside this
+            block, where reading order is actually controlled.
+          */}
+          <p className="sr-only">{HERO_SPHERE_DESCRIPTION}</p>
         </div>
 
         {/*
