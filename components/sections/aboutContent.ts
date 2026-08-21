@@ -15,7 +15,7 @@
  * precedent is components/hero/heroContent.ts, which is exactly this shape.
  *
  * The "edit a file for a year, never rebuild a section" premise still holds:
- * rewriting a beat is a one-file string edit, and About.tsx renders
+ * rewriting a beat is a one-file string edit, and Trajectory.tsx renders
  * ABOUT_BEATS.map(...) rather than three hand-written blocks.
  *
  * HARD RULES, inherited verbatim from content/types.ts because the failure

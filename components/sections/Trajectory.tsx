@@ -5,7 +5,20 @@ import { Reveal } from "@/components/ui/Reveal";
 import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
 
 /**
- * About / Trajectory — Tier 2, and the first real-content section on `bg-base`.
+ * Trajectory — Tier 2, and the first real-content section on `bg-base`.
+ *
+ * RENAMED FROM `About.tsx` IN PHASE 3, and only the filename and the export
+ * moved: the DOM id is still `trajectory`, the heading is still
+ * `ABOUT_HEADING`, and `aboutContent.ts` deliberately stays where it is. The
+ * rename resolves a collision rather than a design question — `/about` is now
+ * a route with its own page, and two different things called About in the same
+ * codebase is how the wrong one gets edited. This section was already headed
+ * "Trajectory" and already rendered `id="trajectory"`; the file just caught up.
+ *
+ * The content module keeps its name on purpose. Renaming it too would touch
+ * three exported constants and every comment that cites them, for no gain — and
+ * `docs/07`'s `/about` page gets its OWN content module, so there is no second
+ * collision waiting.
  *
  * DELIBERATELY A SERVER COMPONENT. `Reveal` is the only client boundary here,
  * which keeps the copy out of the client bundle's critical path.
@@ -60,7 +73,7 @@ import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
  * of decoration), and `accent-hero`, which is Tier 1 only and mechanically
  * unavailable outside the `--color-*` namespace.
  */
-export function About() {
+export function Trajectory() {
   return (
     <section
       id="trajectory"
@@ -193,4 +206,4 @@ export function About() {
   );
 }
 
-export default About;
+export default Trajectory;

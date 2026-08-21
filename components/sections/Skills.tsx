@@ -175,7 +175,8 @@ export function Skills() {
               // Skills is anchor-reachable at `#stack`, so a jump can land the
               // heading and two groups on a single observer tick, and any delay
               // would then render the sequence visibly out of order. This is
-              // the exact failure About documented at About.tsx:74-94. Do not
+              // the exact failure Trajectory documented in its own beat
+              // map (formerly About.tsx:74-94). Do not
               // "restore" a stagger here either.
               //
               // The className carries this group's own surface, exactly as

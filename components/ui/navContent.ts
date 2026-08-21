@@ -56,7 +56,7 @@ export const NAV_LOCATION = "Islamabad, Pakistan";
  *     Experience and Currently Learning. Verified against
  *     `app/(site)/(chrome)/work/page.tsx`.
  *   - `About` is still an ANCHOR into Home — `/#trajectory`, verified against
- *     `About.tsx`, which renders `id="trajectory"`. `/about` does not exist
+ *     `Trajectory.tsx`, which renders `id="trajectory"`. `/about` does not exist
  *     yet, and a nav entry pointing at a route that 404s is worse than a
  *     half-routed bar. It becomes `/about` when that page ships.
  *
