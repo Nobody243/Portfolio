@@ -155,14 +155,21 @@ written down twice is a duration until someone retunes one copy. Collapsing
 cut. **Measured on the running timeline: the hero's arrival and the navbar's
 slide both begin at 2.205s** — within one frame of the zoom-in's 2.215s.
 
-> **OPEN, and deliberately not fixed inside the revert.** `HANDOFF_S` is 0.45s,
-> which was tuned for the merge's expansion out of a *point*. Against a 0.95s
-> zoom-in the hero is fully settled ~0.42s before the plate clears, so the camera
-> passes over a hero that has already arrived. The original paired the zoom with
-> a hero settling out of a matching **over-scale** for 1.6s. Nothing looks
-> broken; the two halves of the seam are simply no longer describing the same
-> move. `Hero.tsx`'s header still describes the contraction it expanded from, and
-> will need the same pass.
+> **CLOSED in `8875803`, one commit after the revert.** This box recorded the
+> hero still carrying the merge's arrival — `HANDOFF_S`, 0.45s, tuned for an
+> expansion out of a *point* — which against a 0.95s zoom-in left it fully
+> settled ~0.42s before the plate cleared.
+>
+> Restored to `f640107` verbatim: **`scale 1.12 → 1` over 1.6s.** The incoming
+> half of a handoff must outlast the outgoing one; 1.6s against 0.95s is that
+> margin. `Hero.tsx` no longer imports `HANDOFF_S` — the navbar keeps it, and the
+> two share a start instant rather than a duration.
+>
+> This box also predicted that *"`Hero.tsx`'s header still describes the
+> contraction it expanded from, and will need the same pass"*. Half right: the
+> constants were fixed in `8875803`, but `ARRIVAL_S`'s own docblock was left
+> arguing for the reverted value and was not corrected until `7b3b5d2`. See
+> §`docs/07` §3 for the full record.
 
 Phase 7's `power2.in` is a deliberate exception to the shared curves in
 `lib/animation/easing.ts`: every shared curve *decelerates* into its end state,

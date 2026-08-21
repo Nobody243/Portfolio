@@ -6,6 +6,13 @@ Full planning documents live in `docs/`. Read the relevant one before working on
 - `docs/02_TECHNICAL_ARCHITECTURE.md` — stack reasoning, folder structure, content shapes, env/config notes
 - `docs/03_FRONTEND_SPEC.md` — color tokens, type scale, motion system, component styles
 - `docs/04_FEATURE_TICKETS.md` — the 16 build tickets, prioritized, with acceptance criteria
+- `docs/07_SITE_RESTRUCTURE.md` — **the governing spec for the three-page site.** Read it before any
+  work on the navbar, the Intro, the MS mark, Home's structure, `/work`, `/about`, the scroll-scrub or
+  the reveal footer — which is nearly everything. It reverses Rule S-1 for chrome, retires the
+  four-category Stack grid, locks the featured three, defines `/about`, and scopes the scrub to Home.
+  It was absent from this list until 2026-08-22, which meant the spec governing the entire restructure
+  was invisible to any agent that read only this file — precisely the failure the section below exists
+  to prevent.
 - `docs/06_INTRO_AND_CHROME.md` — the Loader/Intro split and the Intro's confirmed sequence;
   the navbar's scope, its legibility escalation, and where the theme toggle lives now.
   Read it before touching anything named "loader", "intro", "nav", or the theme toggle.

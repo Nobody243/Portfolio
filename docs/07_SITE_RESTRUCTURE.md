@@ -55,8 +55,17 @@ ones.
 > sessions fighting its own smallest case. Full argument in
 > `.claude/handoff/ms-mark-faceted-design.md`; the operative summary:
 >
-> **The mark is eight filled quadrilaterals — three bars for the M with 45° cut tops, five for the S
-> with two 45° chamfers at diagonally opposite corners.** Every edge is orthogonal or a true 45°, so
+> **The mark is SIX filled polygons — ONE for the M, five for the S with two 45° chamfers at
+> diagonally opposite corners.**
+>
+> **CORRECTED 2026-08-22. This paragraph said "eight quadrilaterals — three bars for the M with 45°
+> cut tops", and that M was built, rendered at 17px and rejected.** Magnified from the real raster it
+> read as three vertical strokes: a 56-unit cut is 2.98px at nav size, and a diagonal that small with
+> nothing on the far side of it is a soft corner rather than a stroke. The M is now one polygon — two
+> stems joined by a vee whose mouth is 112 units and which descends 184, so 5.95px and 9.78px at nav.
+> `msMarkGeometry.ts` lines 176-192 carry the full reasoning. **A banner that supersedes the trace mark
+> was itself overtaken, and did not say so — anyone reading `/docs` alone would have built the wrong
+> mark.** Every edge is orthogonal or a true 45°, so
 > the PCB-routing discipline that made the trace mark belong to `ParticleGrid` is kept; what is
 > dropped is the hairline-and-dots *material*.
 >
@@ -93,13 +102,27 @@ applied after the shape has settled.
 
 **The mark's minimum legible rendered height is 17px, and that is a pass/fail, not a preference.**
 
-**THE NUMBER IS UNCHANGED; ITS DERIVATION IS NOT.** The old floor came from node-dot clearance across
-the 112-unit letter gap — 16.4px to keep ~3px of clear air between the two facing dots. There are no
-dots any more and the letter gap is 64 units. **What binds now is the M's S's 44-unit bar gap**, the
-tightest clear air anywhere in the mark: keeping ~2px of it needs `40 / 2 = 20` units per pixel, i.e.
-**16.0px of rendered height**. Below that the three bars start to fuse and the M reads as a block.
-17px gives 2.12px of air — about 6% of margin for antialiasing — so the shipped floor stays where it
-was. The number lives in code as `MIN_HEIGHT_PX` in `components/ui/msMarkGeometry.ts`.
+**THE NUMBER HAS NOW BEEN DERIVED THREE TIMES FROM THREE DIFFERENT FEATURES, AND HAS BEEN 17px EVERY
+TIME.** That is worth saying plainly, because a constant whose justification keeps evaporating while
+its value holds is exactly the thing a later reader "corrects".
+
+| Derivation | Binding feature | Arithmetic floor | Status |
+|---|---|---|---|
+| Trace mark | node-dot clearance across the 112-unit letter gap | 16.4px | dead — no dots |
+| Three-bar faceted M | that M's 40-unit bar gap | 16.0px | dead — no bars |
+| **Live** | **the S's 44-unit gap between its horizontal bars** | **14.5px** | **current** |
+
+Keeping ~2px of air in the S's 44-unit gap needs `44 / 2 = 22` units per pixel, i.e. an arithmetic
+floor of **14.5px**. 17px gives **2.34px** of air — about 17% of margin for antialiasing — so the
+shipped floor stays where it has always been. `msMarkGeometry.ts`'s `MIN_HEIGHT_PX` is the owner and
+carries the same table.
+
+> **CORRECTED 2026-08-22.** This paragraph read *"the M's S's 44-unit bar gap"* — a botched edit — and
+> then did the arithmetic with **40**, the retired `M_BAR_GAP`, to reach 16.0px. It also said *"the
+> three bars start to fuse and the M reads as a block"*; **the M has not been three bars since the
+> faceted rebuild and has no bar gaps at all.** `Navbar.tsx` carried the same dead derivation verbatim
+> and was corrected in the same commit. The practical cost was real: Phase 5 renders the mark as the
+> footer stamp, and would have refused a size the true floor permits.
 
 **Anything that renders the mark smaller than 17px is a design change, not a layout tweak** — the
 navbar, the About page, the reveal-footer stamp, and any future favicon or OG usage. Raise it rather
@@ -309,13 +332,22 @@ section used to set belonged to the reverted merge and does not apply: the zoom-
 back, and they cost 0.82s between them. The zoom-in is held at **0.95s**, which is the weight it has
 always had.
 
-**The seam is currently mismatched and it is a known open item, not an oversight.** `Hero.tsx` still
-carries the merge's arrival — `scale 0 → 1` over `HANDOFF_S` (0.45s) — because it expanded out of a
-*point*. Against a 0.95s zoom-in the hero is fully settled ~0.42s before the plate finishes
-dissolving, so the camera passes over a hero that has already arrived. The original paired the zoom
-with a hero settling out of a matching *over-scale* for 1.6s. Nothing looks broken, but the two halves
-of the seam are no longer describing the same move. **Deciding that is Saad's, and it is deliberately
-not bundled into the revert.**
+**THE SEAM IS CLOSED. Both halves now describe the same move** — decided and shipped in `8875803`,
+one commit after the revert.
+
+`Hero.tsx` briefly carried the merge's arrival (`scale 0 → 1` over `HANDOFF_S`, 0.45s) because that
+expanded out of a *point*. Against a 0.95s zoom-in the hero settled ~0.42s before the plate finished
+dissolving, so the camera flew over a surface that had already arrived. Nothing looked broken, which
+is why it needed measuring rather than watching.
+
+Restored to `f640107` verbatim: **`scale 1.12 → 1` over 1.6s.** The rule is the one `Hero.tsx` already
+stated and lost along with the camera it was written for — the incoming half of a handoff must OUTLAST
+the outgoing one, or the seam becomes a cut. 1.6s against 0.95s is that margin, and 1.12 rather than 0
+because a camera moving forward hands off to a surface slightly too close that eases back to rest.
+
+**What the three components share is the START INSTANT, not the duration**, and `lib/animation/handoff.ts`
+records that from its side. The navbar slides in 0.45s and the hero settles over 1.6s; both begin on
+the same frame — measured 2205ms each. "One coordinated beat" is simultaneity of onset, not of length.
 
 **Reduced motion.** Collapses to something minimal — a quick fade to the settled mark plus an instant
 hero reveal — rather than the full choreography at a different speed. See §8.

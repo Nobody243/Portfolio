@@ -84,22 +84,6 @@ export const BASELINE = VB_H - INSET;
 ------------------------------------------------------------------------- */
 /** Bar and stem thickness — the mark's one ink weight. */
 export const BAR = 56;
-/**
- * RETIRED, AND DELIBERATELY NOT DELETED YET.
- *
- * This was the clear air between the M's three bars, back when the M WAS three
- * bars, and `MIN_HEIGHT_PX` was derived from it as the tightest gap in the
- * mark. The M is now a single polygon with a vee, so it has no bar gaps at all
- * and this number measures nothing.
- *
- * The tightest air in the mark is now the S's 44-unit gap between its
- * horizontal bars — 2.34px at nav. See `MIN_HEIGHT_PX`, which is re-derived
- * from it.
- *
- * Nothing imports this. It is left for one commit so the rename is legible in
- * review; delete it on the next pass through this file.
- */
-export const M_BAR_GAP = 40;
 /** Clear air between the M and the S. Wider than the M's internal gaps, which
  *  is what keeps the pair reading as two letters rather than five bars. */
 export const LETTER_GAP = 64;

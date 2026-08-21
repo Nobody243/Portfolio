@@ -448,13 +448,18 @@ export function Navbar() {
                 // here, because `docs/07` §2.1 binds more surfaces than this
                 // file — About, the reveal-footer stamp, any future favicon.
                 //
-                // ITS DERIVATION CHANGED WITH THE FACETED MARK and the number
-                // did not. The old floor came from node-dot clearance across a
-                // 112-unit letter gap; there are no dots now. What binds is the
-                // M's 40-UNIT BAR GAP — the tightest clear air in the mark —
-                // which needs 16.0px of rendered height to keep ~2px of it.
-                // 17px gives 2.12px, about 6% of margin. ANYTHING SMALLER IS A
-                // DESIGN CHANGE — raise it rather than shrinking the mark.
+                // ITS DERIVATION HAS CHANGED TWICE AND THE NUMBER NEVER HAS.
+                // The trace mark derived it from node-dot clearance across the
+                // 112-unit letter gap; there are no dots now. The three-bar
+                // faceted M derived it from that M's 40-unit bar gap; the M is
+                // ONE polygon now and has no bar gaps at all.
+                //
+                // WHAT BINDS TODAY IS THE S'S 44-UNIT GAP between its three
+                // horizontal bars — the tightest clear air in the mark. Keeping
+                // ~2px of it needs 44 / 2 = 22 units per pixel, an arithmetic
+                // floor of 14.5px; 17px gives 2.34px, about 17% of margin.
+                // ANYTHING SMALLER IS A DESIGN CHANGE — raise it rather than
+                // shrinking the mark. `msMarkGeometry.ts` owns the number.
                 //
                 // The cap is 13.6px inside this box, unchanged from the trace
                 // mark, but the ink is not: bars are 2.98px against the trace's
