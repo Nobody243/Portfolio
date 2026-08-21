@@ -60,9 +60,12 @@ import type { Project } from "@/content/types";
  *
  * IT IS RENDERED TWICE, top and bottom, and the two instances are the same
  * node. The route's own header explains why the affordance appears twice at
- * all (no site nav, a shared-link visitor has no back history, and CCN and SNA
- * would otherwise end on a truncated `Built with` block). That reasoning is
- * unchanged; only its home moved.
+ * all: a shared-link visitor has no back history, and CCN and SNA would
+ * otherwise end on a truncated `Built with` block. It used to cite "no site
+ * nav" as a third reason — the navbar is site chrome now, so that clause is
+ * gone, but it never carried the argument and the behaviour is unchanged.
+ * These pages still get no navbar: they sit outside the `(chrome)` route
+ * group, deliberately, because this file owns their top strip.
  *
  * DO NOT PASS A NODE THAT NEEDS A UNIQUE `key`, AN `autoFocus`, OR ANY OTHER
  * ONCE-PER-DOCUMENT ATTRIBUTE. Both instances are identical by construction,

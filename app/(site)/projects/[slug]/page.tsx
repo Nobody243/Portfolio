@@ -139,11 +139,18 @@ export async function generateMetadata({
  * The back affordance. It is passed to `ProjectDetailFrame` as `affordance`
  * and the frame renders it TWICE — top and bottom, the same node both times.
  *
- * WHY TWICE. There is no `app/(site)/layout.tsx` and no site nav, so this link
- * and the browser Back button are the ONLY routes home — and a visitor
- * arriving from a shared URL (detail pages are the site's most shareable ones)
- * has no back history to the gallery at all. For that visitor a single link
- * 2,000px above the fold is not an exit. It is also the fix for the
+ * WHY TWICE. THE SHARED-URL VISITOR IS THE WHOLE ARGUMENT, and it is the half
+ * that survived. The original reasoning also cited "there is no
+ * `app/(site)/layout.tsx` and no site nav": the first clause went stale in
+ * Ticket 6b, which had to create that layout to receive the `@modal` slot, and
+ * the second went stale when the navbar became site chrome. Neither is load
+ * bearing, because the navbar still does NOT render on `/projects/<slug>` —
+ * these pages are Tier 3 and `ProjectDetailFrame` owns the top strip.
+ *
+ * So this link and the browser Back button remain the ONLY routes out — and a
+ * visitor arriving from a shared URL (detail pages are the site's most
+ * shareable ones) has no back history to the gallery at all. For that visitor
+ * a single link 2,000px above the fold is not an exit. It is also the fix for the
  * truncated-ending problem: CCN and SNA end on `Built with`, a 12px mono label
  * over six short words, and a second `All work` gives all five pages the same
  * terminal element regardless of which data block ran last. The page then ends
@@ -181,11 +188,19 @@ export async function generateMetadata({
  * measure.
  */
 /**
- * `/#work` is the gallery's anchor, and the id is derived from
- * `PROJECTS_HEADING` in `components/sections/projectsContent.ts`. That file
- * records that renaming "Work" is a three-file commit; this is the third file.
+ * `/work` — the archive page, not `/#work` on Home any more.
+ *
+ * THIS IS A CORRECTNESS FIX, NOT A TIDY-UP. Home is about to carry three
+ * featured projects; CCN and SNA are archive-only. `/#work` would send a
+ * visitor who was reading the CCN detail page to a gallery that provably does
+ * not contain CCN — the one link on the page whose entire job is "take me back
+ * to where this came from", landing them somewhere it demonstrably did not come
+ * from. `/work` holds all five and always will.
+ *
+ * The label above it is still `BACK_LINK_LABEL` ("All work"), which now says
+ * exactly what the href does.
  */
-const BACK_HREF = "/#work";
+const BACK_HREF = "/work";
 
 export default async function ProjectDetailPage({
   params,

@@ -48,17 +48,39 @@ export const NAV_LOCATION = "Islamabad, Pakistan";
  * asks for ABOUT by name. If that call is reversed, change it HERE and the
  * whole bar follows.
  *
- * The hrefs are section ids, verified against the sections that own them:
- * `About.tsx` renders `id="trajectory"`, `Projects.tsx` renders `id="work"`.
+ * THE TWO ARE NOT THE SAME KIND OF LINK, and that asymmetry is deliberate
+ * rather than unfinished. They were both section ids until `/work` became a
+ * real route; now:
+ *
+ *   - `Work` is a ROUTE — `/work`, the page holding the full archive plus
+ *     Experience and Currently Learning. Verified against
+ *     `app/(site)/(chrome)/work/page.tsx`.
+ *   - `About` is still an ANCHOR into Home — `/#trajectory`, verified against
+ *     `About.tsx`, which renders `id="trajectory"`. `/about` does not exist
+ *     yet, and a nav entry pointing at a route that 404s is worse than a
+ *     half-routed bar. It becomes `/about` when that page ships.
+ *
+ * BOTH ARE WRITTEN AS FULL HREFS, INCLUDING THE LEADING `/`, so the About entry
+ * works from `/work` too — a bare `#trajectory` would look for that id on
+ * whatever page the visitor is on and silently do nothing. `Navbar.tsx` and
+ * `NavMobileMenu.tsx` render them as real links; the bar intercepts the click
+ * only when the target is a hash on the page already showing, so that the
+ * smooth-scroll offset that keeps the heading out from under the bar survives.
  */
 export const NAV_ITEMS = [
-  { label: "About", targetId: "trajectory" },
-  { label: "Work", targetId: "work" },
+  { label: "About", href: "/#trajectory" },
+  { label: "Work", href: "/work" },
 ] as const;
 
 /** The centre icon's accessible name. It is a home/top affordance, so it is
- *  named for what it DOES, not for the constellation it draws. */
-export const NAV_HOME_LABEL = "Back to top";
+ *  named for what it DOES, not for the constellation it draws.
+ *
+ *  IT IS ROUTE-SHAPED NOW, NOT "Back to top". The icon is a `<Link href="/">`
+ *  since the bar started appearing on more than one page — on `/work` "Back to
+ *  top" would have been a plain lie, since it leaves the page entirely. "Home"
+ *  is true on both, including on Home itself, where it still returns you to the
+ *  top. */
+export const NAV_HOME_LABEL = "Home";
 
 /** Announced, and shown, after a successful copy. */
 export const NAV_COPY_CONFIRMATION = "Copied";

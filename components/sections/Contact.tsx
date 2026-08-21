@@ -32,7 +32,11 @@ import { STAGGER } from "@/lib/animation/easing";
  * content of that landmark — it is where a screen-reader user goes looking for
  * contact details. THE TRAP: a <footer> nested inside <main> is scoped to
  * <main> and is not a landmark at all. Nothing errors, nothing looks different,
- * and the entire benefit silently evaporates. See `app/(site)/page.tsx`.
+ * and the entire benefit silently evaporates. Both call sites keep it outside
+ * `<main>` for that reason — `app/(site)/(chrome)/page.tsx` and
+ * `app/(site)/(chrome)/work/page.tsx`. IT RENDERS ON BOTH PAGES FOR NOW, the
+ * same component twice and never a copy; Phase 5 of the restructure absorbs it
+ * into the reveal footer the two will share.
  *
  * NOTHING COMES AFTER THIS SECTION. No copyright line, no colophon, no "built
  * with": a copyright line states nothing a visitor needs and nothing in

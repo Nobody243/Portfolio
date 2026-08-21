@@ -214,20 +214,37 @@ module and it does not. No storage key is written at all — verified.
 
 ---
 
-## 4. The navbar renders on `/` and only on `/`
+## 4. The navbar renders on the content routes, and never on `/projects/<slug>`
 
-It is mounted in `app/(site)/page.tsx`, before `<main>` and as a sibling of it,
-so `<header>`'s nearest ancestor is `<body>` and it is the `banner` landmark.
+**REVISED 2026-08-22 (Phase 2).** This section used to be headed "the navbar
+renders on `/` and only on `/`", and while the site was one page that was
+correct. It is not any more: WORK is a route now, and a bar whose entries point
+at pages it does not itself appear on is unusable.
 
-It is **not** in `app/(site)/layout.tsx`, which would have put it on the five
-`/projects/<slug>` routes as well. Three reasons:
+It is mounted in **`app/(site)/(chrome)/layout.tsx`**, a nested route group
+holding `page.tsx`, `work/` and — from Phase 4 — `about/`. It renders before
+`{children}` and as a sibling of the page's `<main>`, so `<header>`'s nearest
+ancestor is still `<body>` and it is still the `banner` landmark. Route groups
+contribute no URL segment, so no URL changed and — the part that mattered — the
+pages did not move off segment level `/`, which is where
+`@modal/(.)projects/[slug]` intercepts. Verified by clicking cards on both `/`
+and `/work`, including CCN and SNA, which exist only on `/work`.
+
+It is still **not** in `app/(site)/layout.tsx`, which would have put it on the
+five `/projects/<slug>` routes as well. All three original reasons stand, and
+all three were only ever about the detail routes:
 
 1. `ProjectDetailFrame` already owns that top strip, with a back link and a
    theme toggle. Two fixed bars in the same 64px collide.
 2. Detail pages are **Tier 3**. A transparent bar carrying a Tier 1 mark is the
    wrong register for the surface where recruiters evaluate substance.
 3. That layout's own header states it must render no DOM element and no
-   wrapper. Mounting the nav at page level keeps that intact.
+   wrapper. `(chrome)` is a fragment too, so that is intact one level down.
+
+**If interception ever stops firing, the fallback is to delete `(chrome)/layout.tsx`
+and mount `<Navbar />` in each page file** — three JSX lines, zero routing risk.
+Routing failures of this kind are silent, so test by clicking a card, never by
+typing the URL: a typed URL is a hard load, which by design never intercepts.
 
 ---
 
@@ -299,6 +316,19 @@ cannot serve all three. The bar swaps palette at the hero's edge, driven by a
 which was a `setState`-in-effect the lint rule correctly rejected and which
 re-rendered the whole bar to change three strings.
 
+> **AMENDED 2026-08-22 (Phase 2) — this escalation assumed a hero on the page,
+> and `/work` has none.** There, the bar is in the past-hero palette *with* the
+> scrim from scroll position 0 and never leaves it — which is the CSS default,
+> since `globals.css` makes the hero case the override precisely so a heroless
+> route is safe by not carrying the attribute. Two things follow, both in
+> `Navbar.tsx`: the attribute is decided at **render** so the server markup is
+> already right (removing it on mount would ship one frame of hero palette over
+> `bg-base` — in light mode, near-white on warm-white), and the hero lookup
+> **re-runs on every route change**, because the bar is layout-mounted now and
+> does not remount between `/` and `/work`. It reads DOM presence rather than
+> the pathname, so an open project overlay — pathname `/projects/<slug>`, Home
+> still mounted behind the dialog — keeps the palette it had.
+
 Measured contrast, all clearing AA for the 12px mono the bar is set in:
 
 | | fg (at 72%) | accent |
@@ -348,8 +378,11 @@ the reversal point is named.
    is the hero's own `ParticleGrid` reduced to four nodes, so the centre of the
    bar quotes the site's most distinctive visual. It avoids both template
    signatures (the house; the terminal prompt) and still *reads* as home from
-   its position and its accessible name (`Back to top`). Change it in
-   `components/ui/NavIcons.tsx`.
+   its position and its accessible name — which is now **`Home`**, not `Back to
+   top`: Phase 2 made the icon a `<Link href="/">`, and on `/work` "back to top"
+   would have described something it does not do. Change it in
+   `components/ui/NavIcons.tsx`; the name is `NAV_HOME_LABEL` in
+   `components/ui/navContent.ts`.
 2. **Copy confirmation — resolved as a masked label swap plus a checkmark.** A
    toast was rejected (feedback lands somewhere other than the thing clicked); a
    bare pulse was rejected (confirms *something* happened, not that the right
@@ -367,10 +400,13 @@ the reversal point is named.
    `components/ui/navContent.ts` and the whole bar follows.
 5. **No skip link.** The bar puts six focusable controls ahead of the page
    content for keyboard users (five until Phase 0 returned the theme toggle).
-   Verified tab order is About → Back to top → Work → **theme toggle** → email
-   → LinkedIn → the hero's scroll cue, which is still short and coherent, so
-   this remains a judgement call rather than a violation. Worth adding if the
-   chrome grows again.
+   Verified tab order is About → Home → Work → **theme toggle** → email →
+   LinkedIn → the hero's scroll cue, which is still short and coherent, so this
+   remains a judgement call rather than a violation. **Phase 2 changed what
+   those controls are, not how many:** the three centre entries are `<Link>`s
+   now rather than buttons, so they gain the browser's own link affordances
+   (middle-click, status bar, "copy link address"). Worth adding a skip link if
+   the chrome grows again.
 6. **Repeat-visit plate.** On a same-session revisit the gate's opaque plate
    ships in the server HTML and is removed at hydration, so the hero is covered
    for a few hundred milliseconds. Pre-existing (the old `HeroLoader` had the

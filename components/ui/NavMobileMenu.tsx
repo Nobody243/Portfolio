@@ -40,7 +40,9 @@
  * costs nothing.
  */
 
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import Link from "next/link";
 
 import { CopyEmailButton } from "@/components/ui/CopyEmailButton";
 import { LinkedInIcon, MenuIcon } from "@/components/ui/NavIcons";
@@ -84,8 +86,14 @@ const DIALOG =
 type NavMobileMenuProps = {
   open: boolean;
   onClose: () => void;
-  /** Called with a section id AFTER the lock has been released. */
-  onNavigate: (targetId: string) => void;
+  /**
+   * Called with the entry's href and its click event, AFTER the lock has been
+   * released. The parent owns what happens next — it closes the menu, and it
+   * decides whether to let the link navigate or to intercept it and scroll.
+   * The event is forwarded rather than swallowed precisely so it can still be
+   * `preventDefault`ed there.
+   */
+  onNavigate: (href: string, event: ReactMouseEvent) => void;
 };
 
 export function NavMobileMenu({
@@ -141,9 +149,9 @@ export function NavMobileMenu({
   }, [open, unlock]);
 
   const choose = useCallback(
-    (targetId: string) => {
+    (href: string, event: ReactMouseEvent) => {
       unlock();
-      onNavigate(targetId);
+      onNavigate(href, event);
     },
     [onNavigate, unlock],
   );
@@ -182,16 +190,25 @@ export function NavMobileMenu({
           the middle of an empty phone screen would be a miniature of the
           desktop nav instead of a design for this context.
         */}
+        {/*
+          LINKS, NOT BUTTONS, and the `aria-label` is still "Sections" only
+          because the entries still read as sections to a visitor — one of them
+          is now a route. `choose` releases the scroll lock FIRST and then hands
+          the event to the parent, which either lets the link navigate or
+          intercepts it for an in-page scroll. The unlock cannot wait for the
+          effect cleanup: `overflow: clip` is still on `<html>` at click time,
+          and a scroll into a locked document goes nowhere.
+        */}
         <nav aria-label="Sections" className="mt-2xl flex flex-col gap-md">
           {NAV_ITEMS.map((item) => (
-            <button
-              key={item.targetId}
-              type="button"
-              onClick={() => choose(item.targetId)}
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={(event) => choose(item.href, event)}
               className="cursor-pointer text-left text-h3 text-fg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-working"
             >
               {item.label}
-            </button>
+            </Link>
           ))}
         </nav>
 

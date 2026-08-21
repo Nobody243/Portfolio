@@ -303,11 +303,19 @@ export function ProjectOverlay({ children }: { children: ReactNode }) {
    * restores focus to the card; then the lock is released before the page
    * behind becomes visible; then the history entry pops.
    *
-   * `router.back()` RATHER THAN `router.push("/#work")`: back preserves the
-   * gallery's scroll offset, and the history is guaranteed to contain `/`
-   * because a client navigation from inside the app is the only way to reach an
-   * intercepted view at all. A hard load of `/projects/<slug>` renders the real
-   * route and never mounts this component.
+   * `router.back()` RATHER THAN `router.push(...)`: back preserves the
+   * gallery's scroll offset AND returns to whichever gallery you came from,
+   * which a fixed destination cannot. There are two of them now — Home's
+   * featured set and the full archive at `/work` — and CCN and SNA are only
+   * ever reached from `/work`.
+   *
+   * THE GUARANTEE IS WEAKER THAN IT WAS, AND THE MECHANISM IS UNAFFECTED. This
+   * used to say the history was guaranteed to contain `/`. What is still
+   * guaranteed is that the previous entry is a page inside this app, because a
+   * client navigation from inside it is the only way to reach an intercepted
+   * view at all — a hard load of `/projects/<slug>` renders the real route and
+   * never mounts this component. Which page that is is no longer knowable here,
+   * and `back()` does not need to know.
    *
    * KNOWN HAZARD, AND IT IS THE ONE TO TEST FIRST (plan V3): if
    * `onExitComplete` never fires, the URL is stranded at `/projects/<slug>`

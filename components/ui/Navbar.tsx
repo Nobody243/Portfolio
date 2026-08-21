@@ -9,6 +9,13 @@
  *   centre  ABOUT · [constellation] · WORK
  *   right   the email address as a copy control + the LinkedIn mark
  *
+ * IT IS SITE CHROME NOW, NOT A HOMEPAGE COMPONENT. It is mounted by
+ * `app/(site)/(chrome)/layout.tsx` and renders on `/` and `/work` (and on
+ * `/about` when that ships), but still never on `/projects/<slug>`. Two
+ * consequences run through this file: the centre items are real links rather
+ * than scroll calls, and the adaptive palette below can no longer assume there
+ * is a hero on the page.
+ *
  * THE CENTRE IS ABSOLUTELY CENTRED, not flex-centred, and that is a
  * requirement rather than a preference: the spec asks for the icon to be "in
  * the very center", and a `justify-between` middle cluster sits wherever the
@@ -38,6 +45,15 @@
  *      text vanishes on #FDFCFA and dark text vanishes on the hero. So the bar
  *      swaps its palette when it leaves the hero, which is the "adaptive colour
  *      based on what is scrolling behind it" option the spec lists.
+ *
+ *      ON A PAGE WITH NO HERO — `/work` — there is nothing to swap out of, so
+ *      the bar starts in the past-hero palette WITH THE SCRIM, from scroll
+ *      position 0, and stays there. That is the CSS default (`globals.css`
+ *      makes the hero case the override precisely so a heroless route gets the
+ *      safe palette by not carrying an attribute), and the only work here is
+ *      making sure the attribute is absent in the SERVER-RENDERED markup too.
+ *      Removing it on mount instead would ship one frame of hero-palette bar
+ *      over `bg-base` — in light mode that is near-white on warm-white.
  *
  *      Measured, not assumed. Over the hero: `hero-fg` at 72% composites to
  *      ~8.6:1 on `hero-surface`, `hero-accent` is 8.00:1. Past it: `fg` at 72%
@@ -87,7 +103,10 @@
  * cannot see, and nothing would error.
  */
 
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { CopyEmailButton } from "@/components/ui/CopyEmailButton";
 import { MonogramMark } from "@/components/ui/MonogramMark";
@@ -134,11 +153,64 @@ const ALWAYS_VISIBLE_ABOVE = 140;
 const NAV_ITEM =
   "pointer-events-auto cursor-pointer text-caption font-mono uppercase text-[var(--nav-fg-dim)] transition-colors duration-300 hover:text-[var(--nav-fg)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-accent)]";
 
+/** The one route with a hero on it, and the centre icon's destination. */
+const HOME_ROUTE = "/";
+
+/**
+ * An in-page target, or `null` if following the link is the right thing to do.
+ *
+ * `NAV_ITEMS` holds full hrefs — `/#trajectory` and `/work` — so every entry
+ * works from every page the bar appears on. But an anchor into Home, clicked
+ * WHILE ON HOME, must not be handed to the router: Next would scroll natively,
+ * losing both Lenis and `NAV_SCROLL_OFFSET`, and the heading would land
+ * underneath the bar that just took you to it. So that one case is intercepted
+ * and everything else — every real route, and the same anchor clicked from
+ * `/work` — is left alone.
+ */
+const inPageTarget = (href: string, pathname: string): string | null =>
+  pathname === HOME_ROUTE && href.startsWith(`${HOME_ROUTE}#`)
+    ? href.slice(2)
+    : null;
+
+/**
+ * A modified click is the visitor asking the browser for a new tab or window,
+ * and `preventDefault` would silently swallow that. `button !== 0` catches the
+ * middle-click that some engines report through `click`.
+ */
+const isPlainClick = (event: ReactMouseEvent) =>
+  event.button === 0 &&
+  !event.metaKey &&
+  !event.ctrlKey &&
+  !event.shiftKey &&
+  !event.altKey;
+
 export function Navbar() {
   const headerRef = useRef<HTMLElement>(null);
   const scrollToSection = useSectionScroll();
+  const pathname = usePathname();
 
   const [menuOpen, setMenuOpen] = useState(false);
+
+  /**
+   * ONE HANDLER FOR BOTH THE BAR AND THE MOBILE MENU, so the two can never
+   * disagree about what a nav entry does. The menu passes its own click event
+   * through after releasing the scroll lock — see `NavMobileMenu`, where the
+   * unlock has to happen synchronously or the scroll lands against a document
+   * that cannot move.
+   */
+  const handleNavClick = useCallback(
+    (href: string, event: ReactMouseEvent) => {
+      setMenuOpen(false);
+      if (!isPlainClick(event)) return;
+
+      const targetId = inPageTarget(href, pathname);
+      if (!targetId) return;
+
+      event.preventDefault();
+      scrollToSection(targetId);
+    },
+    [pathname, scrollToSection],
+  );
 
   /* -----------------------------------------------------------------------
      Which ground is behind the bar.
@@ -155,9 +227,33 @@ export function Navbar() {
        3. The swap becomes a pure CSS cascade, so it cross-fades for free via
           the `transition-colors` each item already carries.
 
-     The attribute is present in the SERVER-RENDERED markup, because the top of
-     the page is the hero and that is where the bar starts. A route with no hero
-     drops it on mount and gets the `bg-base` palette, which is the CSS default.
+     THE SERVER-RENDERED VALUE IS FROZEN AT MOUNT, deliberately. On `/` the
+     attribute ships in the HTML, because the top of the page is the hero and
+     that is where the bar starts; on `/work` it ships absent, so the past-hero
+     palette and its scrim are correct from the first painted frame rather than
+     from the first effect. After mount the effect below is the ONLY author —
+     which is why this is `useState`-with-an-initialiser and not a value
+     recomputed from `pathname` on every render. The bar is mounted by the
+     `(chrome)` layout and survives client navigation between `/` and `/work`,
+     so a re-rendered attribute would fight the ref-written one; worse, during
+     an open project overlay the pathname is `/projects/<slug>` while Home is
+     still mounted BEHIND it, hero and all.
+  ----------------------------------------------------------------------- */
+  const [initialOverHero] = useState(() => pathname === HOME_ROUTE);
+
+  /* -----------------------------------------------------------------------
+     RE-RUNS ON EVERY ROUTE CHANGE, and that dependency is load-bearing rather
+     than tidy. The bar is layout-mounted now, so it does NOT remount when Home
+     gives way to `/work`. With `[]` deps the ScrollTrigger created against
+     Home's hero would outlive the element it measures, and `/work` would keep
+     whatever palette the visitor left Home with — the hero palette, if they
+     clicked WORK from the top of the page.
+
+     DOM PRESENCE, NOT `pathname`, DECIDES. `pathname` says when to re-check;
+     `getElementById` says what is actually on the page. The two differ in
+     exactly one case and it matters: with a project overlay open the pathname
+     is `/projects/<slug>` while Home — hero included — is still mounted behind
+     the dialog, and the bar should keep the palette it had.
   ----------------------------------------------------------------------- */
   useEffect(() => {
     const el = headerRef.current;
@@ -174,6 +270,15 @@ export function Navbar() {
       return;
     }
 
+    // SET THE STATE ONCE, UP FRONT, from where the page actually is. The
+    // trigger below only fires on CROSSING the boundary, so without this a
+    // navigation that arrives already scrolled past the hero — closing an
+    // overlay opened from the gallery, say — would sit on the wrong palette
+    // until the visitor happened to scroll back up and down again. The
+    // comparison mirrors `start` below exactly: over the hero for as long as
+    // its bottom edge is still below the bar.
+    setOverHero(hero.getBoundingClientRect().bottom > ALWAYS_VISIBLE_ABOVE / 2);
+
     // ScrollTrigger rather than a bare IntersectionObserver: it is already
     // bound to Lenis site-wide, and one scroll authority beats two.
     //
@@ -188,7 +293,7 @@ export function Navbar() {
     });
 
     return () => trigger.kill();
-  }, []);
+  }, [pathname]);
 
   /* -----------------------------------------------------------------------
      Hide on scroll-down, return on scroll-up.
@@ -254,9 +359,12 @@ export function Navbar() {
         ref={headerRef}
         // `data-nav-root` is what `globals.css` hangs the three palette
         // variables off. `data-over-hero` selects the hero half of that
-        // cascade; from here on it is written by ref, never by React.
+        // cascade; this SPREAD is its first and last appearance in React —
+        // present on a page that has a hero, absent on one that does not, and
+        // from here on written by ref alone. `initialOverHero` is frozen at
+        // mount for exactly that reason; the block above it has the full case.
         data-nav-root=""
-        data-over-hero=""
+        {...(initialOverHero ? { "data-over-hero": "" } : null)}
         // `transition-transform` with `motion-reduce:transition-none`: someone
         // who asked for less motion still gets the overlap protection, just
         // without the slide.
@@ -395,30 +503,41 @@ export function Navbar() {
             aria-label="Sections"
             className="pointer-events-auto absolute left-1/2 hidden -translate-x-1/2 items-center gap-md md:flex"
           >
-            <button
-              type="button"
-              onClick={() => scrollToSection(NAV_ITEMS[0].targetId)}
+            {/*
+              LINKS, NOT BUTTONS, since WORK became a route. A `<button>` that
+              navigates is invisible to every gesture a visitor expects of a
+              nav — middle-click, ⌘-click, "copy link address", and the status
+              bar that tells them where they are about to go. `handleNavClick`
+              hands the router everything except an anchor into the page that
+              is already showing, which it scrolls itself so the Lenis easing
+              and the nav offset survive.
+            */}
+            <Link
+              href={NAV_ITEMS[0].href}
+              onClick={(event) => handleNavClick(NAV_ITEMS[0].href, event)}
               className={NAV_ITEM}
             >
               {NAV_ITEMS[0].label}
-            </button>
+            </Link>
 
-            <button
-              type="button"
-              onClick={() => scrollToSection(HERO_SECTION_ID)}
+            {/* The centre icon is a route link now — `/` from anywhere. Its
+                accessible name moved with it: "Back to top" was a lie the
+                moment the bar appeared on a second page. */}
+            <Link
+              href={HOME_ROUTE}
               aria-label={NAV_HOME_LABEL}
               className="pointer-events-auto cursor-pointer text-[var(--nav-fg-dim)] transition-colors duration-300 hover:text-[var(--nav-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-accent)]"
             >
               <ConstellationIcon className="h-[19px] w-[19px]" />
-            </button>
+            </Link>
 
-            <button
-              type="button"
-              onClick={() => scrollToSection(NAV_ITEMS[1].targetId)}
+            <Link
+              href={NAV_ITEMS[1].href}
+              onClick={(event) => handleNavClick(NAV_ITEMS[1].href, event)}
               className={NAV_ITEM}
             >
               {NAV_ITEMS[1].label}
-            </button>
+            </Link>
           </nav>
 
           {/* ---------------------------------------------------------------
@@ -496,10 +615,7 @@ export function Navbar() {
       <NavMobileMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        onNavigate={(id) => {
-          setMenuOpen(false);
-          scrollToSection(id);
-        }}
+        onNavigate={handleNavClick}
       />
     </>
   );

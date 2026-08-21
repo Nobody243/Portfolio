@@ -8,8 +8,10 @@
  * unavoidable rather than a design choice.
  *
  * IT RENDERS NO DOM ELEMENT, NO CLASSNAME, AND NO PROVIDER, AND IT MUST NOT
- * GROW ANY. Every route under `(site)` — `/` and all five `/projects/<slug>`
- * pages — passes through here, so a wrapper `<div>` would silently change the
+ * GROW ANY. Every route under `(site)` passes through here — `/` and `/work`
+ * (both inside the nested `(chrome)` group, which adds the navbar and, being a
+ * route group, adds no URL segment) and all five `/projects/<slug>` pages,
+ * which stay outside it, so a wrapper `<div>` would silently change the
  * DOM of the entire site to hold a slot, and a `flex`/`min-h` class here would
  * fight `<body className="flex min-h-full flex-col">` in `app/layout.tsx`,
  * which is where site-wide structure lives. A fragment is the whole component.
