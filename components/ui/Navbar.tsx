@@ -13,9 +13,17 @@
  * requirement rather than a preference: the spec asks for the icon to be "in
  * the very center", and a `justify-between` middle cluster sits wherever the
  * left and right clusters leave room — which moves the moment the address
- * changes length or the location label wraps. The container is `mx-auto` with
- * symmetric padding, so its centre IS the viewport centre and
- * `left-1/2 -translate-x-1/2` puts the icon on it exactly.
+ * changes length or the location label wraps. The container is now FULL-WIDTH
+ * with symmetric padding (it was `mx-auto` with a 1440px cap until Phase 0
+ * removed both), so its centre IS the viewport centre and
+ * `left-1/2 -translate-x-1/2` puts the icon on it exactly. Measured: 720.00 at
+ * 1440, 1280.00 at 2560.
+ *
+ * THE CONCLUSION SURVIVED THE CAP REMOVAL, THE REASON DID NOT. Symmetric
+ * padding centres the container either way — but this comment said `mx-auto`
+ * was why, and after Phase 0 that was simply false. Recorded because a comment
+ * whose conclusion is right and whose reason is wrong is the hardest kind to
+ * catch: it reads as verified on every future pass.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * LEGIBILITY — the spec's open item, answered.
