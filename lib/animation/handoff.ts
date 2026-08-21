@@ -25,8 +25,18 @@
  */
 
 /**
- * Phase E. The hero's expansion and the navbar's slide both run for exactly
- * this long, from exactly the same instant.
+ * The navbar's slide. WHAT THE THREE COMPONENTS SHARE IS THE START INSTANT,
+ * NOT THE DURATION - and that changed when the Intro's zoom-in was restored.
+ *
+ * `Hero.tsx` used to import this too. It no longer does: under a camera move
+ * the hero must still be settling when the mark leaves the viewport, so its
+ * arrival runs 1.6s against the zoom-in's 0.95s while the bar slides in 0.45s.
+ * Both still BEGIN on the same frame, which is what `docs/07` S3 step 6 and S1
+ * actually require - "one coordinated beat" is simultaneity of onset, not of
+ * length. Measured after the restore: hero 2205ms, navbar 2205ms.
+ *
+ * Do not re-share them. A bar taking 1.6s to descend is a different bug from
+ * the one this module was written to prevent.
  *
  * 0.45s is `EXPAND_S` from the timing brief's §7 table. Setup (A+B+C) is 1.40s
  * and the handoff (D+E) is 0.95s, which holds the old `ZOOM_IN_S`'s weight to

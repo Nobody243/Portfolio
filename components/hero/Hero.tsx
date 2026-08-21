@@ -57,7 +57,6 @@ import { HeroHeadline } from "@/components/hero/HeroHeadline";
 import { ParticleGrid } from "@/components/hero/ParticleGrid";
 import { IntroGate } from "@/components/intro/IntroGate";
 import { ScrollTrigger, gsap } from "@/lib/animation/gsap";
-import { HANDOFF_S } from "@/lib/animation/handoff";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /**
@@ -79,7 +78,7 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * between three components, and a duration written down twice is a duration
  * until someone retunes one copy.
  */
-const EXPAND_S = HANDOFF_S;
+const ARRIVAL_S = 1.6;
 /**
  * IT EXPANDS FROM A POINT, AND THE POINT IS DEFINED RATHER THAN IMPLIED.
  *
@@ -92,15 +91,29 @@ const EXPAND_S = HANDOFF_S;
  * would break silently if the hero ever stopped being full-viewport at scroll
  * 0, so it is written down rather than assumed.
  *
- * Scale starts at 0, which is what "expands outward from that exact point"
- * means literally, and it is safe to be that literal because THE PLATE AND THE
- * HERO ARE THE SAME COLOUR: both are `bg-hero-surface`, so the opening frames
- * are not a hole through to the page, they are the site's own ground with its
- * contents blooming out of the centre. The pinhole third of the move happens
- * behind a plate that is still ~60% opaque; what the visitor actually watches
- * is the last 0.89 → 1 of it, in front of them.
+ * IT SETTLES OUT OF AN OVER-SCALE. IT DOES NOT GROW FROM A POINT.
+ *
+ * Both values below restore `f640107` verbatim, because the Intro's camera is
+ * back and the camera is what they exist for.
+ *
+ * `scale: 0` over 0.45s was correct for the merge-to-point Intro, where the
+ * mark contracted to a dot and the hero genuinely bloomed out of that pixel.
+ * Under a zoom-in both are wrong, and wrong in a way that is easy to miss
+ * because nothing looks broken: the hero simply finishes early and the camera
+ * then flies over a surface that has already arrived.
+ *
+ * THE RULE, restated because it was removed once already: the incoming half of
+ * a handoff must OUTLAST the outgoing one, or the seam becomes a cut. The mark
+ * accelerates out through the viewport over `ZOOM_IN_S` (0.95s) while the hero
+ * settles in behind it, and the settle has to still be happening when the mark
+ * leaves. 1.6s against 0.95s is that margin.
+ *
+ * 1.12 rather than 0 for the same reason. A camera moving forward hands off to
+ * a surface that is slightly too close and eases back to rest; that continuity
+ * is the whole illusion. Growing from a dot reads as a separate event that
+ * happens to begin where the last one ended.
  */
-const EXPAND_FROM_SCALE = 0;
+const ARRIVAL_SCALE = 1.12;
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -160,11 +173,11 @@ export function Hero() {
 
     const tween = gsap.fromTo(
       stage,
-      { scale: EXPAND_FROM_SCALE, opacity: 0, transformOrigin: "50% 50%" },
+      { scale: ARRIVAL_SCALE, opacity: 0, transformOrigin: "50% 50%" },
       {
         scale: 1,
         opacity: 1,
-        duration: EXPAND_S,
+        duration: ARRIVAL_S,
         // `power2.out`, NOT `GSAP_EASE.hero`, and the reasoning survived the
         // rewrite even though the move it applied to did not.
         //
