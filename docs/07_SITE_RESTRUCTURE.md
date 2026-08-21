@@ -265,30 +265,34 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
 
 ## 6. About Page
 
-**First-person paragraph — DRAFT, Saad to rewrite in his own cadence before shipping. Not final copy.**
-Revised to "small yet complete" per the Vlad / Aspect Health bio reference — ~75 words rather than a
-full paragraph.
+**First-person paragraph — FINAL, approved 2026-08-21. Phase 4's merge gate is CLOSED.**
+65 words. "Small yet complete", per the Vlad / Aspect Health bio reference.
 
 > I'm Muhammad Saad, a final-year IT student who ships full-stack products end-to-end — routing
 > engines, real-time sync, reactive interfaces that solve real problems. I'm now moving deliberately
-> into cloud infrastructure, networking, and security: architecting VLAN-segmented network topologies
-> with ACLs and dynamic routing, and configuring enterprise Windows Server environments, alongside real
-> hardening work on my own production projects. Not a security engineer yet — methodically building
-> toward being one.
+> into cloud infrastructure, networking, and security — recently rotating exposed credentials and
+> rebuilding the API layer behind a secured proxy on one of my own production apps. Not a security
+> engineer yet — methodically building toward being one.
 
-> **Two things to settle during that rewrite — flagged, not fixed, because this is Saad's copy.**
->
-> 1. **The coursework framing is absent.** "Architecting VLAN-segmented network topologies" and
->    "configuring enterprise Windows Server environments" describe the CCN and SNA builds, which are
->    **university coursework**. Home's About beat says so explicitly — *"Academic work, done hands-on.
->    Not production experience — but not theory either."* Without that qualifier this paragraph reads
->    closer to professional experience than the rest of the site allows, and CLAUDE.md's positioning
->    rule is the one thing every ticket has been held to. The closing line does real work here and may
->    be enough; that is Saad's judgement, but it should be a decision rather than an oversight.
-> 2. **"real hardening work on my own production projects"** needs to point at something specific and
->    true. ClashChat's Cloudflare Worker proxy — keeping the Groq key off the client — qualifies. If
->    that is what it means, naming it is stronger than the abstraction. If it means more than that, the
->    site's no-unverifiable-claims rule applies.
+**Both open questions are decided, and the reasoning is recorded so neither is reopened:**
+
+- **C2 — "real hardening work" now names something real.** It points at the ClashChat security pass:
+  Firebase key rotation and the Cloudflare Worker proxy that keeps the Groq API key server-side.
+  **Both halves are verifiable in this repo**, which is what the no-unverifiable-claims rule requires:
+  `content/projects.ts:150` documents the proxy ("Groq API calls route through a privately-hosted
+  Cloudflare Worker proxy so the API key never touches the client"), and
+  `docs/05_GIT_SECURITY_CHECKLIST.md:35` records the key incident and its remediation.
+
+- **C1 — the coursework framing is deliberately ABSENT, not missing.** The VLAN / ACL / Windows Server
+  detail lives in the Stack section's Systems Foundation cards, where `skills.ts` requires each course
+  name to carry its concept note. Repeating it in a 65-word bio would duplicate that proof rather than
+  reinforce it, and would spend a quarter of the bio on the part of the story the site already
+  evidences twice. The bio carries the **pivot**; the Stack carries the **proof**.
+
+  > **Do not "fix" this by adding a coursework qualifier.** The earlier draft named the coursework
+  > without saying it was academic, which risked reading as professional experience — that was the real
+  > problem, and removing the claim solves it more cleanly than qualifying it. The closing line
+  > ("Not a security engineer yet") carries the honesty the qualifier was there to supply.
 
 **Single screen, not scrollable.** Photo + the paragraph above, plus an action row:
 
