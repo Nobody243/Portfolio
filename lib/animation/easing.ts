@@ -49,21 +49,30 @@ export const DURATION = {
   ui: 0.35,
   /** Tier 2/3 scroll reveals. */
   reveal: 0.7,
-  /**
-   * Tier 1 camera pull-back and hero headline.
+  /*
+   * THERE IS NO `hero` ENTRY ANY MORE, AND ITS ABSENCE IS DELIBERATE.
    *
-   * TUNED IN TICKET 3 against the real scene: 1.6 -> 1.45.
-   * `EASE.hero` is an expo-out that covers ~80% of the distance in the first
-   * third of the duration, so perceived ARRIVAL happens around 0.5s and the
-   * remainder is a sub-pixel settle supplying the weight. At 1.6s that tail
-   * starts to read as lag rather than as expense. It also gates the tagline
-   * (which waits for the camera to finish), so this value sets time-to-first
-   * -readable-word: 1.45s, with the full statement at ~2.25s.
+   * `DURATION.hero` was 1.45s, tuned in Ticket 3 against an R3F camera
+   * pull-back, and it documented itself as setting "time-to-first-readable
+   * -word". That scene was deleted when the hero became Canvas2D plus SVG, and
+   * the constant lost its last executable consumer with it — verified across
+   * `app/`, `components/` and `lib/` before removal: zero callers.
    *
-   * Tuning window 1.30-1.70. Test: at t=1.2s nothing should be perceptibly
-   * moving. Do not exceed 1.7.
+   * It survived anyway, with a confident docstring and a mention in
+   * `MotionProvider.tsx` naming it as a live Tier 1 override, which is how a
+   * dead number reads as load-bearing to everyone who finds it. Both comments
+   * moved in the same commit as this removal.
+   *
+   * `EASE.hero` IS STILL LIVE — `HeroHeadline.tsx` uses it. Only the duration
+   * went.
+   *
+   * WHAT REPLACED IT, for anyone who came here looking: the Intro's timeline
+   * constants are local to `components/intro/Intro.tsx`, because they are one
+   * sequence's internal phase split and nothing else may reuse them. The single
+   * value that genuinely crosses a module boundary — the shared length of the
+   * hero expansion and the navbar entrance — is `HANDOFF_S` in
+   * `lib/animation/handoff.ts`, with the reasoning for why it is not here.
    */
-  hero: 1.45,
 } as const;
 
 /** Delay between siblings in a staggered sequence, in seconds. */

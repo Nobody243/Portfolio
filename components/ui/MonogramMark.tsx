@@ -1,377 +1,237 @@
-"use client";
-
 /**
- * The "MS" monogram — one geometry, two dressings.
+ * The "MS" monogram — ONE geometry, one path dataset, two dressings.
  *
- * THIS IS THE SITE'S MARK, and it exists as a component because it now has two
- * consumers that must not be allowed to draw different letterforms:
+ * The geometry, the weight rule and the reasoning behind both live in
+ * `components/ui/msMarkGeometry.ts`. This file is the renderer: it decides
+ * nothing about the shape and everything about how a given instance is dressed.
  *
- *   - `variant="intro"` — the Tier 1 dressing. Glass pane inside the glyphs, a
- *     bright accent rim, and (with `liquid`) blobs wandering inside the
- *     letterforms. This is the "jelly blob clipped inside the letterforms" beat
- *     that `docs/06_INTRO_AND_CHROME.md` §2 calls the mark-reduction moment.
- *   - `variant="nav"` — the small, SETTLED version the navbar carries. Filled,
- *     `currentColor`, no filters, no rAF.
+ *   - `variant="nav"` — the SETTLED mark. `currentColor`, no filters, no rAF,
+ *     no animation. The navbar renders it at 17px and the About page will
+ *     render the same thing at 72px with `accentNodes`; those are not two
+ *     variants, they are one variant and a `size`.
+ *   - `variant="intro"` — the same dataset in its UNSETTLED state: the full
+ *     name as stroked outlines, with the two capitals ready to morph into the
+ *     two traces. `Intro.tsx` owns the timeline; this owns the DOM it runs on.
  *
- * WHY THE NAV VARIANT IS NOT JUST A SMALLER COPY OF THE INTRO ONE, since the
- * spec asks for "the same mark":
+ * WHY THE INTRO STATE LIVES HERE AND NOT IN `Intro.tsx`. `docs/07` §2 asks for
+ * every appearance of the mark — mid-morph, contracting, settled in the navbar,
+ * static on About — to be literally one artifact, and calls a second SVG a
+ * build smell to raise rather than route around. The morph's source is the
+ * mark's own dataset (`docs/07` §3.1: "one dataset then holds both the source
+ * and the target"), so the component that renders the target renders the source
+ * too. What `Intro.tsx` owns is time.
  *
- *   1. COLOUR. The intro dressing is built from `--accent-hero` (#00E5FF) and
- *      white-ish glass stops, which only resolve on the hero's own pinned dark
- *      plate. The navbar crosses `bg-base`, and `bg-base` FLIPS — #0A0A0B in
- *      dark, #FDFCFA in light. A cyan-on-white glass pane at 22px is invisible.
- *      `currentColor` is what lets the mark inherit the navbar's adaptive
- *      colour (see `Navbar.tsx`) instead of fighting it.
- *   2. SIZE. A 2.25-unit rim in a 320-unit viewBox is 0.15 CSS pixels at nav
- *      size. Outlined letterforms do not survive that reduction; they turn to
- *      mush. Filled glyphs do.
- *   3. COST. `feTurbulence` is one of the most expensive primitives in SVG.
- *      The navbar is `position: fixed` and therefore composited on every
- *      scroll frame for the entire session. A permanently-running displacement
- *      map there is not a style choice, it is a frame budget spent forever.
+ * ─────────────────────────────────────────────────────────────────────────
+ * WHY THE NAV DRESSING IS NOT JUST A SMALLER COPY OF THE INTRO ONE, since the
+ * spec asks for "the same mark" — the reasons have changed, and the change is
+ * worth recording:
  *
- * WHAT SURVIVES ACROSS BOTH, and is the actual "same mark" claim: identical
- * viewBox proportions, identical font, weight, size and letter gap, and the
- * same two-element letter split. The nav mark is the intro mark after it has
- * cooled — which is the relationship the spec describes.
+ *   1. COLOUR. Still true, still the main one. The navbar crosses `bg-base`,
+ *      and `bg-base` FLIPS — #0A0A0B dark, #FDFCFA light. `currentColor` is
+ *      what lets the mark inherit the bar's adaptive colour (see `Navbar.tsx`)
+ *      instead of fighting it. Hard-coding a token here would look right in
+ *      dark mode and vanish against the light-mode hero.
+ *   2. SIZE — NARROWED, NOT DROPPED. This header used to say a 2.25-unit rim
+ *      is 0.15 CSS pixels at nav size, and that "outlined letterforms do not
+ *      survive that reduction; they turn to mush." THAT IS TRUE FOR STROKES
+ *      AUTHORED IN VIEWBOX UNITS, which is what the rim was. It is NOT true
+ *      here: `vector-effect="non-scaling-stroke"` resolves stroke width before
+ *      the viewBox transform, so it is specified in CSS pixels and the 0.053
+ *      nav scale factor never touches it. The constraint is kept rather than
+ *      deleted because it still binds — anyone adding a rim, a hairline or a
+ *      dot radius in USER UNITS will hit exactly the wall it describes.
+ *   3. COST. `feTurbulence` is one of the most expensive primitives in SVG and
+ *      the navbar is `position: fixed`, composited on every scroll frame for
+ *      the whole session. NOTHING IN THIS FILE USES A FILTER ANY MORE — the
+ *      glass pane, the accent rim, the displacement map and the liquid blobs
+ *      were retired outright with `docs/07` §2's "monochrome throughout the
+ *      morph, no gradient or fill animation concurrent with shape animation".
+ *      The constraint is recorded so the cost is not reintroduced by someone
+ *      who reads "Tier 1" as permission.
  *
- * TWO `<text>` ELEMENTS, NOT THE STRING "MS". A single text node would kern the
- * pair and give no handle on either letter. Splitting them is what makes the
- * navbar's hover micro-motion possible — the two letters part slightly and
- * close again, which is the Intro's own contraction played as a two-frame
- * gesture — and it is also how the intro dressing keeps the gap constant while
- * the glyphs scale.
+ * WHAT SURVIVES ACROSS BOTH, and is the actual "same mark" claim: ONE viewBox
+ * (592 × 320, every variant, every state), one path dataset, one weight rule,
+ * and the same two-element letter split. The header made that claim before and
+ * the code contradicted it — `VB_W` was 560 for the intro and 420 for the nav.
+ * It is true now.
  *
- * NOT A COPY OF `SaadGlass`, AND IT MUST NOT BECOME ONE. That component draws a
- * different word, is pointer-driven, reports its glyph box to the particle
- * field and carries a 3D tilt rig. The overlap is the SVG-mask technique, not
- * the behaviour. Sharing the technique by reading its header is correct;
- * sharing an abstraction between them would drag the hero's measurement
- * plumbing into the navbar.
+ * TWO `<g data-ms-letter>` ELEMENTS, NEVER THE STRING "MS". Splitting the pair
+ * is what makes the navbar's hover micro-motion possible — the two letters part
+ * slightly and close again, which is the Intro's own contraction played as a
+ * two-frame gesture. `Navbar.tsx` reaches them through these hooks, and the
+ * Intro drives each letter's approach through the same two. NOTHING ELSE MAY
+ * WRITE A TRANSFORM TO THEM: the Intro's contraction targets the wrapper `<g>`
+ * above them, precisely so the two transform layers never collide.
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { useEffect, useId, useRef } from "react";
+import type { CSSProperties } from "react";
 
-import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
-
-/* -------------------------------------------------------------------------
-   Geometry. Everything below is in viewBox units, so the mark is
-   resolution-independent and the 22px navbar case is the same geometry as the
-   full-viewport intro case, just scaled by CSS.
-------------------------------------------------------------------------- */
-const VB_H = 320;
-/** Matches the hero wordmark's optical size in its own box. */
-const FONT_SIZE = 260;
-/** Optical gap between the M and the S, since they are no longer kerned. */
-const GAP = 8;
-
-/**
- * The intro box is WIDER than the letters need. That headroom is not padding —
- * it is the room the blobs travel through on their way in and out of the
- * glyphs, and the mask is what keeps the overshoot invisible. The nav box is
- * trimmed to the letters, because there is no liquid there and unused width is
- * horizontal layout space taken from the location label beside it.
- */
-const VB_W = { intro: 560, nav: 420 } as const;
-
-/** Wander rates for the three blobs, in radians per ms. Deliberately
- *  incommensurate, so the figure never repeats on a visible cycle. */
-const BLOB_RATE = [0.00061, 0.00043, 0.00078] as const;
-const BLOB_RADIUS = [78, 56, 40] as const;
-const TURB_MIN = 0.012;
-const TURB_MAX = 0.02;
-const TURB_SPEED = 0.0009;
+import {
+  INTRO_INITIALS,
+  INTRO_REST,
+  NAV_HEIGHT_PX,
+  NODES,
+  NODE_RATIO,
+  TRACE,
+  VB_H,
+  VB_W,
+  capFromHeight,
+  msStroke,
+} from "@/components/ui/msMarkGeometry";
 
 export type MonogramVariant = "intro" | "nav";
 
 type MonogramMarkProps = {
   variant: MonogramVariant;
   /**
-   * Intro only: run the ambient liquid. Ignored by the nav variant, and
-   * ignored under `prefers-reduced-motion` in both.
+   * Rendered SVG height in CSS pixels. Drives `--ms-stroke` through the weight
+   * rule in `msMarkGeometry.ts`, and sets the element's own height so the two
+   * cannot disagree.
    *
-   * DEFAULTS TO FALSE so that a mark rendered without a running timeline is
-   * the cheap, still one. The Intro turns it on for the beat that needs it and
-   * off again before the hand-off.
+   * The Intro omits it: its box is sized responsively in CSS and its weights
+   * are measured and then TWEENED, so a static value here would be overwritten
+   * on the first frame. The fallback below is only ever the pre-timeline state.
    */
-  liquid?: boolean;
+  size?: number;
+  /**
+   * Paints the node dots `--color-accent-working` instead of `currentColor`.
+   * The About instance, and nothing else so far.
+   *
+   * Colouring ONLY the nodes is the smallest colour surface that still
+   * registers, and at 6.5px the discs are large enough to hold their hue. The
+   * mark should read as POWERED, not as a link — colouring the whole thing in
+   * the working accent would make it look clickable, which it is not.
+   *
+   * Deliberately unavailable to the navbar: chroma does not survive a 2.75px
+   * antialiased disc (it reads as a grey-green smudge in light mode and a dirty
+   * highlight in dark), and `--nav-fg` is already the bar's one colour
+   * authority — a second, non-escalating source inside the mark would drift out
+   * of step with it on exactly the backgrounds the escalation exists for.
+   */
+  accentNodes?: boolean;
   className?: string;
   /**
-   * The accessible name. `null` marks the mark as decorative — correct
-   * wherever a visible text label already says the same thing.
+   * The accessible name. `null` marks the mark as decorative — correct wherever
+   * a visible text label already says the same thing.
    */
   label?: string | null;
 };
 
+/** Shared by every drawn path in the mark. `fill="none"` and round everywhere:
+ *  the 180° turnaround in the doubled-back traces would spike under a mitre. */
+const STROKE_ATTRS = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  vectorEffect: "non-scaling-stroke" as const,
+};
+
 export function MonogramMark({
   variant,
-  liquid = false,
+  size,
+  accentNodes = false,
   className,
   label = null,
 }: MonogramMarkProps) {
-  const reducedMotion = useReducedMotion();
-  const width = VB_W[variant];
-  const cx = width / 2;
-
-  /**
-   * `useId` per instance, so the navbar's mark and the Intro's mark can be on
-   * screen at the same time without their filter ids colliding — which they
-   * ARE, for the whole of the hand-off. Sanitised because React ids contain
-   * ':' and a bare colon inside `url(#...)` is a parse hazard in some engines.
-   * Same precaution `SaadGlass` takes, for the same reason.
-   */
-  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const maskId = `ms-mask-${uid}`;
-  const gooId = `ms-goo-${uid}`;
-  const flowId = `ms-flow-${uid}`;
-  const inkId = `ms-ink-${uid}`;
-  const glassId = `ms-glass-${uid}`;
-  const blobId = `ms-blob-${uid}`;
-
-  const blobRefs = useRef<Array<SVGCircleElement | null>>([null, null, null]);
-  const turbRef = useRef<SVGFETurbulenceElement | null>(null);
-
-  const liquidOn = variant === "intro" && liquid && !reducedMotion;
-
-  /* -----------------------------------------------------------------------
-     The ambient tick. Started ONLY while the liquid is on — this is the whole
-     cost of the component.
-
-     THE BLOBS ARE NOT POINTER-DRIVEN, unlike the hero wordmark's. This mark
-     plays inside a full-viewport plate during a scripted sequence, where there
-     may well be no cursor on screen at all; a blob rig that only moves when
-     followed would be motionless for most viewers at the exact moment the
-     sequence is asking them to look at it. Lissajous paths at incommensurate
-     rates give continuous, non-repeating motion with no input at all.
-  ----------------------------------------------------------------------- */
-  useEffect(() => {
-    if (!liquidOn) return;
-
-    let raf = 0;
-    let start = 0;
-
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
-      if (!start) start = now;
-      const t = now - start;
-
-      const turb = turbRef.current;
-      if (turb) {
-        const s = (Math.sin(t * TURB_SPEED) + 1) / 2;
-        const f = TURB_MIN + (TURB_MAX - TURB_MIN) * s;
-        turb.setAttribute(
-          "baseFrequency",
-          `${f.toFixed(5)} ${(f * 1.6).toFixed(5)}`,
-        );
-      }
-
-      BLOB_RATE.forEach((rate, i) => {
-        const el = blobRefs.current[i];
-        if (!el) return;
-        // Amplitudes are fractions of the box, so the figure scales with the
-        // viewBox rather than being tuned to one size.
-        const x = cx + Math.sin(t * rate) * (width * 0.26);
-        const y = VB_H / 2 + Math.cos(t * rate * 1.37 + i) * (VB_H * 0.22);
-        el.setAttribute("cx", x.toFixed(2));
-        el.setAttribute("cy", y.toFixed(2));
-      });
-    };
-
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [liquidOn, cx, width]);
-
-  /* Shared glyph attributes, so the two variants provably draw the same
-     letterforms and a change to one cannot silently miss the other. */
-  const glyph = {
-    y: VB_H / 2,
-    dominantBaseline: "central" as const,
-    fontSize: FONT_SIZE,
-    fontWeight: 500,
-    letterSpacing: "-0.03em",
-    style: { fontFamily: "var(--font-space-grotesk)" },
-  };
-
-  const letters = (fill: string, extra?: Record<string, unknown>) => (
-    <>
-      <text
-        x={cx - GAP / 2}
-        textAnchor="end"
-        fill={fill}
-        data-ms-letter="m"
-        {...glyph}
-        {...extra}
-      >
-        M
-      </text>
-      <text
-        x={cx + GAP / 2}
-        textAnchor="start"
-        fill={fill}
-        data-ms-letter="s"
-        {...glyph}
-        {...extra}
-      >
-        S
-      </text>
-    </>
-  );
+  const heightPx = size ?? NAV_HEIGHT_PX;
+  const strokePx = msStroke(capFromHeight(heightPx));
 
   const a11y =
     label === null
       ? ({ "aria-hidden": true } as const)
       : ({ role: "img", "aria-label": label } as const);
 
-  if (variant === "nav") {
-    return (
-      <svg viewBox={`0 0 ${width} ${VB_H}`} className={className} {...a11y}>
-        {/*
-          `currentColor`, NEVER A TOKEN. The navbar sets one colour on its
-          subtree and every child inherits it, which is the entire mechanism
-          that keeps this mark legible over the hero's pinned dark plate AND
-          over `bg-base` in both themes. Hard-coding `text-fg` here would look
-          right in dark mode and vanish against the light-mode hero.
+  const isIntro = variant === "intro";
 
-          The per-letter transform is driven by CSS from `Navbar.tsx` via the
-          `data-ms-letter` hooks — the hover gesture belongs to the control
-          that owns the hover, not to the geometry.
-        */}
-        {letters("currentColor")}
-      </svg>
-    );
-  }
+  /* `--ms-stroke` and `--ms-node` are COMPONENT-SCOPED custom properties, not
+     design tokens: they carry no meaning outside this component and are set per
+     instance on the SVG root, so `globals.css` is not involved and the "no new
+     tokens" constraint is not engaged. One property inherited by every child is
+     also what makes the Intro's weight ramp a single tween. */
+  const style = {
+    "--ms-stroke": `${strokePx}px`,
+    "--ms-node": `${strokePx * NODE_RATIO}px`,
+    ...(size === undefined ? null : { height: `${size}px`, width: "auto" }),
+  } as CSSProperties;
+
+  const traceStyle: CSSProperties = { strokeWidth: "var(--ms-stroke)" };
+  const nodeStyle: CSSProperties = { strokeWidth: "var(--ms-node)" };
+
+  const letter = (key: "m" | "s") => (
+    /*
+      THE INTRO'S LETTERS RENDER INVISIBLE, IN THE MARKUP, NOT IN AN EFFECT.
+
+      Effects run after paint, so a group left at opacity 1 gets one composited
+      frame at its SETTLED size and position before the Intro's timeline poses
+      it into the name — two 311px capitals flashing on screen, measured at
+      147ms on a cold load, which is nine frames and unmissable. The eleven
+      non-initials and the node dots below have the same requirement for the
+      same reason. `opacity` and never `stroke-opacity`: the traces are
+      doubled-back paths, so a stroke-level fade compounds with itself.
+    */
+    <g key={key} data-ms-letter={key} style={isIntro ? { opacity: 0 } : undefined}>
+      {/*
+        ONE PATH PER LETTER, carrying either the trace or — in the Intro's
+        opening state — the capital's glyph outline, which is what the trace is
+        morphed FROM. Same element, same paint mode, first frame to last.
+      */}
+      <path
+        data-ms-trace={key}
+        d={isIntro ? INTRO_INITIALS[key].d : TRACE[key]}
+        style={traceStyle}
+        {...STROKE_ATTRS}
+      />
+      {/*
+        THE NODES ARE NEVER A MORPH TARGET. Eleven detached micro-subpaths
+        reconciled against one closed glyph contour is a topology MorphSVG will
+        resolve somehow, and that somehow is dots smeared out of the letter's
+        outline. They fade in instead — which is also correct conceptually: the
+        nodes are what the letters GAIN when they stop being type and become a
+        mark, so they should not exist in the name.
+      */}
+      <g data-ms-nodes={key} style={isIntro ? { opacity: 0 } : undefined}>
+        {NODES[key].map((d, i) => (
+          <path
+            key={i}
+            data-ms-node=""
+            d={d}
+            style={nodeStyle}
+            {...STROKE_ATTRS}
+            stroke={accentNodes ? "var(--color-accent-working)" : "currentColor"}
+          />
+        ))}
+      </g>
+    </g>
+  );
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${VB_H}`}
-      className={className}
-      overflow="visible"
-      {...a11y}
-    >
-      <defs>
-        {/* Black ground, white glyphs: white passes, black blocks. Everything
-            inside the masked group is clipped to the letterforms with no
-            per-effect containment logic — which is what makes "the liquid
-            cannot escape the letters" structural rather than tuned. */}
-        <mask id={maskId} maskUnits="userSpaceOnUse">
-          <rect x="0" y="0" width={width} height={VB_H} fill="black" />
-          {letters("white")}
-        </mask>
-
-        {/* BOTH FILTERS ARE GATED, not merely unreferenced. An inert filter in
-            <defs> is nearly free, but "nearly" is not the claim being made —
-            when the liquid is off, no turbulence primitive exists at all. */}
-        {liquidOn && (
-          <>
-            <filter id={gooId}>
-              <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="b" />
-              <feColorMatrix
-                in="b"
-                mode="matrix"
-                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10"
-              />
-            </filter>
-            <filter id={flowId}>
-              <feTurbulence
-                ref={turbRef}
-                type="fractalNoise"
-                baseFrequency="0.014 0.022"
-                numOctaves={3}
-                seed={7}
-                result="noise"
-              />
-              <feDisplacementMap
-                in="SourceGraphic"
-                in2="noise"
-                scale={18}
-                xChannelSelector="R"
-                yChannelSelector="G"
-              />
-            </filter>
-          </>
-        )}
-
-        {/* The three gradients are the hero wordmark's, value for value, and
-            that is the point: the mark and the wordmark must read as the same
-            material. If one is retuned, retune both. */}
-        <linearGradient id={glassId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.26" />
-          <stop offset="42%" stopColor="#bfeeff" stopOpacity="0.11" />
-          <stop
-            offset="100%"
-            stopColor="var(--accent-hero)"
-            stopOpacity="0.16"
-          />
-        </linearGradient>
-        <linearGradient id={inkId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="var(--accent-hero)" stopOpacity="0.55" />
-          <stop offset="55%" stopColor="#7fe9ff" stopOpacity="0.30" />
-          <stop
-            offset="100%"
-            stopColor="var(--accent-hero)"
-            stopOpacity="0.60"
-          />
-        </linearGradient>
-        <radialGradient id={blobId}>
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-          <stop offset="45%" stopColor="#bfeeff" stopOpacity="0.75" />
-          <stop
-            offset="100%"
-            stopColor="var(--accent-hero)"
-            stopOpacity="0.35"
-          />
-        </radialGradient>
-      </defs>
-
-      {/* The pane. Always present, under everything — this is what makes the
-          mark read as glass rather than as an outline waiting to be filled. */}
-      <g mask={`url(#${maskId})`}>
-        <rect
-          x="0"
-          y="0"
-          width={width}
-          height={VB_H}
-          fill={`url(#${glassId})`}
-        />
+    <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className={className} style={style} {...a11y}>
+      {/* THE WRAPPER EXISTS FOR THE INTRO'S CONTRACTION and is inert everywhere
+          else. One transform layer per concern: the contraction scales this,
+          the approach scales the letter groups, and the navbar's hover
+          translates the same letter groups. None of the three can collide. */}
+      <g data-ms-wrapper="">
+        {isIntro
+          ? INTRO_REST.map((g, i) => (
+              /* The eleven glyphs that are not initials. They translate into
+                 their own word's capital and fade over the first 45% of the
+                 approach; they never morph, and they hold the name's stroke
+                 weight rather than the ramping one, because a glyph that grew
+                 heavier while shrinking out of view would blot. */
+              <g key={`${g.char}-${i}`} data-ms-glyph={g.char} style={{ opacity: 0 }}>
+                <path
+                  d={g.d}
+                  style={{ strokeWidth: "var(--ms-glyph-stroke, var(--ms-stroke))" }}
+                  {...STROKE_ATTRS}
+                />
+              </g>
+            ))
+          : null}
+        {letter("m")}
+        {letter("s")}
       </g>
-
-      {liquidOn && (
-        <g mask={`url(#${maskId})`}>
-          <rect
-            x={-width * 0.2}
-            y={-VB_H * 0.5}
-            width={width * 1.4}
-            height={VB_H * 2}
-            fill={`url(#${inkId})`}
-            filter={`url(#${flowId})`}
-          />
-          <g filter={`url(#${gooId})`}>
-            {BLOB_RADIUS.map((r, i) => (
-              <circle
-                key={i}
-                ref={(el) => {
-                  blobRefs.current[i] = el;
-                }}
-                r={r}
-                cx={cx}
-                cy={VB_H / 2}
-                fill={`url(#${blobId})`}
-              />
-            ))}
-          </g>
-        </g>
-      )}
-
-      {/* The rim, LAST. It sat under the liquid first and the blobs painted
-          over the inner half of every stroke wherever they welled up — the
-          letterforms lost their edge at exactly the moment the effect was most
-          active. On glass the edge is where refraction concentrates, so it is
-          deliberately brighter and heavier than a plain outline. */}
-      {letters("none", {
-        stroke: "var(--accent-hero)",
-        strokeOpacity: 0.9,
-        strokeWidth: 2.25,
-      })}
     </svg>
   );
 }

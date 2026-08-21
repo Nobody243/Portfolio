@@ -15,8 +15,14 @@ import { DURATION, EASE } from "@/lib/animation/easing";
  *
  * The default transition is the Tier 2/3 reveal curve, since that covers most
  * of the site. Two places override it locally rather than changing it here:
- * Tier 1 hero beats (`DURATION.hero` / `EASE.hero`), and Ticket 6b's card→cover
- * morph, which sets `DURATION.ui` + `EASE.reveal` on `CoverFrame`.
+ * Tier 1 hero beats (`EASE.hero`, in `HeroHeadline`), and Ticket 6b's
+ * card→cover morph, which sets `DURATION.ui` + `EASE.reveal` on `CoverFrame`.
+ *
+ * THIS USED TO NAME `DURATION.hero` ALONGSIDE `EASE.hero`. That constant was
+ * already dead when this comment was written — it lost its last consumer with
+ * the R3F scene — and Phase 1 removed it. The curve is live; the duration was
+ * not. See `lib/animation/easing.ts` for the full note and for where the
+ * Intro's own timings live now.
  *
  * THAT MORPH SHIPPED AS A TWEEN, NOT A SPRING. This header used to predict "it
  * may want a spring instead of a tween"; the prediction was tested and

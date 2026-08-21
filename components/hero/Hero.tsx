@@ -26,8 +26,9 @@
  *     page already loads, which is why `AssetLoader` tracks fonts and nothing
  *     else — see its header for the full list of what is and is not gated.
  *   - There is no camera in the scene. The only camera move on this surface is
- *     the ARRIVAL below, and it is not the hero's own: it is the second half of
- *     the Intro's zoom-in, continued on this side of the hand-off.
+ *     the EXPANSION below, and it is not the hero's own: it is the second half
+ *     of the Intro's handoff, continued on this side of the seam. The Intro
+ *     contracts its mark to a point and this opens out of that point.
  *
  * THE VOID IS STILL MEASURED, NOT AGREED — and this component no longer has any
  * part in it. The invariant used to be enforced here: `SaadGlass` measured its
@@ -56,19 +57,50 @@ import { HeroHeadline } from "@/components/hero/HeroHeadline";
 import { ParticleGrid } from "@/components/hero/ParticleGrid";
 import { IntroGate } from "@/components/intro/IntroGate";
 import { ScrollTrigger, gsap } from "@/lib/animation/gsap";
+import { HANDOFF_S } from "@/lib/animation/handoff";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /**
- * The arrival. Must be LONGER than the Intro's zoom-in (0.95s) — the incoming
- * half of a hand-off that finishes first turns the seam back into a cut.
+ * THE EXPANSION — and it is now exactly as long as the Intro's phase E, not
+ * longer.
+ *
+ * This used to be 1.6s against a 0.95s zoom-in, on the rule that the incoming
+ * half of a handoff must outlast the outgoing one or the seam becomes a cut.
+ * That rule belonged to a CAMERA move: the mark accelerated out through the
+ * viewport while the hero settled in behind it, and the settle had to still be
+ * happening when the mark left. There is no camera any more. `docs/07` §3
+ * step 5 replaces the zoom entirely with an expansion from one defined point,
+ * and step 6 puts the navbar's entrance on the same beat — which
+ * `.claude/handoff/intro-timing-design.md` §5 makes literal: same start, same
+ * duration, for both. A hero still expanding 1.15s after the plate has gone
+ * would be the third thing happening in a beat that has two.
+ *
+ * The shared value lives in `lib/animation/handoff.ts` because it is one joint
+ * between three components, and a duration written down twice is a duration
+ * until someone retunes one copy.
  */
-const ARRIVAL_S = 1.6;
+const EXPAND_S = HANDOFF_S;
 /**
- * Where the hero starts. It is the far end of the Intro's zoom: the mark flies
- * past the viewport while this is still slightly too big and slightly too
- * transparent, and the two moves overlap for their whole duration.
+ * IT EXPANDS FROM A POINT, AND THE POINT IS DEFINED RATHER THAN IMPLIED.
+ *
+ * The Intro contracts its mark to `(296, 288)` in the mark's viewBox and
+ * positions that coordinate — not the mark's bounding box — at dead viewport
+ * centre. The hero section is `h-dvh`, sits at the top of the document, and the
+ * page is at scroll 0 for the whole sequence, so the section's own centre IS
+ * that pixel and a `50% 50%` origin lands on it exactly. THAT IDENTITY IS WHY
+ * THERE IS NO COORDINATE HERE TO KEEP IN SYNC — but it is also the thing that
+ * would break silently if the hero ever stopped being full-viewport at scroll
+ * 0, so it is written down rather than assumed.
+ *
+ * Scale starts at 0, which is what "expands outward from that exact point"
+ * means literally, and it is safe to be that literal because THE PLATE AND THE
+ * HERO ARE THE SAME COLOUR: both are `bg-hero-surface`, so the opening frames
+ * are not a hole through to the page, they are the site's own ground with its
+ * contents blooming out of the centre. The pinhole third of the move happens
+ * behind a plate that is still ~60% opaque; what the visitor actually watches
+ * is the last 0.89 → 1 of it, in front of them.
  */
-const ARRIVAL_SCALE = 1.12;
+const EXPAND_FROM_SCALE = 0;
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -76,7 +108,7 @@ export function Hero() {
   const reducedMotion = useReducedMotion();
 
   const [introDone, setIntroDone] = useState(false);
-  /** Flipped by the Intro's zoom-in, not by its completion. */
+  /** Flipped when the Intro's EXPANSION starts, not when the Intro finishes. */
   const [arriving, setArriving] = useState(false);
   const [inView, setInView] = useState(true);
   const [tabVisible, setTabVisible] = useState(true);
@@ -107,15 +139,14 @@ export function Hero() {
   }, []);
 
   /* -----------------------------------------------------------------------
-     THE ARRIVAL — the hero's half of the hand-off.
+     THE EXPANSION — the hero's half of the hand-off.
 
-     The Intro does not fade out and reveal a static hero; the hero is already
-     moving when the plate dissolves. The mark accelerates OUT through the
-     viewport (`power2.in`) while this decelerates INTO place, and the overlap
-     is what makes one continuous camera move out of two components that cannot
-     see each other. Sampled on the running timeline: at the moment the plate is
-     38% opaque the hero is still at scale 1.032 and opacity 0.73, and the last
-     of the settle happens after the plate has gone entirely.
+     The Intro does not fade out and reveal a static hero. Its mark contracts to
+     a single dot at dead centre, holds there for 60ms, and the site opens out
+     of that dot: this runs from the same instant, for the same duration, as the
+     navbar's slide, and the plate finishes dissolving before either of them is
+     done. Two components that cannot see each other, one beat, held together by
+     one shared constant and one shared origin.
 
      UNDER REDUCED MOTION THIS DOES NOT RUN AT ALL. `IntroGate` still fires the
      hand-off on that path, deliberately, so a consumer never has to ask "did
@@ -129,14 +160,13 @@ export function Hero() {
 
     const tween = gsap.fromTo(
       stage,
-      { scale: ARRIVAL_SCALE, opacity: 0 },
+      { scale: EXPAND_FROM_SCALE, opacity: 0, transformOrigin: "50% 50%" },
       {
         scale: 1,
         opacity: 1,
-        duration: ARRIVAL_S,
-        // `power2.out`, NOT `GSAP_EASE.hero`, and this is the mirror of the
-        // exception the Intro's zoom-in makes — the two are the same decision
-        // seen from opposite ends.
+        duration: EXPAND_S,
+        // `power2.out`, NOT `GSAP_EASE.hero`, and the reasoning survived the
+        // rewrite even though the move it applied to did not.
         //
         // MEASURED, NOT ASSUMED. The first cut used the shared hero curve, and
         // sampling the running timeline every 250ms showed the hero at scale
@@ -145,16 +175,16 @@ export function Hero() {
         // `GSAP_EASE.hero` is easeOutExpo — 80% of its travel is spent in the
         // first quarter of its duration, which is exactly right for something
         // arriving into a layout the visitor is already looking at, and exactly
-        // wrong for the far half of a camera move that is revealed part-way
-        // through. A gentler quadratic keeps the last third of the settle
-        // happening in front of the visitor instead of behind a plate.
+        // wrong for a move that is revealed part-way through. The plate is
+        // still ~60% opaque a third of the way in, so a quadratic is what keeps
+        // the visible part of the expansion in front of the visitor.
         ease: "power2.out",
         // CLEARED, NOT LEFT AT scale(1). A transform on this wrapper — even an
         // identity one — puts everything inside it in a different coordinate
         // space from `sectionRef`. That mattered acutely when the void rect was
         // measured across that boundary; it still matters, because anything
         // added here later that reaches for a `getBoundingClientRect` would hit
-        // the same 1.6s window. Removing the property closes it rather than
+        // the same window. Removing the property closes it rather than
         // leaving it open forever, which is cheaper than remembering the rule.
         //
         // `ParticleGrid` sizes itself from its own canvas's untransformed CSS
@@ -209,10 +239,10 @@ export function Hero() {
           everything, rendered last so it wins the paint order even before
           z-index is consulted.
 
-          `onHandoff` fires as the zoom-in STARTS and `onDone` when the plate is
-          gone; the gap between them is the overlap the arrival above depends
-          on. Collapsing them into one callback would make the hand-off a cut
-          again. */}
+          `onHandoff` fires as the EXPANSION STARTS and `onDone` when the plate
+          is gone; the gap between them is the overlap the expansion above
+          depends on. Collapsing them into one callback would make the hand-off
+          a cut again. */}
       {!introDone ? (
         <IntroGate
           onHandoff={() => setArriving(true)}

@@ -22,10 +22,25 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { CustomEase } from "gsap/CustomEase";
+import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
 
 import { EASE, type EaseName } from "./easing";
 
-gsap.registerPlugin(ScrollTrigger, CustomEase);
+/**
+ * MorphSVGPlugin is registered here and NOWHERE ELSE, which is the whole point
+ * of this module — an unregistered plugin fails silently in production, and a
+ * morph that silently no-ops leaves the Intro's letters translating into a
+ * shape they never become.
+ *
+ * WHY IT EARNS ITS REGISTRATION when `Intro.tsx` explicitly declined Flip's.
+ * That file's "NO FLIP PLUGIN" note is not a blanket ban; its stated test is
+ * whether a registration earns its keep, and a four-rect manual FLIP did not.
+ * This does: `docs/07` §3 step 2 asks for glyph contours to deform into trace
+ * polylines with mismatched point counts (16 → 9 and 39 → 11), which is
+ * MorphSVG's headline capability and nothing else's. The shipped build is the
+ * unrestricted 3.15.0 one.
+ */
+gsap.registerPlugin(ScrollTrigger, CustomEase, MorphSVGPlugin);
 
 /**
  * GSAP ease names for the shared curves in `easing.ts`.

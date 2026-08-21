@@ -109,7 +109,9 @@ import {
   THEME_TOGGLE_IN_NAV,
   ThemeToggle,
 } from "@/components/ui/ThemeToggle";
+import { NAV_HEIGHT_PX } from "@/components/ui/msMarkGeometry";
 import { HERO_SECTION_ID } from "@/components/hero/heroContent";
+import { NAV_ENTRANCE_ATTR } from "@/lib/animation/handoff";
 import { ScrollTrigger } from "@/lib/animation/gsap";
 import { useSectionScroll } from "@/lib/hooks/useSectionScroll";
 
@@ -292,7 +294,27 @@ export function Navbar() {
           fix is to RAISE the gutter (`px-xl`), never to restore the cap —
           restoring the cap re-creates the exact thing §1 removed.
         */}
-        <div className="relative flex items-center px-md py-sm sm:px-lg sm:py-md">
+        <div
+          // THE ENTRANCE LAYER. The Intro's timeline slides this down from
+          // above the viewport as the hero expands — one timeline, two tweens,
+          // same start, same duration, because `docs/07` §1 and §3 step 6 both
+          // ask for one beat rather than two adjacent ones.
+          //
+          // IT IS THIS ELEMENT AND NOT `<header>` BECAUSE THE HEADER'S
+          // `transform` IS ALREADY TAKEN. `setHidden` writes it directly on
+          // every scroll frame; a second author on the same property would be
+          // fighting it the first time anyone scrolled during the entrance.
+          // Two elements, two transforms, nothing to arbitrate.
+          //
+          // NO INITIAL OFFSET IS RENDERED HERE. The bar is visible by default,
+          // and the Intro hides it imperatively when it mounts — so a page with
+          // no Intro (reduced motion, a client navigation back to Home, or any
+          // future route) gets a bar that is simply there, with no flag to keep
+          // in sync and no way to strand it off-screen. `lib/animation/handoff.ts`
+          // holds the attribute name and the shared duration.
+          {...{ [NAV_ENTRANCE_ATTR]: "" }}
+          className="relative flex items-center px-md py-sm sm:px-lg sm:py-md"
+        >
           {/* ---------------------------------------------------------------
               LEFT — the mark, then the place.
           --------------------------------------------------------------- */}
@@ -313,6 +335,23 @@ export function Navbar() {
               <MonogramMark
                 variant="nav"
                 label="Muhammad Saad"
+                // 17px IS A HARD FLOOR, NOT A PREFERENCE, and it is now
+                // `NAV_HEIGHT_PX` in `msMarkGeometry.ts` rather than a class:
+                // the same number also derives the mark's stroke weight, so the
+                // two must not be settable independently. `docs/07` §2.1
+                // promotes the floor out of the design brief because it binds
+                // more than this file. The binding constraint is the 112-unit
+                // letter gap, which needs ≥16.4px of rendered height to keep
+                // ~3px of clear air between the two facing node dots; 17px has
+                // 0.6px of margin. 16px fuses the pair. ANYTHING SMALLER IS A
+                // DESIGN CHANGE — raise it rather than shrinking the mark.
+                //
+                // Expect the left cluster's optical balance to have shifted:
+                // the outgoing filled mark's cap rendered ~9.7px inside this
+                // same box and the trace mark's is 13.6px, about 40% taller.
+                // That is deliberate compensation — a trace carries a fraction
+                // of the ink of filled glyphs at equal cap height — not drift.
+                size={NAV_HEIGHT_PX}
                 // THE `36px` IS 36 VIEWBOX UNITS, NOT 36 SCREEN PIXELS, and
                 // the difference is the whole reason this number looks wrong.
                 // A CSS transform on an SVG child resolves in the element's
@@ -321,9 +360,15 @@ export function Navbar() {
                 // cut used `14px` and moved the letters seven tenths of a
                 // pixel — the gesture compiled, ran, and was invisible.
                 // 36 units is ~1.9 screen pixels per letter, so the pair opens
-                // by not quite four. Retune it against the RENDERED height, not
-                // against the number.
-                className="h-[17px] w-auto [&_[data-ms-letter]]:transition-transform [&_[data-ms-letter]]:duration-300 group-hover/mark:[&_[data-ms-letter='m']]:-translate-x-[36px] group-hover/mark:[&_[data-ms-letter='s']]:translate-x-[36px] motion-reduce:[&_[data-ms-letter]]:transition-none"
+                // by not quite four, from a 112-unit gap to 184.
+                //
+                // FLAGGED FOR A FEEL CALL, not changed: 36 was tuned against
+                // the old mark's ~9.7px cap. It still moves ~1.9px in absolute
+                // terms but is now a smaller PROPORTION of a taller mark, so
+                // the gesture may read as undersized — `ms-mark-design.md` F-5
+                // guesses it lands nearer 44. That has to be judged against the
+                // rendered bar, so it is left alone here.
+                className="[&_[data-ms-letter]]:transition-transform [&_[data-ms-letter]]:duration-300 group-hover/mark:[&_[data-ms-letter='m']]:-translate-x-[36px] group-hover/mark:[&_[data-ms-letter='s']]:translate-x-[36px] motion-reduce:[&_[data-ms-letter]]:transition-none"
               />
             </span>
 

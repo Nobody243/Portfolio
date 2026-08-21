@@ -40,7 +40,14 @@ binding on any future entry, transition, or route-change animation.
   against is in. Its timings are entirely about feel.
 
 **What the Loader tracks, and why the list is short.** The two webfonts, at the
-two weights used above the fold. Nothing else — the hero has been Canvas2D plus
+two weights used above the fold — the hero tagline (Space Grotesk, `text-h4`)
+and the navbar (JetBrains Mono, `text-caption`). **The Intro is no longer one of
+the reasons**, and the distinction matters: it used to measure the name at
+runtime with canvas `TextMetrics`, and since Phase 1 it renders pre-extracted
+outline path data instead and never touches the face. The gate stays because
+those two above-the-fold surfaces still need it — `docs/07` §3's D7 box records
+this in advance precisely so the Intro's release is not mistaken for the
+Loader's. Nothing else is tracked — the hero has been Canvas2D plus
 SVG since the R3F scene was removed, so there is no model, texture, WASM or
 above-the-fold image to wait on, and the project covers are below the fold and
 belong to `next/image`. Blocking the entry animation on those would be the exact
@@ -62,37 +69,78 @@ transition. Do not mix the words again.
 
 ## 2. The Intro's confirmed sequence
 
-1. **"Muhammad Saad"** is shown, set, and held long enough to register as a name
-   rather than as a flash.
-2. It **contracts to the "MS" mark** — every character but the two initials
-   drops out of the layout, the survivors slide together, and the pair hands
-   over to the liquid letterforms. This is the jelly-blob-inside-the-glyphs
-   beat.
-3. A **small zoom-out** on the mark. A beat of settling and breathing room, not
-   a hard cut.
-4. A **smooth zoom-in that carries straight into the Hero.** The zoom-in *is*
-   the transition, not a step before one.
+> **REWRITTEN IN PHASE 1 OF THE RESTRUCTURE.** The four-step sequence this
+> section used to describe — name, contraction to the liquid-glass mark, a small
+> zoom-out, then a `scale: 17` zoom-in that carried into the hero — is gone.
+> `docs/07_SITE_RESTRUCTURE.md` §3 replaced steps 3 and 4 with a contraction to
+> a point and an expansion out of it, and §2 retired the glass/liquid mark for
+> circuit-trace geometry. The phase split below is the one shipped.
+> The old table is in the history; do not restore it piecemeal.
 
-**§4 is a two-sided move and both sides are required.** `Intro` fires
-`onHandoff` as the zoom-in *starts*, not when it ends. `Hero` uses that to begin
-its own arrival — scale `1.12 → 1`, opacity `0 → 1` — so the mark accelerates
-out through the viewport while the hero decelerates into place underneath it.
-The overlap is the hand-off. Collapsing `onHandoff` and `onComplete` into one
-callback turns the seam back into a cut.
+Five phases, **2.35s total** (measured: 2.354s from the Intro plate mounting to
+it unmounting). The per-phase split lives in `components/intro/Intro.tsx` as
+named constants, which is where it should be tuned.
 
-Both eases here are deliberate exceptions to the shared curves in
-`lib/animation/easing.ts`, for one reason stated twice: every shared curve
-decelerates into its end state, which is right for something *arriving* and
-wrong for a camera *leaving*. The zoom-in uses `power2.in`; the arrival uses
-`power2.out` rather than `GSAP_EASE.hero`, because easeOutExpo spends 80% of its
-travel in the first quarter and — measured on the running timeline — finished
-the arrival while the plate was still 74% opaque, i.e. entirely off-screen.
+| | Phase | Duration | Starts | Ease |
+|---|---|---|---|---|
+| A | "Muhammad Saad" appears, as **stroked outlines** | 0.22 | 0.00 | `power2.out` |
+| B | It holds, long enough to register as a name | 0.13 | 0.22 | — |
+| C | **The becoming** | 1.05 | 0.35 | see below |
+| D | Contraction to a point, then a 0.06 hold on it | 0.44 + 0.06 | 1.40 | `power2.in` |
+| E | Hero expansion **and** navbar entrance | 0.45 | 1.90 | `power2.out` |
 
-**Under `prefers-reduced-motion` none of §1–§4 runs.** The formed monogram is
-shown and cross-fades out; there is no contraction, no zoom, and no arrival
-tween. Someone who asked for less motion is not owed a shorter version of the
-spectacle, they are owed its absence. `onHandoff` still fires on that path, so no
-consumer has to special-case "the intro did not run".
+**A: the name is not DOM `<text>`.** It is Space Grotesk's own contours,
+pre-extracted at build time into `components/ui/msMarkGlyphs.ts` and rendered as
+strokes. Fill and stroke do not interpolate into each other, so a filled name
+would force a paint-mode swap mid-timeline, and any dressing of that swap is a
+crossfade — which is exactly what "a becoming, not a crossfade" rules out. One
+paint mode from the first frame to the last.
+
+**C is four tracks that deliberately do not finish together.** The two capitals
+translate and grow to centre over `0 → 0.80·C` (`power2.out`) while their `d`
+morphs into the mark's traces over the full `0 → 1.00·C` (linear). So the shape
+is **exactly 80% resolved at the instant the letters meet** (t = 1.19), and the
+last 20% completes with both letters stationary. That 0.21s tail is the phase's
+whole argument: the viewer watches the letterform resolve into trace *after*
+motion has stopped, which is the opposite of a swap hidden under movement.
+**Never let the tail reach zero.** Meanwhile the other ten glyphs collapse into
+their own word's initial and fade over the first 45% of C, staggered outward-in;
+and the eleven node dots fade up on an 18ms stagger across the tail, opacity
+only, one pass, in draw order.
+
+**D's stroke ramp is a correctness requirement, not polish.**
+`vector-effect="non-scaling-stroke"` holds stroke width constant in device
+pixels *regardless of scale*, so a mark shrinking toward a point with a fixed
+weight thickens into a blob. `--ms-stroke` ramps down 0.36× in lockstep with the
+scale. The 60ms hold on the resulting single disc is the beat that stops the
+contraction and the expansion reading as one rubber-band motion through zero.
+
+**E is a two-sided move and all three sides are required.** `Intro` fires
+`onHandoff` as the expansion *starts*, not when it ends. `Hero` uses that to
+expand out of the contraction pixel — scale `0 → 1` about a `50% 50%` origin,
+opacity `0 → 1` — and the **navbar slides down on the same start and the same
+duration, from the same timeline**, because `docs/07` §1 and §3 step 6 ask for
+one beat rather than two adjacent ones. The shared length is `HANDOFF_S` in
+`lib/animation/handoff.ts`; a duration written down twice is a duration until
+someone retunes one copy. Collapsing `onHandoff` and `onComplete` into a single
+callback turns the seam back into a cut. The plate finishes dissolving at 0.30
+of E's 0.45, so the last third of the expansion happens in front of the visitor.
+
+The eases are deliberate exceptions to the shared curves in
+`lib/animation/easing.ts`, for one reason: every shared curve decelerates into
+its end state, which is right for something *arriving* and wrong for something
+*leaving*. D uses `power2.in`; the expansion uses `power2.out` rather than
+`GSAP_EASE.hero`, because easeOutExpo spends 80% of its travel in the first
+quarter and — measured on the running timeline — finished the arrival while the
+plate was still 74% opaque, i.e. entirely off-screen.
+
+**Under `prefers-reduced-motion` none of A–E runs.** The settled mark fades in
+at About-instance size (72px, 3px stroke), holds, and cross-fades to the hero
+and the navbar: 0.20 + 0.10 + 0.25 = **0.55s** total, measured 0.51s. No name,
+no approach, no morph, no contraction, and the mark never appears mid-ramp.
+Someone who asked for less motion is not owed a shorter version of the
+spectacle, they are owed its absence. `onHandoff` still fires on that path, so
+no consumer has to special-case "the intro did not run".
 
 ### Replayability is a requirement, not a nicety
 
@@ -102,8 +150,8 @@ beat**. `Intro` is therefore built to be re-run:
 - the timeline is **built fresh on every play**, keyed off a `playToken` prop;
 - a `reset()` runs first, so a second play is identical to the first rather than
   inheriting whatever transform the last one left behind;
-- `sequence="mark"` plays steps 2–4 without the name, which is the shape a
-  transition wants.
+- `sequence="mark"` plays **phases D and E** without the name — starting from
+  the settled mark — which is the shape a transition wants.
 
 It deliberately does **not** own the scroll lock (see §3).
 
@@ -120,8 +168,8 @@ It deliberately does **not** own the scroll lock (see §3).
 2. Intro plays
    - fixed, scripted; never gated on the network again
 
-3. Hero arrival overlaps the Intro's zoom-in
-   - onHandoff -> the hero starts settling while the plate is still up
+3. Hero expansion and navbar entrance overlap the Intro's phase E
+   - onHandoff -> both start while the plate is still dissolving
 
 4. IntroGate unmounts
 ```
@@ -133,8 +181,15 @@ overlapping lifetimes is how a document ends up permanently unscrollable, and it
 is also what keeps `Intro` safe to reuse elsewhere: a transition that is not
 covering the whole page has no business locking it.
 
-The Intro plays **once per session** (`sessionStorage`, not `localStorage`) — a
-visitor returning next week should see it again; a visitor reloading should not.
+The Intro plays **once per page load** — a **module-scope boolean**, not
+`sessionStorage`. **This reverses what this section used to say.** The old rule
+was "once per session, so a visitor reloading does not see it again";
+`docs/07_SITE_RESTRUCTURE.md` §3 fixes the trigger as *actual document load or
+refresh* and requires any visited flag to be removed rather than tuned, while
+also requiring that a client-side navigation back to Home does not replay it.
+Those two are only compatible with an in-memory flag: a refresh instantiates a
+fresh module graph and the Intro plays; a client navigation reuses the same
+module and it does not. No storage key is written at all — verified.
 
 ---
 

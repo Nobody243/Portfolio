@@ -21,10 +21,9 @@
  * the Intro and Hero genuinely block on, not from an ambition to track
  * everything:
  *
- *   - THE TWO WEBFONTS. Both surfaces are typographic. The Intro's opening
- *     beat measures "Muhammad Saad" at runtime and FLIPs the two initials by
- *     the measured delta; run that against fallback metrics and the letters
- *     slide to the wrong place, then jump when the real face lands.
+ *   - THE TWO WEBFONTS. Both surfaces are typographic — the hero tagline is
+ *     Space Grotesk at `text-h4` and the navbar is JetBrains Mono at
+ *     `text-caption`, both above the fold.
  *
  *     THIS CLAUSE USED TO CITE A SECOND REASON — "the hero wordmark has the
  *     same exposure, `SaadGlass` re-measures on `fonts.ready`". `SaadGlass`
@@ -34,14 +33,21 @@
  *     at all — so it read as though half the reason had survived when none of
  *     it had.
  *
- *     THE REMAINING REASON IS STILL TRUE, AND HAS A KNOWN EXPIRY. The Intro
- *     measures the name at runtime today, so the gate is load-bearing today.
- *     Phase 1 replaces that measurement with pre-extracted outline data from
- *     `public/fonts/space-grotesk-latin.typeface.json`, after which the INTRO
- *     no longer needs the face — but the gate still does, because the hero
- *     tagline and the navbar are above the fold and set in these two families.
- *     Re-read this comment when Phase 1 lands; do not let the Intro's release
- *     be mistaken for the Loader's.
+ *     THE EXPIRY THIS COMMENT PREDICTED HAS NOW FIRED, AND THE GATE SURVIVED
+ *     IT. Until Phase 1 the stated reason was that the Intro measured
+ *     "Muhammad Saad" at runtime with canvas `TextMetrics` and FLIPped the two
+ *     initials by the measured delta, so fallback metrics would send the
+ *     letters to the wrong place. THE INTRO NO LONGER TOUCHES THE FACE AT ALL:
+ *     it renders pre-extracted outline data from
+ *     `public/fonts/space-grotesk-latin.typeface.json` as SVG paths, and that
+ *     asset is not a webfont and is not loaded through `document.fonts`.
+ *
+ *     THE GATE STAYS ANYWAY, and `docs/07` §3's D7 box records why in advance:
+ *     the tagline and the navbar need those two faces WHATEVER THE MARK DOES.
+ *     Do NOT record "the morph needs Space Grotesk outlines" as the reason —
+ *     that justification is exactly the one that just dissolved, and the next
+ *     reader who finds it no longer holding will delete the Loader and take the
+ *     tagline's FOUT protection with it.
  *   - NOTHING ELSE, TODAY, AND THAT IS A FINDING RATHER THAN AN OMISSION. The
  *     hero is Canvas2D plus SVG since the R3F scene was removed: no GLTF, no
  *     textures, no WASM, and no `<img>` above the fold. The project cover

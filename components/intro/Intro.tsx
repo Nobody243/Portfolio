@@ -1,182 +1,229 @@
 "use client";
 
 /**
- * The INTRO — the branded, choreographed reveal. Formerly, and wrongly, called
- * `HeroLoader`.
+ * The INTRO — the branded, choreographed reveal.
  *
  * IT IS NOT A LOADER AND IT NEVER WAS. A loader answers "are the assets ready".
  * This answers nothing; it is a scripted timeline with known durations whose
- * only job is how the site feels in its first three seconds. The two were
- * conflated in the old filename, and the conflation had already produced the
- * exact bug `docs/06_INTRO_AND_CHROME.md` §1 warns about — a fixed clock
- * standing in for real progress. `AssetLoader.tsx` is now the loader, it gates
- * this component, and by the time this plays every font it measures against is
- * already in.
+ * only job is how the site feels in its first two and a half seconds.
+ * `AssetLoader.tsx` is the loader, it gates this component, and by the time
+ * this plays everything it needs is already in.
  *
- * THE SEQUENCE, as confirmed:
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE SEQUENCE — `docs/07_SITE_RESTRUCTURE.md` §3, split per phase in
+ * `.claude/handoff/intro-timing-design.md`:
  *
- *   1. "Muhammad Saad" is shown, set and held long enough to read as a name
- *      rather than as a flash.
- *   2. It CONTRACTS to the "MS" mark: everything but the two initials drops
- *      out of the layout, the survivors slide together, and the pair is
- *      handed over to the liquid letterforms — this is the jelly-blob-inside-
- *      the-glyphs beat.
- *   3. A small ZOOM-OUT on the mark. A beat of settling, not a hard cut: the
- *      mark backs off slightly and breathes.
- *   4. A smooth ZOOM-IN that carries straight into the Hero. THE ZOOM-IN IS
- *      THE TRANSITION — not a step that happens before one. The plate never
- *      cuts; the mark accelerates past the viewport while the plate dissolves
- *      and the hero, which has been settling out of its own matching
- *      over-scale the whole time, is simply where the camera arrives.
+ *   A  0.00 → 0.22   "Muhammad Saad" appears, as STROKED OUTLINES.
+ *   B  0.22 → 0.35   It holds, long enough to read as a name.
+ *   C  0.35 → 1.40   THE BECOMING. The two capitals travel to dead centre and
+ *                    deform into the mark's traces while still in motion; the
+ *                    other eleven glyphs collapse into their own word's initial
+ *                    and fade. The letters MEET at 1.19 with the shape exactly
+ *                    80% resolved, and the last 20% completes with both letters
+ *                    stationary.
+ *   D  1.40 → 1.90   The mark contracts to a single dot at `(296, 288)` — its
+ *                    own seam — then holds there for 60ms.
+ *   E  1.90 → 2.35   The hero expands out of that dot and the navbar slides
+ *                    down, on the same start and the same duration.
  *
- * REPLAYABLE BY CONSTRUCTION, and that is a requirement rather than a nicety.
- * The same mark-reveal motion is scheduled to double as a section-transition
- * beat later, so this is not a mount-only animation: the timeline is BUILT
- * FRESH on every play, keyed off `playToken`, and `sequence="mark"` plays the
- * mark half on its own (steps 2–4, no name) which is the shape a transition
- * needs. Nothing about the component assumes it has only ever run once. What
- * it deliberately does NOT own is the scroll lock — see `IntroGate.tsx`.
+ * WHAT REPLACED THE OLD SHAPE, and why the total fell from ~3.24s to 2.35s:
+ * the zoom-out and the breath (0.82s between them) are GONE, not shortened.
+ * §3 replaces steps 3–4 with a contraction to a point, so there is no backing-
+ * off beat to pay for. Setup only needed a modest trim — 1.47 → 1.40 — and the
+ * handoff is held at 0.95s, the exact weight the old `ZOOM_IN_S` had. Reading
+ * "trim the early setup harder" as an instruction to absorb the whole saving
+ * would leave the name on screen for under half a second, and §3 step 1 asks
+ * for it to register as a NAME.
  *
- * THE SLIDE IN STEP 2 IS A REAL FLIP, MEASURED AT RUNTIME, and it is inherited
- * unchanged from the component this replaces. First rects are recorded, the
- * non-initial spans are collapsed out of the layout, last rects are recorded,
- * and the two initials are offset by the delta and animated back to zero.
- * Nothing here knows a pixel distance, so a font swap or a kerning change
- * cannot silently desynchronise it.
+ * DO NOT TUNE THESE INDEPENDENTLY. Phase C's 80/100 split and phase D's stroke
+ * ramp are each derived from their own duration; moving one without the other
+ * breaks a stated guarantee rather than altering feel.
+ * ─────────────────────────────────────────────────────────────────────────
  *
- * NO FLIP PLUGIN. GSAP's Flip would do the slide in fewer lines, but a
- * four-rect manual FLIP is not where a plugin registration earns its keep, and
- * `lib/animation/gsap.ts` exists precisely because an unregistered plugin
- * fails silently in production.
+ * NOTHING IS EVER FILLED, FROM THE FIRST FRAME TO THE LAST. The name is not DOM
+ * `<text>`; it is Space Grotesk's own contours, pre-extracted at build time and
+ * rendered as strokes. Fill and stroke do not interpolate into each other, so a
+ * filled name would force a paint-mode swap mid-timeline — and any dressing of
+ * that swap is the crossfade §3 step 2 explicitly rules out. One paint mode
+ * throughout is what makes "a becoming, not a crossfade" literally true.
+ *
+ * THE `TextMetrics` BASELINE PROBE IS GONE, along with the three mirrored mark
+ * constants it fed. The old morph measured DOM letters at runtime to place an
+ * SVG `<text>` of the same font on top of them; there is no font size to match
+ * and no DOM baseline to align to any more, because both ends of the morph are
+ * path data in one coordinate system. `components/ui/msMarkGeometry.ts` holds
+ * that system and every number in it.
+ *
+ * REPLAYABLE BY CONSTRUCTION. The timeline is BUILT FRESH on every play, keyed
+ * off `playToken`, and `sequence="mark"` plays the handoff half alone (D and E,
+ * starting from the settled mark) which is the shape a section transition
+ * needs. What it deliberately does NOT own is the scroll lock — see
+ * `IntroGate.tsx`.
  *
  * WHY GSAP AND NOT FRAMER, given the house rule is "GSAP owns scroll-synced
- * timelines, Framer owns DOM": this IS a timeline — six phases, a stagger, a
- * measured FLIP and a measured hand-off in the middle of it — and expressing it
- * as nested Framer variants with delay arithmetic is how phase boundaries drift
- * apart when one duration is retuned. The rule exists to stop the two libraries
- * producing different CURVES for the same job, and every ease below is one of
- * the shared `GSAP_EASE` curves compiled from `lib/animation/easing.ts`.
+ * timelines, Framer owns DOM": this IS a timeline — five phases, three
+ * staggers, a path morph and a two-sided handoff in the middle of it — and
+ * expressing it as nested Framer variants with delay arithmetic is how phase
+ * boundaries drift apart when one duration is retuned.
+ *
+ * THE EASES ARE GSAP BUILT-INS HERE, NOT THE SHARED `GSAP_EASE` SET, and that
+ * is a change from the file this replaces. The timing brief names them
+ * individually — `power2.out` for A and E, linear for C's morph, `power2.in`
+ * for D — and its reasoning for D is the one the old file already carried for
+ * its zoom-in: every shared curve DECELERATES into its end state, which is
+ * right for something arriving and wrong for something leaving. The one place
+ * a shared curve still applies is the plate dissolve, which is a UI fade.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { MonogramMark } from "@/components/ui/MonogramMark";
-import { HERO_NAME } from "@/components/hero/heroContent";
+import {
+  BASELINE,
+  CONTRACT_X,
+  CONTRACT_Y,
+  INTRO_GLYPHS,
+  INTRO_INITIALS,
+  INTRO_REST,
+  NAME_CAP_UNITS,
+  NAME_SCALE,
+  NODE_RATIO,
+  TRACE,
+  VB_H,
+  capFromHeight,
+  msStroke,
+  type MarkLetter,
+} from "@/components/ui/msMarkGeometry";
 import { GSAP_EASE, gsap } from "@/lib/animation/gsap";
+import { HANDOFF_S, NAV_ENTRANCE_ATTR } from "@/lib/animation/handoff";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /* -------------------------------------------------------------------------
-   Phase durations, seconds. Tuning these is a design act; read the sequence
-   comment above before moving any of them, because several overlap on purpose.
+   Phase durations, seconds. Every value is from
+   `.claude/handoff/intro-timing-design.md` §7. Read the header before moving
+   any of them.
 ------------------------------------------------------------------------- */
-const HOLD_S = 0.3;
-const DROP_S = 0.35;
-const DROP_STAGGER_S = 0.015;
-const SLIDE_S = 0.42;
-/** Text out, mark in. Overlaps the tail of the slide so the material changes
- *  while the letters are still closing, rather than after they have parked. */
-const MORPH_S = 0.4;
-/** Step 3. Long and soft — this beat exists to be a pause, so it must not read
- *  as another move. */
-const ZOOM_OUT_S = 0.6;
-const ZOOM_OUT_SCALE = 0.82;
-/** The breath at the bottom of the zoom-out, before the camera commits. */
-const BREATH_S = 0.22;
-/** Step 4. */
-const ZOOM_IN_S = 0.95;
-const ZOOM_IN_SCALE = 17;
-/** Reduced motion: straight to the formed monogram, then a short crossfade. */
+/** A — the name arrives. */
+const NAME_IN_S = 0.22;
+/** B — it holds. Short, but §3 step 1 asks for the name to register. */
+const NAME_HOLD_S = 0.13;
+/** C — approach and deformation, the phase the sequence is named for. */
+const BECOMING_S = 1.05;
+
+/**
+ * WITHIN C, SHAPE AND POSITION MUST NOT FINISH TOGETHER.
+ *
+ * Translation runs to 0.80·C on `power2.out`; the morph runs the full C,
+ * linear. So at the instant the letters meet, the shape is exactly 80%
+ * resolved — §3 step 2's figure by arithmetic rather than by feel — and the
+ * final 20% completes with both letters STATIONARY at centre.
+ *
+ * That 0.21s tail is the phase's whole argument. It is what makes "a becoming,
+ * not a crossfade" observable rather than asserted: the viewer watches the last
+ * of the letterform resolve into trace AFTER motion has stopped, which is the
+ * opposite of a swap hidden under movement. NEVER LET THE TAIL REACH ZERO — a
+ * morph that completes exactly on arrival reads as a cut disguised by
+ * translation, which is the failure the spec names.
+ *
+ * Linear on the morph is deliberate. Path interpolation already decelerates
+ * perceptually because the geometry itself is converging, and an eased morph on
+ * top of that reads as hesitation.
+ */
+const BECOMING_MEET_RATIO = 0.8;
+
+/** The eleven non-initials are gone by 45% of C. */
+const GLYPH_FADE_RATIO = 0.45;
+/**
+ * Per-glyph delay, ordered OUTWARD-IN from each word's end — the last letter
+ * leaves first. Inward-out leaves the two capitals momentarily alone with a gap
+ * where the word was, which reads as deletion rather than as reduction.
+ */
+const GLYPH_STAGGER_S = 0.014;
+
+/** The power-up. Opacity only, monotonic, one pass, in draw order: a neon-sign
+ *  stutter is the most tired move in this visual genre and is ruled out. */
+const NODE_STAGGER_S = 0.018;
+const NODE_FADE_S = 0.12;
+
+/** D — the contraction, then the beat that makes it read as an arrival. */
+const CONTRACT_S = 0.44;
+/**
+ * THE HOLD IS THE WHOLE BEAT. Without it the contraction and the expansion read
+ * as one continuous rubber-band motion through zero. With it, the mark arrives,
+ * exists as a point, and then the site opens out of it — and the eye has a
+ * fixed thing to be anchored on when the hero starts.
+ */
+const CONTRACT_HOLD_S = 0.06;
+
+/**
+ * THE STROKE RAMP IS A CORRECTNESS REQUIREMENT, NOT POLISH.
+ *
+ * `vector-effect="non-scaling-stroke"` holds stroke width constant in device
+ * pixels REGARDLESS OF SCALE. A mark shrinking toward a point with a fixed
+ * weight therefore THICKENS INTO A BLOB as its geometry collapses inside its
+ * own outline. Ramping the weight down in lockstep is what keeps it reading as
+ * a mark shrinking rather than as an ink spill.
+ *
+ * The brief states it as 10px → 3.6px, against an Intro mark whose cap it puts
+ * at ~386px. The RATIO is what is invariant — 0.36 — and it is applied to
+ * whatever weight `msStroke()` actually produces for the rendered box, so the
+ * ramp is correct at every viewport instead of only at one.
+ */
+const STROKE_END_RATIO = 0.36;
+
+/** E — both halves of the handoff. Shared with `Hero.tsx` and `Navbar.tsx`
+ *  through one constant, because "simultaneous" written twice is not. */
+const EXPAND_S = HANDOFF_S;
+/**
+ * The plate finishes dissolving BEFORE the expansion does.
+ *
+ * The old timeline had the hero's arrival finishing while the plate was still
+ * 74% opaque — by the time anyone could see it, it had already happened.
+ * Front-loading the dissolve is the inverse of that mistake: the last third of
+ * the hero's expansion happens in front of the visitor.
+ */
+const PLATE_DISSOLVE_S = 0.3;
+
+/* Reduced motion: a different, shorter thing — not this sequence slowed down.
+   §6 of the timing brief; §8 of `docs/07`. */
+const REDUCED_MARK_IN_S = 0.2;
+const REDUCED_HOLD_S = 0.1;
 const REDUCED_FADE_S = 0.25;
+/** The About instance's rendered height. Under reduced motion the mark appears
+ *  at About weight — settled, modest, no spectacle — rather than at the Intro's
+ *  full Tier 1 scale. */
+const REDUCED_MARK_H = 72;
 
-/**
- * The MonogramMark's own viewBox proportions, needed to place its glyphs on top
- * of the DOM letters. MIRRORED FROM `MonogramMark.tsx` AND ONLY VALID WHILE
- * THEY MATCH — change one and this alignment silently drifts, which is why the
- * measured fallback below exists and why the numbers are named rather than
- * inlined into the arithmetic.
- */
-const MARK_VB_W = 560;
-const MARK_VB_H = 320;
-const MARK_FONT_SIZE = 260;
-
-/**
- * Indices of the characters that survive: the first letter of each word.
- *
- * DERIVED FROM THE STRING, never written down as `[0, 9]`. `HERO_NAME` is
- * content and content moves; a hardcoded pair would keep animating confidently
- * after an edit and simply preserve the wrong letters.
- */
-function initialIndices(name: string): Set<number> {
-  const out = new Set<number>();
-  let atWordStart = true;
-  for (let i = 0; i < name.length; i++) {
-    const ch = name[i];
-    if (ch === " ") {
-      atWordStart = true;
-      continue;
-    }
-    if (atWordStart) {
-      out.add(i);
-      atWordStart = false;
-    }
-  }
-  return out;
-}
-
-/**
- * Where the DOM letters' BASELINE actually sits, and how tall their glyphs
- * actually are — measured, because `getBoundingClientRect()` cannot tell you.
- *
- * THE PROBLEM THIS SOLVES. The morph swaps two DOM `<span>`s for an SVG that
- * draws the same two letters. A rect gives the LINE BOX, which includes half-
- * leading above and descender space below; the SVG's glyphs are positioned off
- * a BASELINE. Centre the SVG on the rect's centre and the mark sits a few
- * pixels low — at hero-heading size that is a visible jump in the middle of the
- * one moment on the site nobody is supposed to look away from.
- *
- * Canvas `TextMetrics` is the only API in the platform that reports both, for
- * the same font, without inserting a probe element and forcing a layout.
- *
- * RETURNS NULL RATHER THAN GUESSING when `fontBoundingBox*` is unavailable
- * (older Firefox). The caller falls back to the rect's centre, which is
- * slightly off and entirely usable — a wrong number silently applied would be
- * worse than a known approximation.
- */
-function measureGlyphMetrics(el: HTMLElement, text: string) {
-  const ctx = document.createElement("canvas").getContext("2d");
-  if (!ctx) return null;
-
-  const cs = getComputedStyle(el);
-  ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-  const m = ctx.measureText(text);
-
-  const ascent = m.fontBoundingBoxAscent;
-  const descent = m.fontBoundingBoxDescent;
-  if (typeof ascent !== "number" || typeof descent !== "number") return null;
-
-  return { ascent, descent, fontSizePx: parseFloat(cs.fontSize) };
-}
+/* Absolute phase boundaries, so the timeline reads the same way the brief's
+   table does and nothing depends on the order tweens happen to be added in. */
+const T_BECOMING = NAME_IN_S + NAME_HOLD_S; // 0.35
+const T_CONTRACT = T_BECOMING + BECOMING_S; // 1.40
+const T_EXPAND = T_CONTRACT + CONTRACT_S + CONTRACT_HOLD_S; // 1.90
+export const INTRO_TOTAL_S = T_EXPAND + EXPAND_S; // 2.35
 
 export type IntroSequence = "full" | "mark";
 
 type IntroProps = {
   /**
-   * `"full"` — steps 1 through 4, the first-visit entry.
-   * `"mark"` — steps 2 through 4 only, starting from the formed monogram. This
-   * is the shape a section transition wants: no name, just the mark and the
-   * zoom that carries you somewhere else.
+   * `"full"` — A through E, the entry sequence.
+   * `"mark"` — D and E only, starting from the settled mark. No name, no
+   * approach, no morph: the contraction and the handoff, which is the shape a
+   * section transition wants.
    */
   sequence?: IntroSequence;
   /**
-   * Change this value to replay. It is a token rather than a boolean so that
+   * Change this value to replay. A token rather than a boolean so that
    * replaying twice in a row is expressible; a `playing` flag would have to be
    * toggled off and on again, which is a race.
    */
   playToken?: number;
   /**
-   * Fired as the ZOOM-IN begins, not when it ends. This is the signal the
-   * destination uses to start its own arrival move, and the overlap between
-   * the two is what makes the hand-off continuous instead of a cut.
+   * Fired as the EXPANSION begins, not when it ends.
+   *
+   * This is the signal the hero uses to start its own arrival, and the overlap
+   * between the two is what makes the handoff continuous instead of a cut.
+   * `docs/06` §2 requires it, and collapsing it into `onComplete` turns the
+   * seam back into a cut. The navbar now rides the same instant.
    */
   onHandoff?: () => void;
   /** Fired once the plate is finished and can be unmounted. */
@@ -192,10 +239,7 @@ export function Intro({
   const reducedMotion = useReducedMotion();
 
   const plateRef = useRef<HTMLDivElement | null>(null);
-  const stageRef = useRef<HTMLDivElement | null>(null);
-  const nameRef = useRef<HTMLDivElement | null>(null);
   const markRef = useRef<HTMLDivElement | null>(null);
-  const charRefs = useRef<Array<HTMLSpanElement | null>>([]);
 
   /* Callbacks through refs, so a parent re-render that produces new function
      identities cannot restart a running timeline. */
@@ -206,291 +250,312 @@ export function Intro({
     onCompleteRef.current = onComplete;
   }, [onHandoff, onComplete]);
 
-  const chars = useMemo(() => [...HERO_NAME], []);
-  const initials = useMemo(() => initialIndices(HERO_NAME), []);
-  /** The mark's letters, from the same derivation — never the literal "MS". */
-  const monogram = useMemo(
-    () =>
-      [...initials]
-        .sort((a, b) => a - b)
-        .map((i) => HERO_NAME[i])
-        .join(""),
-    [initials],
+  /** The mark's letters, derived from the geometry module's own derivation of
+   *  `HERO_NAME` — never the literal "MS". */
+  const letters = useMemo(
+    () => INTRO_GLYPHS.filter((g) => g.letter).map((g) => g.letter as MarkLetter),
+    [],
   );
 
-  /**
-   * Lay the SVG mark exactly over the two DOM initials.
-   *
-   * Called after the FLIP has settled, when the survivors are where they will
-   * finally be. Everything is derived from a measurement:
-   *
-   *   - SIZE. The mark is scaled so its rendered font-size equals the DOM's.
-   *     `MARK_FONT_SIZE` in a `MARK_VB_W`-wide viewBox means a rendered width
-   *     of `domFontSize * MARK_VB_W / MARK_FONT_SIZE` produces glyphs of
-   *     identical size — same face, same weight, same pixels.
-   *   - VERTICAL. The mark's glyphs hang off `dominantBaseline: central`, which
-   *     the SVG spec defines as the midpoint of the font's ascender and
-   *     descender. So the point to align is the DOM baseline shifted up by
-   *     `(ascent - descent) / 2`, both taken from the measured font metrics.
-   *   - HORIZONTAL. Centred on the union of the two survivors' rects. The
-   *     mark's 8-unit optical letter gap makes it about two pixels wider than
-   *     the DOM pair at this size, so this is centre-aligned rather than
-   *     edge-aligned; splitting the difference puts the error at a pixel per
-   *     side instead of two on one.
-   */
-  const placeMark = useCallback(
-    (rects: DOMRect[], fontSource: HTMLElement) => {
-      const stage = stageRef.current;
-      const mark = markRef.current;
-      if (!stage || !mark || rects.length === 0) return;
-
-      const stageRect = stage.getBoundingClientRect();
-      const left = Math.min(...rects.map((r) => r.left));
-      const right = Math.max(...rects.map((r) => r.right));
-      const top = Math.min(...rects.map((r) => r.top));
-      const bottom = Math.max(...rects.map((r) => r.bottom));
-
-      const metrics = measureGlyphMetrics(fontSource, monogram);
-      const fontSizePx = metrics?.fontSizePx ?? bottom - top;
-      const width = (fontSizePx * MARK_VB_W) / MARK_FONT_SIZE;
-      const height = (width * MARK_VB_H) / MARK_VB_W;
-
-      // The y the SVG's `central` baseline must land on, in viewport coords.
-      const centralY = metrics
-        ? // baseline, then up by half the ascender/descender span
-          top +
-          (bottom - top - (metrics.ascent + metrics.descent)) / 2 +
-          metrics.ascent -
-          (metrics.ascent - metrics.descent) / 2
-        : (top + bottom) / 2;
-
-      /*
-        THE GLYPHS ARE NOT CENTRED IN THEIR OWN BOX, and centring the box would
-        therefore leave the letters visibly off.
-
-        `MonogramMark` anchors the M's END and the S's START at the viewBox
-        centre, which centres the GAP between them — but M is materially wider
-        than S in this face, so the pair's ink sits left of centre by half the
-        difference. At the size this plays it is around nine pixels, which is
-        plainly visible against the DOM text it is replacing.
-
-        `getBBox()` and not `getBoundingClientRect()`: the mark carries a scale
-        transform for the whole morph, so a screen rect would be measured
-        mid-tween and the correction would depend on WHEN it was taken.
-        `getBBox()` is in the SVG's own user units and is immune to that. It is
-        also why this is a live measurement rather than a constant — the offset
-        is a property of the FONT, and a font swap must move it.
-      */
-      const glyphs = mark.querySelectorAll<SVGGraphicsElement>(
-        "text[data-ms-letter]",
-      );
-      let inkLeft = Infinity;
-      let inkRight = -Infinity;
-      glyphs.forEach((glyph) => {
-        // Throws on a detached or display:none node in some engines.
-        try {
-          const box = glyph.getBBox();
-          inkLeft = Math.min(inkLeft, box.x);
-          inkRight = Math.max(inkRight, box.x + box.width);
-        } catch {
-          /* leave the bounds unset; the guard below falls back to no nudge */
-        }
-      });
-      const inkCentre = (inkLeft + inkRight) / 2;
-      const nudgeX = Number.isFinite(inkCentre)
-        ? (inkCentre - MARK_VB_W / 2) * (width / MARK_VB_W)
-        : 0;
-
-      mark.style.width = `${width}px`;
-      mark.style.height = `${height}px`;
-      mark.style.left = `${(left + right) / 2 - width / 2 - stageRect.left - nudgeX}px`;
-      mark.style.top = `${centralY - height / 2 - stageRect.top}px`;
-    },
-    [monogram],
-  );
-
-  /* -----------------------------------------------------------------------
-     The sequence. Rebuilt from scratch on every play.
-  ----------------------------------------------------------------------- */
   useEffect(() => {
     const plate = plateRef.current;
-    const stage = stageRef.current;
-    const name = nameRef.current;
-    const mark = markRef.current;
-    if (!plate || !stage || !name || !mark) return;
+    const host = markRef.current;
+    if (!plate || !host) return;
 
-    const all = charRefs.current.filter(Boolean) as HTMLSpanElement[];
-    const keep = [...initials]
-      .sort((a, b) => a - b)
-      .map((i) => charRefs.current[i])
-      .filter(Boolean) as HTMLSpanElement[];
-    const drop = all.filter((el) => !keep.includes(el));
+    const svg = host.querySelector("svg");
+    if (!svg) return;
 
-    // Every play starts from a known state. Without this an interrupted or
-    // repeated run inherits whatever transform the last one left behind, and
-    // the second play of a "replayable" component is subtly different from the
-    // first — the classic reason a reusable sequence gets called one-shot.
+    const letterEls = letters
+      .map((key) => svg.querySelector<SVGGElement>(`[data-ms-letter="${key}"]`))
+      .filter((el): el is SVGGElement => el !== null);
+    const traceEls = letters
+      .map((key) => svg.querySelector<SVGPathElement>(`[data-ms-trace="${key}"]`))
+      .filter((el): el is SVGPathElement => el !== null);
+    const nodeGroups = [...svg.querySelectorAll<SVGGElement>("[data-ms-nodes]")];
+    // Document order, which is M's five in trace order then S's six — the draw
+    // order the power-up stagger is specified against.
+    const nodeEls = [...svg.querySelectorAll<SVGPathElement>("[data-ms-node]")];
+    const restEls = [...svg.querySelectorAll<SVGGElement>("[data-ms-glyph]")];
+    const wrapper = svg.querySelector<SVGGElement>("[data-ms-wrapper]");
+    if (!wrapper || letterEls.length !== letters.length) return;
+    if (traceEls.length !== letters.length) return;
+
+    /*
+      WEIGHTS ARE MEASURED, NOT WRITTEN DOWN.
+
+      The mark's box is sized in CSS (`min(62vw, 720px)`), so its cap height —
+      and therefore every stroke weight in the sequence — depends on the
+      viewport. `msMarkGeometry.ts`'s rule maps cap height to weight; this reads
+      the box once and applies it. A constant here would be right at exactly one
+      window size and quietly wrong at every other, which is the failure
+      `non-scaling-stroke` was adopted to prevent in the first place.
+    */
+    const boxH = svg.getBoundingClientRect().height || VB_H;
+    const markStroke = msStroke(capFromHeight(boxH));
+    const nameStroke = msStroke((NAME_CAP_UNITS / VB_H) * boxH);
+    const dotStroke = markStroke * STROKE_END_RATIO;
+
+    const setStroke = (px: number) =>
+      gsap.set(svg, { "--ms-stroke": `${px}px`, "--ms-node": `${px * NODE_RATIO}px` });
+
+    /* The navbar's entrance. It is a SIBLING of everything this component can
+       see — see `lib/animation/handoff.ts` for why it is addressed by
+       attribute — and it is left alone entirely when it is absent, so the Intro
+       stays reusable on a surface that has no chrome. */
+    const nav = document.querySelector<HTMLElement>(`[${NAV_ENTRANCE_ATTR}]`);
+
+    /*
+      Every play starts from a known state. Without this, an interrupted or
+      repeated run inherits whatever transform the last one left behind, and the
+      second play of a "replayable" component is subtly different from the
+      first — the classic reason a reusable sequence gets called one-shot.
+    */
     const reset = () => {
       gsap.set(plate, { autoAlpha: 1 });
-      gsap.set(stage, { scale: 1, transformOrigin: "50% 50%" });
-      gsap.set(all, { clearProps: "all" });
-      gsap.set(mark, { autoAlpha: 0, scale: 1.1, transformOrigin: "50% 50%" });
-      gsap.set(name, { autoAlpha: 1 });
+      gsap.set(wrapper, { scale: 1, svgOrigin: `${CONTRACT_X} ${CONTRACT_Y}` });
+      gsap.set(nodeGroups, { opacity: 1 });
+      gsap.set(nodeEls, { opacity: 0 });
+      if (nav) gsap.set(nav, { yPercent: 0 });
     };
 
-    const finish = () => onCompleteRef.current?.();
-
-    if (reducedMotion) {
-      // The final composition, immediately: monogram formed, no contraction,
-      // no zoom, no camera. Then a short crossfade out. Somebody who asked for
-      // less motion is not owed a shorter version of the spectacle, they are
-      // owed its absence.
-      reset();
-      gsap.set(drop, { display: "none" });
-      placeMark(
-        keep.map((el) => el.getBoundingClientRect()),
-        keep[0],
-      );
-      gsap.set(name, { autoAlpha: 0 });
-      gsap.set(mark, { autoAlpha: 1, scale: 1 });
-
-      const tl = gsap.timeline({
-        onComplete: () => {
-          onHandoffRef.current?.();
-          finish();
-        },
+    /** Put a letter or glyph group at its position in the OPENING NAME.
+     *
+     *  Both poses are expressed against the same origin — the glyph's own ink
+     *  origin in the settled mark — so "settled" is the identity transform and
+     *  the tween back to it needs no correction term. `svgOrigin` and not
+     *  `transformOrigin`: the former is in the SVG's user coordinate system,
+     *  which is the space every number in the geometry module is stated in. */
+    const namePose = (el: Element, markX: number, x: number) =>
+      gsap.set(el, {
+        svgOrigin: `${markX} ${BASELINE}`,
+        scale: NAME_SCALE,
+        x: x - markX,
+        y: 0,
       });
-      tl.to(plate, { autoAlpha: 0, duration: REDUCED_FADE_S, delay: 0.2 });
+
+    const finish = () => onCompleteRef.current?.();
+    const handoff = () => onHandoffRef.current?.();
+
+    /* -------------------------------------------------------------------
+       REDUCED MOTION — a fade to the settled mark and an instant reveal.
+
+       Not the sequence at another speed: no name, no approach, no morph, no
+       contraction, and the mark never appears mid-ramp. Somebody who asked for
+       less motion is not owed a shorter version of the spectacle, they are owed
+       its absence.
+
+       THE DOM IS IDENTICAL ON BOTH PATHS, deliberately. `useReducedMotion`
+       returns `false` during prerender and corrects on hydration, so a branch
+       that rendered different markup would be a hydration mismatch. The size
+       and state changes below are all imperative.
+    ------------------------------------------------------------------- */
+    if (reducedMotion) {
+      reset();
+      // The box shrinks to the About instance and re-centres on its own middle
+      // rather than on the contraction point: with no contraction there is
+      // nothing for that offset to serve, and a settled mark hanging above
+      // centre would just look misplaced.
+      gsap.set(host, { width: "auto", xPercent: -50, yPercent: -50 });
+      gsap.set(svg, { height: REDUCED_MARK_H, width: "auto" });
+      setStroke(msStroke(capFromHeight(REDUCED_MARK_H)));
+      gsap.set(restEls, { display: "none" });
+      letters.forEach((key, i) => {
+        gsap.set(traceEls[i], { attr: { d: TRACE[key] } });
+        gsap.set(letterEls[i], { clearProps: "transform" });
+      });
+      gsap.set(letterEls, { opacity: 0 });
+      gsap.set(nodeEls, { opacity: 1 });
+
+      const tl = gsap.timeline({ onComplete: finish });
+      tl.to(letterEls, { opacity: 1, duration: REDUCED_MARK_IN_S, ease: "power2.out" });
+      tl.to({}, { duration: REDUCED_HOLD_S });
+      tl.to(plate, { autoAlpha: 0, duration: REDUCED_FADE_S, onStart: handoff });
       return () => {
         tl.kill();
       };
     }
 
     reset();
+    gsap.set(svg, { clearProps: "width,height,transform" });
+    gsap.set(host, { clearProps: "transform,width" });
+
     const tl = gsap.timeline({ onComplete: finish });
 
     if (sequence === "full") {
-      // 1. Hold, so the name registers as a word rather than as a flash.
-      tl.to({}, { duration: HOLD_S });
+      /* ---------------------------------------------------------------
+         Opening state: the name, in outline, invisible.
 
-      // 2a. Everything but the initials leaves.
-      tl.to(drop, {
-        opacity: 0,
-        scale: 0.6,
-        duration: DROP_S,
-        stagger: DROP_STAGGER_S,
-        ease: "power2.in",
+         `--ms-glyph-stroke` is set for the eleven non-initials and is NOT
+         ramped. They keep the name's weight while the two capitals grow into
+         the mark's, because a glyph getting heavier while it shrinks out of
+         view blots rather than fades.
+      --------------------------------------------------------------- */
+      gsap.set(svg, { "--ms-glyph-stroke": `${nameStroke}px` });
+      setStroke(nameStroke);
+
+      gsap.set(restEls, { display: "" });
+      INTRO_REST.forEach((g, i) => namePose(restEls[i], g.markX, g.nameX));
+      letters.forEach((key, i) => {
+        const g = INTRO_INITIALS[key];
+        gsap.set(traceEls[i], { attr: { d: g.d } });
+        namePose(letterEls[i], g.markX, g.nameX);
       });
 
-      // 2b. FLIP the two survivors together.
-      tl.add(() => {
-        const first = keep.map((el) => el.getBoundingClientRect());
-        // Collapsing to display:none is what actually removes the width;
-        // opacity alone leaves the gap and the monogram never closes up.
-        gsap.set(drop, { display: "none" });
-        const last = keep.map((el) => el.getBoundingClientRect());
+      const nameEls = [...restEls, ...letterEls];
+      gsap.set(nameEls, { opacity: 0 });
 
-        // PLACED BEFORE THE OFFSETS GO ON, and this ordering is load-bearing.
-        // `last` is where the letters will FINISH; the moment the FLIP offsets
-        // are applied a live `getBoundingClientRect()` reports where they START
-        // instead, and the mark lands roughly sixty pixels off — which is what
-        // the first cut of this file actually did. Passing the already-measured
-        // rects rather than the elements makes that mistake unavailable.
-        placeMark(last, keep[0]);
-
-        keep.forEach((el, i) => {
-          const dx = first[i].x - last[i].x;
-          // Y is measured too rather than assumed zero: on a narrow viewport
-          // the name can wrap, and a wrapped FLIP that only corrects X slides
-          // the S horizontally onto a different line.
-          const dy = first[i].y - last[i].y;
-          gsap.set(el, { x: dx, y: dy });
-          gsap.to(el, { x: 0, y: 0, duration: SLIDE_S, ease: "power3.inOut" });
-        });
-      });
-
-      // 2c. The material change. Text out, liquid letterforms in, overlapping
-      //     the tail of the slide.
+      // A — the name arrives.
       tl.to(
-        name,
-        { autoAlpha: 0, scale: 1.04, duration: MORPH_S, ease: GSAP_EASE.ui },
-        `+=${SLIDE_S * 0.5}`,
+        nameEls,
+        { opacity: 1, duration: NAME_IN_S, ease: "power2.out" },
+        0,
       );
+
+      // B is a gap, not a tween: nothing is animating between 0.22 and 0.35.
+
+      /* C — the becoming. Four tracks, all starting together, all ending at
+         different times. That spread IS the phase. */
+      letters.forEach((key, i) => {
+        // Position: arrives at 0.80·C.
+        tl.to(
+          letterEls[i],
+          {
+            x: 0,
+            y: 0,
+            scale: 1,
+            duration: BECOMING_S * BECOMING_MEET_RATIO,
+            ease: "power2.out",
+          },
+          T_BECOMING,
+        );
+        // Shape: runs the whole of C, linear.
+        tl.to(
+          traceEls[i],
+          {
+            morphSVG: { shape: TRACE[key], shapeIndex: 0 },
+            duration: BECOMING_S,
+            ease: "none",
+          },
+          T_BECOMING,
+        );
+      });
+
+      // Weight follows the shape, one property, one tween.
       tl.to(
-        mark,
-        { autoAlpha: 1, scale: 1, duration: MORPH_S, ease: GSAP_EASE.hero },
-        "<",
+        svg,
+        {
+          "--ms-stroke": `${markStroke}px`,
+          "--ms-node": `${markStroke * NODE_RATIO}px`,
+          duration: BECOMING_S,
+          ease: "none",
+        },
+        T_BECOMING,
+      );
+
+      // Each word collapses into its own initial.
+      INTRO_REST.forEach((g, i) => {
+        tl.to(
+          restEls[i],
+          {
+            x: g.wordNameX - g.markX,
+            opacity: 0,
+            duration: BECOMING_S * GLYPH_FADE_RATIO,
+            ease: "power1.in",
+          },
+          T_BECOMING + g.fadeOrder * GLYPH_STAGGER_S,
+        );
+      });
+
+      // The power-up, landing on the stationary tail.
+      tl.to(
+        nodeEls,
+        {
+          opacity: 1,
+          duration: NODE_FADE_S,
+          stagger: NODE_STAGGER_S,
+          ease: "power2.out",
+        },
+        T_BECOMING + BECOMING_S * BECOMING_MEET_RATIO,
       );
     } else {
-      // sequence === "mark": start already formed. Steps 3 and 4 only.
-      gsap.set(drop, { display: "none" });
-      tl.add(() =>
-        placeMark(
-          keep.map((el) => el.getBoundingClientRect()),
-          keep[0],
-        ),
-      );
-      tl.set(name, { autoAlpha: 0 });
-      tl.to(mark, {
-        autoAlpha: 1,
-        scale: 1,
-        duration: MORPH_S,
-        ease: GSAP_EASE.hero,
+      // sequence === "mark": already settled. D and E only.
+      setStroke(markStroke);
+      gsap.set(restEls, { display: "none" });
+      letters.forEach((key, i) => {
+        gsap.set(traceEls[i], { attr: { d: TRACE[key] } });
+        gsap.set(letterEls[i], { clearProps: "transform" });
       });
+      gsap.set(letterEls, { opacity: 1 });
+      gsap.set(nodeEls, { opacity: 1 });
     }
 
-    // 3. The zoom-out. The whole stage, so the mark backs off as one object.
-    //    `GSAP_EASE.hero` is the long front-loaded tail: it arrives quickly and
-    //    then almost stops, which is what makes this read as settling rather
-    //    than as a second move.
-    tl.to(stage, {
-      scale: ZOOM_OUT_SCALE,
-      duration: ZOOM_OUT_S,
-      ease: GSAP_EASE.hero,
-    });
+    /* -------------------------------------------------------------------
+       D — the contraction.
 
-    // The breath. An explicit empty tween rather than a delay on the next one,
-    // because a named pause is a thing a designer can retune and a `+=0.22`
-    // buried in a call signature is not.
-    tl.to({}, { duration: BREATH_S });
+       The wrapper `<g>` scales about `(296, 288)` — the baseline, in the gap
+       between the two letters. NOT a `d` tween toward a degenerate path:
+       MorphSVG aimed at an all-points-coincident target is unnecessary work and
+       unstable at the limit.
 
-    // 4. The zoom-in, which IS the transition.
-    //
-    //    `power2.in` and not one of the shared curves, and this is the single
-    //    deliberate exception in the file. Every shared curve decelerates into
-    //    its end state, which is correct for something ARRIVING. This is the
-    //    opposite: the camera commits slowly and then accelerates past the
-    //    viewport, and it is the HERO underneath that decelerates into place.
-    //    An eased-out zoom here would put the brakes on at the exact frame the
-    //    move is supposed to be handing over, which reads as a stop followed by
-    //    a cut — the thing the spec rules out.
-    tl.to(stage, {
-      scale: ZOOM_IN_SCALE,
-      duration: ZOOM_IN_S,
-      ease: "power2.in",
-      onStart: () => onHandoffRef.current?.(),
-    });
+       THE SCALE TARGETS THE WRAPPER, NEVER THE TWO `data-ms-letter` GROUPS.
+       Those hooks belong to the navbar's hover gesture and to phase C's
+       approach; a third author on the same transform is how two systems start
+       fighting the moment anyone reuses the component.
 
-    // The plate dissolves over the back two-thirds of the zoom.
-    //
-    // NOT AT THE TOP: the mark is still small at that point and would read as an
-    // object sitting on the hero rather than as something the camera is moving
-    // through. NOT AT THE VERY END EITHER, which is where this started — a
-    // fade confined to the last third meant the hero underneath had finished
-    // its own arrival before anyone could see it, and the hand-off collapsed
-    // back into the cut this whole sequence exists to avoid. Two-thirds is the
-    // window in which the mark is big enough to be passing the viewer AND the
-    // hero still has visible settling left to do.
+       At `scale: 0` all eleven nodes coincide and the traces are zero-length
+       round caps, so the composite final frame is a single disc at dead
+       viewport centre — one defined origin for the hero to expand from, with no
+       open-ended scale value anywhere.
+    ------------------------------------------------------------------- */
+    tl.to(
+      wrapper,
+      { scale: 0, duration: CONTRACT_S, ease: "power2.in" },
+      T_CONTRACT,
+    );
+    tl.to(
+      svg,
+      {
+        "--ms-stroke": `${dotStroke}px`,
+        "--ms-node": `${dotStroke * NODE_RATIO}px`,
+        duration: CONTRACT_S,
+        ease: "power2.in",
+      },
+      T_CONTRACT,
+    );
+
+    /* -------------------------------------------------------------------
+       E — the two-sided beat.
+
+       `onHandoff` fires HERE, at the start, and the hero begins expanding while
+       the plate is still dissolving. The navbar rides the same instant and the
+       same duration, in this timeline, because "simultaneous" arranged as two
+       adjacent calls is simultaneous until one of them is retuned.
+    ------------------------------------------------------------------- */
+    tl.call(handoff, undefined, T_EXPAND);
+
+    if (nav) {
+      gsap.set(nav, { yPercent: -100 });
+      tl.to(nav, { yPercent: 0, duration: EXPAND_S, ease: "power2.out" }, T_EXPAND);
+    }
+
     tl.to(
       plate,
-      { autoAlpha: 0, duration: ZOOM_IN_S * 0.66, ease: GSAP_EASE.ui },
-      `-=${ZOOM_IN_S * 0.66}`,
+      { autoAlpha: 0, duration: PLATE_DISSOLVE_S, ease: GSAP_EASE.ui },
+      T_EXPAND,
     );
+    // The timeline must still be 2.35s long even though the dissolve is shorter
+    // than E, so that `onComplete` lands on the phase boundary rather than
+    // 0.15s early.
+    tl.to({}, { duration: 0 }, INTRO_TOTAL_S);
 
     return () => {
       tl.kill();
+      // A gate unmounted mid-sequence must not strand the bar off-screen: it is
+      // a sibling this component reached out to, so putting it back is this
+      // component's responsibility.
+      if (nav) gsap.set(nav, { yPercent: 0 });
     };
-  }, [playToken, sequence, reducedMotion, initials, placeMark]);
+  }, [playToken, sequence, reducedMotion, letters]);
 
   return (
     <div
@@ -499,58 +564,34 @@ export function Intro({
       // one section, so nothing can be revealed by a scroll that lands before
       // the lock attaches — and so the navbar, which is also fixed, is covered
       // for the whole sequence rather than floating over it.
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-hero-surface"
+      className="fixed inset-0 z-50 overflow-hidden bg-hero-surface"
       // The whole plate is transient chrome and the name it shows is the <h1>
       // of the page underneath. Announcing it here would read the site's title
       // twice to a screen-reader user, once from content that is about to
       // vanish.
       aria-hidden="true"
     >
+      {/*
+        POSITIONED BY THE CONTRACTION POINT, NOT BY THE BOX.
+
+        `(296, 288)` has to land on dead viewport centre, and it sits at 50% of
+        the mark's width and 90% of its height. So the box is offset by exactly
+        that: `-translate-x-1/2 -translate-y-[90%]`. The mark therefore hangs in
+        the upper-middle of the screen with its baseline running through the
+        centre — which is the intended composition, not an offset to correct
+        (`docs/07` §3.2). The name inherits it for free, because the name is
+        drawn on the same baseline in the same viewBox, which is what makes the
+        merge in §3 step 3 land where the contraction begins.
+
+        The width cap keeps the spectacle from becoming a billboard on an
+        ultrawide.
+      */}
       <div
-        ref={stageRef}
-        className="relative"
-        // The zoom runs on this element for the whole sequence, so it is
-        // promoted once rather than being promoted and demoted mid-timeline.
-        style={{ willChange: "transform" }}
+        ref={markRef}
+        className="absolute left-1/2 top-1/2 w-[min(84vw,420px)] -translate-x-1/2 -translate-y-[90%] md:w-[min(62vw,720px)]"
+        style={{ willChange: "transform, opacity" }}
       >
-        {/* One span per character, space included, so each can be animated and
-            measured independently. `whitespace-pre` keeps the space span from
-            being collapsed away before the FLIP has measured it. */}
-        <div
-          ref={nameRef}
-          className="flex whitespace-pre text-h3 font-medium text-hero-fg/70 sm:text-h2"
-        >
-          {chars.map((ch, i) => (
-            <span
-              key={i}
-              ref={(el) => {
-                charRefs.current[i] = el;
-              }}
-              className="inline-block"
-            >
-              {ch}
-            </span>
-          ))}
-        </div>
-
-        {/*
-          The mark, absolutely positioned INSIDE the stage and laid over the two
-          initials by `placeMark`. Inside rather than beside, so the zoom
-          transforms the mark and the (already invisible) name as one object and
-          there is no second transform to keep in sync.
-
-          `liquid` runs for the whole sequence. It is the expensive layer, and
-          the justification is that it is on screen for under three seconds,
-          exactly once per session, on the one surface where the site is
-          allowed to spend its Tier 1 budget.
-        */}
-        <div ref={markRef} className="absolute" style={{ willChange: "transform, opacity" }}>
-          <MonogramMark
-            variant="intro"
-            liquid
-            className="h-full w-full"
-          />
-        </div>
+        <MonogramMark variant="intro" className="block h-auto w-full" />
       </div>
     </div>
   );
