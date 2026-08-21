@@ -48,27 +48,37 @@ export const NAV_LOCATION = "Islamabad, Pakistan";
  * asks for ABOUT by name. If that call is reversed, change it HERE and the
  * whole bar follows.
  *
- * THE TWO ARE NOT THE SAME KIND OF LINK, and that asymmetry is deliberate
- * rather than unfinished. They were both section ids until `/work` became a
- * real route; now:
+ * BOTH ENTRIES ARE ROUTES. NEITHER IS A SECTION ID ANY MORE, and this header
+ * has been corrected rather than left describing the old shape:
  *
- *   - `Work` is a ROUTE — `/work`, the page holding the full archive plus
- *     Experience and Currently Learning. Verified against
- *     `app/(site)/(chrome)/work/page.tsx`.
- *   - `About` is still an ANCHOR into Home — `/#trajectory`, verified against
- *     `Trajectory.tsx`, which renders `id="trajectory"`. `/about` does not exist
- *     yet, and a nav entry pointing at a route that 404s is worse than a
- *     half-routed bar. It becomes `/about` when that page ships.
+ *   - `Work` is `/work`, the page holding the full archive plus Experience and
+ *     Currently Learning. Verified against `app/(site)/(chrome)/work/page.tsx`.
+ *   - `About` is `/about`, the single quiet screen. Verified against
+ *     `app/(site)/(chrome)/about/page.tsx`.
  *
- * BOTH ARE WRITTEN AS FULL HREFS, INCLUDING THE LEADING `/`, so the About entry
- * works from `/work` too — a bare `#trajectory` would look for that id on
- * whatever page the visitor is on and silently do nothing. `Navbar.tsx` and
- * `NavMobileMenu.tsx` render them as real links; the bar intercepts the click
- * only when the target is a hash on the page already showing, so that the
- * smooth-scroll offset that keeps the heading out from under the bar survives.
+ * THE ASYMMETRY THIS PARAGRAPH USED TO DESCRIBE IS GONE, and the record is kept
+ * because it explains a mechanism that is still in the code. Until Phase 4,
+ * `About` was an ANCHOR into Home — `/#trajectory`, pointing at the id
+ * `Trajectory.tsx` renders — because `/about` did not exist and a nav entry
+ * aimed at a route that 404s is worse than a half-routed bar. That page now
+ * ships, so the anchor is retired. `Trajectory.tsx` keeps `id="trajectory"`;
+ * nothing in the chrome links to it.
+ *
+ * `Navbar.tsx` AND `NavMobileMenu.tsx` STILL CARRY THE IN-PAGE HASH PATH, and
+ * it is now unreachable from this file rather than dead. `inPageTarget()`
+ * intercepts a click only when the href is a hash on the page already showing,
+ * so that the smooth-scroll offset keeping a heading out from under the bar
+ * survives. No entry below matches it today. It is kept because the condition
+ * is one line, it fails closed, and the next anchor added here would need it
+ * back — deleting it would be a silent regression discovered by a broken jump.
+ *
+ * BOTH ARE STILL WRITTEN AS FULL HREFS, INCLUDING THE LEADING `/`. That was
+ * originally what let the About anchor work from `/work`; with two routes it is
+ * simply what `next/link` wants, and a relative form would resolve against
+ * whatever segment the visitor is on.
  */
 export const NAV_ITEMS = [
-  { label: "About", href: "/#trajectory" },
+  { label: "About", href: "/about" },
   { label: "Work", href: "/work" },
 ] as const;
 

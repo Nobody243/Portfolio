@@ -410,7 +410,16 @@ body {
    1. THE SCROLL LOCK, `html[data-overlay-open]`.
 
    `ProjectOverlay` sets the attribute on <html> before it calls showModal(),
-   and removes it on close. `overflow: clip` on <html> is what ACTUALLY stops
+   and removes it on close.
+
+   IT HAS TWO CONSUMERS AS OF PHASE 4, and the second is noted here so the name
+   is not read as belonging to one component: `components/about/CvAction.tsx`
+   uses the identical attribute and the identical measure-then-set order for the
+   CV modal on /about. That page does not scroll, so the lock is mostly belt and
+   braces there — but the modal's own PDF iframe DOES scroll, and without it a
+   trackpad gesture past the end of the document scrolls the page behind. This
+   is a DOCUMENT-LEVEL lock, so it is deliberately one mechanism rather than one
+   per modal; two modals are never open at once on this site. `overflow: clip` on <html> is what ACTUALLY stops
    the page behind the overlay from scrolling — three separate reasons, each of
    which alone would be enough:
      - LenisProvider ships `syncTouch: false`, so touch scrolling is NATIVE and

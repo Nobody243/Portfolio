@@ -6,6 +6,15 @@
  * cursor and permanently torn open behind the subject — and the command sphere
  * that floats in front of it.
  *
+ * IT IS NO LONGER HERO-ONLY, and the file stays here anyway. `/about` renders
+ * the same mesh at `QUIET_FIELD` density with `sphere={false}`, which is the
+ * single-artifact rule `docs/07_SITE_RESTRUCTURE.md` applies to the MS mark
+ * read across to the background: one canvas, two dressings, never a second
+ * hand-matched implementation. Moving it to `components/ui/` was considered and
+ * refused — the sphere half is genuinely hero content (`lib/hero/commandSphere`,
+ * `heroContent`), and a move would be a rename touching every import for no
+ * behavioural gain.
+ *
  * ONE CANVAS, SO "IN FRONT" IS DRAW ORDER RATHER THAN z-index. The sphere is
  * painted after the mesh's node pass, in the same frame, from state the same
  * closure owns. A second stacked canvas would make the compositing depend on
@@ -94,46 +103,94 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 ------------------------------------------------------------------------- */
 
 /**
- * One node per this many square pixels.
+ * THE FOUR NUMBERS A CALLER MAY RETUNE, AND ONLY THESE FOUR.
  *
- * THE DENSE END OF THE BRIEF'S 9,000-14,000 BAND, and that is a correction
- * rather than a preference. 11,000 was tried first and the field did not read
- * as the "loose triangulated mesh" the brief describes — it read as scattered
- * dots with the occasional link. The arithmetic says why: at 11,000 the mean
- * nearest-neighbour distance on a 1440x820 hero is ~105px, which was exactly
- * `LINK_RADIUS`, so the average node sat right on the threshold and most pairs
- * failed it. At 9,000 the spacing drops to ~95px against a 120px radius and
- * each node finds two to four neighbours, which is what makes triangles.
+ * Everything else in this file is fixed for every instance: `LINK_RADIUS`,
+ * `VOID_RADIUS`, `LERP`, `DRIFT_CLAMP` and the node radii are what make the
+ * field read as *this* field, and a caller that changed them would be building
+ * a second effect rather than dimming this one.
  *
- * DENSER AGAIN on request. 9,000 gave 131 nodes on a 1440x820 hero, which
- * triangulated but still read as sparse. 5,200 gives ~227 there — a properly
- * woven field rather than a scattering with links.
- *
- * The link pass is O(n²), so this is the number that had to be re-measured
- * rather than assumed: see the fps figure in the commit. The cheap
- * axis-aligned reject before the sqrt is what keeps it affordable at this
- * count, and it is not optional any more.
+ * ONE OBJECT, NOT FOUR LOOSE PROPS. The four move together — density and alpha
+ * are a single perceptual decision, and a call site that passed three of them
+ * would be an unnoticed half-tuning. Presets below; nobody constructs one of
+ * these inline.
  */
-const AREA_PER_NODE = 5_200;
+export type ParticleFieldTuning = {
+  /**
+   * One node per this many square pixels.
+   *
+   * THE DENSE END OF THE BRIEF'S 9,000-14,000 BAND, and that is a correction
+   * rather than a preference. 11,000 was tried first and the field did not read
+   * as the "loose triangulated mesh" the brief describes — it read as scattered
+   * dots with the occasional link. The arithmetic says why: at 11,000 the mean
+   * nearest-neighbour distance on a 1440x820 hero is ~105px, which was exactly
+   * `LINK_RADIUS`, so the average node sat right on the threshold and most
+   * pairs failed it. At 9,000 the spacing drops to ~95px against a 120px radius
+   * and each node finds two to four neighbours, which is what makes triangles.
+   *
+   * DENSER AGAIN on request. 9,000 gave 131 nodes on a 1440x820 hero, which
+   * triangulated but still read as sparse. 5,200 gives ~227 there — a properly
+   * woven field rather than a scattering with links.
+   *
+   * The link pass is O(n²), so this is the number that had to be re-measured
+   * rather than assumed: see the fps figure in the commit. The cheap
+   * axis-aligned reject before the sqrt is what keeps it affordable at this
+   * count, and it is not optional any more.
+   */
+  areaPerNode: number;
+  /**
+   * Hard ceiling, independent of viewport, so an ultrawide monitor cannot walk
+   * the O(n²) link pass into six figures of distance checks a frame. Raised
+   * with the density; still a real cap.
+   */
+  maxNodes: number;
+  /** Node alpha. Slightly above the links so the dots read as the structure. */
+  nodeAlpha: number;
+  /** Peak link alpha, at zero separation. Brief: 12-18%. */
+  linkPeakAlpha: number;
+};
+
+/** The hero's field, and the default: unchanged from before this file took a
+ *  prop at all. Every number is the one the hero was tuned to. */
+export const HERO_FIELD: ParticleFieldTuning = {
+  areaPerNode: 5_200,
+  maxNodes: 300,
+  nodeAlpha: 0.5,
+  linkPeakAlpha: 0.16,
+};
 
 /**
- * Hard ceiling, independent of viewport, so an ultrawide monitor cannot walk
- * the O(n²) link pass into six figures of distance checks a frame. Raised with
- * the density; still a real cap.
+ * The About page's field — the same mesh, thinner.
+ *
+ * WHY NOT `opacity` ON THE CANVAS, which is the one-line version of this. The
+ * canvas composites over `bg-base`, which flips between themes. A blanket
+ * `opacity: 0.5` scales links and nodes by the SAME factor and leaves the
+ * field's STRUCTURE at full strength — and the structure, ~227 nodes woven
+ * into triangles, is what actually reads as busy behind a paragraph. Dropping
+ * the count and the alphas independently thins the mesh instead of veiling it.
+ *
+ * Values from `.claude/handoff/about-design.md` §5: ~39% fewer nodes, a 160
+ * cap so a large viewport cannot walk it back up, and roughly 55% of the
+ * hero's ink on both passes.
+ *
+ * CURSOR DISPLACEMENT IS NOT DIMMED and must not be — it is the field's one
+ * interaction, and About is meant to be quiet, not dead.
  */
-const MAX_NODES = 300;
+export const QUIET_FIELD: ParticleFieldTuning = {
+  areaPerNode: 8_500,
+  maxNodes: 160,
+  nodeAlpha: 0.28,
+  linkPeakAlpha: 0.09,
+};
+
 const MIN_NODES = 24;
 
 /** Radius of the torn void, CSS px. Mid-point of the brief's 130-160. */
 const VOID_RADIUS = 145;
 /** Nodes closer than this to each other get a link drawn. Brief: 90-120, and
- *  the top of it for the reason given on AREA_PER_NODE — this value and that
+ *  the top of it for the reason given on `areaPerNode` — this value and that
  *  one set the mesh's connectivity together and must be retuned together. */
 const LINK_RADIUS = 120;
-/** Peak link alpha, at zero separation. Brief: 12-18%. */
-const LINK_PEAK_ALPHA = 0.16;
-/** Node alpha. Slightly above the links so the dots read as the structure. */
-const NODE_ALPHA = 0.5;
 
 /** How fast a node eases toward its target offset. Brief: ~0.12. */
 const LERP = 0.12;
@@ -390,13 +447,46 @@ type Node = {
   radius: number;
 };
 
+type ParticleGridProps = {
+  /**
+   * Density and ink. One of the two module presets — `HERO_FIELD` (the
+   * default) or `QUIET_FIELD`. Both are module constants, which is what keeps
+   * this out of the effect's dependency churn: the identity is stable for the
+   * life of the process, so naming it in the deps array below re-runs nothing.
+   * DO NOT construct one inline at a call site; that would rebuild the whole
+   * field on every render.
+   */
+  field?: ParticleFieldTuning;
+  /**
+   * Whether the command sphere is drawn. `docs/07_SITE_RESTRUCTURE.md` §6 makes
+   * the sphere HOME-ONLY, so About passes `false`.
+   *
+   * A SEPARATE PROP FROM `field`, ON PURPOSE. The sphere is a second effect
+   * sharing this canvas's tick — `lib/hero/commandSphere.ts` owns all of its
+   * geometry and this file owns only its draw pass. Folding a boolean into an
+   * object named for density and alpha would be the naming lie this project has
+   * had to correct several times: "is the sphere here" is not an intensity.
+   */
+  sphere?: boolean;
+};
+
 /**
- * NO PROPS, DELIBERATELY. This component used to take the wordmark's measured
- * box so it could place the permanent void under it. The subject is now drawn
- * by this canvas, so the number never leaves this closure and there is nothing
- * for a parent to forward. See the header's "STILL MEASURED, NOT AGREED".
+ * IT TAKES PROPS AGAIN, AND THEY ARE NOT THE OLD ONES. This component used to
+ * take the wordmark's measured box so it could place the permanent void under
+ * it; the subject is drawn by this canvas now, so that plumbing is gone for
+ * good and must not come back (see the header's "STILL MEASURED, NOT AGREED").
+ * What it takes instead is a per-page dressing — how thick the field is, and
+ * whether the sphere rides on it — because the About page renders the same
+ * canvas quieter. Neither prop is measured from the DOM and neither changes
+ * after mount.
+ *
+ * BOTH DEFAULT TO THE HERO'S BEHAVIOUR, so Home's call site stays a bare
+ * `<ParticleGrid />` and this change is invisible there.
  */
-export function ParticleGrid() {
+export function ParticleGrid({
+  field = HERO_FIELD,
+  sphere: withSphere = true,
+}: ParticleGridProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reducedMotion = useReducedMotion();
 
@@ -489,7 +579,7 @@ export function ParticleGrid() {
 
       const count = Math.max(
         MIN_NODES,
-        Math.min(MAX_NODES, Math.round((width * height) / AREA_PER_NODE)),
+        Math.min(field.maxNodes, Math.round((width * height) / field.areaPerNode)),
       );
 
       nodes = Array.from({ length: count }, () => {
@@ -518,19 +608,30 @@ export function ParticleGrid() {
       // rotation state, so dragging a window edge does not snap the sphere back
       // to its rest orientation on every debounced rebuild.
       compact = width < INTERACTIVE_MIN_WIDTH;
-      const fragments = compact ? SPHERE_COUNT_COMPACT : SPHERE_COUNT;
-      if (!sphere || sphere.fragments.length !== fragments) {
-        sphere = createCommandSphere(
-          HERO_COMMAND_FRAGMENTS,
-          fragments,
-          HERO_COMMAND_FEATURED,
-        );
+      // NOT BUILT AT ALL WHEN THE PAGE DOES NOT WANT IT, rather than built and
+      // skipped at draw time. `sphere` stays null, so the void anchor it feeds
+      // the mesh is null too and About's field has no permanent tear in it —
+      // which is the point: there is no subject there to tear a hole behind.
+      // The 90 fragments, the per-frame sort and the 90 `fillText` calls all go
+      // with it.
+      if (!withSphere) {
+        sphere = null;
+      } else {
+        const fragments = compact ? SPHERE_COUNT_COMPACT : SPHERE_COUNT;
+        if (!sphere || sphere.fragments.length !== fragments) {
+          sphere = createCommandSphere(
+            HERO_COMMAND_FRAGMENTS,
+            fragments,
+            HERO_COMMAND_FEATURED,
+          );
+        }
+        // Fed the canvas's OWN untransformed CSS size, never a rect measured
+        // off anything inside the hero's stage wrapper. That wrapper carries a
+        // live GSAP transform for the arrival's 1.6s, and a rect read through
+        // it would be in a different coordinate space than everything drawn
+        // here.
+        placeCommandSphere(sphere, width, height, compact);
       }
-      // Fed the canvas's OWN untransformed CSS size, never a rect measured off
-      // anything inside the hero's stage wrapper. That wrapper carries a live
-      // GSAP transform for the arrival's 1.6s, and a rect read through it would
-      // be in a different coordinate space than everything drawn here.
-      placeCommandSphere(sphere, width, height, compact);
     };
 
     /**
@@ -669,7 +770,7 @@ export function ParticleGrid() {
           const dist = Math.hypot(dx, dy);
           if (dist >= LINK_RADIUS) continue;
           ctx.strokeStyle = `rgba(${accent}, ${
-            (1 - dist / LINK_RADIUS) * LINK_PEAK_ALPHA
+            (1 - dist / LINK_RADIUS) * field.linkPeakAlpha
           })`;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
@@ -679,7 +780,7 @@ export function ParticleGrid() {
       }
 
       /* --- nodes -------------------------------------------------------- */
-      ctx.fillStyle = `rgba(${accent}, ${NODE_ALPHA})`;
+      ctx.fillStyle = `rgba(${accent}, ${field.nodeAlpha})`;
       for (const node of nodes) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
@@ -763,7 +864,10 @@ export function ParticleGrid() {
       container.removeEventListener("pointerleave", onPointerLeave);
       window.removeEventListener("resize", onResize);
     };
-  }, [reducedMotion]);
+    // `field` and `withSphere` are module constants at every call site, so
+    // naming them here re-runs nothing — it just stops the two from silently
+    // going stale if a future caller ever does swap presets.
+  }, [reducedMotion, field, withSphere]);
 
   return (
     // `pointer-events-none` is load-bearing: the pointer listener is on the
