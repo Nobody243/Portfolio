@@ -6,8 +6,8 @@
  * two ends cannot drift apart.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THE MARK IS FACETED, FILLED SHAPES — eight quadrilaterals, three for the M
- * and five for the S, every edge orthogonal or a true 45°. It replaces a
+ * THE MARK IS FACETED, FILLED SHAPES — six polygons: ONE for the M and five
+ * for the S, every edge orthogonal or a true 45°. It replaces a
  * circuit-trace mark built from thin strokes and node dots, and the replacement
  * is structural rather than stylistic. `.claude/handoff/ms-mark-faceted-design.md`
  * carries the full argument; the operative half of it is this:
@@ -77,14 +77,28 @@ export const BASELINE = VB_H - INSET;
    |-----------------|-------|---------------|
    | Cap height      | 256   | 13.60px       |
    | Bar thickness   |  56   |  2.98px       |
-   | M bar gap       |  40   |  2.12px       |
+   | S bar gap       |  44   |  2.34px       |  <- tightest air in the mark
    | M → S gap       |  64   |  3.40px       |
+   | M vee mouth     | 112   |  5.95px       |
    | 45° chamfer     |  56   |  2.98px       |
 ------------------------------------------------------------------------- */
 /** Bar and stem thickness — the mark's one ink weight. */
 export const BAR = 56;
-/** Clear air between the M's three bars. The tightest gap in the mark, and
- *  therefore the number `MIN_HEIGHT_PX` is derived from. */
+/**
+ * RETIRED, AND DELIBERATELY NOT DELETED YET.
+ *
+ * This was the clear air between the M's three bars, back when the M WAS three
+ * bars, and `MIN_HEIGHT_PX` was derived from it as the tightest gap in the
+ * mark. The M is now a single polygon with a vee, so it has no bar gaps at all
+ * and this number measures nothing.
+ *
+ * The tightest air in the mark is now the S's 44-unit gap between its
+ * horizontal bars — 2.34px at nav. See `MIN_HEIGHT_PX`, which is re-derived
+ * from it.
+ *
+ * Nothing imports this. It is left for one commit so the rename is legible in
+ * review; delete it on the next pass through this file.
+ */
 export const M_BAR_GAP = 40;
 /** Clear air between the M and the S. Wider than the M's internal gaps, which
  *  is what keeps the pair reading as two letters rather than five bars. */
@@ -98,8 +112,8 @@ export const LETTER_GAP = 64;
  * Two things follow from it that are easy to miss:
  *
  *   1. WHY NOT THE BOX CENTRE. Collapsing toward y = 160 makes the mark cross
- *      itself — the M's bars travel in opposite vertical directions and pass
- *      through each other for roughly 150ms. That is a scribble arriving at
+ *      itself — the M's stems and the vee between them travel in opposite
+ *      vertical directions and pass through each other for roughly 150ms. That is a scribble arriving at
  *      exactly the beat the spec wants to read as deliberate. On the baseline
  *      every shape travels monotonically down-and-inward or straight along it;
  *      nothing crosses anything.
@@ -121,11 +135,20 @@ export type MarkLetter = "m" | "s";
 /* -------------------------------------------------------------------------
    THE SHAPES.
 
-   M — three separate quadrilaterals. THE ANGLED TOPS ARE WHAT MAKE IT AN M
-   rather than three lines, and they are the only non-orthogonal edges in the
-   letter. Read the three top edges left to right: 32 → 88, then 144, then
-   88 → 32. High, falling; low; rising, high. That is the M silhouette, carried
-   entirely by the two cuts, and both are true 45° (56 across, 56 down).
+   M — ONE polygon: two stems joined by a vee. THE VEE IS WHAT MAKES IT AN M.
+   Its mouth is 112 units across at the top and it descends 184 units, which is
+   5.95px and 9.78px at nav.
+
+   IT WAS THREE BARS FOR ONE COMMIT AND THAT FAILED, so the reason is recorded
+   rather than left to be rediscovered. The first faceted M was three separate
+   quadrilaterals with 45° cuts on their tops, on the theory that the cuts alone
+   would carry the letter. Rendered at the real 17px and magnified from THAT
+   raster, it read as three vertical strokes: a 56-unit cut is 2.98px at nav,
+   and a diagonal that small with nothing on the far side of it is not a
+   diagonal to the eye, it is a slightly soft corner.
+
+   The stems are shared with H, N and U. What makes the letter is the vee
+   between them, and a cut has to MEET something to read as a stroke.
 
    S — five quadrilaterals: three horizontal bars at y 32–88, 132–188 and
    232–288, with the two 44-unit gaps between them bridged on ALTERNATING sides
@@ -141,27 +164,41 @@ export type MarkLetter = "m" | "s";
 type Point = readonly [number, number];
 
 const POLYGONS: Readonly<Record<MarkLetter, readonly (readonly Point[])[]>> = {
+  // ONE POLYGON, NOT THREE BARS — and the reason is a measured failure, not a
+  // preference.
+  //
+  // The first faceted M was three separate bars with 45° cuts on their tops,
+  // on the theory that the cuts alone would carry the letter. Rendered at the
+  // real 17px and blown up from that raster, it read as THREE VERTICAL
+  // STROKES. The cuts are 56 units = 2.98px at nav; a diagonal that small,
+  // with nothing on the other side of it, is not a diagonal to the eye, it is
+  // a slightly soft corner.
+  //
+  // AN M IS THE V, NOT THE BARS. The stems are shared with H, N and U; what
+  // makes the letter is the vee descending between them. Three bars cannot
+  // produce one however their tops are cut, because the cut has to MEET
+  // something to read as a stroke. Joining them into a single outline gives
+  // the vee a depth of 184 units = 9.78px at nav — sixty times the area of the
+  // chamfers it replaces, and the same argument that made filled shapes beat
+  // strokes in the first place: at this scale only large features survive.
+  //
+  // Wound clockwise from the bottom-left. Stem width, overall width and the
+  // baseline are unchanged, so nothing downstream re-derives.
   m: [
-    // bar 1 — top cut DOWN to the right
     [
-      [32, 32],
-      [88, 88],
-      [88, 288],
-      [32, 288],
-    ],
-    // bar 2 — flat top, shortest: the M's valley
-    [
-      [128, 144],
-      [184, 144],
-      [184, 288],
-      [128, 288],
-    ],
-    // bar 3 — top cut UP to the right
-    [
-      [224, 88],
-      [280, 32],
-      [280, 288],
-      [224, 288],
+      [32, 288], // bottom-left
+      [32, 32], // up the left edge
+      [100, 32], // flat top-left
+      [156, 152], // vee, left arm outer
+      [212, 32], // vee, right arm outer
+      [280, 32], // flat top-right
+      [280, 288], // down the right edge
+      [224, 288], // bottom, right stem inner
+      [224, 120], // up the right stem inner edge
+      [180, 216], // vee, right arm inner
+      [132, 216], // vee floor
+      [88, 120], // vee, left arm inner
+      [88, 288], // down the left stem inner edge
     ],
   ],
   s: [
@@ -233,13 +270,17 @@ export const LETTER_LEFT: Readonly<Record<MarkLetter, number>> = {
  * `docs/07` §2.1 promotes it because it binds the navbar, About, the
  * reveal-footer stamp and any future favicon or OG use.
  *
- * THE DERIVATION IS NEW, THE NUMBER IS NOT. The old floor came from node-dot
- * clearance across the 112-unit letter gap; there are no dots any more and the
- * gap is 64. What binds now is the M's 40-UNIT BAR GAP — the tightest clear air
- * anywhere in the mark. Keeping ~2px of it needs 40 / 2 = 20 units per pixel,
- * i.e. **16.0px of rendered height**; below that the three bars start to fuse
- * and the M reads as a block. 17px gives 2.12px of air and 6% of margin for
- * antialiasing, so the shipped floor stays where it was.
+ * THE DERIVATION HAS MOVED TWICE, THE NUMBER HAS NOT. The trace mark derived it
+ * from node-dot clearance across the 112-unit letter gap; there are no dots any
+ * more. The three-bar faceted M derived it from that M's 40-unit bar gap; the M
+ * is one polygon now and has no bar gaps.
+ *
+ * WHAT BINDS TODAY IS THE S'S 44-UNIT GAP between its three horizontal bars —
+ * the tightest clear air anywhere in the mark, the M's vee mouth being 112 and
+ * the letter gap 64. Keeping ~2px of it needs 44 / 2 = 22 units per pixel, i.e.
+ * an arithmetic floor of **14.5px**; below that the S's bars start to fuse and
+ * it silts up into a block. 17px gives 2.34px of air and ~17% of margin for
+ * antialiasing, so the shipped floor stays where it has always been.
  *
  * INK IS NO LONGER THE BINDING CONSTRAINT and that is the point of the rebuild:
  * at 17px the bars are 2.98px wide, well clear of the ~1.25px floor at which a

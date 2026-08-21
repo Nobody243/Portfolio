@@ -95,7 +95,7 @@ applied after the shape has settled.
 
 **THE NUMBER IS UNCHANGED; ITS DERIVATION IS NOT.** The old floor came from node-dot clearance across
 the 112-unit letter gap — 16.4px to keep ~3px of clear air between the two facing dots. There are no
-dots any more and the letter gap is 64 units. **What binds now is the M's 40-unit bar gap**, the
+dots any more and the letter gap is 64 units. **What binds now is the M's S's 44-unit bar gap**, the
 tightest clear air anywhere in the mark: keeping ~2px of it needs `40 / 2 = 20` units per pixel, i.e.
 **16.0px of rendered height**. Below that the three bars start to fuse and the M reads as a block.
 17px gives 2.12px of air — about 6% of margin for antialiasing — so the shipped floor stays where it
