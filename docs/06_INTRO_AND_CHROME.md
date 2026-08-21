@@ -157,34 +157,54 @@ It is **not** in `app/(site)/layout.tsx`, which would have put it on the five
 
 ## 5. Where the theme toggle lives now
 
-**The navbar spec removes the theme toggle from the desktop chrome by name.**
-This is recorded here rather than in a comment because it changes behaviour on
-the site's most-visited surface, and because it must not be "fixed" later by
-someone who reads it as an oversight.
+**REVISED 2026-08-21 (Phase 0), per `docs/07_SITE_RESTRUCTURE.md` §1: the toggle
+is back in the desktop bar.** The original version of this section recorded the
+opposite — that the navbar spec removed it from the desktop chrome by name — and
+that call is reversed, not softened. It is recorded here rather than in a comment
+because it changes behaviour on the site's most-visited surface, and because it
+must not be "fixed" later by someone who reads either state as an oversight.
 
 | Surface | Toggle? |
 |---|---|
-| Homepage, desktop (`≥768px`) | **no** |
-| Homepage, mobile (`<768px`) | yes — inside the menu |
+| Homepage, desktop (`≥768px`) | **yes — in the navbar**, first item of the right cluster, `hidden md:block` |
+| Homepage, mobile (`<768px`) | yes — inside the menu (`NavMobileMenu`) |
+| `/about` (Phase 4) | yes — the same navbar, same two instances |
+| `/work` (Phase 2) | yes — the same navbar, same two instances |
 | `/projects/<slug>` (Tier 3) | yes — `ProjectDetailFrame` |
 | `/404`, error page | yes |
 
-**The cost, stated plainly:** a desktop visitor on the homepage cannot switch
-themes without either opening a project or narrowing the window. The hero used
-to carry the site's single instance, anchored to the top-right inset of the
-shared container — which is the exact rectangle the fixed navbar now occupies.
-The two cannot both have it, and the spec's call was the navbar.
+**Exactly one is ever visible.** Two instances exist in the markup on any page
+that renders `<Navbar />`, and they are mutually exclusive by construction: the
+bar's is `hidden md:block`, and the menu holding the other is only reachable
+through a button that is `md:hidden`. Nothing enforces that pairing, so both
+gates have to be re-checked together — verify at 375 / 639 / 768 / 1440 / 2560.
 
-`ThemeToggle`'s own header explains why it cannot simply become fixed chrome: it
-would cross three surface contexts on `/` and would need a plate of its own,
-which would make the pinned hero plate appear three times when `Contact.tsx`
-records that appearing *exactly twice*, at the two spectacle beats, is what makes
-it read as a system.
+**What reversed it.** The cost this section used to state plainly turned out to
+be the whole argument: a desktop visitor on the homepage could not switch themes
+without either opening a project or narrowing the window. The hero had carried
+the site's single instance, anchored to the top-right inset of the shared
+container — the exact rectangle the fixed navbar now occupies — and once the bar
+took that rectangle without taking the control, the homepage simply had no
+toggle at desktop widths.
 
-**If this proves annoying in practice**, the cheapest fix that respects the spec
-is to add an instance to the Contact/close section — a Tier 1 echo on its own
-dark plate, at the bottom of the page, where a settings-style control is
-conventional. That is a content decision, not a bug fix.
+**How it avoids the objection in `ThemeToggle`'s header**, which still stands on
+its own terms: a fixed control crossing three surface contexts on `/` would need
+a plate of its own, and that plate would make the pinned hero surface appear
+three times when `Contact.tsx` records that appearing *exactly twice*, at the two
+spectacle beats, is what makes it read as a system. The bar needs no plate. It
+already owns an escalating palette (`--nav-fg`, `--nav-fg-dim`, `--nav-accent`;
+§6, Step 1) that is measured against every ground it crosses, and the toggle
+joins it via a third constant, `THEME_TOGGLE_IN_NAV`. Neither
+`THEME_TOGGLE_ON_BASE` nor `THEME_TOGGLE_ON_HERO` would do — the bar is over
+both surfaces during one scroll, so either would be wrong on one of them
+throughout.
+
+**Clicking it over the hero produces the same dark plate, and that is correct.**
+`app/globals.css` pins `--color-hero-surface`, `--color-hero-fg` and
+`--color-hero-accent` out of the theme deliberately — the hero is a dark context
+in both themes, and the file says outright not to "complete the set" by adding
+light values. `docs/07` §9.4 records the verification. This is not a half-built
+light mode and must not be filed as one.
 
 ---
 
@@ -269,11 +289,12 @@ the reversal point is named.
    the same scannability argument that put `Contact` beside `Trajectory` /
    `Stack` / `Work`. The spec asks for ABOUT by name. Reverse it in
    `components/ui/navContent.ts` and the whole bar follows.
-5. **No skip link.** The bar puts five focusable controls ahead of the page
-   content for keyboard users. Verified tab order is About → Back to top → Work
-   → email → LinkedIn → the hero's scroll cue, which is short and coherent, so
-   this is a judgement call rather than a violation. Worth adding if the chrome
-   grows.
+5. **No skip link.** The bar puts six focusable controls ahead of the page
+   content for keyboard users (five until Phase 0 returned the theme toggle).
+   Verified tab order is About → Back to top → Work → **theme toggle** → email
+   → LinkedIn → the hero's scroll cue, which is still short and coherent, so
+   this remains a judgement call rather than a violation. Worth adding if the
+   chrome grows again.
 6. **Repeat-visit plate.** On a same-session revisit the gate's opaque plate
    ships in the server HTML and is removed at hydration, so the hero is covered
    for a few hundred milliseconds. Pre-existing (the old `HeroLoader` had the

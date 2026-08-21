@@ -59,9 +59,18 @@
  *      where the transparency actually reads as design rather than as a bug.
  * ─────────────────────────────────────────────────────────────────────────
  *
- * NO THEME TOGGLE. Removed from the desktop bar on purpose, per the spec, and
- * it is NOT an omission to be fixed later — see `docs/06_INTRO_AND_CHROME.md`
- * §5 for where it lives now and what that costs.
+ * THE THEME TOGGLE IS IN THE BAR AT `md` AND UP; THE MOBILE MENU CARRIES IT
+ * BELOW. It was removed from the desktop bar once, and
+ * `docs/07_SITE_RESTRUCTURE.md` §1 reverses that: with the toggle only in the
+ * mobile menu, a desktop visitor on the homepage could not switch themes at
+ * all. It is the first child of the right cluster, before the email, so
+ * LinkedIn keeps the hard-right anchor.
+ *
+ * IT CARRIES ITS OWN `hidden md:block`, and that is load-bearing rather than
+ * stylistic — the right cluster has NO `md:` gate, each child gates itself.
+ * `NavMobileMenu` already renders an instance, so a toggle dropped in here
+ * without its own gate ships TWO controls doing the same job below `md`, and
+ * neither errors. See `docs/06_INTRO_AND_CHROME.md` §5.
  *
  * `pointer-events-none` ON THE HEADER, `pointer-events-auto` ON THE CLUSTERS.
  * The bar spans the full viewport width and sits over the hero, whose glass
@@ -88,6 +97,10 @@ import {
   NAV_LOCATION,
   NAV_MENU_OPEN_LABEL,
 } from "@/components/ui/navContent";
+import {
+  THEME_TOGGLE_IN_NAV,
+  ThemeToggle,
+} from "@/components/ui/ThemeToggle";
 import { HERO_SECTION_ID } from "@/components/hero/heroContent";
 import { ScrollTrigger } from "@/lib/animation/gsap";
 import { useSectionScroll } from "@/lib/hooks/useSectionScroll";
@@ -359,6 +372,26 @@ export function Navbar() {
               RIGHT — the address, then LinkedIn.
           --------------------------------------------------------------- */}
           <div className="ml-auto flex items-center gap-md">
+            {/*
+              FIRST IN THE CLUSTER, so email and LinkedIn keep the hard-right
+              anchor `ml-auto` gives them and the toggle sits just inside.
+
+              `hidden md:block` IS REQUIRED AND IS ITS OWN GATE. This container
+              has none — every child here gates itself (`CopyEmailButton` and
+              the LinkedIn anchor `hidden md:block`, the menu button
+              `md:hidden`). `NavMobileMenu` renders the sub-`md` instance, so
+              dropping this in ungated would put two toggles on a 375px screen
+              with nothing to catch it. Verified at 375 / 639 / 768 / 1440 /
+              2560: exactly one visible at each.
+
+              `THEME_TOGGLE_IN_NAV`, not `_ON_BASE` or `_ON_HERO`. The bar is
+              fixed and crosses both grounds, so either of those is wrong on
+              one of them for the whole scroll; the nav constant rides
+              `--nav-fg` / `--nav-accent` and swaps with the bar. Its own
+              comment carries the reasoning.
+            */}
+            <ThemeToggle className={`${THEME_TOGGLE_IN_NAV} pointer-events-auto hidden md:block`} />
+
             {/* Both entries may be absent — `navContent.ts` reads them out of
                 the real contact data, and the rule there is that an absent link
                 is an absent entry rather than a dead one. */}
@@ -389,9 +422,11 @@ export function Navbar() {
               </a>
             ) : null}
 
-            {/* The mobile entry point. Everything the bar cannot fit lives
-                behind it — including the theme toggle, which the spec puts in
-                the mobile navigation and nowhere else in the chrome. */}
+            {/* The mobile entry point. Everything the bar cannot fit at 375px
+                lives behind it — the centre nav, the email, LinkedIn, the
+                location line, and a SECOND copy of the theme toggle above.
+                The two toggles never coexist on screen: this bar's is
+                `hidden md:block` and the menu is only reachable below `md`. */}
             <button
               type="button"
               onClick={() => setMenuOpen(true)}

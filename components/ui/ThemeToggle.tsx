@@ -3,19 +3,26 @@
 /**
  * The theme toggle — Ticket 11. SEMANTICS ONLY; the caller owns the colour.
  *
- * ONE INSTANCE PER ROUTE, IN FLOW, AT THE TOP.
+ * ONE INSTANCE VISIBLE PER ROUTE PER BREAKPOINT. On `/` that is the navbar's
+ * instance at `md` and up and `NavMobileMenu`'s below it — two in the markup,
+ * never two on screen, because each carries its own gate. Everywhere else it is
+ * one instance, in flow, at the top.
  *
- * THE "THERE IS NO NAV ON THIS SITE" PREMISE BELOW IS NO LONGER TRUE, and the
- * paragraph is kept rather than rewritten because its ARGUMENT still holds and
- * still constrains where this control may go. `/` now carries a fixed,
- * transparent navbar (`components/ui/Navbar.tsx`) — and that navbar
- * deliberately does NOT contain this toggle, for exactly the reason spelled out
- * two sentences down: a fixed control that crosses three surface contexts needs
- * a plate of its own, and the plate is what cannot be afforded. What changed is
- * that the hero no longer hosts an instance either, because the navbar now
- * occupies that rectangle. See `docs/06_INTRO_AND_CHROME.md` §5.
+ * THE TOGGLE IS IN THE NAVBAR AS OF `docs/07_SITE_RESTRUCTURE.md` §1, reversing
+ * the earlier "mobile-menu only" call. The gap that reversed it was concrete: a
+ * desktop visitor on the homepage had no way to switch themes at all. Two
+ * paragraphs of the original reasoning survive that reversal, and one does not:
  *
- * The original reasoning, still load-bearing:
+ * WHAT SURVIVES — a fixed control that crosses several surface contexts cannot
+ * carry ITS OWN PLATE, for the reasons below. WHAT CHANGED — the navbar solves
+ * that without a plate, because it already owns an escalating palette
+ * (`--nav-fg` / `--nav-fg-dim` / `--nav-accent` in `globals.css`) that reads
+ * correctly on every ground the bar crosses. The toggle joins that palette
+ * rather than inventing a surface. See `THEME_TOGGLE_IN_NAV` below and
+ * `docs/06_INTRO_AND_CHROME.md` §5.
+ *
+ * The original reasoning, still load-bearing for any FUTURE fixed instance
+ * outside the bar:
  * Fixed/floating chrome was rejected on a concrete ground rather than on taste:
  * a fixed control crosses three surface contexts on `/` (`bg-hero-surface`,
  * `bg-base`, `bg-hero-surface` again), so it would need a plate of its own —
@@ -35,8 +42,13 @@
  *
  * ZERO MOTION, and that is the tier-discipline answer, not an omission. No
  * entrance animation, no `Reveal` (never used in the hero anyway), no hover
- * transform, no transition. It is chrome, not content, and it must be operable
- * the instant it is on screen. The THEME CHANGE ITSELF also does not animate:
+ * transform, no layout or transform transition. It is chrome, not content, and
+ * it must be operable the instant it is on screen. (`THEME_TOGGLE_IN_NAV` adds
+ * `transition-colors duration-300` — a COLOUR transition only, and not this
+ * control's: it is what makes the bar's palette cross-fade instead of jumping
+ * as the bar leaves the hero, and every other item in that row carries it. It
+ * moves nothing and delays no interaction.) The THEME CHANGE ITSELF does not
+ * animate either:
  * a cross-fade of every colour on the page is a large motion event no tier
  * licenses, and it is a whole-document repaint over a live WebGL canvas. An
  * instant flip is also what an OS-level theme change does, so it reads as
@@ -47,10 +59,18 @@
  * the strongest possible reduced-motion story. Do not add `useReducedMotion`
  * here.
  *
- * NO HOVER STATE. The only hover device permitted site-wide is
- * `hover:decoration-2` (underline thickness), which needs an underline this
- * control does not have. `BACK_LINK` on the detail route has no hover state
- * either. Do not invent one.
+ * NO HOVER STATE IN FLOW — `THEME_TOGGLE_ON_BASE` and `THEME_TOGGLE_ON_HERO`
+ * have none, and must not grow one. The only hover device permitted in body
+ * content is `hover:decoration-2` (underline thickness), which needs an
+ * underline this control does not have; `BACK_LINK` on the detail route has no
+ * hover state either.
+ *
+ * THE BAR IS THE ONE EXCEPTION, and it is not this component inventing one.
+ * Every interactive item in the navbar — `NAV_ITEM`, `CopyEmailButton`, the
+ * LinkedIn anchor, the centre icon, the menu button — sits at `--nav-fg-dim`
+ * and rises to `--nav-fg` on hover. That is the bar's established vocabulary,
+ * so `THEME_TOGGLE_IN_NAV` joins it. A single control in that row WITHOUT the
+ * lift would read as disabled, which is a worse error than the hover.
  *
  * NO ICON, NO SWITCH TRACK, NO BORDER, NO BACKGROUND, NO RADIUS. There is no
  * icon system on this site (two inline SVGs exist, both in `HeroHeadline`) and
@@ -111,11 +131,50 @@ export const THEME_TOGGLE_ON_BASE =
 export const THEME_TOGGLE_ON_HERO =
   "text-caption font-mono text-hero-accent cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hero-accent";
 
+/**
+ * IN THE NAVBAR. A THIRD constant, and neither of the two above is a
+ * substitute — picking one is a real bug rather than a preference.
+ *
+ * The bar is FIXED AND TRAVELS OVER BOTH SURFACES: the pinned-dark hero, and
+ * `bg-base` for the whole rest of the page. `THEME_TOGGLE_ON_HERO` would be
+ * hero-teal over light `bg-base` past the hero; `THEME_TOGGLE_ON_BASE` would be
+ * `accent-working` over the hero, which is the ~3.6:1 light-mode case its own
+ * comment above rejects. Either choice is wrong on one of the two grounds for
+ * the entire scroll, and neither errors.
+ *
+ * So it uses THE BAR'S OWN ESCALATING VARIABLES — `--nav-fg-dim`, `--nav-fg`,
+ * `--nav-accent` (`app/globals.css`, `[data-nav-root]`) — which resolve to the
+ * `--color-fg` family over base and to the `--color-hero-fg` family over the
+ * hero, swapping by CSS cascade with no render. Measured there: 72% `hero-fg`
+ * composites to ~8.6:1 on the hero, 72% `fg` is ~9:1 on dark base and ~8:1 on
+ * light. This is a text control, so it is held to the text floor, not the 3:1
+ * non-text one.
+ *
+ * IT IS BYTE-FOR-BYTE THE BAR'S OWN TREATMENT: dim at rest, full `--nav-fg` on
+ * hover, `transition-colors duration-300`, and a `--nav-accent` focus ring at
+ * `outline-offset-4` — the same shape as `NAV_ITEM`, `CopyEmailButton` and the
+ * LinkedIn anchor. `offset-4` rather than the other two constants' `offset-2`
+ * BECAUSE IN THE BAR IT MUST MATCH ITS NEIGHBOURS, not the `ExternalLink`
+ * atoms. This is the one place where matching the row beats matching the file.
+ *
+ * BEWARE THE NAME, carried over from `THEME_TOGGLE_ON_HERO` because the hazard
+ * is the same one: `hero-accent` (#14B8A6, teal, HAS utilities) and
+ * `accent-hero` (#00E5FF, cyan, deliberately has NONE) are near-anagrams for
+ * different colours and both directions of the swap render something plausible.
+ * NOTHING IN THIS COMPONENT IS EVER CYAN. The nav variables sidestep the trap
+ * entirely by naming neither — which is part of the point of using them.
+ *
+ * `cursor-pointer` for the same reason as the other two: Tailwind v4's preflight
+ * gives <button> no pointer cursor.
+ */
+export const THEME_TOGGLE_IN_NAV =
+  "text-caption font-mono cursor-pointer text-[var(--nav-fg-dim)] transition-colors duration-300 hover:text-[var(--nav-fg)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-accent)]";
+
 type ThemeToggleProps = {
   /**
-   * REQUIRED, AND DELIBERATELY WITHOUT A DEFAULT. Pass `THEME_TOGGLE_ON_BASE`
-   * or `THEME_TOGGLE_ON_HERO`. Omission is a type error, not a silently wrong
-   * colour on a surface that does not flip.
+   * REQUIRED, AND DELIBERATELY WITHOUT A DEFAULT. Pass `THEME_TOGGLE_ON_BASE`,
+   * `THEME_TOGGLE_ON_HERO` or `THEME_TOGGLE_IN_NAV`. Omission is a type error,
+   * not a silently wrong colour on a surface that does not flip.
    */
   className: string;
 };

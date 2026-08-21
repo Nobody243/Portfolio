@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * The mobile navigation. Everything the bar cannot fit at 375px, plus the one
- * control the desktop bar deliberately does not carry.
+ * The mobile navigation. Everything the bar cannot fit at 375px, plus the
+ * sub-`md` half of the theme toggle.
  *
  * A NATIVE MODAL `<dialog>`, for the same four reasons `ProjectOverlay` gives:
  * `showModal()` supplies initial focus into the dialog, a real focus trap,
@@ -15,11 +15,23 @@
  * the same one recorded there: with no visible backdrop there is nothing to
  * click outside, so dismissal is Escape, the close control, and a nav choice.
  *
- * THE THEME TOGGLE LIVES HERE. It is not a leftover from the desktop bar — the
- * navbar spec removes it from the desktop chrome and places it in the mobile
- * navigation by name. `docs/06_INTRO_AND_CHROME.md` §5 records what that means
- * for a desktop visitor on the homepage, which is the one real cost of the
- * decision and is stated there rather than buried.
+ * THE THEME TOGGLE HERE IS THE SUB-`md` INSTANCE, NOT THE ONLY ONE. The bar
+ * carries its own at `md` and up (`Navbar.tsx`, first child of the right
+ * cluster, `hidden md:block`); this one covers the range where that is hidden
+ * and the bar has no room for it anyway. `docs/06_INTRO_AND_CHROME.md` §5 has
+ * the full per-surface table.
+ *
+ * THE TWO NEVER COEXIST ON SCREEN, and the reason is worth stating because
+ * nothing enforces it: this dialog is only reachable through a menu button
+ * that is `md:hidden`, and the bar's instance only appears at `md` and up. If
+ * either gate is ever removed, `/` ships two controls doing the same job with
+ * no error of any kind. Test at 375 / 639 / 768 / 1440 / 2560 after touching
+ * either.
+ *
+ * IT USES `THEME_TOGGLE_ON_BASE`, not the bar's `THEME_TOGGLE_IN_NAV`: this
+ * dialog is an opaque `bg-base` surface that flips with the theme, so it is a
+ * base call site like any other. The nav constant rides `--nav-*`, which is
+ * scoped to `[data-nav-root]` and does not reach inside here.
  *
  * IT IS ALWAYS MOUNTED. A `<dialog>` that is only rendered while open cannot be
  * animated out, and — more importantly — `showModal()` on a freshly-mounted
