@@ -290,6 +290,31 @@ is now closed.
   empty-state design — e.g. a dashed/outline placeholder with a short line signalling "reserved, not
   missing" — rather than being hidden. It is meant to visibly fill in over time.
 - No ratings, no percentage bars, no proficiency labels.
+
+> ### Three resolutions from the Stack design pass — recorded here because they bind Phase 3 onward
+>
+> **1. "Card" in this section means an ENTRY TREATMENT, not a bordered box.** §5 above says "two card
+> variants"; `SkillGroupRenderers.tsx` says *"a bordered rectangle is a CARD, and the card affordance
+> belongs to Ticket 6's"* project gallery. Those flatly contradict each other and the code is right.
+> **Neither Stack variant is a bordered rectangle.** They are two entry layouts sharing one left edge,
+> one first-line band, one inter-entry rhythm and one subordination rule (`text-fg` primary,
+> `text-fg/70` subordinate). Read "variant", not "card", everywhere in §5.
+>
+> **2. Skills is Tier 3, not "Tier 2/3".** `Skills.tsx:15` says "Tier 2/3"; `docs/03`'s motion section
+> lists Skills under Tier 3. Tier 3 governs. This is not pedantry — **"Tier 2" would license hover
+> states and stagger on a logo grid**, which is exactly the generic treatment this section has twice
+> been designed away from. Correct the source comment when Phase 3 rewrites the file.
+>
+> **3. The empty state is ONE device: the line, not a dashed box.** The section already speaks on three
+> non-overlapping channels — the computed `00` states *quantity*, the line states *intent*, the 55px
+> `min-h` states *space held*. A dashed rectangle would state **absence**, which is the one fact the
+> group label already supplies. Decisive reason: it is the only part of the treatment that cannot
+> survive the first entry — everything else transitions with zero edits, while a dashed box around one
+> real cert becomes a card and must be hand-deleted at the moment nobody is thinking about CSS.
+>
+> Final copy, Saad's, not to be reworded to fit a layout: **"Reserved. This is the group that grows."**
+> A `<p>` sibling of the `<dl>` at `text-body text-fg/70` — body scale because it is a full thought with
+> two full stops, and `/70` so the emptiest group does not carry the loudest prose in the section.
 - Whether Stack sits inside or immediately after the "systems" beat is still open.
 
 *(Per-category logo list remains a content TODO — build with an optional `logo?` field and a name-chip

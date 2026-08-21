@@ -18,6 +18,13 @@
  * solve, not a data problem to work around. It fills in as real certs and
  * projects land, and that visible trajectory is the whole point.
  *
+ * NOTE LENGTH IS CAPPED AT 64 CHARACTERS. Above that a note wraps to a second
+ * line at >=640px and that entry alone grows taller than its siblings, breaking
+ * the uniform 44.8px entry height the Stack section's shared rhythm depends on.
+ * The longest note today is 56 characters ("low-level memory addressing,
+ * registers, instruction sets"), so there are eight characters of headroom.
+ * Trim the concepts rather than letting the entry wrap.
+ *
  * SYSTEMS FOUNDATION entries are COURSE names, and `note` carries the concepts
  * the course actually covered. Ticket 5 must never render the name without the
  * note — a bare course name is an unexplained claim.
