@@ -25,11 +25,16 @@ import { AboutScreen } from "@/components/about/AboutScreen";
  * boundaries below it — the particle canvas and the CV control — carry their
  * own directives.
  *
- * NO `<Contact />` AND NO FOOTER OF ANY KIND. This is the one page with no
- * `contentinfo` landmark, and that is §6's decision rather than an oversight:
- * the reveal footer Phase 5 builds is Home and Work only. The three contact
- * affordances a visitor needs here are the action row itself, plus the bar's
- * click-to-copy email and LinkedIn icon.
+ * NO `<RevealFooter />` AND NO FOOTER OF ANY KIND. This is the one page with
+ * no `contentinfo` landmark, and that is §6's decision rather than an
+ * oversight: the reveal footer Phase 5 shipped is Home and Work only. The three
+ * contact affordances a visitor needs here are the action row itself, plus the
+ * bar's click-to-copy email and LinkedIn icon.
+ *
+ * NO PAGE-STACK CLASSES ON `<main>` EITHER, and that is not an omission. Rule
+ * S-5's `bg-base relative z-10` exists to OCCLUDE the pinned plate; there is no
+ * plate on this route, so there is nothing to occlude. Adding them here would
+ * be cargo cult. Adding a reveal footer here without them would not be.
  */
 
 /**

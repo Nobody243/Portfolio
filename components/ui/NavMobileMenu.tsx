@@ -236,7 +236,15 @@ export function NavMobileMenu({
               text — so without this the address sits in the middle of the
               screen, alone, looking like a heading. */}
           {NAV_EMAIL ? (
-            <CopyEmailButton value={NAV_EMAIL.value} className="self-start" />
+            <CopyEmailButton
+              value={NAV_EMAIL.value}
+              // See the bar's own instance: this is the no-JS / pre-hydration
+              // mailto fallback, and `self-start` shrink-wraps the anchor
+              // exactly as it shrink-wraps the button, so the swap moves
+              // nothing.
+              href={NAV_EMAIL.href}
+              className="self-start"
+            />
           ) : null}
 
           <div className="flex items-center justify-between">

@@ -110,7 +110,8 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > The hero reaches cyan through `lib/three/accentHero.ts` — a JS constant handed to a WebGL material,
 > not a DOM path. **The one licensed DOM path is an inline `style={{ backgroundColor:
 > "var(--accent-hero)" }}` on a single 34×3px `aria-hidden` bar in
-> `components/sections/Contact.tsx`.** `globals.css` names that mechanism itself ("Read it via
+> `components/sections/RevealFooter.tsx` (the file that absorbed `Contact.tsx` in Phase 5 — the bar
+> moved with it and did not multiply; verified 2026-08-22 at exactly 34×3px, `rgb(0, 229, 255)`).** `globals.css` names that mechanism itself ("Read it via
 > `var(--accent-hero)` (inline style / CSS) or as a JS constant"), and the point of it is that
 > reaching cyan in the DOM must be a **deliberate, visible, greppable act** rather than a class typed
 > by muscle memory: `grep -rn "accent-hero" components/` audits the whole rule in one command.
@@ -259,6 +260,14 @@ true of chrome, and the rule is corrected here rather than left to be discovered
   permanently visible, so the full-bleed chrome and the spine-aligned section below it are co-visible
   at every scroll position.** Judge the divergence from a normal scrolled view, which is the harsher
   test. The rule itself is unchanged; only how easy it is to see was.
+- **The carve-out does NOT extend to a pinned content plate. Added 2026-08-22 with Rule S-5.** The
+  reveal footer is `position: sticky; bottom: 0`, so it spends most of every page pinned to the
+  viewport — and a reviewer may reason *"it is pinned, therefore it is chrome, therefore it takes
+  the two-value gutter."* **It is not chrome and it takes the spine.** The carve-out exists because
+  the navbar is a fixed overlay that must not track a scrolling column; the reveal footer *is* the
+  column, temporarily pinned, and it holds
+  `mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl` byte-identically inside its own
+  full-bleed plate, exactly as the hero does. **Pinned is not the test. Being chrome is.**
 - **Rule and code ship together.** This project has been bitten four times by a spec that described
   something the code stopped doing. The navbar's own container comment states the same carve-out in
   the same words, and both were changed in one commit.
@@ -271,8 +280,12 @@ rather than immediately above a heading. **Sections that do not follow a hard ed
 cost** — About's larger opening is hero debt, not precedent. The Contact section (Tier 1 echo, on its
 own dark surface) may set its own vertical rhythm, and must say so where it does.
 
-**S-2's Contact exception, exercised and recorded (Ticket 10).** `components/sections/Contact.tsx`
-ships `pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl` on a full-bleed `bg-hero-surface` `<footer>`.
+**S-2's Contact exception, exercised and recorded (Ticket 10; the file became
+`components/sections/RevealFooter.tsx` in Phase 5).** It ships
+`pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl` on a full-bleed `bg-hero-surface` `<footer>`. **The curtain
+changed none of these five bullets** — it creates no new seam, because when the plate is fully
+exposed the relationship above it is the same static one. No amendment to S-2 was needed for it and
+none should be written.
 
 - **It is About's hard edge mirrored,** `bg-base` → `bg-hero-surface` instead of the other way round,
   so it pays exactly what About's opening pays: `pt-2xl sm:pt-3xl`. Seam totals are **178px below
@@ -284,6 +297,14 @@ ships `pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl` on a full-bleed `bg-hero-surface` `<fo
 - **The bottom is symmetric with the top** because it is a plate, not a seam — a plate with a short
   bottom reads as content that got cut off. Nothing comes after this section, so the padding is the
   end of the document.
+- **During the reveal the top edge is an OCCLUSION EDGE, not a seam, and must not be dressed like
+  one.** No shadow under the lifting page, no hairline on the plate's top edge, no scrim. A drop
+  shadow under a lifting page is this pattern's most-copied detail and is precisely the tell; a
+  gradient there would slide out from under the page as a visible smear rather than staying put.
+  Measured, the edge is **19.45:1 in light mode and 1.01:1 in dark** (`#FDFCFA` and `#0A0A0B`
+  against `#07090C`), so **in dark mode — the default — the edge is invisible** and the reveal is
+  carried entirely by content entering the strip. That is accepted, not fixed: every fix costs more
+  than the problem, and it is why the stamp sits at the *bottom* of the plate (S-5).
 - **Rule S-1 still holds byte-identically INSIDE the panel:**
   `mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl`, exactly as the hero does inside its own
   full-bleed dark plate. Holding the spine inside the panel is the main thing that stops it reading
@@ -291,6 +312,59 @@ ships `pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl` on a full-bleed `bg-hero-surface` `<fo
 - **It is a `<footer>`, a SIBLING of `<main>`,** so it is the `contentinfo` landmark. A `<footer>`
   nested inside `<main>` is scoped to `<main>` and is not a landmark at all — nothing errors and the
   benefit silently evaporates.
+
+**Rule S-5 (the reveal footer is a sticky curtain, and the page stack above it must be opaque).
+Phase 5, 2026-08-22. Binding on every route that renders a reveal footer, and on any future
+element pinned beneath the page.** `components/sections/RevealFooter.tsx` is `position: sticky;
+bottom: 0` at `md` and up. `docs/07_SITE_RESTRUCTURE.md` §5 describes the effect as "fixed beneath
+the page"; `sticky` produces the identical effect and is what ships.
+
+- **Three declarations, no JavaScript.** `relative z-0 md:sticky md:bottom-0` on the `<footer>`,
+  and `relative z-10 bg-base` on the page stack (`<main>`) at every call site. No scroll listener,
+  no `ScrollTrigger`, no `ResizeObserver`, no measured height, no CSS variable, **no negative
+  margin**.
+- **`document.scrollHeight` changes by exactly 0px, and that is the whole point.** A sticky element
+  occupies its normal flow box in full — sticky is the one positioning scheme that does *not*
+  remove an element from flow, and its offset is a paint-time shift rather than a layout change.
+  **Measured on `/` and `/work` at 1440x900, 1280x800, 1024x600, 768x1024 and 360x640, both
+  themes: toggling the footer between `sticky` and `static` moves `scrollHeight` by 0px in all
+  twenty cases.** No phantom scroll is added and none is removed, so every `end: "bottom bottom"`
+  on the page resolves exactly where it did.
+- **`ScrollTrigger.refresh()` is NOT required, and adding it is mildly harmful.** There is no
+  post-mount geometry change to refresh against, and a refresh recomputes every trigger on the page
+  — landing mid-scroll it can visibly re-snap a scrubbed section. `docs/07` §5's implementation
+  flag was written against the *negative-margin* technique, which this rule rejects, and has been
+  amended there. (The one refresh that *is* needed is the post-webfont one, which
+  `components/ui/ScrollTriggerSync.tsx` already owns.)
+- **`<main>` MUST carry `bg-base` explicitly. Inheriting it does not work, and the failure is
+  spectacular.** A background on `html`/`body` **propagates to the canvas**, which paints below
+  every positioned descendant including the footer — so with no opaque layer of its own, the
+  #07090C plate is visible through every section of the page at every scroll position. `z-10` is
+  what puts the stack above the footer's `z-0`.
+- **Nothing between `<body>` and the footer may create a containing block or a clipping context.**
+  No `overflow: hidden`/`clip`/`auto`, no `transform`, no `filter`, no `perspective`, no
+  `will-change: transform`, no `contain: paint`. Each of those either kills the pin or cuts the
+  plate, silently. **Lenis must stay in `root` mode**: `wrapper`/`content` mode translates a
+  wrapper, which becomes the sticky containing block and destroys the effect with no error.
+- **The short page needs no handling at all.** A sticky offset may only move an element *within*
+  its containing block, and the footer is the last child of `<body>`, so the browser cannot push it
+  down toward a viewport bottom below it. A page that does not scroll clamps the plate flush under
+  the last section. **Never add `min-h-[calc(100dvh-…)]` to "fix" a short page** — that is the
+  reflexive fix and it is the one that grows `scrollHeight`, breaking the guarantee above.
+- **No viewport-unit height on the plate, and no parallax on it.** The plate's travel is **0px**;
+  the page scrolls off it at 1:1 and that is the entire wipe. A plate that drifts as it appears did
+  not arrive early — it is arriving now — which contradicts the one thing the footer is supposed to
+  say. Height is bounded compositionally instead: **if the plate ever measures more than 900px at
+  ≥1024px, cut content; do not cap the box.** (Measured at Phase 5: 793px at 1440 wide, 787px at
+  1280, **870px at 1024**, where the link row wraps.)
+- **Reduced motion does not branch here.** There is one rate — the visitor's own — no `transition`,
+  no `transform`, no `animation` and no scroll-linked value, so there is nothing to disable. A
+  branch would have to change `position`, which changes layout, which would give two classes of
+  visitor different document heights and different resolved trigger ends for the same page.
+- **Exactly one `contentinfo` per page, and `/about` deliberately has none.** `position` does not
+  move an element in the accessibility tree, so the landmark survives the technique intact. `/about`
+  renders no reveal footer per `docs/07` §5–6 and therefore has zero `contentinfo` landmarks — a
+  recorded decision, not an oversight; its CTA row already carries GitHub and LinkedIn.
 
 **Rule S-3 (one frame owns the detail page's vertical chrome). Established in Ticket 6b, binding on
 every later edit to `/projects/<slug>`.** That URL has two rendering paths — the real route, and the
@@ -423,6 +497,13 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 
 **Below 768px there is no scrub.** Home uses the same reveals as every other page. Two behaviours
 site-wide — the site's reveal, and Home's desktop scrub — never a third mobile-specific one.
+
+**The reveal footer's curtain (Rule S-5) takes the same 768px floor, and for the same reason.**
+Below it the footer is a plain in-flow `<footer>` — one responsive class,
+`relative z-0 md:sticky md:bottom-0`, same DOM either side. The curtain adopting this floor rather
+than inventing its own keeps the count at two. It also happens to be forced: the plate measures
+~790px against a 640px phone viewport, and a sticky-bottom element taller than its scrollport pins
+with its top cut off, so the "reveal" becomes a crawl over content that can never be seen whole.
 
 **Reduced motion: neither scrub nor parallax.** A 0.35s opacity fade with no Y, matching
 `MotionProvider`'s existing contract.

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Projects } from "@/components/sections/Projects";
 import { Experience } from "@/components/sections/Experience";
 import { CurrentlyLearning } from "@/components/sections/CurrentlyLearning";
-import { Contact } from "@/components/sections/Contact";
+import { RevealFooter } from "@/components/sections/RevealFooter";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
 import { projects } from "@/content/projects";
 
@@ -61,13 +61,22 @@ export const metadata: Metadata = {
 
 export default function WorkPage() {
   return (
-    // A FRAGMENT, for the same reason Home is one: `<Contact />` renders a
+    // A FRAGMENT, for the same reason Home is one: `<RevealFooter />` renders a
     // `<footer>` and it must be a SIBLING of `<main>`, not a child, or it is
     // scoped to `<main>` and stops being the `contentinfo` landmark. Nothing
     // errors and nothing looks different when that is got wrong, which is
     // exactly why it is written down in both files.
     <>
-      <main>
+      {/*
+        THE PAGE STACK. `bg-base` and `relative z-10` are Rule S-5's two
+        mandatory classes and are byte-identical to Home's — the reveal footer
+        below is pinned behind this element from the first painted frame, and
+        this background is the only thing occluding it. Home's call site carries
+        the full reasoning, including why inheriting the body background does
+        NOT work (it propagates to the canvas, which paints below positioned
+        descendants).
+      */}
+      <main className="relative z-10 bg-base">
         {/*
           THE PAGE OUTLINE STARTED AT `<h2>`. Four sections each render one,
           and nothing above them named the document - an outline with no root.
@@ -91,12 +100,18 @@ export default function WorkPage() {
             is still correct the moment the first entry lands. */}
         <CurrentlyLearning />
       </main>
-      {/* THE SAME COMPONENT HOME RENDERS, not a copy — and its appearing on
-          both pages is temporary and expected. Phase 5 absorbs Contact into
-          the shared reveal footer; until then the honest options were a
-          duplicate footer or a page that dead-ends with no contact route, and
-          the duplicate is the one that is reversible. */}
-      <Contact />
+      {/* THE SAME COMPONENT HOME RENDERS, not a copy. Phase 5 absorbed the old
+          `Contact` section into this shared reveal footer, which is exactly
+          what this file's earlier comment predicted; the curtain is scoped to
+          Home and Work by `docs/07_SITE_RESTRUCTURE.md` §5 and is deliberately
+          absent from `/about`.
+
+          A CONSEQUENCE WORTH KNOWING: `/about` therefore has ZERO `contentinfo`
+          landmarks. That is valid HTML and it is a decision, not an oversight —
+          §6 keeps About "deliberately the one fully quiet page", its CTA row
+          already carries GitHub and LinkedIn, and a static non-curtain footer
+          there would break that framing to add a landmark nobody asked for. */}
+      <RevealFooter />
     </>
   );
 }

@@ -67,6 +67,13 @@
  *      About section the centre cluster lands on a paragraph and both texts
  *      become unreadable. It was screenshotted, not predicted.
  *
+ *      "PAST THE HERO" MEANS "NOT ON A DARK PLATE", and since Phase 5 that is
+ *      two plates rather than one. The scrim is scoped to
+ *      `:not([data-over-hero])`, and the palette effect below now sets that
+ *      attribute over the reveal footer as well as over the hero — so the bar
+ *      is transparent on both dark surfaces and scrimmed only over `bg-base`,
+ *      which is the only ground it was ever needed on.
+ *
  *      THE SCRIM, PAST THE HERO ONLY, NOW CARRIES THIS ALONE. That IS a
  *      background fill, and the spec asks for it to be flagged rather than
  *      added quietly, so it is flagged — here, in `globals.css` where the rule
@@ -153,6 +160,7 @@ import {
 } from "@/components/ui/ThemeToggle";
 import { NAV_HEIGHT_PX } from "@/components/ui/msMarkGeometry";
 import { HERO_SECTION_ID } from "@/components/hero/heroContent";
+import { REVEAL_FOOTER_SENTINEL_ID } from "@/components/sections/contactContent";
 import { NAV_ENTRANCE_ATTR } from "@/lib/animation/handoff";
 import { ScrollTrigger } from "@/lib/animation/gsap";
 import { EASE } from "@/lib/animation/easing";
@@ -170,6 +178,10 @@ import { useSectionScroll } from "@/lib/hooks/useSectionScroll";
  *
  * DELETING IT WITH THE HIDING WOULD HAVE BROKEN THE PALETTE SWAP, which is a
  * different feature that happened to borrow the number.
+ *
+ * IT HAS THREE READERS NOW, NOT TWO: the up-front check, the hero trigger's
+ * `start`, and the reveal-footer sentinel's `start`. The effect binds it to a
+ * local `barEdge` once, so all three are the same number by construction.
  *
  * RENAMING IT IS FINE, BUT ONLY TOGETHER WITH DERIVING IT. 70px is meant to
  * stand in for the bar's bottom edge, and the bar MEASURES 59px at `sm` and up.
@@ -296,8 +308,8 @@ export function Navbar() {
   /* -----------------------------------------------------------------------
      RE-RUNS ON EVERY ROUTE CHANGE, and that dependency is load-bearing rather
      than tidy. The bar is layout-mounted now, so it does NOT remount when Home
-     gives way to `/work`. With `[]` deps the ScrollTrigger created against
-     Home's hero would outlive the element it measures, and `/work` would keep
+     gives way to `/work`. With `[]` deps the ScrollTriggers created against
+     Home's elements would outlive what they measure, and `/work` would keep
      whatever palette the visitor left Home with — the hero palette, if they
      clicked WORK from the top of the page.
 
@@ -306,45 +318,125 @@ export function Navbar() {
      exactly one case and it matters: with a project overlay open the pathname
      is `/projects/<slug>` while Home — hero included — is still mounted behind
      the dialog, and the bar should keep the palette it had.
+
+     TWO DARK GROUNDS, NOT ONE, SINCE PHASE 5. `globals.css` always described
+     three grounds on `/` — the hero, the mid-page sections, and the dark plate
+     at the bottom — but only the hero was ever observed. THE PLATE CASE WAS
+     MEASURED RATHER THAN ASSUMED, on the build before the reveal footer landed
+     (`/` and `/work`, both themes, at maximum scroll):
+
+       1440x900  plate top  307, bar bottom 59  ->  no overlap
+       1280x800  plate top  213, bar bottom 59  ->  no overlap
+       1024x600  plate top  -70, bar bottom 59  ->  OVERLAPS BY 129px
+        360x640  plate top   -6, bar bottom 48  ->  OVERLAPS BY  54px
+
+     So the failure is NOT the one an over-eager plate observer would cause —
+     a bar stuck on the dark palette everywhere, which is what a naive
+     "is the plate in the viewport" test would now produce, since the plate is
+     pinned from first paint. It is the INVERSE, and it is real: whenever the
+     plate is taller than `viewportHeight - barHeight`, its top rises above the
+     bar and the bar sits on #07090C still carrying its LIGHT-MODE palette —
+     near-#151515 labels under an 80% #FDFCFA scrim, on a near-black surface.
+     Short viewports only, but the reveal footer's stamp band adds ~198px of
+     plate height, which pulls 1280x800 into the same case.
+
+     THE TEST IS THE PLATE'S STATIC TOP CROSSING THE BAR, and it is measured
+     through a SENTINEL rather than through the footer itself, because the
+     footer is `md:sticky` and reports its PINNED rect from first paint. The
+     sentinel's ABSENCE is the route guard: `/about` renders no reveal footer,
+     so no plate trigger is created there.
   ----------------------------------------------------------------------- */
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
 
-    const setOverHero = (over: boolean) => {
-      if (over) el.setAttribute("data-over-hero", "");
+    /* The bar's bottom edge, near enough. `ALWAYS_VISIBLE_ABOVE`'s own docblock
+       explains why 70 stands in for a bar that measures 59px, and why its
+       readers must not drift apart. There are three of them now, so they are
+       bound to one local rather than written out three times. */
+    const barEdge = ALWAYS_VISIBLE_ABOVE / 2;
+
+    /* TWO GROUNDS, ONE ATTRIBUTE. Kept in a plain object rather than in state
+       for the reason the whole effect exists: writing the attribute from a ref
+       costs no render, and a `setState` here is what Next 16's
+       `react-hooks/set-state-in-effect` rule hard-errors on.
+
+       The two are mutually exclusive in practice — no page puts the hero and
+       the plate under the bar at once — but they are OR-ed rather than assumed
+       exclusive, so a page that managed both would take the dark palette
+       rather than flicker between two authors of one attribute. */
+    const ground = { hero: false, plate: false };
+    const apply = () => {
+      if (ground.hero || ground.plate) el.setAttribute("data-over-hero", "");
       else el.removeAttribute("data-over-hero");
     };
 
+    /* Collected as closures rather than as trigger instances, so this file
+       does not have to name GSAP's instance type just to clean up. */
+    const kills: Array<() => void> = [];
+
+    /* ScrollTrigger rather than bare IntersectionObservers: it is already
+       bound to Lenis site-wide, and one scroll authority beats two. */
     const hero = document.getElementById(HERO_SECTION_ID);
-    if (!hero) {
-      setOverHero(false);
-      return;
+    if (hero) {
+      // SET THE STATE ONCE, UP FRONT, from where the page actually is. The
+      // triggers only fire on CROSSING a boundary, so without this a
+      // navigation that arrives already scrolled past the hero — closing an
+      // overlay opened from the gallery, say — would sit on the wrong palette
+      // until the visitor happened to scroll back up and down again. Each
+      // comparison mirrors its own `start` exactly.
+      ground.hero = hero.getBoundingClientRect().bottom > barEdge;
+
+      // The boundary is the hero's BOTTOM reaching the bar's bottom edge, not
+      // the viewport top — otherwise the palette would swap while the bar is
+      // still physically over the last strip of hero surface.
+      const trigger = ScrollTrigger.create({
+        trigger: hero,
+        start: `bottom top+=${barEdge}`,
+        onEnter: () => {
+          ground.hero = false;
+          apply();
+        },
+        onLeaveBack: () => {
+          ground.hero = true;
+          apply();
+        },
+      });
+      kills.push(() => trigger.kill());
     }
 
-    // SET THE STATE ONCE, UP FRONT, from where the page actually is. The
-    // trigger below only fires on CROSSING the boundary, so without this a
-    // navigation that arrives already scrolled past the hero — closing an
-    // overlay opened from the gallery, say — would sit on the wrong palette
-    // until the visitor happened to scroll back up and down again. The
-    // comparison mirrors `start` below exactly: over the hero for as long as
-    // its bottom edge is still below the bar.
-    setOverHero(hero.getBoundingClientRect().bottom > ALWAYS_VISIBLE_ABOVE / 2);
+    const plateTop = document.getElementById(REVEAL_FOOTER_SENTINEL_ID);
+    if (plateTop) {
+      ground.plate = plateTop.getBoundingClientRect().top < barEdge;
 
-    // ScrollTrigger rather than a bare IntersectionObserver: it is already
-    // bound to Lenis site-wide, and one scroll authority beats two.
-    //
-    // The boundary is the hero's BOTTOM reaching the bar's bottom edge, not the
-    // viewport top — otherwise the palette would swap while the bar is still
-    // physically over the last strip of hero surface.
-    const trigger = ScrollTrigger.create({
-      trigger: hero,
-      start: `bottom top+=${ALWAYS_VISIBLE_ABOVE / 2}`,
-      onEnter: () => setOverHero(false),
-      onLeaveBack: () => setOverHero(true),
-    });
+      // `onEnterBack` IS NOT REDUNDANT WITH `onEnter`. The sentinel is zero
+      // height, so ScrollTrigger's default `end` ("bottom top") lands only
+      // `barEdge` pixels past `start`; scrolling down through both and back up
+      // re-enters through the END, which fires `onEnterBack` and never
+      // `onEnter`. Without it the bar would stay on the light palette for the
+      // last stretch of every scroll-up off the plate.
+      const trigger = ScrollTrigger.create({
+        trigger: plateTop,
+        start: `top top+=${barEdge}`,
+        onEnter: () => {
+          ground.plate = true;
+          apply();
+        },
+        onEnterBack: () => {
+          ground.plate = true;
+          apply();
+        },
+        onLeaveBack: () => {
+          ground.plate = false;
+          apply();
+        },
+      });
+      kills.push(() => trigger.kill());
+    }
 
-    return () => trigger.kill();
+    apply();
+
+    return () => kills.forEach((kill) => kill());
   }, [pathname]);
 
   /* -----------------------------------------------------------------------
@@ -782,6 +874,12 @@ export function Navbar() {
             {NAV_EMAIL ? (
               <CopyEmailButton
                 value={NAV_EMAIL.value}
+                // The pre-hydration / no-JS fallback anchor. Free here, and it
+                // removes the one real hole in this control: before hydration,
+                // and forever with JS blocked, the bar used to show an address
+                // that did nothing when clicked. Now it is a working mailto
+                // until the button takes over.
+                href={NAV_EMAIL.href}
                 className="pointer-events-auto hidden md:block"
               />
             ) : null}

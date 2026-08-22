@@ -28,7 +28,10 @@ form is added, it posts to a lightweight serverless function or a third-party fo
   /globals.css
 /components
   /hero                      — 3D scene, loader, reveal transition
-  /sections                  — About, Skills, Experience, CurrentlyLearning, Contact
+  /sections                  — About, Skills, Experience, CurrentlyLearning, RevealFooter
+                               (RevealFooter absorbed the old Contact section in Phase 5 — see
+                               "The page stack" below, which is a hard layout requirement rather
+                               than a styling preference)
   /projects                  — ProjectCard, ProjectGallery, ProjectDetail
   /ui                        — shared primitives (buttons, section wrappers, theme toggle)
 /content
@@ -51,6 +54,40 @@ form is added, it posts to a lightweight serverless function or a third-party fo
 /public
   /fonts, /models, /images
 ```
+
+### The page stack — a required shape, not a preference
+
+Every route that renders `components/sections/RevealFooter.tsx` (today `/` and `/work`) must have
+this DOM shape, and getting it wrong fails silently rather than loudly:
+
+```
+<body class="flex min-h-full flex-col">      app/layout.tsx
+  <header data-nav-root>            z-40      the (chrome) layout's Navbar
+  <main class="relative z-10 bg-base">        the page stack — OPAQUE, ABOVE
+    … all sections …
+  </main>
+  <div id="reveal-footer-top">                zero-height sentinel, in flow
+  <footer class="relative z-0 md:sticky md:bottom-0 bg-hero-surface">
+</body>
+```
+
+- **`<main>`'s `bg-base` and `z-10` are load-bearing.** The footer is pinned behind the page from
+  the first painted frame, and `<main>` is the only thing occluding it. Inheriting the page
+  background does **not** work: a background on `html`/`body` propagates to the canvas, which
+  paints below every positioned descendant. Without both classes the dark plate shows through every
+  section at every scroll position. `docs/03_FRONTEND_SPEC.md`'s **Rule S-5** is the binding
+  statement, including the ban on `overflow`/`transform`/`filter` anywhere between `<body>` and the
+  footer, and the requirement that Lenis stays in `root` mode.
+- **The `<footer>` must stay a direct child of `<body>`,** for two independent reasons: it is the
+  `contentinfo` landmark only when its nearest ancestor is `<body>`, and `<body>` is what bounds
+  the sticky offset so the plate can never float below the end of the document.
+- **The sentinel is `<RevealFooter />`'s own first element** and is not optional. The footer is
+  sticky, so its rect reports the pinned position rather than the document position; the sentinel
+  is the in-flow element `Navbar.tsx` measures to know when the un-occluded plate reaches the bar.
+  Its absence on `/about` is what keeps that route's navbar palette correct with no route check.
+- **`/about` has neither the footer nor the page-stack classes, deliberately.** There is no plate
+  to occlude there, and it is the one route with zero `contentinfo` landmarks
+  (`docs/07_SITE_RESTRUCTURE.md` §5–6).
 
 ## Content shape (plain English — this replaces a database schema)
 

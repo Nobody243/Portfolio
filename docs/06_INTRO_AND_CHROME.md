@@ -408,6 +408,25 @@ is still completely transparent — no fill, no blur** — which is where the
 transparency actually reads as design rather than as a defect, and is the part
 of the spec's intent worth protecting.
 
+**"Past the hero" now means "not on a dark plate", and since Phase 5 there are
+two of those.** `data-over-hero` is set over the reveal footer as well as over
+the hero, so the scrim is suppressed on both dark surfaces and applies only over
+`bg-base` — the only ground it was ever needed on.
+
+**The plate case was previously UNOBSERVED, not handled.** `Navbar.tsx` bound one
+ScrollTrigger, to the hero, and nothing tested the plate at all. Measured on the
+pre-Phase-5 build at maximum scroll, the bar overlapped the Contact plate by
+**129px at 1024×600** and **54px at 360×640** with the light palette still
+applied — near-`#151515` labels under an 80% `#FDFCFA` tint, on a `#07090C`
+surface. It did **not** overlap at 1440×900 (−248px) or 1280×800 (−154px), which
+is why it went unnoticed; the reveal footer's stamp band adds ~198px of plate
+height and pulls 1280×800 into the same case (+46px measured).
+
+The test is a **zero-height sentinel at the plate's static top**, not an
+intersection test against the plate: the plate is `md:sticky` and reports its
+PINNED rect from first paint, so a naive test would flip the bar dark on every
+page at every scroll position. See `docs/03_FRONTEND_SPEC.md` Rule S-5.
+
 **This is the open decision on the list below, and its alternative has narrowed.**
 It used to be: if Saad would rather keep the bar transparent everywhere, drop
 Step 3 and let Step 2 do all the work. **Step 2 no longer exists**, so dropping

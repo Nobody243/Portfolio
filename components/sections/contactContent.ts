@@ -1,13 +1,13 @@
 /**
- * Contact section copy — Ticket 10.
+ * Reveal-footer copy — Ticket 10, extended by Phase 5's curtain.
  *
- * TWO STRINGS, BOTH FIXED UI CHROME. Every link — its label, its visible value
- * and its href — comes from `content/contact.ts`, which is the collection layer
- * and the file that gets hand-edited when LinkedIn arrives. This module exists
- * for the same reason `aboutContent.ts`, `skillsContent.ts`,
- * `projectsContent.ts`, `projectDetailContent.ts`, `experienceContent.ts` and
- * `currentlyLearningContent.ts` do: fixed-arity chrome for one surface is not a
- * collection.
+ * THREE STRINGS AND ONE DOM ID, ALL FIXED UI CHROME. Every link — its label,
+ * its visible value and its href — comes from `content/contact.ts`, which is
+ * the collection layer and the file that gets hand-edited when LinkedIn
+ * arrives. This module exists for the same reason `aboutContent.ts`,
+ * `skillsContent.ts`, `projectsContent.ts`, `projectDetailContent.ts`,
+ * `experienceContent.ts` and `currentlyLearningContent.ts` do: fixed-arity
+ * chrome for one surface is not a collection.
  *
  * AND NO PER-LINK COPY OF ANY KIND. No "preferred", no "fastest way", no
  * response-time promise, no availability statement, no location line, no
@@ -59,3 +59,45 @@ export const CONTACT_HEADING = "Contact";
  */
 export const CONTACT_CLOSING_LINE =
   "I read everything that arrives here. Email is fastest.";
+
+/**
+ * The stamp's year. FOUR DIGITS, AND NOTHING ELSE — this is deliberately NOT a
+ * copyright line, which `RevealFooter.tsx` bans outright.
+ *
+ * NOT `new Date().getFullYear()`, AND THAT IS THE WHOLE POINT OF THE CONSTANT.
+ * A runtime year inside a prerendered server component freezes at BUILD time
+ * anyway, so the dynamic version is not dynamic — it is a silent, undated claim
+ * that changes whenever someone happens to redeploy. A constant is greppable,
+ * deliberate, and edited by hand like every other piece of content on this
+ * site.
+ *
+ * NAMED FOR WHAT IT IS. It is the year of this edition of the site, not a
+ * copyright assertion: no `©`, no name, no "All rights reserved", no range, no
+ * separator glyph. `RevealFooter.tsx` sets it BELOW the mark rather than beside
+ * it for the same reason — every copyright line ever written is horizontal, and
+ * a vertical mark-over-date stack is a stamp.
+ *
+ * A STRING, NOT A NUMBER, so nothing can arithmetic on it or reformat it with a
+ * thousands separator.
+ */
+export const CONTACT_EDITION_YEAR = "2026";
+
+/**
+ * The id of the zero-height sentinel that marks the reveal footer's STATIC top
+ * edge, rendered by `RevealFooter.tsx` immediately before the plate.
+ *
+ * WHY IT EXISTS AT ALL. The plate is `md:sticky md:bottom-0`, so from first
+ * paint it is pinned at the bottom of the viewport, occluded by the page stack.
+ * Its `getBoundingClientRect()` therefore reports the PINNED position, not the
+ * document position — which means ScrollTrigger cannot measure the footer
+ * itself and get a useful answer. The sentinel is an ordinary in-flow element
+ * sitting exactly where the plate's top edge lives in document coordinates, so
+ * it CAN be measured, and it crosses the navbar exactly when the un-occluded
+ * plate does.
+ *
+ * WHAT READS IT: `Navbar.tsx`, to decide the bar's palette — the same way it
+ * reads `HERO_SECTION_ID`. Its ABSENCE is meaningful and is the guard: `/about`
+ * has no reveal footer, so it has no sentinel, so no trigger is created there.
+ * Never render this id anywhere the plate is not directly beneath it.
+ */
+export const REVEAL_FOOTER_SENTINEL_ID = "reveal-footer-top";

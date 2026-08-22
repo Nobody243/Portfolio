@@ -479,9 +479,29 @@ at a lower z-index; the last section's content wipes up off it as the user scrol
 having been there behind the screens the whole time. Content reuses existing elements: email (same
 click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detail (mark + year).
 
-> **Implementation flag.** If Home's scroll-scrub sections use GSAP ScrollTrigger, the negative-margin
-> curtain technique conflicts with ScrollTrigger's height calculations unless sequenced last and
-> followed by `ScrollTrigger.refresh()`. **Build this last**, and re-test scroll height after adding it.
+> **~~Implementation flag.~~ AMENDED 2026-08-22, after the footer shipped.** The flag read: *"If
+> Home's scroll-scrub sections use GSAP ScrollTrigger, the negative-margin curtain technique conflicts
+> with ScrollTrigger's height calculations unless sequenced last and followed by
+> `ScrollTrigger.refresh()`."* That is **correct about negative margins, and the shipped mechanic does
+> not use one.**
+>
+> **The negative-margin technique is rejected. The shipped mechanic is `position: sticky; bottom: 0`
+> on the `<footer>`, with an opaque `relative z-10 bg-base` page stack above it.** A sticky element
+> keeps its full normal flow box, so `document.scrollHeight` is unchanged — **measured Δ = 0px across
+> both routes, five viewports and both themes** — and **no `ScrollTrigger.refresh()` is required.**
+> Do not add one "to be safe": with no geometry change to refresh against it recomputes all nine
+> triggers and can visibly re-snap a scrubbed section if it lands mid-scroll. Someone reading only
+> this paragraph would have added it in good faith, which is why the flag is corrected rather than
+> just satisfied. **Rule S-5 in `docs/03_FRONTEND_SPEC.md` is the full, binding statement.**
+>
+> **"Build this last" still stands**, for a different reason than the one originally given: the page
+> stack's background and z-index touch both routes.
+>
+> **The click-to-copy email is delivered, and the objection to it was retired rather than overruled.**
+> `components/sections/Contact.tsx` had banned a copy control because it would be inert until
+> hydration and dead forever with JS blocked. `CopyEmailButton` now takes an optional `href` and
+> renders a working `mailto:` anchor until it hydrates, so there is no dead control at any point. The
+> navbar adopted the same fallback in the same commit.
 
 ---
 

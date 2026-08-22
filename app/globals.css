@@ -526,10 +526,21 @@ html[data-nav-open] {
 
    The bar is fixed and transparent, and it crosses three different grounds on
    `/`: the hero (`bg-hero-surface`, PINNED DARK in both themes), the mid-page
-   sections (`bg-base`, which FLIPS), and the Contact plate (dark again). One
-   fixed colour cannot serve all three — light text vanishes on #FDFCFA, dark
-   text vanishes on the hero — so the bar swaps its palette at the hero's edge.
-   `components/ui/Navbar.tsx` has the measured contrast figures.
+   sections (`bg-base`, which FLIPS), and the reveal footer's plate (dark
+   again). One fixed colour cannot serve all three — light text vanishes on
+   #FDFCFA, dark text vanishes on the hero — so the bar swaps its palette at
+   TWO boundaries: the hero's bottom edge and the plate's top edge.
+   `components/ui/Navbar.tsx` has the measured contrast figures and both
+   triggers.
+
+   THE PLATE IS THE THIRD GROUND AND IT WAS UNHANDLED UNTIL PHASE 5 — MEASURED,
+   not assumed. On the shipped build at 1024x600 the bar's 59px strip overlapped
+   the Contact plate by 129px at maximum scroll (plate top -70, bar bottom 59)
+   with `data-over-hero` absent, i.e. #151515-ish labels and an 80% #FDFCFA
+   scrim laid over a #07090C surface in light mode. The reveal footer's stamp
+   band makes the plate ~198px taller, which pulls 1280x800 into the same case.
+   `Navbar.tsx` now observes the plate's static top through a sentinel and takes
+   the hero palette over it, which also suppresses the scrim below.
 
    WHY THIS IS CSS AND NOT AN INLINE STYLE OBJECT. The first version computed
    these three values in React from an `overHero` state flag. That is a
@@ -559,6 +570,45 @@ html[data-nav-open] {
 [data-nav-root][data-over-hero] {
   --nav-fg: var(--color-hero-fg);
   --nav-fg-dim: color-mix(in oklab, var(--color-hero-fg) 72%, transparent);
+  --nav-accent: var(--color-hero-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   `[data-hero-palette]` — THE SAME THREE VARIABLES, FOR ANY DARK PLATE THAT IS
+   NOT THE NAVBAR.
+
+   `components/ui/CopyEmailButton.tsx` hardcodes `var(--nav-fg)`,
+   `var(--nav-fg-dim)` and `var(--nav-accent)`. Those were defined ONLY under
+   `[data-nav-root]` above, and the failure mode of using the control anywhere
+   else is silent: outside that scope the declarations are INVALID AT
+   COMPUTED-VALUE TIME, `color` falls back to inherited/initial, and the
+   "Copied" label renders in the initial colour on a #07090C plate — invisible,
+   with nothing logged and nothing erroring. The reveal footer reuses that
+   control, so it carries this attribute on its root.
+
+   A SCOPE, NOT A NEW TOKEN. Same three variable names, same three sources, one
+   more selector. Do NOT add `--color-*` entries for these; they are chrome
+   plumbing, not part of the theme.
+
+   ALL THREE BIND TO `--color-hero-accent` (#14B8A6, 8.00:1 on #07090C), WHICH
+   IS DELIBERATELY NOT THE OVER-HERO VALUES. The navbar is monochrome ambient
+   chrome, so dim-grey-to-full-white on hover is right there. On the footer's
+   plate TEAL AND ONLY TEAL MEANS "activate this", and the GitHub and LinkedIn
+   values sitting beside the address are teal — an email rendering in dim grey
+   would make the primary action the least affordance-coloured thing on the
+   plate. The hover colour transition becomes a no-op as a result, which is
+   correct: the control's confirmation was never carried by colour. It is
+   carried by the masked label swap and the drawn checkmark.
+
+   The `/70` vs 72% divergence with the plate's own `text-hero-fg/70` labels is
+   MOOT HERE because `--nav-fg-dim` is not used on this surface. If a future
+   edit reintroduces it, 72% >= 70% and it passes. DO NOT "harmonise" the
+   navbar's 72% down to 70% — that is the navbar's value and the navbar
+   measured it.
+--------------------------------------------------------------------------- */
+[data-hero-palette] {
+  --nav-fg: var(--color-hero-accent);
+  --nav-fg-dim: var(--color-hero-accent);
   --nav-accent: var(--color-hero-accent);
 }
 

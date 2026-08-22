@@ -26,6 +26,52 @@
  * positioning would collapse the box to the visible label's width and produce a
  * layout jump at 0ms and again at 1800ms.
  *
+ * IT IS REUSED ON THE REVEAL FOOTER'S PLATE, WHICH TOOK TWO DECOUPLINGS.
+ * Neither would have errored; both would have rendered something plausible.
+ *
+ *   1. COLOUR. `--nav-fg`, `--nav-fg-dim` and `--nav-accent` used to be defined
+ *      ONLY under `[data-nav-root]` in `app/globals.css`. Outside that scope the
+ *      declarations are invalid at computed-value time and `color` silently
+ *      falls back to inherited/initial — a "Copied" label rendering in the
+ *      initial colour on a #07090C plate is invisible. globals.css now also
+ *      defines the three under `[data-hero-palette]`, which the footer's root
+ *      carries. NO NEW TOKEN: the same three variables, one more scope.
+ *
+ *   2a. TEXT DECORATION DOES NOT REACH THE LABELS FROM THE BUTTON, and this
+ *      was found by screenshot rather than by reasoning. Passing `underline`
+ *      through `className` puts it on the `<button>`, and the label lives
+ *      inside `<span class="grid overflow-hidden">` — `overflow: hidden`
+ *      establishes a new block formatting context, and CSS does not
+ *      propagate a text decoration into one. The footer's email therefore
+ *      rendered WITHOUT the underline its two sibling links carry, while
+ *      the pre-hydration anchor rendered WITH it — the same control looking
+ *      like two different things either side of hydration. `valueClassName`
+ *      exists for exactly that: it lands on the ADDRESS, in both branches.
+ *
+ *   2. TYPE. `text-caption font-mono` used to be hardcoded in the class list
+ *      below, and appending `text-body font-sans` through `className` is NOT a
+ *      fix — Tailwind resolves equal-specificity conflicts by STYLESHEET SOURCE
+ *      ORDER, not by the order of the class attribute, so it would have looked
+ *      right in dev and been a coin flip in the production build. The type
+ *      classes are a prop now, defaulting to the navbar's pair so both navbar
+ *      call sites are unchanged.
+ *
+ * THE PROGRESSIVE-ENHANCEMENT `href`, WHICH RETIRES A REAL OBJECTION.
+ * `Contact.tsx` refused a copy control on the ground that it "would be INERT
+ * UNTIL HYDRATION… (or forever, with JS blocked)". That objection was correct
+ * and is answered rather than overruled: with `href` supplied, this renders a
+ * plain `<a href="mailto:…">` on the server and swaps to the `<button>` once
+ * hydrated. WITH JS BLOCKED THE VISITOR GETS A WORKING MAILTO, NEVER A DEAD
+ * CONTROL. `href` is optional so the swap is opt-in, but every call site on the
+ * site passes it and a new one should too.
+ *
+ * `useSyncExternalStore` AND NOT `useState` + `useEffect` FOR THAT SWAP. Next
+ * 16's `react-hooks/set-state-in-effect` rule hard-errors on the effect shape —
+ * the same reason `useReducedMotion` is written that way and the same reason
+ * `Navbar`'s palette is an attribute rather than state. The server snapshot is
+ * `false`, so the HTML React hydrates against is the anchor, and the upgrade to
+ * the button is a normal post-hydration re-render rather than a mismatch.
+ *
  * THREE STATES, NOT TWO, AND THE THIRD IS NOT DECORATION. `navigator.clipboard`
  * is unavailable on insecure origins and can be refused by permission policy.
  * Showing "Copied" when the write rejected would be the site lying about
@@ -33,7 +79,13 @@
  * instead and the label says so, which leaves a working manual path.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { motion } from "motion/react";
 
 import { CheckIcon } from "@/components/ui/NavIcons";
@@ -55,13 +107,60 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  */
 const REVERT_MS = 1800;
 
+/**
+ * The navbar's type pair, and the default so both navbar call sites keep their
+ * existing computed styles with no prop.
+ */
+const DEFAULT_TYPE = "text-caption font-mono";
+
+/* -------------------------------------------------------------------------
+   "Have we hydrated yet?" as an external store, so the answer costs no
+   `setState` in an effect.
+
+   `subscribe` never calls back because the answer never changes after the
+   first client render — it returns the required unsubscribe function and
+   nothing else. The two snapshots are constant functions rather than inline
+   arrows so their identity is stable across renders; an inline
+   `() => true` would be a new function every render, which
+   `useSyncExternalStore` tolerates but which makes the intent less obvious.
+------------------------------------------------------------------------- */
+const subscribeNever = () => () => {};
+const hydratedSnapshot = () => true;
+const serverSnapshot = () => false;
+
 type Status = "idle" | "copied" | "failed";
 
 type CopyEmailButtonProps = {
   /** The address. Both the visible label and what lands on the clipboard —
    *  they are the same string by construction, never two literals. */
   value: string;
+  /**
+   * The `mailto:` for the pre-hydration / no-JS fallback anchor. OMIT IT ONLY
+   * IF A DEAD CONTROL IS GENUINELY ACCEPTABLE — it never is on this site.
+   * Comes from `content/contact.ts` alongside `value`, never hand-written, so
+   * the address and the link can never disagree.
+   */
+  href?: string;
   className?: string;
+  /**
+   * The size + family pair. Replaces the default rather than appending to it,
+   * because appending cannot win a same-specificity conflict reliably — see
+   * decoupling 2 in the header.
+   */
+  typeClassName?: string;
+  /**
+   * Applied to the ADDRESS itself — in the button and in the fallback anchor,
+   * so the two are indistinguishable. This is where a text decoration has to
+   * go: one passed through `className` lands on the `<button>` and never
+   * reaches the label, because the mask is an `overflow: hidden` box and a
+   * text decoration does not cross into a new block formatting context.
+   *
+   * NOT APPLIED TO THE CONFIRMATION LABEL, deliberately: "Copied" is an
+   * outcome, not a link, and underlining it would claim otherwise. The
+   * grid-stacked box sizes to the wider STRING, and a decoration adds no
+   * width, so the two labels still cannot shift each other.
+   */
+  valueClassName?: string;
 };
 
 /**
@@ -84,8 +183,19 @@ function selectContents(el: HTMLElement | null) {
   }
 }
 
-export function CopyEmailButton({ value, className }: CopyEmailButtonProps) {
+export function CopyEmailButton({
+  value,
+  href,
+  className,
+  typeClassName = DEFAULT_TYPE,
+  valueClassName,
+}: CopyEmailButtonProps) {
   const [status, setStatus] = useState<Status>("idle");
+  const hydrated = useSyncExternalStore(
+    subscribeNever,
+    hydratedSnapshot,
+    serverSnapshot,
+  );
   const reducedMotion = useReducedMotion();
   const addressRef = useRef<HTMLSpanElement>(null);
   const timerRef = useRef<number | null>(null);
@@ -132,6 +242,26 @@ export function CopyEmailButton({ value, className }: CopyEmailButtonProps) {
   const outY = reducedMotion ? "0%" : "-115%";
   const inY = reducedMotion ? "0%" : "115%";
 
+  /* THE FALLBACK ANCHOR, and it carries the SAME two class slots so the swap
+     is invisible: identical size, family and layout classes, so nothing moves
+     when the button replaces it. No `target` and no `rel` — a `mailto:` does
+     not open a new tab, and announcing one that never opens is a lie. */
+  if (!hydrated && href) {
+    return (
+      <a
+        href={href}
+        /* `filter(Boolean)` rather than `?? ""`: an omitted optional prop
+           would otherwise leave a stray space in the attribute, which is
+           harmless and looks like a bug in view-source. */
+        className={[typeClassName, valueClassName, className]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {value}
+      </a>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -145,7 +275,8 @@ export function CopyEmailButton({ value, className }: CopyEmailButtonProps) {
       // already in flight and re-announce it as a different button.
       aria-label={`Copy email address ${value}`}
       className={[
-        "group relative cursor-pointer text-caption font-mono",
+        "group relative cursor-pointer",
+        typeClassName,
         "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-accent)]",
         className ?? "",
       ].join(" ")}
@@ -157,7 +288,10 @@ export function CopyEmailButton({ value, className }: CopyEmailButtonProps) {
       */}
       <span className="grid overflow-hidden">
         <motion.span
-          className="col-start-1 row-start-1 whitespace-nowrap text-[var(--nav-fg-dim)] transition-colors duration-300 group-hover:text-[var(--nav-fg)]"
+          className={[
+            "col-start-1 row-start-1 whitespace-nowrap text-[var(--nav-fg-dim)] transition-colors duration-300 group-hover:text-[var(--nav-fg)]",
+            valueClassName ?? "",
+          ].join(" ")}
           animate={{ y: idle ? "0%" : outY, opacity: idle ? 1 : 0 }}
           transition={transition}
         >

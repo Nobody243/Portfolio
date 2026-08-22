@@ -2,12 +2,12 @@ import { Hero } from "@/components/hero/Hero";
 import { Trajectory } from "@/components/sections/Trajectory";
 import { Skills } from "@/components/sections/Skills";
 import { Projects } from "@/components/sections/Projects";
-import { Contact } from "@/components/sections/Contact";
+import { RevealFooter } from "@/components/sections/RevealFooter";
 import { featuredProjects } from "@/content/projects";
 
 export default function Page() {
   return (
-    // A FRAGMENT, so `<Contact />` can render its `<footer>` as a SIBLING of
+    // A FRAGMENT, so `<RevealFooter />` can render its `<footer>` as a SIBLING of
     // `<main>` rather than a child. That placement is the whole point: a
     // `<footer>` whose nearest ancestor is `<body>` is the `contentinfo`
     // landmark, which is where a screen-reader user goes looking for contact
@@ -27,7 +27,36 @@ export default function Page() {
     // that layout's header carries the full reasoning, including why it is a
     // nested route group and not `app/(site)/layout.tsx`.
     <>
-      <main>
+      {/*
+        THE PAGE STACK, AND THE TWO CLASSES THAT KEEP THE CURTAIN HIDDEN.
+
+        `bg-base` AND `relative z-10` ARE BOTH LOAD-BEARING. Rule S-5 in
+        `docs/03_FRONTEND_SPEC.md` states them; this is the enforcement point.
+
+        `<RevealFooter />` below is `md:sticky md:bottom-0`, so from the first
+        painted frame its #07090C plate is pinned at the bottom of the viewport
+        BEHIND this element, waiting. The only thing hiding it is this
+        background. Inheriting the page background is NOT enough and that is the
+        trap: a background on `<html>`/`<body>` PROPAGATES TO THE CANVAS, which
+        paints below every positioned descendant — including the footer. Drop
+        either class and the plate is visible through every section of the page
+        at every scroll position.
+
+        `relative z-10` also makes this a stacking context, and that is
+        contained: `HeroHeadline`'s `z-10` is scoped inside the hero, and the
+        Navbar (z-40), Intro (z-50) and AssetLoader (z-[60]) are all outside
+        `<main>` and stay above it. Rule S-4's project overlay is a modal
+        `<dialog>` opened with `showModal()`, so it renders in the TOP LAYER and
+        is above every z-index on the page — but ONLY because of `showModal()`.
+        Opened without it, it would fall behind this stack.
+
+        NO `min-h-[calc(100dvh-…)]` HERE, EVER. That is the reflexive fix for a
+        short page under a pinned footer and it is the one that adds phantom
+        scroll: it grows `document.scrollHeight`, which every
+        `end: "bottom bottom"` on the page resolves against. Sticky needs no
+        such help — see Rule S-5's short-page cases.
+      */}
+      <main className="relative z-10 bg-base">
         <Hero />
         <Trajectory />
         <Skills />
@@ -65,13 +94,21 @@ export default function Page() {
             removing them from here first would have made them unreachable. */}
       </main>
       {/* OUTSIDE `<main>`, deliberately — see the fragment comment above.
-          Nothing comes after this: no copyright, no colophon. The panel's own
+          Nothing comes after this: no copyright, no colophon. The plate's own
           bottom padding is the end of the document.
 
-          IT ALSO APPEARS ON `/work` FOR NOW, which is temporary and known:
-          Phase 5 absorbs this section into the reveal footer that both pages
-          share. Same component in both places until then — not a copy. */}
-      <Contact />
+          THIS IS PHASE 5'S REVEAL FOOTER, which absorbed the old `Contact`
+          section. The same component renders on `/work` — one component, two
+          call sites, never a copy — and deliberately NOT on `/about`, which
+          `docs/07_SITE_RESTRUCTURE.md` §6 keeps as the one fully quiet page.
+
+          It renders TWO elements from a fragment: a zero-height sentinel that
+          marks the plate's static top for the navbar, and the plate itself.
+          Both must stay direct children of `<body>` — the footer because that
+          is what makes it the `contentinfo` landmark AND what makes `<body>`
+          its sticky containing block, the sentinel because it has to sit in
+          normal flow where the footer no longer does. */}
+      <RevealFooter />
     </>
   );
 }
