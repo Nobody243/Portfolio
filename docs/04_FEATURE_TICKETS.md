@@ -521,9 +521,13 @@ keyboard navigation, sufficient color contrast (verify `accent-working` against 
 > **Still open after this pass, deliberately:**
 > - `bg-tint-cool` has no consumer, so light mode cannot be judged for it. It gets judged when it
 >   first gets one.
-> - `HeroLoader.tsx:167` renders at `text-hero-fg/50` = **4.60:1**. It **passes AA**, and the site's
+> - ~~`HeroLoader.tsx:167` renders at `text-hero-fg/50` = **4.60:1**. It **passes AA**, and the site's
 >   `/70` floor does not reach it — that floor exists because *light mode binds*, and the hero surface
->   is pinned with no light variant. Left as Ticket 3 tuned it.
+>   is pinned with no light variant. Left as Ticket 3 tuned it.~~ **CLOSED 2026-08-22.** The component
+>   is `components/intro/AssetLoader.tsx` since the Loader/Intro split and the counter now renders at
+>   `text-hero-fg/70` (8.17:1). The reasoning above was sound and the outcome was still wrong: a
+>   second, correct-but-different floor is the one a reviewer forgets exists, which `docs/03` says in
+>   as many words. The ratio was also 4.63:1, not 4.60:1 — recomputed with the rest of that family.
 > - Lighthouse was not run (no tooling available here). Its contrast, heading-order, viewport and
 >   reduced-motion checks are covered by direct measurement above; its **performance** scoring is not,
 >   and belongs with Ticket 13.

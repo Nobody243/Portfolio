@@ -135,21 +135,26 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > composites, for anyone re-deriving: `/70` #A4A6A9, `/55` #838587, `/50`
 > #787A7C.*
 >
-> The arithmetic floor here is `/50`, not `/70`. **Ship `/70` anyway.** Two reasons: 0.10 of headroom
+> The arithmetic floor here is `/50`, not `/70`. **Ship `/70` anyway.** Two reasons: 0.13 of headroom
 > is the same thin margin that got `/60` on `bg-elevated` rejected as unsafe below; and one site-wide
 > floor is worth more than a correct-but-different second one, because **the second floor is the one a
 > reviewer forgets exists.** The reveal footer's link labels are `text-hero-fg/70`
 > (`RevealFooter.tsx:460`, `:639`). *That sentence named `Contact.tsx`, which was absorbed into
 > `RevealFooter.tsx` in Phase 5 and no longer exists.*
 >
-> Two existing sub-`/70` values on this surface are NON-TEXT or transient and are not precedent for
-> text: `HeroHeadline`'s reduced-motion chevron at `text-hero-fg/55` is an **icon** on the 3:1 floor
-> (5.38:1), and the loader's percentage counter at `text-hero-fg/50` (4.60:1) clears AA but sits
-> below this rule — flagged, not changed, in Ticket 10; it belongs to whoever revisits the loader.
-> *That counter was `HeroLoader.tsx`; the component is `components/intro/AssetLoader.tsx:255` since
-> the Loader/Intro split (`docs/06` §1). The `/50` value is still live and still the flagged one —
-> it had drifted to `/45` (3.91:1, failing) during the split and was restored, so the flag has now
-> earned its keep once.*
+> **One** existing sub-`/70` value remains on this surface, and it is NON-TEXT: `HeroHeadline`'s
+> reduced-motion chevron at `text-hero-fg/55`, an **icon** on the 3:1 floor (5.38:1). It is not
+> precedent for text.
+>
+> *There were two. The loader's percentage counter at `text-hero-fg/50` was the second — flagged, not
+> changed, in Ticket 10, and handed to "whoever revisits the loader". It was raised to `/70` (8.17:1)
+> on 2026-08-22 and the carve-out is deleted rather than re-justified. It never failed AA at /50
+> (4.63:1); the point is that it was a correct-but-different second floor, which is precisely the
+> thing this section names as "the one a reviewer forgets exists". Its history, worth keeping because
+> it is the argument for having no exceptions: the component was `HeroLoader.tsx`, became
+> `components/intro/AssetLoader.tsx` at the Loader/Intro split (`docs/06` §1), and the value silently
+> drifted to `/45` (3.90:1, failing) during that split before being restored. The flag earned its keep
+> once and is now closed. `docs/04`'s "still open" entry for it is closed with it.*
 >
 > **The trap is that dark mode is the default and light mode is the binding constraint.** `/50` on
 > `bg-elevated` passes in dark and fails in light, so an opacity tuned by eye in the default theme

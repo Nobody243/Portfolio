@@ -245,14 +245,26 @@ export function AssetLoader({ onReady }: AssetLoaderProps) {
             style={{ transform: `scaleX(${progress})` }}
           />
         </div>
-        {/* `/50`, NOT `/45`. Measured on `bg-hero-surface`: /50 is 4.60:1 and
-            clears AA; /45 is 3.91:1 and does not. `docs/03` records the /50
-            figure and flags the readout as a carve-out — `aria-hidden`,
-            transient, purely decorative — so the RULE tolerated either. The
-            value had drifted down to /45 across the Loader/Intro split,
-            which moved it from passing to failing for no stated reason.
-            Restored to the number the doc actually records. */}
-        <span className="text-caption font-mono text-hero-fg/50 tabular-nums">
+        {/* `/70`, THE SITE FLOOR — raised from `/50` on 2026-08-22, which is
+            what `docs/03` had been waiting for.
+
+            The prior note is kept, because its arithmetic is still what decides
+            this: on `bg-hero-surface`, /50 is 4.63:1 and clears AA, /45 is
+            3.90:1 and does not, and the value had silently drifted to /45
+            across the Loader/Intro split before being restored to /50. (Those
+            two figures read 4.60 and 3.91 here until the same day; they descend
+            from a `--color-hero-fg` ratio that was itself 0.15 optimistic.)
+
+            SO THIS WAS NEVER A FAILING VALUE, AND THAT IS EXACTLY WHY IT SAT
+            HERE. `docs/03` records the site's one opacity floor as /70 and then
+            carves this readout out of it as `aria-hidden`, transient and
+            decorative — a correct-but-different second floor, which that same
+            doc names as the thing "a reviewer forgets exists". It handed the
+            carve-out to "whoever revisits the loader" and nobody did for two
+            tickets. /70 is 8.17:1 here, costs nothing on a plate that is on
+            screen for under a second, and deletes the exception instead of
+            re-justifying it. One floor, no carve-outs, nothing to remember. */}
+        <span className="text-caption font-mono text-hero-fg/70 tabular-nums">
           {Math.round(progress * 100)}%
         </span>
       </div>
