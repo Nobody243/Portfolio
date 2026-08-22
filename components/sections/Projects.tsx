@@ -1,4 +1,4 @@
-import { Reveal } from "@/components/ui/Reveal";
+import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import { ScrubReveal } from "@/components/ui/ScrubReveal";
 import { ProjectCard } from "@/components/sections/ProjectCard";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
@@ -18,7 +18,8 @@ import type { Project } from "@/content/types";
  * MEMBERSHIP ONLY, never sequence.
  *
  * DELIBERATELY A SERVER COMPONENT, exactly as About and Skills are. The client
- * boundary is the motion wrapper (`Reveal` or `ScrubReveal`) and `ProjectCard`,
+ * boundary is the motion wrapper (`IntroEntrance`, which renders `Reveal`, or
+ * `ScrubReveal`) and `ProjectCard`,
  * and `ProjectCard` receives only the five fields a card draws — so no
  * `description` (the longest strings in the data file), no `links` and no
  * `credit` reach the client bundle.
@@ -163,9 +164,27 @@ export function Projects({ projects, motion }: ProjectsProps) {
     be hard to trace back to a second ternary.
 
     Both components take the same two props (`children`, `className`), which is
-    what makes the substitution legal. `Reveal` also accepts `delay`; nothing
-    here passes it, and nothing should — see the no-stagger note on the card
-    below.
+    what makes the substitution legal. `IntroEntrance` also accepts `delay` and
+    forwards it to `Reveal`; nothing here passes it, and nothing should — see
+    the no-stagger note on the card below.
+
+    THE REVEAL BRANCH IS `IntroEntrance` AND NOT `Reveal`, AND THAT IS A FIX,
+    NOT A NEW BEHAVIOUR. `IntroEntrance` renders this same `Reveal` with this
+    same `delay` and adds nothing to it on the scroll path. What it adds is a
+    second TRIGGER: since the Intro's gate moved to the `(chrome)` layout, a
+    hard load of `/work` plays a ~3.1s sequence over this page, and `Reveal` is
+    `whileInView` at scroll 0 — so every above-the-fold unit fired at ~131ms and
+    was fully settled by 398ms, behind a plate that is still opaque at 2.7s.
+    MEASURED, 1440x900 dark: units 0-4 at `y = 0`, `opacity = 1` at the frame
+    the plate crossed 50%. `IntroEntrance` re-keys them so they play at the
+    hand-off + 0.20s instead. Units below the fold never fired, so their fresh
+    instance still reveals on scroll; the wrapper self-selects and this file
+    does not have to know the fold.
+
+    IT IS ON THE REVEAL BRANCH ONLY, SO HOME IS UNTOUCHED — Home passes
+    `motion="scrub"`, which selects `ScrubReveal` and never reaches
+    `IntroEntrance` at all. Home's seam is the hero's camera, measured and
+    unchanged.
 
     EXACTLY ONE OF THEM RENDERS PER ELEMENT. This is a choice, never a nesting:
     a `Reveal` inside a `ScrubReveal` would put Framer Motion and GSAP on the
@@ -173,7 +192,7 @@ export function Projects({ projects, motion }: ProjectsProps) {
     intermittently. That failure is untraceable from the symptom, so the rule is
     structural rather than a thing to remember.
   */
-  const Unit = motion === "scrub" ? ScrubReveal : Reveal;
+  const Unit = motion === "scrub" ? ScrubReveal : IntroEntrance;
   return (
     <section
       id="work"

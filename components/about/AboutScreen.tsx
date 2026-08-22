@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import portrait from "@/public/images/about/portrait.jpg";
-import { AboutEntrance } from "@/components/about/AboutEntrance";
+import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import { CvAction } from "@/components/about/CvAction";
 import {
   ABOUT_BUTTON_SECONDARY,
@@ -132,12 +132,15 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * new TRIGGER. 13px and not 21px — 21 is scrub-only.
  *
  * "ON MOUNT, HARD LOAD AND CLIENT NAVIGATION ALIKE" IS NOW TRUE OF THE CLIENT
- * NAVIGATION ONLY, AND THE FOUR CALL SITES BELOW SAY `AboutEntrance` RATHER
+ * NAVIGATION ONLY, AND THE FOUR CALL SITES BELOW SAY `IntroEntrance` RATHER
  * THAN `Reveal` BECAUSE OF IT. Since the Intro's gate moved to the `(chrome)`
  * layout, a hard load of this route plays a 3.17s sequence over it — so "on
  * mount" means all four units finishing at 1.00s behind a fully opaque plate,
- * with the page revealed already assembled. `components/about/AboutEntrance.tsx`
- * re-triggers them at the Intro's hand-off + 0.20s instead. It is a wrapper
+ * with the page revealed already assembled. `components/intro/IntroEntrance.tsx`
+ * re-triggers them at the Intro's hand-off + 0.20s instead. (It was
+ * `components/about/AboutEntrance.tsx` until `/work`'s Projects units needed
+ * the identical mechanism; it moved to `components/intro/`, and nothing about
+ * this page's four call sites changed but the name.) It is a wrapper
  * around this same `Reveal`, passing this same `delay`: NO new component in the
  * motion sense, no new curve, no new duration, and this page's motion-author
  * count on arrival is still ONE. `Reveal` itself is untouched and stays
@@ -426,7 +429,7 @@ export function AboutScreen() {
                   flex row and the revealed box are the same element and the
                   resting layout is unchanged. Verified: geometry at rest is
                   identical to the pre-entrance build at every viewport. */}
-              <AboutEntrance className="flex items-center gap-md lg:block">
+              <IntroEntrance className="flex items-center gap-md lg:block">
                 <MonogramMark
                   variant="nav"
                   label={ABOUT_PAGE_MARK_LABEL}
@@ -468,7 +471,7 @@ export function AboutScreen() {
                   priority
                   className="aspect-square w-[112px] shrink-0 object-cover sm:w-[144px] lg:hidden"
                 />
-              </AboutEntrance>
+              </IntroEntrance>
 
               {/*
                 THE HEADROOM IS NOT OPTIONAL. 65 words at `text-body` (16px,
@@ -493,11 +496,11 @@ export function AboutScreen() {
                   `transform` does not establish a block formatting context
                   that would stop it. Measured: the paragraph's top is
                   unchanged to the hundredth of a pixel. */}
-              <AboutEntrance delay={STAGGER.line}>
+              <IntroEntrance delay={STAGGER.line}>
                 <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px]">
                   {ABOUT_PAGE_PARAGRAPH}
                 </p>
-              </AboutEntrance>
+              </IntroEntrance>
 
               {/*
                 THE ACTION ROW — one primary, two secondary, in that order.
@@ -551,7 +554,7 @@ export function AboutScreen() {
                   the motion rules forbid. One row fades where three units
                   travel; that is a smaller inconsistency than one row being
                   clipped on the narrowest phone. */}
-              <AboutEntrance
+              <IntroEntrance
                 delay={STAGGER.line * 2}
                 fadeOnly
                 className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center"
@@ -603,7 +606,7 @@ export function AboutScreen() {
                     </ExternalLink>
                   ) : null}
                 </div>
-              </AboutEntrance>
+              </IntroEntrance>
             </div>
 
             {/*
@@ -677,7 +680,7 @@ export function AboutScreen() {
               it. It is not a fifth unit for phones — see the mobile portrait
               above, which arrives with the mark at delay 0.
             */}
-            <AboutEntrance
+            <IntroEntrance
               delay={STAGGER.line * 3}
               className="hidden lg:block lg:min-w-[213px] lg:max-w-[384px] lg:flex-1"
             >
@@ -688,7 +691,7 @@ export function AboutScreen() {
                 priority
                 className="aspect-square w-full object-cover"
               />
-            </AboutEntrance>
+            </IntroEntrance>
           </div>
         </div>
       </div>
