@@ -42,14 +42,28 @@ import { PageStack } from "@/components/ui/PageStack";
  * where the reason above is written down, rather than inherited from a
  * component that does not know which route it is on.
  *
- * IT DOES TAKE THE ROUTE FADE, THOUGH, AND THE ENTRANCE AS WELL. The two are
- * not redundant: the four-unit entrance in `AboutScreen` deliberately excludes
- * the particle canvas and the page ground, so without the page fade the canvas
- * would hard-cut in while the content assembled. Where they do overlap the two
- * opacity legs multiply, and the cost of that was MEASURED rather than
- * modelled — 0.70 composited against 0.74 for the page alone at ~165ms, four
- * percentage points, because `EASE.reveal` is already at 0.94 by then. Both
- * complete at 350ms and both are transient. Do not "fix" it by delaying either.
+ * IT TAKES THE ENTRANCE AND NOT THE ROUTE FADE — `fade={false}` below — AND
+ * THAT REVERSES A DECISION THIS FILE USED TO ARGUE THE OTHER WAY.
+ *
+ * What it said, and it is still true as a measurement: the two are not
+ * redundant, because `AboutScreen`'s four-unit entrance deliberately excludes
+ * the particle canvas and the page ground. Where the two DO overlap the opacity
+ * legs multiply, and that cost was measured rather than modelled — **0.70
+ * composited against 0.74 for the page alone at ~165ms**, four percentage
+ * points, because `EASE.reveal` is already at 0.94 by then. That number stands.
+ * It is the record of why the overlap was never the problem.
+ *
+ * THE PROBLEM WAS THE NUMBER OF AUTHORS, NOT THE MULTIPLICATION. This page runs
+ * three things at once on arrival — the entrance, the route fade, and a canvas
+ * that draws continuously — on the one route whose entire brief
+ * (`docs/07_SITE_RESTRUCTURE.md` §6) is that it is the fully quiet page. The
+ * fade is the least essential of the three and it is the one that goes.
+ *
+ * THE HARD CUT THE OLD ARGUMENT PREDICTED IS REAL AND IS NOT SOLVED. On a
+ * client navigation the canvas now appears in a single frame. That is the
+ * accepted cost of one restrained author instead of three, recorded here rather
+ * than implied away. If it is ever judged unacceptable, the fix is to bring the
+ * canvas INTO the entrance — not to bring the route fade back.
  */
 
 /**
@@ -69,7 +83,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <PageStack className="">
+    <PageStack className="" fade={false}>
       <AboutScreen />
     </PageStack>
   );

@@ -105,7 +105,7 @@ export default function Page() {
         `end: "bottom bottom"` on the page resolves against. Sticky needs no
         such help — see Rule S-6's short-page cases.
       */}
-      <PageStack className="relative z-10 bg-hero-surface">
+      <PageStack className="relative z-10 bg-hero-surface" fade>
         <Hero />
         <Trajectory />
         <Skills />

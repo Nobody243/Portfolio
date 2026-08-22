@@ -773,16 +773,33 @@ section for the measurement.** `<main>` stays fully opaque because it is the onl
 the pinned plate; the fade rides an inner `[data-page-stack]` div, inside `<main>`'s existing `z-10`
 stacking context.
 
-**`/about` keeps BOTH the route fade and its four-unit entrance, and that is a measured decision
-rather than an oversight.** They cover disjoint things: the entrance deliberately excludes the
-particle canvas and the page ground, so dropping the route fade would hard-cut the canvas in while
-the content assembled — a change of driver at the exact moment this transition exists to remove one.
-Where they do overlap, on the four content units, the two opacity legs multiply. The preceding
-design note priced that at 0.25 against 0.5 at the midpoint and called it a deep double fade;
-MEASURED at ~165ms after commit it is **0.70 composited against 0.74 for the page alone** — four
-percentage points — because `EASE.reveal` is heavily front-loaded and is already at 0.94 by then
-while `EASE.ui` is at 0.74. Both legs complete by 350ms and both are transient, so no contrast floor
-binds. Do not "fix" it by delaying one leg behind the other.
+**`/about` takes the entrance and NOT the route fade. Reversed 2026-08-22; this block argued the
+opposite until then and the reversal is not a correction of the measurement.**
+
+*What it said, and what is still true:* the two cover disjoint things — the entrance deliberately
+excludes the particle canvas and the page ground. Where they overlapped, on the four content units,
+the two opacity legs multiplied; the design note before it priced that at 0.25 against 0.5 at the
+midpoint and called it a deep double fade, and MEASURED at ~165ms after commit it was **0.70
+composited against 0.74 for the page alone** — four percentage points, because `EASE.reveal` is
+heavily front-loaded and already at 0.94 by then while `EASE.ui` is at 0.74. Both legs completed by
+350ms, both were transient, no contrast floor bound. **Those figures stay on the record in the past
+tense: they are the evidence that the multiplication was never the reason to drop the fade.**
+
+*Why it changed:* the count of concurrent motion authors, not their composition. `/about` was
+running three at once on arrival — the four-unit entrance, the route fade, and a canvas that draws
+continuously — on the one route whose whole brief (`docs/07_SITE_RESTRUCTURE.md` §6) is that it is
+the fully quiet page. The fade is the least essential of the three.
+
+*What it costs, stated rather than implied away:* the hard cut the old argument predicted is **real
+and is not solved**. On a client navigation to `/about` the particle canvas now appears in a single
+frame, because the entrance excludes it. That is the accepted price of one restrained author instead
+of three. If it is ever judged unacceptable, the fix is to bring the canvas into the entrance — not
+to bring the route fade back.
+
+*Mechanism:* `PageStack` takes a REQUIRED `fade` prop with no default, the same shape as its
+`className` and as `Projects`' `motion`. `/` and `/work` pass `fade`; `/about` passes
+`fade={false}`, which makes the component a plain `<main>` — no `initial`, no `animate`, no
+transition, rather than a zero-duration fade that would still write `opacity` into the markup.
 
 **Project detail, Skills, Experience, Currently Learning (Tier 3, minimal):**
 - Simple fade/slide reveals only, no 3D, no parallax

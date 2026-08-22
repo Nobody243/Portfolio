@@ -83,7 +83,7 @@ export default function WorkPage() {
         The class string stays here rather than moving into the component for
         the same reason it is spelled out on Home.
       */}
-      <PageStack className="relative z-10 bg-base">
+      <PageStack className="relative z-10 bg-base" fade>
         {/*
           THE PAGE OUTLINE STARTED AT `<h2>`. Four sections each render one,
           and nothing above them named the document - an outline with no root.

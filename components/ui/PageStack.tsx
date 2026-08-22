@@ -76,6 +76,15 @@
  * was derived independently from ~100px of travel; slowing it to match would
  * make the line worse to fix nothing.
  *
+ * IT IS NOT ON EVERY ROUTE. `/` and `/work` fade; `/about` does not, by the
+ * `fade` prop below. `/about` is the site's one deliberately quiet page and it
+ * was running three concurrent motion authors on arrival — a four-unit
+ * entrance, this fade, and a canvas that draws continuously. The fade is the
+ * one that can go without losing anything the page is for. The cost is real and
+ * is not hidden: on a client navigation the particle canvas now appears in a
+ * single frame, because the entrance deliberately excludes it. That hard cut is
+ * accepted, not solved.
+ *
  * ENTER ONLY, AND THE FIRST APPEARANCE NEVER ANIMATES. `arrived` below is the
  * same module-scope-boolean idiom `IntroGate` uses for `played`, and it holds
  * for the same reason: a hard load or refresh instantiates a fresh module
@@ -118,9 +127,31 @@ type PageStackProps = {
    * know it depends on them.
    */
   className: string;
+  /**
+   * REQUIRED, WITH NO DEFAULT, for the same reason `className` is and for the
+   * same reason `Projects` requires `motion`: whether a page should perform on
+   * arrival is the page's decision, and a default would let a future route get
+   * one silently.
+   *
+   * `/` and `/work` pass `true`. `/about` passes `false`, and that is a
+   * REVERSAL of a measured decision recorded in `docs/03_FRONTEND_SPEC.md` —
+   * see that file, and `app/(site)/(chrome)/about/page.tsx`, for the argument
+   * that was reversed and why. The short version: the multiplication with the
+   * entrance was never the problem (0.70 composited against 0.74 page-alone at
+   * ~165ms, four points), the MOTION-AUTHOR COUNT was. `/about` is the one
+   * fully quiet page and it was running three concurrent authors.
+   *
+   * FALSE MAKES THIS COMPONENT A PLAIN `<main>` AND THAT IS THE POINT — same
+   * element, same classes, same position, no `initial`, no `animate`, no
+   * transition. It is NOT "a fade with duration 0": Framer would still write
+   * `opacity` into the style attribute, and the `<noscript>` net in
+   * `app/layout.tsx` exists precisely because that is easy to reintroduce
+   * without noticing.
+   */
+  fade: boolean;
 };
 
-export function PageStack({ children, className }: PageStackProps) {
+export function PageStack({ children, className, fade }: PageStackProps) {
   /*
     Captured in `useState`'s initialiser so it is read exactly once per
     instance and cannot change under a re-render. `arrived` is module state and
@@ -148,7 +179,7 @@ export function PageStack({ children, className }: PageStackProps) {
     arrived = true;
   }, []);
 
-  const fades = !firstAppearance && !prefersReducedMotion;
+  const fades = fade && !firstAppearance && !prefersReducedMotion;
 
   return (
     <main className={className}>
