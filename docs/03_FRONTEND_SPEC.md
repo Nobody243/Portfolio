@@ -798,6 +798,53 @@ who have that OS setting enabled.
 
 ## Component styles
 
+> ### Focus rings and hover vocabularies — both swept mechanically, 2026-08-22
+>
+> **Focus.** Verified by TABBING each route end to end and reading the computed outline at every stop,
+> not by grepping class strings: `/`, `/work`, `/about` and a project detail page at 1440×900, plus the
+> three chrome routes at 375×667, in both themes. **112 tab stops. Zero problems.**
+>
+> Every stop resolves a ≥ 2px outline with a token colour, and every ring measures **≥ 3:1 against the
+> pixel immediately outside it**, sampled from a real screenshot at `left − outline-offset − 3`.
+>
+> Two things a class-string grep gets wrong here, both recorded because a naive census reports them as
+> defects:
+>
+> - **`ProjectCard`'s anchor is `focus-visible:outline-none` and that is not a removed indicator.** The
+>   ring is drawn on the CARD, via `has-[a:focus-visible]:outline-2 outline-offset-4
+>   outline-accent-working`. The operable region is the whole card, so the indicator must be too — a
+>   ring around a title inside a 400px click target is the WCAG 2.4.11 mismatch this avoids. A sweep
+>   must walk UP from `document.activeElement` to find the ring.
+> - **Sampling the ground "just outside the element" must account for `outline-offset`**, or it reads a
+>   pixel inside the control and reports teal-on-teal.
+>
+> Established offsets, matched rather than invented: `offset-4` in the bar (matching the row) and on
+> `HeroHeadline`'s scroll cue (sized for a 20px icon); `offset-2` on the `ExternalLink` atoms, the two
+> non-nav `ThemeToggle` constants and `aboutButtonStyles`.
+>
+> **Hover — every `hover:` in `components/`, classified. Ten occurrences, no fourth vocabulary.**
+>
+> | Vocabulary | Count | Where |
+> |---|---|---|
+> | Bar text: `--nav-fg-dim` → `--nav-fg`, `transition-colors duration-300` | 5 | `NAV_ITEM`, the menu button, `CopyEmailButton`'s address, `THEME_TOGGLE_IN_NAV`, `NavMobileMenu`'s close control |
+> | Bar icon: dim → `--nav-accent` | 3 | the centre home icon, the bar's LinkedIn anchor, the menu's LinkedIn anchor |
+> | Card: `ProjectCard`'s own border step + its `layoutId` image scale | 2 | `ProjectCard` only |
+> | Buttons and prose links | **0** | and that is the rule, not an omission |
+>
+> The text/icon split is principled rather than inconsistent: a 12px glyph gains real weight going 72%
+> → 100%, while a 19px hairline icon barely changes, so the icon takes a hue shift instead.
+>
+> **Prose links have no hover at all, and the site's own rule over-permits.** `docs/03` says *"the only
+> hover device permitted in body content is `hover:decoration-2`"* — and `ExternalLink` ships **no**
+> hover, with the arithmetic: any hover step that dims the teal needs a value below full
+> `accent-working`, and `#0f766e` at `/70` on light `bg-base` falls to roughly 3.2:1 and fails AA. So
+> `hover:decoration-2` is a **permitted device with zero users**. Recorded rather than "fixed" either
+> way: the rule is a ceiling, and nothing is required to reach it.
+>
+> `NavMobileMenu`'s three list entries also have no hover, deliberately — they are `text-h3` in solid
+> `text-fg`, so there is nothing for a dim-to-full escalation to escalate from, and inventing a
+> treatment for "large text on its own surface" would be a fourth vocabulary.
+
 - **Buttons:** two variants — primary (filled, `accent-working`) and ghost (outlined/text-only). No
   gradients, no drop-shadow-heavy "glow" buttons outside the hero.
 - **Cards (project gallery):** `bg-elevated` in light mode / a very slightly lighter-than-base surface
