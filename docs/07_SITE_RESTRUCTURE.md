@@ -45,6 +45,47 @@ prerequisite attached to this does not hold, and must not gate the toggle.**
 with the hero expanding out of the Intro's centre point (§3). One coordinated beat, not two sequential
 ones.
 
+### 1.1 Active-route indicator (added 2026-08-22)
+
+**§1 above fixes the bar's layout and said nothing about an active state. This adds one, and it binds
+any later nav work** — which is why it is here rather than only in
+`.claude/handoff/navbar-indicator-design.md`, per CLAUDE.md's rule.
+
+**A 2px line beneath the active centre item, matching that item's width, sliding and resizing between
+the three.** The layout contract in §1 is unchanged: same three clusters, same order, same full-bleed
+gutter.
+
+| Parameter | Value |
+|---|---|
+| Element | one absolutely-positioned `<span aria-hidden="true">` inside the centre cluster |
+| Height · offset | **2px**, **6px** below the cluster's content box |
+| Colour | `var(--nav-accent)` — never a literal; the bar crosses the pinned-dark hero and `bg-base`, which flips |
+| Active source | `usePathname()` → `/` = the centre icon, `/about` = ABOUT, `/work` = WORK |
+| Geometry | the active item's `getBoundingClientRect()`, differenced against the cluster's |
+| Transition | `transform` + `width`, **240ms**, `EASE.ui` from `lib/animation/easing.ts` |
+| Reduced motion | **none — it jumps** |
+| Breakpoint | **`md` and up only**; below that the cluster is `hidden` and `NavMobileMenu` navigates |
+| Re-measure on | route change · resize · `document.fonts.ready` |
+
+**THE CENTRE ICON BEING `/` IS WHAT MAKES THIS WORK.** Every page the bar appears on has exactly one
+active item. A two-item version would show nothing on Home. **Do not retarget the icon** without
+resolving what Home's indicator becomes.
+
+**`aria-current="page"` on the active link is REQUIRED, and it is the source of truth.** The line is
+decorative and `aria-hidden`; the code finds what to measure *by* that attribute, so the two cannot
+disagree. Known gap, flagged rather than fixed: `NavMobileMenu`'s links do not carry it, so below `md`
+there is no "you are here" announcement.
+
+**The centre icon carries `px-xs`.** Its 19px box was below the 24px minimum target size, and a 19px
+line between a 40.81px one and a 32.64px one (measured at 1440) read as a stray tick. 8px a side takes
+the item — and therefore the line — to 35px, which lands it between its two neighbours rather than
+under half of either. **The fix is padding the item, never special-casing the line's width**, which
+would decouple the line from the thing it points at. (The box is still 19px tall; `py` is deliberately not added,
+because it would grow the bar and move the boundary `data-over-hero` uses.)
+
+**Prerequisite, shipped in the same commit: hide-on-scroll is gone.** See
+`docs/06_INTRO_AND_CHROME.md` §6 step 2. The bar is permanently visible.
+
 ---
 
 ## 2. The MS Mark

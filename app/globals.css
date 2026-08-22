@@ -577,11 +577,23 @@ html[data-nav-open] {
    unreadable: the nav labels and the sentence they are sitting on. No amount of
    colour tuning fixes two texts occupying the same pixels.
 
-   The escalation was taken in this order, and each step is still in force:
-     1. Adaptive colour        — fixes the background case.
-     2. Hide on scroll-down    — removes the bar entirely while reading.
-     3. This scrim             — for the remaining case: revealed by a
-                                 scroll-up, mid-page, over live text.
+   The escalation was taken in three steps, and ONLY TWO ARE STILL IN FORCE:
+     1. Adaptive colour        — fixes the background case. Live.
+     2. Hide on scroll-down    — removed the bar entirely while reading.
+                                 DELETED, 2026-08-22, by
+                                 `.claude/handoff/navbar-indicator-design.md`
+                                 §2: the bar now carries an active-route
+                                 indicator, and a bar that retracts while you
+                                 scroll hides it exactly when it is doing its
+                                 job. The bar is permanently visible.
+     3. This scrim             — LIVE, AND NOW CARRYING THE OVERLAP CASE ALONE.
+                                 It was already the only step that covered the
+                                 hard version of it — the bar mid-page, over
+                                 live text — so what step 2's removal costs is
+                                 the quieter reading experience, not the
+                                 legibility fix. If overlap is ever judged
+                                 unacceptable again, RAISE THIS TINT; do not
+                                 bring hiding back without re-reading §2.
 
    SCOPED TO `:not([data-over-hero])`, which is the part that keeps the spec's
    intent. The hero is where the transparency actually reads as design — it is

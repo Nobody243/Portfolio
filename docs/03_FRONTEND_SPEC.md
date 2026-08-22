@@ -250,9 +250,15 @@ true of chrome, and the rule is corrected here rather than left to be discovered
   `34/1440 = 2.36%` was chosen. But `34/2560 = 1.33%` falls *below* the band that was rejected.
   Honouring that would need a third breakpoint step — an escalating chrome inset, which is precisely
   the spine behaviour §1 removed. **Two values, deliberately, not three.**
-- **The criterion is also rarer than it sounds.** `Navbar.tsx` hides the bar on scroll-down
-  (`translate3d(0,-105%,0)`), so past the hero the bar and a spine-aligned section are only co-visible
-  at scroll-top or while scrolling up. Judge the divergence there, not from a static full-page render.
+- **~~The criterion is also rarer than it sounds.~~ CORRECTED 2026-08-22 — it is not rare at all
+  now.** This bullet read: *"`Navbar.tsx` hides the bar on scroll-down (`translate3d(0,-105%,0)`), so
+  past the hero the bar and a spine-aligned section are only co-visible at scroll-top or while
+  scrolling up. Judge the divergence there, not from a static full-page render."* Hide-on-scroll was
+  **deleted** on 2026-08-22 (`.claude/handoff/navbar-indicator-design.md` §2 — the bar gained an
+  active-route indicator, which a retracting bar hides exactly when it is useful). **The bar is now
+  permanently visible, so the full-bleed chrome and the spine-aligned section below it are co-visible
+  at every scroll position.** Judge the divergence from a normal scrolled view, which is the harsher
+  test. The rule itself is unchanged; only how easy it is to see was.
 - **Rule and code ship together.** This project has been bitten four times by a spec that described
   something the code stopped doing. The navbar's own container comment states the same carve-out in
   the same words, and both were changed in one commit.

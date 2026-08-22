@@ -10,8 +10,8 @@
  *   right   the email address as a copy control + the LinkedIn mark
  *
  * IT IS SITE CHROME NOW, NOT A HOMEPAGE COMPONENT. It is mounted by
- * `app/(site)/(chrome)/layout.tsx` and renders on `/` and `/work` (and on
- * `/about` when that ships), but still never on `/projects/<slug>`. Two
+ * `app/(site)/(chrome)/layout.tsx` and renders on `/`, `/about` and `/work` —
+ * all three have shipped — but still never on `/projects/<slug>`. Two
  * consequences run through this file: the centre items are real links rather
  * than scroll calls, and the adaptive palette below can no longer assume there
  * is a hero on the page.
@@ -67,20 +67,42 @@
  *      About section the centre cluster lands on a paragraph and both texts
  *      become unreadable. It was screenshotted, not predicted.
  *
- *      Two mitigations, in order of how much of the spec they preserve:
+ *      THE SCRIM, PAST THE HERO ONLY, NOW CARRIES THIS ALONE. That IS a
+ *      background fill, and the spec asks for it to be flagged rather than
+ *      added quietly, so it is flagged — here, in `globals.css` where the rule
+ *      lives, and in `docs/06_INTRO_AND_CHROME.md` §6. OVER THE HERO THE BAR IS
+ *      STILL COMPLETELY TRANSPARENT — no fill, no blur — which is where the
+ *      transparency reads as design rather than as a bug, and where there is no
+ *      running text for it to land on anyway.
  *
- *      THE BAR HIDES ON SCROLL-DOWN AND RETURNS ON SCROLL-UP. While you are
- *      reading downward it is not there at all, so there is nothing to overlap;
- *      the instant you scroll up — the gesture that means "I want to navigate"
- *      — it comes back. This costs the spec nothing.
+ *      THERE USED TO BE A SECOND MITIGATION AND IT HAS BEEN REMOVED: the bar
+ *      hid on scroll-down and returned on scroll-up, so while you read downward
+ *      there was nothing to overlap. `.claude/handoff/navbar-indicator-design.md`
+ *      §2 deletes it, because an active-route indicator on a bar that retracts
+ *      while you scroll is invisible exactly when it is doing its job. The
+ *      scrim was always the mitigation that covered the hard case — revealed
+ *      mid-page, over live text — so what is lost is the quieter reading
+ *      experience past the hero, not the legibility fix.
+ * ─────────────────────────────────────────────────────────────────────────
  *
- *      PAST THE HERO ONLY, IT CARRIES A SCRIM. That IS a background fill, and
- *      the spec asks for it to be flagged rather than added quietly, so it is
- *      flagged — here, in `globals.css` where the rule lives, and in
- *      `docs/06_INTRO_AND_CHROME.md` §6. It covers the one case the other two
- *      cannot: revealed by a scroll-up, mid-page, over live text. OVER THE HERO
- *      THE BAR IS STILL COMPLETELY TRANSPARENT — no fill, no blur — which is
- *      where the transparency actually reads as design rather than as a bug.
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE ACTIVE-ROUTE INDICATOR — a 2px line under whichever centre item is the
+ * page you are on, sliding and resizing between the three.
+ *
+ * IT TRACKS THE ROUTE, NOT A SCROLL POSITION. A scrollspy has nothing to track
+ * here: both nav items became routes in Phase 4, and Home's section ids are no
+ * longer pointed at by anything in the bar. Because the centre icon is `/`,
+ * EVERY PAGE THE BAR APPEARS ON HAS EXACTLY ONE ACTIVE ITEM — which is the
+ * property that makes the indicator work at all. A two-item version would show
+ * nothing on Home.
+ *
+ * A LINE, NOT A PILL. `globals.css` deliberately has no radius token, and this
+ * is not the feature that earns one.
+ *
+ * IT IS `aria-hidden`. The real announcement is `aria-current="page"` on the
+ * active link; the line is a visual echo of that, never a replacement. The two
+ * cannot drift, because the measurement below finds its target BY that
+ * attribute rather than by a parallel index.
  * ─────────────────────────────────────────────────────────────────────────
  *
  * THE THEME TOGGLE IS IN THE BAR AT `md` AND UP; THE MOBILE MENU CARRIES IT
@@ -132,22 +154,51 @@ import { NAV_HEIGHT_PX } from "@/components/ui/msMarkGeometry";
 import { HERO_SECTION_ID } from "@/components/hero/heroContent";
 import { NAV_ENTRANCE_ATTR } from "@/lib/animation/handoff";
 import { ScrollTrigger } from "@/lib/animation/gsap";
+import { EASE } from "@/lib/animation/easing";
 import { useSectionScroll } from "@/lib/hooks/useSectionScroll";
 
-/* -------------------------------------------------------------------------
-   Hide-on-scroll tuning. All three are in CSS pixels of ACCUMULATED travel in
-   one direction, which is what gives the behaviour hysteresis: a bar that
-   toggled on raw direction would flicker on trackpad jitter and on the tiny
-   upward correction at the end of a fling.
-------------------------------------------------------------------------- */
-/** Downward travel before the bar leaves. */
-const HIDE_AFTER = 90;
-/** Upward travel before it returns. Shorter, because asking for it back should
- *  feel more responsive than losing it. */
-const REVEAL_AFTER = 50;
-/** Above this scroll position the bar is always up — the top of the page is
- *  its home and it must not be missing when the page first settles. */
+/**
+ * 140px — and the name is now larger than the job.
+ *
+ * It was hide-on-scroll's "never hide above this" threshold. That behaviour is
+ * gone (see the header comment), and the ONE remaining reader is the `overHero`
+ * palette effect below, which uses `ALWAYS_VISIBLE_ABOVE / 2` = 70px as the
+ * boundary the hero's bottom edge has to cross. It appears there TWICE — once
+ * in the up-front check, once in the ScrollTrigger's `start` — and the whole
+ * value of keeping it a named constant is that those two cannot drift apart.
+ *
+ * DELETING IT WITH THE HIDING WOULD HAVE BROKEN THE PALETTE SWAP, which is a
+ * different feature that happened to borrow the number.
+ *
+ * RENAMING IT IS FINE, BUT ONLY TOGETHER WITH DERIVING IT. 70px is meant to
+ * stand in for the bar's bottom edge, and the bar MEASURES 59px at `sm` and up.
+ * That number is `py-md` × 2 = 42 plus SEVENTEEN, not plus the 19px centre
+ * icon: the centre cluster is `position: absolute` and therefore out of flow,
+ * so the row's height comes from the tallest IN-FLOW child, which is the 17px
+ * MS mark. 70 ≠ 59, so a name like `NAV_BOTTOM_EDGE` would assert an identity
+ * the code cannot back.
+ */
 const ALWAYS_VISIBLE_ABOVE = 140;
+
+/* -------------------------------------------------------------------------
+   The active-route indicator's numbers.
+------------------------------------------------------------------------- */
+/** Travel time for the line, in ms. Faster than the bar's `duration-300`
+ *  `transition-colors`, deliberately: the line covers a much larger distance,
+ *  and 300ms of travel over ~100px reads as lag rather than as motion. */
+const INDICATOR_MS = 240;
+/**
+ * `EASE.ui` compiled to a CSS timing function, from the shared motion
+ * vocabulary — "micro-interactions: hover, press, theme toggle. Near-symmetric
+ * so it reads as responsive rather than decorative."
+ *
+ * BUILT FROM THE EXPORT, NOT RETYPED — the control points live in exactly one
+ * place. It is applied as an INLINE STYLE rather than a Tailwind `ease-[...]`
+ * class for the same reason: a class string interpolated from a constant is
+ * invisible to Tailwind's source scanner, which does not error — it emits no
+ * rule at all, and the line would silently fall back to the `ease` default.
+ */
+const INDICATOR_EASE = `cubic-bezier(${EASE.ui.join(", ")})`;
 
 /** Shared by every interactive label in the bar. */
 const NAV_ITEM =
@@ -171,6 +222,24 @@ const inPageTarget = (href: string, pathname: string): string | null =>
   pathname === HOME_ROUTE && href.startsWith(`${HOME_ROUTE}#`)
     ? href.slice(2)
     : null;
+
+/**
+ * Is this centre item the page the visitor is currently on?
+ *
+ * EXACT EQUALITY, NOT A PREFIX MATCH. The three destinations are `/about`, `/`
+ * and `/work`, none of which is a parent of another, so a prefix rule would buy
+ * nothing today and would quietly make `/` match everything.
+ *
+ * A HASH HREF IS NEVER ACTIVE, and that guard is not hypothetical. `About` was
+ * `/#trajectory` until Phase 4 and `navContent.ts` keeps the machinery for the
+ * next anchor that appears here. `"/#trajectory"` is not `"/"`, so it would not
+ * match — but the centre icon's `/` WOULD still match on Home at the same time,
+ * and two links carrying `aria-current="page"` is a wrong announcement plus an
+ * indicator that measures whichever one `querySelector` reaches first. Stating
+ * "a jump within a page is not a route" here closes that off before it happens.
+ */
+const isActiveRoute = (href: string, pathname: string): boolean =>
+  !href.includes("#") && href === pathname;
 
 /**
  * A modified click is the visitor asking the browser for a new tab or window,
@@ -296,62 +365,137 @@ export function Navbar() {
   }, [pathname]);
 
   /* -----------------------------------------------------------------------
-     Hide on scroll-down, return on scroll-up.
+     Where the indicator line sits.
 
-     WRITES `style.transform` DIRECTLY. This runs on every scroll frame; a
-     `useState` here would re-render the whole bar — including the SVG mark and
-     the Framer-animated copy control — dozens of times a second to change one
-     transform.
+     `useState`, NOT A DIRECT STYLE WRITE. The bar's old hide-on-scroll wrote
+     `style.transform` by ref because it ran on every scroll frame; this runs on
+     route change, on resize and once when the webfont resolves. Do not copy
+     that pattern here — it was a concession to frequency, not a house style.
+
+     `null` MEANS "DO NOT RENDER THE LINE", and it has two live cases:
+       - Before the first measurement. The span is INSERTED already at its final
+         width and offset, and an inserted element has no previous value to
+         transition from — which is how the entrance is protected. Rendering it
+         at zero and then sizing it would slide it in from the far left on every
+         single page load.
+       - With a project overlay open, when `pathname` is `/projects/<slug>` and
+         no centre item matches. The overlay is a modal `<dialog>` in the top
+         layer, so the bar is not visible then anyway; this just declines to
+         guess which item to mark.
+
+     `animated` RIDES ALONG IN THE SAME OBJECT ON PURPOSE. CSS starts a
+     transition based on the AFTER-change style, so a geometry change committed
+     together with a className that has no `transition-property` does not
+     animate — which is exactly what a resize or a font swap should do. Split
+     across two state updates it would be a race.
   ----------------------------------------------------------------------- */
-  const setHidden = useCallback((hidden: boolean) => {
-    const el = headerRef.current;
-    if (!el) return;
-    el.style.transform = hidden ? "translate3d(0,-105%,0)" : "translate3d(0,0,0)";
-    // Exposed so the state is inspectable in devtools and assertable in a test
-    // without reading a matrix out of a computed style.
-    el.dataset.hidden = hidden ? "true" : "false";
-  }, []);
+  const navRef = useRef<HTMLElement>(null);
+  const [indicator, setIndicator] = useState<{
+    left: number;
+    width: number;
+    animated: boolean;
+  } | null>(null);
 
   useEffect(() => {
-    // The menu is a full-viewport surface with the document locked behind it.
-    // Retracting the bar underneath it would strand the close button.
-    if (menuOpen) {
-      setHidden(false);
-      return;
-    }
+    const nav = navRef.current;
+    if (!nav) return;
 
-    let lastY = window.scrollY;
-    let travel = 0;
+    /**
+     * `getBoundingClientRect`, DIFFERENCED AGAINST THE CLUSTER — NOT
+     * `offsetLeft` / `offsetWidth`.
+     *
+     * The design brief specifies the offset pair, and it is very nearly right:
+     * the `<nav>` is `position: absolute`, so it IS the offsetParent of every
+     * item inside it, and the numbers come out in the coordinate space the line
+     * is positioned in. But `offsetLeft` and `offsetWidth` ARE ROUNDED TO
+     * INTEGERS, and the cluster does not land on a whole pixel — `left-1/2
+     * -translate-x-1/2` of an odd-width box puts its left edge on x.77. So the
+     * rounded pair shipped a line that was measurably not the item's box.
+     * Measured at 1440, dark and light alike:
+     *
+     *   WORK   item left 762.59 width 32.64   offset pair gave 762.77 / 33.00
+     *   ABOUT  item left 644.77 width 40.81   offset pair gave 644.77 / 41.00
+     *
+     * 0.18px of position and 0.36px of width. Invisible, and still wrong in the
+     * one way this indicator must not be: the line is a claim about where an
+     * item is, so it should be measured from the item's actual box. With rects
+     * both edges agree exactly, at every viewport and in both themes.
+     *
+     * `clientLeft` is the nav's left border width, which absolute positioning
+     * measures from. It is 0 today — the term is there so that adding a border
+     * to the cluster later cannot silently shift the line.
+     *
+     * THE OFFSETS ARE INVARIANT UNDER A PLAIN VIEWPORT RESIZE, measured:
+     * byte-identical at 1280 and 1440. The cluster moves with `left-1/2`, but
+     * the line moves with it, because the line is inside it too. (The brief
+     * gives this as the reason for the resize listener; it is not. The listener
+     * is still REQUIRED, for crossing `md` — where the cluster is
+     * `display: none` and every measurement collapses to zero — and for browser
+     * zoom, which does change item widths.)
+     */
+    const measure = (mayAnimate: boolean) => {
+      // BY `aria-current`, not by an index into a parallel array. The line is
+      // a visual echo of that attribute, so finding it this way makes the two
+      // impossible to disagree.
+      const active = nav.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!active) {
+        setIndicator(null);
+        return;
+      }
+      const activeRect = active.getBoundingClientRect();
+      const navRect = nav.getBoundingClientRect();
+      const left = activeRect.left - navRect.left - nav.clientLeft;
+      const width = activeRect.width;
+      setIndicator((prev) => {
+        // GEOMETRY DECIDES WHETHER THIS IS A NO-OP, and `animated` is
+        // deliberately NOT part of the comparison. That is what fixes a race
+        // that was measured, not imagined: `document.fonts.ready` is an
+        // ALREADY-RESOLVED promise on every navigation after the first, so its
+        // `.then` runs as a microtask right behind the route change's own
+        // `measure(true)`. Both updates land in the same batch, the second one
+        // carrying `animated: false` and identical numbers — and the line
+        // teleported between routes instead of sliding. Returning `prev`
+        // untouched when nothing moved makes the ordering irrelevant.
+        if (prev && prev.left === left && prev.width === width) return prev;
+        // The FIRST appearance never animates, whatever the caller asked for.
+        return { left, width, animated: mayAnimate && prev !== null };
+      });
+    };
 
-    const trigger = ScrollTrigger.create({
-      start: 0,
-      end: "max",
-      onUpdate: (self) => {
-        const y = self.scroll();
-        const dy = y - lastY;
-        lastY = y;
-        if (dy === 0) return;
+    // Mount and route change share this call. `mayAnimate` is true for both and
+    // the `prev !== null` guard inside sorts them out: on mount there is no
+    // previous line to move, on a route change there is.
+    measure(true);
 
-        // Reset the accumulator whenever the direction reverses, so the
-        // thresholds measure travel SINCE the turn rather than net travel.
-        if (dy > 0 !== travel > 0) travel = 0;
-        travel += dy;
-
-        if (y < ALWAYS_VISIBLE_ABOVE) {
-          travel = 0;
-          setHidden(false);
-          return;
-        }
-        if (travel > HIDE_AFTER) setHidden(true);
-        else if (travel < -REVEAL_AFTER) setHidden(false);
-      },
+    // THE WEBFONT CASE, which is the one that ships silently wrong. The labels
+    // are JetBrains Mono at `text-caption`; measured before the face resolves,
+    // "ABOUT" is a fallback-metrics width and the line lands short or long and
+    // then never corrects. `document.fonts.ready` resolves either way, load or
+    // failure, so this cannot hang. It jumps rather than sliding: it is a
+    // correction to a measurement, not a navigation.
+    let disposed = false;
+    void document.fonts.ready.then(() => {
+      if (!disposed) measure(false);
     });
 
-    return () => {
-      trigger.kill();
-      setHidden(false);
+    // rAF-coalesced: a drag-resize fires `resize` far faster than the bar needs
+    // re-measuring, and each distinct value here is a real re-render.
+    let frame = 0;
+    const onResize = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        measure(false);
+      });
     };
-  }, [menuOpen, setHidden]);
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      disposed = true;
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [pathname]);
 
   return (
     <>
@@ -365,10 +509,10 @@ export function Navbar() {
         // mount for exactly that reason; the block above it has the full case.
         data-nav-root=""
         {...(initialOverHero ? { "data-over-hero": "" } : null)}
-        // `transition-transform` with `motion-reduce:transition-none`: someone
-        // who asked for less motion still gets the overlap protection, just
-        // without the slide.
-        className="pointer-events-none fixed inset-x-0 top-0 z-40 transition-transform duration-[420ms] ease-out will-change-transform motion-reduce:transition-none"
+        // NO `transition-transform` AND NO `transform` OF ITS OWN. Both went
+        // with hide-on-scroll; the element is now permanently at rest and the
+        // only thing that moves in the bar is the entrance layer inside it.
+        className="pointer-events-none fixed inset-x-0 top-0 z-40"
       >
         {/*
           FULL-BLEED, AND DELIBERATELY NOT THE SITE SPINE.
@@ -408,11 +552,18 @@ export function Navbar() {
           // same start, same duration, because `docs/07` §1 and §3 step 6 both
           // ask for one beat rather than two adjacent ones.
           //
-          // IT IS THIS ELEMENT AND NOT `<header>` BECAUSE THE HEADER'S
-          // `transform` IS ALREADY TAKEN. `setHidden` writes it directly on
-          // every scroll frame; a second author on the same property would be
-          // fighting it the first time anyone scrolled during the entrance.
-          // Two elements, two transforms, nothing to arbitrate.
+          // IT IS THIS ELEMENT AND NOT `<header>`, AND THE ORIGINAL REASON IS
+          // NOW VOID. It was that the header's `transform` was already taken:
+          // hide-on-scroll wrote it directly on every scroll frame, so a second
+          // author on the same property would have been fighting it the first
+          // time anyone scrolled during the entrance. Hide-on-scroll is gone
+          // and the header's `transform` is free.
+          //
+          // IT STAYS HERE ANYWAY. Moving a working entrance onto a different
+          // element is risk with no gain — `<header>` is `pointer-events-none`
+          // and `fixed`, this layer is neither, and the Intro's timeline targets
+          // it by attribute. Recorded rather than quietly left stale, because a
+          // comment whose reason has evaporated reads as verified forever.
           //
           // NO INITIAL OFFSET IS RENDERED HERE. The bar is visible by default,
           // and the Intro hides it imperatively when it mounts — so a page with
@@ -505,7 +656,12 @@ export function Navbar() {
               which is the site's floor.
           --------------------------------------------------------------- */}
           <nav
+            ref={navRef}
             aria-label="Sections"
+            // `absolute` MAKES THIS THE OFFSET PARENT of the three items and of
+            // the indicator line, which is what lets the line be positioned in
+            // the cluster's own coordinates rather than the viewport's. It is
+            // not an extra `relative`: the centring already required it.
             className="pointer-events-auto absolute left-1/2 hidden -translate-x-1/2 items-center gap-md md:flex"
           >
             {/*
@@ -520,6 +676,11 @@ export function Navbar() {
             <Link
               href={NAV_ITEMS[0].href}
               onClick={(event) => handleNavClick(NAV_ITEMS[0].href, event)}
+              // THE ONLY SOURCE OF TRUTH FOR "YOU ARE HERE" on all three items.
+              // The line is decorative and `aria-hidden`; this is the part a
+              // screen-reader user actually receives, and it is also what the
+              // measurement effect queries for.
+              aria-current={isActiveRoute(NAV_ITEMS[0].href, pathname) ? "page" : undefined}
               className={NAV_ITEM}
             >
               {NAV_ITEMS[0].label}
@@ -527,11 +688,22 @@ export function Navbar() {
 
             {/* The centre icon is a route link now — `/` from anywhere. Its
                 accessible name moved with it: "Back to top" was a lie the
-                moment the bar appeared on a second page. */}
+                moment the bar appeared on a second page.
+
+                `px-xs` IS NOT DECORATION. The icon's box is 19px, which is below
+                the 24px minimum target size, and it is also the item the
+                indicator has to underline — measured at 1440, ABOUT is 40.81px
+                and WORK is 32.64px, so a 19px line between them reads as a stray
+                tick. 8px a side takes the target to 35px and the line with it —
+                between its two neighbours rather than under half of either — WITHOUT special-casing the line's width, which
+                would decouple it from the thing it points at. The box is still
+                19px tall; `py` is deliberately not added, because it would grow
+                the bar's height and move the boundary the palette swap uses. */}
             <Link
               href={HOME_ROUTE}
               aria-label={NAV_HOME_LABEL}
-              className="pointer-events-auto cursor-pointer text-[var(--nav-fg-dim)] transition-colors duration-300 hover:text-[var(--nav-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-accent)]"
+              aria-current={isActiveRoute(HOME_ROUTE, pathname) ? "page" : undefined}
+              className="pointer-events-auto cursor-pointer px-xs text-[var(--nav-fg-dim)] transition-colors duration-300 hover:text-[var(--nav-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-accent)]"
             >
               <ConstellationIcon className="h-[19px] w-[19px]" />
             </Link>
@@ -539,10 +711,62 @@ export function Navbar() {
             <Link
               href={NAV_ITEMS[1].href}
               onClick={(event) => handleNavClick(NAV_ITEMS[1].href, event)}
+              aria-current={isActiveRoute(NAV_ITEMS[1].href, pathname) ? "page" : undefined}
               className={NAV_ITEM}
             >
               {NAV_ITEMS[1].label}
             </Link>
+
+            {/*
+              THE INDICATOR. One span, absolutely positioned in the cluster,
+              6px below its content box.
+
+              `--nav-accent`, NEVER A LITERAL. The bar crosses the hero's pinned
+              dark plate and `bg-base`, which flips with the theme; any fixed
+              colour is wrong on one of them. Riding the same escalating
+              variable every other control in the bar uses means the line
+              cross-fades with them for free.
+
+              IT DOES NOT EXIST BELOW `md`, and needs no gate of its own to
+              achieve that: the cluster it lives in is `hidden md:flex`, so the
+              whole thing is `display: none` there and `NavMobileMenu` handles
+              navigation. Do NOT reimplement it inside the menu.
+
+              THE TRANSITION IS SPLIT ACROSS `className` AND `style`, AND THE
+              SPLIT IS NOT ARBITRARY. Only `transition-property` is a class,
+              because that is the one declaration `motion-reduce:transition-none`
+              has to be able to beat, and an inline `transition-property` would
+              outrank any class — someone who asked for less motion would get
+              the slide anyway. Duration and timing function are inline because
+              both are built from constants at runtime, and Tailwind's scanner
+              reads SOURCE TEXT: a class name interpolated from a variable
+              compiles, runs, and emits no CSS at all. With
+              `transition-property: none` from the reduced-motion class, the two
+              inline values are inert, which is the whole point.
+            */}
+            {indicator ? (
+              <span
+                aria-hidden="true"
+                className={
+                  "absolute left-0 top-[calc(100%+6px)] h-[2px] bg-[var(--nav-accent)] " +
+                  (indicator.animated
+                    ? "transition-[transform,width] motion-reduce:transition-none"
+                    : // `transition-none` EXPLICITLY, not "no transition class".
+                      // Measured: with the class omitted the computed
+                      // `transition-property` is the initial value `all`, and
+                      // the inline `transition-duration` below then animates the
+                      // supposedly-instant cases — a font swap or a resize would
+                      // slide the line over 240ms instead of correcting it.
+                      "transition-none")
+                }
+                style={{
+                  width: `${indicator.width}px`,
+                  transform: `translateX(${indicator.left}px)`,
+                  transitionDuration: `${INDICATOR_MS}ms`,
+                  transitionTimingFunction: INDICATOR_EASE,
+                }}
+              />
+            ) : null}
           </nav>
 
           {/* ---------------------------------------------------------------

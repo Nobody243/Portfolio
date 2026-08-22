@@ -370,14 +370,30 @@ Measured contrast, all clearing AA for the 12px mono the bar is set in:
 
 *Solves:* contrast against the background. *Does not solve:* anything.
 
-**Step 2 — hide on scroll-down, return on scroll-up.** While reading downward
-the bar is not there, so there is nothing to overlap; scrolling up — the gesture
-that means "I want to navigate" — brings it back. Hysteresis on accumulated
-travel (90px down to hide, 50px up to reveal) so trackpad jitter cannot make it
-flicker. It stays put above 140px of scroll, and while the mobile menu is open.
+**Step 2 — hide on scroll-down, return on scroll-up. ~~SHIPPED~~ REMOVED
+2026-08-22.**
 
-*Costs the spec nothing.* *Does not solve:* the bar revealed mid-page over live
-text.
+It read: *while reading downward the bar is not there, so there is nothing to
+overlap; scrolling up — the gesture that means "I want to navigate" — brings it
+back. Hysteresis on accumulated travel (90px down to hide, 50px up to reveal) so
+trackpad jitter cannot make it flicker. It stays put above 140px of scroll, and
+while the mobile menu is open.*
+
+**It is gone.** `.claude/handoff/navbar-indicator-design.md` §2 deletes it: the
+bar now carries an **active-route indicator** (§6.1 below), and an indicator on
+a bar that retracts while you scroll is invisible exactly when it is doing its
+job. `setHidden`, its ScrollTrigger, `HIDE_AFTER`, `REVEAL_AFTER`, the
+`data-hidden` attribute and `<header>`'s `transition-transform` all went with
+it. **The bar is permanently visible.**
+
+`ALWAYS_VISIBLE_ABOVE` (140) **survives**, and not for this reason — the
+`data-over-hero` calculation reads `ALWAYS_VISIBLE_ABOVE / 2` as the boundary
+the hero's bottom edge crosses. Deleting it with the rest would have broken the
+palette swap.
+
+*What its removal costs:* the quieter reading experience past the hero. *What it
+does not cost:* legibility — Step 3 was always the step that covered the hard
+case, and it still does, alone.
 
 **Step 3 — a scrim, past the hero only. THIS IS A DEVIATION FROM THE SPEC.**
 
@@ -392,10 +408,29 @@ is still completely transparent — no fill, no blur** — which is where the
 transparency actually reads as design rather than as a defect, and is the part
 of the spec's intent worth protecting.
 
-**This is the open decision on the list below.** If Saad would rather keep the
-bar transparent everywhere, the alternative is to drop Step 3 and let Step 2 do
-all the work — which means the bar is legible only at the top of the page and
-immediately after a scroll-up over whitespace.
+**This is the open decision on the list below, and its alternative has narrowed.**
+It used to be: if Saad would rather keep the bar transparent everywhere, drop
+Step 3 and let Step 2 do all the work. **Step 2 no longer exists**, so dropping
+Step 3 now leaves the bar transparent over live text at every scroll position,
+with nothing behind it. Reversing the scrim therefore means either accepting
+that, or bringing hiding back — which re-breaks the indicator.
+
+---
+
+## 6.1 The active-route indicator (added 2026-08-22)
+
+A **2px line** beneath whichever centre item is the page you are on, sliding and
+resizing between the three. Specified in
+`.claude/handoff/navbar-indicator-design.md`; the values that bind later work are
+recorded in `docs/07_SITE_RESTRUCTURE.md` §1.1 rather than here, because §1 is
+where the navbar's contract lives.
+
+The part that belongs in *this* doc is the interaction with the two mechanisms
+above: the line's colour is **`--nav-accent`**, the same escalating variable
+every other control in the bar rides, so it swaps with the `data-over-hero`
+palette for free and is never a fixed hex on a ground that flips. Measured at
+1440: `#14b8a6` over the hero in both themes, `#14b8a6` / `#0f766e` past it in
+dark / light.
 
 ---
 
