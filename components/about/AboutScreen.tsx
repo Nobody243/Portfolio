@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import portrait from "@/public/images/about/portrait.jpg";
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
-import { CvAction } from "@/components/about/CvAction";
+import { CvAction, CvModalHost } from "@/components/about/CvAction";
 import {
   ABOUT_BUTTON_SECONDARY,
 } from "@/components/about/aboutButtonStyles";
@@ -574,59 +574,72 @@ export function AboutScreen() {
                   the motion rules forbid. One row fades where three units
                   travel; that is a smaller inconsistency than one row being
                   clipped on the narrowest phone. */}
-              <IntroEntrance
-                delay={STAGGER.line * 2}
-                fadeOnly
-                className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center"
-              >
-                <CvAction />
-                {/* THE 2-UP PAIR. `grid-cols-2` rather than two `flex-1`
-                    children, so the halves are equal by construction and
-                    neither secondary needs a width class of its own — the
-                    dressing constants stay pure box-and-voice.
+              {/* `CvModalHost` WRAPS THE ENTRANCE RATHER THAN SITTING INSIDE
+                  IT, and the order is the whole fix. `IntroEntrance`'s only
+                  mechanism is a `key` that flips at the hand-off, which
+                  unmounts everything below it — including, until 2026-08-22,
+                  the CV modal's `open` state, so a modal opened during the
+                  Intro was destroyed mid-view. Reproduced by keyboard on every
+                  run; `CvAction.tsx` carries the capture and the four cases
+                  that did NOT reproduce. The host renders no DOM element and
+                  the dialog it renders is `position: fixed` in the top layer,
+                  so this row's geometry is byte-identical. DO NOT MOVE IT
+                  BACK INSIDE. */}
+              <CvModalHost>
+                <IntroEntrance
+                  delay={STAGGER.line * 2}
+                  fadeOnly
+                  className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center"
+                >
+                  <CvAction />
+                  {/* THE 2-UP PAIR. `grid-cols-2` rather than two `flex-1`
+                      children, so the halves are equal by construction and
+                      neither secondary needs a width class of its own — the
+                      dressing constants stay pure box-and-voice.
 
-                    `sm:contents` IS THE WHOLE MECHANISM and it is the reason
-                    this wrapper is allowed to exist: above 640 it stops being
-                    a box at all, and GitHub and LinkedIn become direct
-                    children of the flex row above, at their natural widths.
-                    The alternative — one flat row with `basis-full` on the
-                    primary — would need a `className` on `CvAction`, which
-                    takes none, and widening its API for a layout detail is
-                    the wrong direction.
+                      `sm:contents` IS THE WHOLE MECHANISM and it is the reason
+                      this wrapper is allowed to exist: above 640 it stops being
+                      a box at all, and GitHub and LinkedIn become direct
+                      children of the flex row above, at their natural widths.
+                      The alternative — one flat row with `basis-full` on the
+                      primary — would need a `className` on `CvAction`, which
+                      takes none, and widening its API for a layout detail is
+                      the wrong direction.
 
-                    IF ONE LINK IS ABSENT this becomes a two-column grid with
-                    one occupied column, i.e. a half-width control. That is
-                    correct and deliberate: the row's rule (below) is that a
-                    missing contact entry renders nothing at all, never a
-                    placeholder, and a lone secondary at half width still
-                    reads as a secondary. */}
-                <div className="grid grid-cols-2 gap-sm sm:contents">
-                  {/* `ExternalLink` for the semantics only — `target`, `rel`
-                      and the announced new-tab note, which is the whole reason
-                      it exists. The dressing is this page's, passed in,
-                      exactly as that component's header requires: colour and
-                      size always belong to the call site. These are CONTROLS,
-                      so they take the outlined button dressing rather than the
-                      teal underlined treatment that belongs to links inside
-                      prose. */}
-                  {github ? (
-                    <ExternalLink
-                      href={github.href}
-                      className={ABOUT_BUTTON_SECONDARY}
-                    >
-                      {github.label}
-                    </ExternalLink>
-                  ) : null}
-                  {linkedin ? (
-                    <ExternalLink
-                      href={linkedin.href}
-                      className={ABOUT_BUTTON_SECONDARY}
-                    >
-                      {linkedin.label}
-                    </ExternalLink>
-                  ) : null}
-                </div>
-              </IntroEntrance>
+                      IF ONE LINK IS ABSENT this becomes a two-column grid with
+                      one occupied column, i.e. a half-width control. That is
+                      correct and deliberate: the row's rule (below) is that a
+                      missing contact entry renders nothing at all, never a
+                      placeholder, and a lone secondary at half width still
+                      reads as a secondary. */}
+                  <div className="grid grid-cols-2 gap-sm sm:contents">
+                    {/* `ExternalLink` for the semantics only — `target`, `rel`
+                        and the announced new-tab note, which is the whole reason
+                        it exists. The dressing is this page's, passed in,
+                        exactly as that component's header requires: colour and
+                        size always belong to the call site. These are CONTROLS,
+                        so they take the outlined button dressing rather than the
+                        teal underlined treatment that belongs to links inside
+                        prose. */}
+                    {github ? (
+                      <ExternalLink
+                        href={github.href}
+                        className={ABOUT_BUTTON_SECONDARY}
+                      >
+                        {github.label}
+                      </ExternalLink>
+                    ) : null}
+                    {linkedin ? (
+                      <ExternalLink
+                        href={linkedin.href}
+                        className={ABOUT_BUTTON_SECONDARY}
+                      >
+                        {linkedin.label}
+                      </ExternalLink>
+                    ) : null}
+                  </div>
+                </IntroEntrance>
+              </CvModalHost>
             </div>
 
             {/*

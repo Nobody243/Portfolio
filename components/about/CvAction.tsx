@@ -7,6 +7,14 @@
  * is otherwise a server component holding one paragraph and two links, and it
  * stays that way: nothing else here needs state.
  *
+ * IT IS TWO EXPORTS RATHER THAN ONE, AS OF 2026-08-22, AND THE SPLIT IS A BUG
+ * FIX. `CvModalHost` owns the state and renders the dialog; `CvAction` is the
+ * trigger. `AboutScreen` wraps the host around the whole action row, OUTSIDE
+ * the `IntroEntrance` whose re-key was destroying an open modal. The full
+ * reproduction — and the four alternatives that were ruled out by measurement
+ * rather than by argument — is at `CvModalHost` below. The host renders no DOM
+ * element, so the page's layout is unchanged.
+ *
  * ─────────────────────────────────────────────────────────────────────────
  * TWO PATHS, AND THE MOBILE ONE NEVER MOUNTS THE MODAL AT ALL.
  * ─────────────────────────────────────────────────────────────────────────
@@ -75,7 +83,17 @@
  * click" means here, since `::backdrop` itself never receives events.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
 import {
   ABOUT_BUTTON_PRIMARY,
@@ -113,7 +131,75 @@ const COMPACT_QUERY = "(max-width: 767.98px)";
  *  time on this page, so a literal id is safe. */
 const MODAL_TITLE_ID = "about-cv-modal-title";
 
-export function CvAction() {
+/* ───────────────────────────────────────────────────────────────────────────
+   WHY THE STATE IS NOT IN `CvAction` ANY MORE — a reproduced defect, not tidying.
+
+   `AboutScreen` renders `<CvAction />` inside an `<IntroEntrance>`, and
+   `IntroEntrance`'s ONLY mechanism is `key={held ? "held" : "released"}`. That
+   key flips once, at the Intro's hand-off, and a key change unmounts the whole
+   subtree and mounts a fresh one — so every `useState` below it is reset. A
+   modal opened before the hand-off was therefore destroyed mid-view: `open`
+   went back to `false`, the effect cleanup called `dialog.close()`, and the
+   dialog vanished with no visitor action.
+
+   REPRODUCED 2026-08-22 on a production build at 1440x900, headless AND headed,
+   on every run: `/about`, Tab to "View CV" (the plate carries no `inert`, so it
+   is reachable under an opaque surface), Enter — `showModal()` renders it in the
+   TOP LAYER above the plate — then the hand-off destroys it. Also reproduced by
+   activating the trigger at t = 900 / 1400 / 1800ms; not reproduced at
+   t >= 2500ms, which is where the hand-off lands.
+
+   NOT REPRODUCED, and listed so the next reader does not re-hunt them: an
+   ordinary click at eleven instants from 2.5s to 6s; the `767.98px` straddle
+   band at ten widths from 740 to 800; Enter and Space on a settled page; a
+   client navigation to `/about`; a twelve-second dwell; light theme; a theme
+   toggle with the modal open; a drag that starts inside the panel and ends
+   outside it; and a click inside the PDF frame.
+
+   THE ONE CASE THAT LOOKS LIKE THE BUG AND IS NOT: dragging the window below
+   768px with the modal open closes it. That is `sync()` doing what this file
+   already says it does, deliberately.
+
+   THE FIX IS STRUCTURAL RATHER THAN DEFENSIVE. The state moves ABOVE the
+   re-keyed boundary into `CvModalHost`, which `AboutScreen` wraps around the
+   whole action row. Storing `open` in a module-level variable and restoring it
+   on remount was considered and rejected: the remount's `showModal()` runs in a
+   passive effect, i.e. AFTER paint, so it would ship one visible frame with no
+   dialog — a flash instead of a disappearance.
+
+   `CvModalHost` RENDERS NO DOM ELEMENT, exactly like `IntroProvider`, so the
+   `/about` layout is byte-identical. The `<dialog>` it renders while open is
+   `position: fixed` and in the top layer, so it is out of flow and is not a
+   flex item of the column it now sits in.
+
+   THIS DOES NOT REPLACE THE `inert` FIX, and must not be read as having done
+   so. `.claude/handoff/intro-route-scope-report.md` still records that nothing
+   is inert while the plate is up, so a keyboard visitor can still reach — and
+   now successfully operate — a control they cannot see. That is a separate
+   change with a wider blast radius (it also covers tabbing into a project card
+   on `/work`) and it is Saad's to take.
+─────────────────────────────────────────────────────────────────────────── */
+type CvModalState = {
+  compact: boolean;
+  open: boolean;
+  openModal: () => void;
+  triggerRef: RefObject<HTMLButtonElement | null>;
+};
+
+/**
+ * THE NO-HOST DEFAULT IS THE MOBILE BRANCH — `compact: true`, `openModal` a
+ * no-op. Permissive in the same direction `IntroContext`'s default is: a
+ * `CvAction` rendered outside a host degrades to a plain link to the file,
+ * which works everywhere, rather than to a button that opens nothing.
+ */
+const CvModalContext = createContext<CvModalState>({
+  compact: true,
+  open: false,
+  openModal: () => {},
+  triggerRef: { current: null },
+});
+
+export function CvModalHost({ children }: { children: ReactNode }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   /** Tracks whether the modal has been open, so the focus-return effect fires
    *  on the close transition only and never on first mount. */
@@ -146,6 +232,29 @@ export function CvAction() {
   }, [open]);
 
   const close = useCallback(() => setOpen(false), []);
+  const openModal = useCallback(() => setOpen(true), []);
+
+  const value = useMemo(
+    () => ({ compact, open, openModal, triggerRef }),
+    [compact, open, openModal],
+  );
+
+  return (
+    <CvModalContext.Provider value={value}>
+      {children}
+      {/* MOUNTED ONLY WHILE OPEN, and only on the branch that has a modal at
+          all. `showModal()` cannot be called during render, and a `<dialog>`
+          left in the tree closed is still a node the browser keeps in the
+          accessibility tree as a hidden dialog. Conditional mounting is also
+          what makes the mobile guarantee literal: on that branch this line is
+          never reached. */}
+      {open && !compact ? <CvModal onClose={close} /> : null}
+    </CvModalContext.Provider>
+  );
+}
+
+export function CvAction() {
+  const { compact, openModal, triggerRef } = useContext(CvModalContext);
 
   if (compact) {
     return (
@@ -161,24 +270,21 @@ export function CvAction() {
     );
   }
 
+  /* THE TRIGGER, AND NOTHING ELSE. The modal is a sibling of the whole action
+     row rather than of this button — see `CvModalHost`. This component is
+     therefore free to be destroyed and rebuilt by the entrance's re-key, which
+     is exactly what happens at the hand-off, without taking the visitor's open
+     modal with it. */
   return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-haspopup="dialog"
-        className={ABOUT_BUTTON_PRIMARY}
-        onClick={() => setOpen(true)}
-      >
-        {ABOUT_PAGE_CV_LABEL}
-      </button>
-      {/* MOUNTED ONLY WHILE OPEN. `showModal()` cannot be called during render,
-          and a `<dialog>` left in the tree closed is still a node the browser
-          keeps in the accessibility tree as a hidden dialog. Conditional
-          mounting is also what makes the mobile guarantee literal: on that
-          branch this line is never reached. */}
-      {open ? <CvModal onClose={close} /> : null}
-    </>
+    <button
+      ref={triggerRef}
+      type="button"
+      aria-haspopup="dialog"
+      className={ABOUT_BUTTON_PRIMARY}
+      onClick={openModal}
+    >
+      {ABOUT_PAGE_CV_LABEL}
+    </button>
   );
 }
 
