@@ -225,6 +225,12 @@ It deliberately does **not** own the scroll lock (see §3).
 
 ## 3. The ordering contract
 
+**It has an off-Home branch, and it did not until 2026-08-22.** §3 documents a
+three-route scope everywhere else on this page, but this contract described only
+`/`, so the exit it specified was the one exit that does not happen on two of
+the three routes. `docs/07` §5 already carried the off-Home ending; this is the
+same fact in the contract that is supposed to be the ordered summary of it.
+
 ```
 1. AssetLoader mounts
    - tracks real readiness; shows a progress readout only if the wait exceeds
@@ -233,12 +239,39 @@ It deliberately does **not** own the scroll lock (see §3).
 
 2. Intro plays
    - fixed, scripted; never gated on the network again
+   - phases 1-6 are IDENTICAL on all three routes
 
-3. Hero expansion and navbar entrance overlap the Intro's phase E
-   - onHandoff -> both start while the plate is still dissolving
+3a. ON `/` -- phase 7 is ZOOM IN: scale 17 into the Hero, 0.95s, power2.in.
+    Hero expansion and navbar entrance overlap it.
+    - onHandoff -> both start while the plate is still zooming
+    - total 3.165s
+
+3b. OFF HOME (`/work`, `/about`) -- phase 7 keeps power2.in and changes
+    PROPERTY: the plate's own autoAlpha 1 -> 0 over 0.55s. No camera, because
+    there is no hero stage to aim one at; the stage holds at ZOOM_OUT_SCALE
+    and the mark fades with the plate as its child.
+    - onHandoff -> the navbar entrance starts (same tween, same 0.45s), and
+      the DESTINATION's own above-the-fold entrance is re-triggered at
+      onHandoff + 0.30s by `components/intro/IntroEntrance.tsx`
+    - total 2.765s
 
 4. IntroGate unmounts
 ```
+
+**The two seams are arranged in OPPOSITE ORDERS, and that is not an
+inconsistency.** On `/` the incoming half is long and back-loaded (the hero's
+1.6s `power2.out`), so the plate can start leaving late. Off Home the incoming
+half is short and front-loaded (`EASE.reveal` over 0.70s), so the *entrance* is
+what has to start late — hence 3b's 0.30s onset, which has no counterpart in 3a.
+The test both are tuned against is the same one: **at the frame the plate
+crosses 50% opacity, how much of the incoming move is still to come?** Fired at
+the hand-off with no onset, an off-Home entrance is 98.7% finished at that frame
+and animates in secret. `IntroEntrance.tsx` carries the table and the measured
+figures.
+
+**Which routes reach 3b:** `/work` and `/about` — the other two members of the
+`(chrome)` group. `projects/[slug]` sits outside the group and shows no Intro at
+all, so it has no branch here.
 
 `components/intro/IntroGate.tsx` is the **single owner** of the
 `html[data-intro-active]` scroll lock, for the whole gate — both plates. Neither
