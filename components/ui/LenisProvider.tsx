@@ -19,11 +19,26 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * a scroll-synced GSAP timeline, and keeping it in its own component keeps
  * this file free of a GSAP import. (It once said "Tickets 4 and 6 depend on"
  * it — neither does. Both shipped on Framer's `Reveal`, which is
- * IntersectionObserver-driven and needs no ScrollTrigger. The plumbing still
- * earns its place: Hero.tsx creates a ScrollTrigger to gate the R3F frameloop,
- * and the post-font refresh below keeps its start/end positions honest.) It is rendered in BOTH branches — under reduced motion there is no
- * Lenis instance to bind, so it no-ops, but it still refreshes ScrollTrigger
- * after fonts settle, which native scroll needs just as much.
+ * IntersectionObserver-driven and needs no ScrollTrigger.)
+ *
+ * THIS BLOCK CLAIMED "Hero.tsx creates a ScrollTrigger to gate the R3F
+ * frameloop" UNTIL 2026-08-22. There is no R3F — the four packages were
+ * uninstalled during the hero rebuild and `CLAUDE.md`'s stack line records it.
+ * `Hero.tsx` does still create a ScrollTrigger, but it gates `inView` for a
+ * Canvas2D loop, and it is no longer the plumbing's main consumer either.
+ *
+ * WHAT ACTUALLY DEPENDS ON IT, measured on a production build 2026-08-22:
+ * eight `ScrubReveal` units on `/` (four in Trajectory, four in Projects) —
+ * the site's ONE consumer of scroll position — plus `Navbar`'s two triggers
+ * that author `data-over-hero`, plus `Hero`'s `inView` gate. All eight scrub
+ * units reach `y: 0 / opacity: 1` by their `bottom bottom` end while fully
+ * visible, and `Navbar`'s attribute still toggles under reduced motion, where
+ * there is no Lenis at all. The post-font refresh below is what keeps every
+ * one of those start/end positions honest.
+ *
+ * <ScrollTriggerSync /> is rendered in BOTH branches — under reduced motion
+ * there is no Lenis instance to bind, so the binding no-ops, but the refresh
+ * still runs, which native scroll needs just as much.
  */
 
 export function LenisProvider({ children }: { children: ReactNode }) {

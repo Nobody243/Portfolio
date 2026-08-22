@@ -18,6 +18,25 @@
  * on Lenis. ReactLenis already runs its own rAF; a second ticker-driven loop
  * advancing the same instance produces scroll that feels subtly doubled.
  *
+ * THE "OFFICIAL PATTERN" IS THEREFORE HALF-ADOPTED ON PURPOSE, and this is the
+ * declined half. GSAP's published snippet is three lines — the `on("scroll")`
+ * binding below, `gsap.ticker.add((t) => lenis.raf(t * 1000))`, and
+ * `gsap.ticker.lagSmoothing(0)`. Lines two and three only make sense together
+ * with `autoRaf: false`, i.e. moving Lenis onto GSAP's ticker; `lagSmoothing(0)`
+ * exists to stop GSAP's lag-smoothing from distorting the timestamp it feeds
+ * Lenis, and with Lenis on its own rAF there is no such timestamp to distort.
+ * Adopting them without the switch is the doubled-advance bug above; adopting
+ * them WITH the switch buys one shared clock and costs a site-wide change to
+ * the frame pipeline that nothing here needs.
+ *
+ * VERIFIED 2026-08-22 on a production build, 1440x900: `root` mode confirmed
+ * (`<html class="... lenis">`, zero Lenis wrapper elements, `window.scrollY`
+ * moves natively 0 -> 400); all eight `ScrubReveal` units on `/` scrub and
+ * settle at their `bottom bottom` end while fully visible; the footer's
+ * `sticky` vs `static` `scrollHeight` delta is 0px in all twenty cases of
+ * `docs/03` Rule S-6; and under reduced motion, with no Lenis instantiated,
+ * `Navbar`'s ScrollTrigger still toggles `data-over-hero` on native scroll.
+ *
  * REDUCED MOTION: LenisProvider never instantiates Lenis, so `useLenis` yields
  * undefined and this no-ops. ScrollTrigger keeps working on native scroll —
  * verify that path, since it is the one that looks identical until it isn't.
