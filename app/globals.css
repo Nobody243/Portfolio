@@ -300,7 +300,7 @@
    never a theme bug: light mode did not inherit a dimmed dark value, it painted
    the identical hex and the ground flipped out from under it. Measured at the
    shipped alpha of 0.28, the composite was ΔL* +24.30 against the dark base
-   (emitted light) and ΔL* −6.00 against the light base (a dark speck on warm
+   (emitted light) and ΔL* −6.05 against the light base (a dark speck on warm
    paper). The direction inverts, which is why lowering the opacity could not
    fix it — it produces fainter dirt.
 
@@ -317,22 +317,48 @@
 
    THE VALUES, and the arithmetic that produced them:
      dark  #9EC9D4 at nodeAlpha 0.30 over #0A0A0B -> #364347, L* 27.45,
-           ΔL* +24.69, 1.93:1. Today's cyan is ΔL* +24.30 / 1.91:1, so the dark
-           field's WEIGHT is unchanged to within 0.4 L* — only the hue moves.
-     light #33474C at nodeAlpha 0.17 over #FDFCFA -> #DBDDDC, L* 87.94,
-           ΔL* −11.05, 1.33:1.
+           ΔL* +24.69, 1.93:1. The cyan it replaced is ΔL* +24.30 / 1.91:1, so
+           the dark field's WEIGHT is unchanged to within 0.4 L* — only the hue
+           moves.
+     light #33474C at nodeAlpha 0.17 over #FDFCFA -> #DBDDDD, L* 87.97,
+           ΔL* −11.02, 1.33:1.
 
-   The light delta is 45% of the dark one on purpose. Matching ΔL* would put a
-   mid-grey speckle on white; matching the WCAG ratio lands in the same place.
+   ALL FOUR COMPOSITES ABOVE ARE NOW BROWSER-VERIFIED, not arithmetic: filled
+   into a real 2D canvas over the base and read back a pixel at a time. They
+   came out exactly as predicted, which is the point of saying so.
+
+   THEY DO NOT MATCH THE FIGURES SAMPLED OFF THE RUNNING FIELD IN `docs/03`
+   (+25.12 / −10.77), AND BOTH ARE RIGHT. These are ONE node over the bare
+   base. Those are sampled from the rendered field, where a node lands on a link
+   tail that is already painted and each canvas fill rounds to 8 bits — about
+   one unit per channel of extra ink. It is NOT alpha quantisation, which was
+   the first guess and is measurably not it: the isolated fills above reproduce
+   the unrounded arithmetic to the byte.
+
+   The light delta is 45% of the dark one on purpose, and that is an AMENDMENT
+   TO A WRITTEN ±10% CRITERION rather than an unstated judgement call — see
+   `docs/03_FRONTEND_SPEC.md`, which now carries the amendment and the
+   measurement that forces it. In one line: the field's TOTAL ink mass is within
+   +7.0% across themes and its mean ΔL* per inked pixel within -6.1%, both
+   inside the band; only the per-node peak is outside it, and matching that
+   would take light's total mass to roughly twice dark's.
+
+   Matching ΔL* would put a mid-grey speckle on white; matching the WCAG ratio
+   lands in the same place.
    Both metrics are blind to the fact that a light mark on near-black blooms and
    merges into haze while a dark mark on near-white stays a discrete object, and
    to the veiling term ambient room light adds at the display's black floor. For
    hairline and graticule work a dark-on-light mark needs roughly half the L*
    delta of a light-on-dark one to read at the same strength.
 
-   The chroma is the point: today's light composite #B7F6FB has a channel spread
-   of 68 at 6 points of value. #DBDDDC has a spread of 2 at 11. The light field
-   stops being coloured and becomes drawn.
+   The chroma is the point: the OLD light composite — the cyan this replaced —
+   was #B6F6FB, a channel spread of 68 at 6 points of value. #DBDDDD has a
+   spread of 2 at 11. The light field stops being coloured and becomes drawn.
+   (This read "#B7F6FB" and "today's", both wrong by 2026-08-22: one channel
+   out, and describing the replaced value as the current one. The hex is now
+   verified by filling `rgba(0, 229, 255, 0.28)` over #FDFCFA in a real canvas
+   and reading the pixel back — #B6F6FB, Y 0.82822, L* 92.94 — rather than by
+   arithmetic.)
 
    The hero is NOT a consumer of this token and must not become one. It is a
    pinned dark plate in both themes and its cyan is Tier 1 and correct;

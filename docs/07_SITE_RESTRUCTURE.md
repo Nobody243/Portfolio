@@ -77,8 +77,11 @@ disagree.
 
 > **THE GAP THIS PARAGRAPH USED TO FLAG IS CLOSED. Do not fix it again.** It read: *"Known gap,
 > flagged rather than fixed: `NavMobileMenu`'s links do not carry it, so below `md` there is no 'you
-> are here' announcement."* `e915298` added it — `NavMobileMenu.tsx:222` sets `aria-current` from the
+> are here' announcement."* `e915298` added it — `NavMobileMenu.tsx` sets `aria-current` from the
 > same `isActiveRoute` predicate the desktop bar imports, so the two can never name different pages.
+> (The line number cited here was 222 and is 302 as of 2026-08-22, after the Home entry was added
+> above it. **A line number in a doc is a fact with a very short shelf life** — cite the file and the
+> symbol, and only add a line when the symbol alone is not enough to find it.)
 > Below `md` the indicator cluster is `display: none` and this menu is the only navigation there is,
 > which is why it mattered.
 

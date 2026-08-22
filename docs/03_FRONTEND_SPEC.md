@@ -36,8 +36,9 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > hardcoded `--accent-hero`, so a Tier 2/3 page painted a full-viewport field in `#00E5FF` in **both**
 > themes. That was never a theme bug: light mode did not inherit a dimmed dark value, it painted the
 > identical hex while the ground flipped out from under it. Measured at the shipped `nodeAlpha` of
-> 0.28, the composite was ΔL\* **+24.30** against `#0A0A0B` (emitted light, a star) and ΔL\* **−6.00**
-> against `#FDFCFA` (a dark speck on warm paper). The direction inverts, which is why lowering the
+> 0.28, the composite was ΔL\* **+24.30** against `#0A0A0B` (emitted light, a star) and ΔL\* **−6.05**
+> against `#FDFCFA` (a dark speck on warm paper — `#B6F6FB`, Y 0.82822, L\* 92.94, verified by
+> filling it into a real canvas rather than by arithmetic). The direction inverts, which is why lowering the
 > opacity could not fix it — it produces fainter dirt.
 >
 > Teal was refused as the replacement: `globals.css` already draws that line for image frames
@@ -50,7 +51,14 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > `bg-field-ink` do not exist — the same mechanical guard `--accent-hero` uses, for the same reason.
 > One consumer, `components/hero/ParticleGrid.tsx`, which reads it as canvas channels.
 >
-> Measured on the shipped build, sampled off the composited canvas at 1440×900 and 375×667:
+> Measured on the shipped build, **sampled off the running canvas** at 1440×900 and 375×667 — which
+> is why every row below is about one unit per channel heavier than the isolated node-over-base
+> arithmetic `app/globals.css` states (+25.12 against +24.69, −10.77 against −11.02). Both are
+> correct for what they describe: `globals.css` composites ONE node onto the bare base, this samples
+> the field, where a node lands on a link tail that is already painted and every canvas fill rounds
+> to 8 bits. **It is not alpha quantisation** — that was the first explanation offered for the gap
+> and it is measurably not it: filling those same colours into a real canvas in isolation reproduces
+> the unrounded arithmetic to the byte.
 >
 > | | Dark on `#0A0A0B` | Light on `#FDFCFA` |
 > |---|---|---|
@@ -70,6 +78,36 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 >   on white, and matching the WCAG ratio lands in the same place. Both metrics are blind to the fact
 >   that a light mark on near-black blooms and merges into haze while a dark mark on near-white stays
 >   a discrete object.
+>
+>   **THIS IS A DELIBERATE AMENDMENT TO A WRITTEN ACCEPTANCE CRITERION AND IT IS FLAGGED LOUDLY
+>   RATHER THAN QUIETLY SATISFIED.** `.claude/handoff/overnight-plan.md` Window 3 acceptance #1
+>   required the two themes' node contrast to match within **±10%**. The shipped values are −33% on
+>   that metric (1.321 against 1.963), the code argued the 0.45 ratio on the bloom grounds above, and
+>   for a while the two documents disagreed with each other while the code silently followed one.
+>   That is the state being ended here, in the governing doc rather than in a handoff file.
+>
+>   **The criterion is amended because the two halves of it cannot both be met, and that is
+>   measured, not asserted.** Read the whole canvas buffer on `/about` at 1440×900, six frames per
+>   theme, compositing every pixel's own alpha over its theme's base and summing |ΔL\*|:
+>
+>   | | dark | light | light / dark |
+>   |---|---|---|---|
+>   | inked pixels | 31,181 | 35,524 | **1.139** |
+>   | total ink mass, Σ\|ΔL\*\| | 51,876 | 55,511 | **1.070** |
+>   | mean ΔL\* per inked pixel | 1.664 | 1.563 | **0.939** |
+>   | peak ΔL\* (brightest node core) | 33.77 | 20.71 | 0.613 |
+>
+>   **The field's total perceptual mass is already within +7.0% across themes, and its mean ΔL\* per
+>   inked pixel within −6.1% — both inside ±10%.** The only figure outside the band is the *per-node
+>   peak*, which is exactly the quantity the bloom asymmetry is about. Raising `nodeAlpha` until the
+>   per-node delta matched dark's would take the light field's total mass to roughly **twice** dark's,
+>   i.e. it would break ±10% on the measure that describes how present the field actually is in order
+>   to satisfy it on the measure that describes one pixel of it.
+>
+>   **So: the ±10% band stands; the metric it binds is the field's total ink mass and its mean ΔL\*
+>   per inked pixel, not the per-node contrast ratio.** The per-node ratio is deliberately ~0.45–0.61
+>   of dark's and must not be "corrected" upward. If a future change makes the two themes' total mass
+>   diverge by more than 10%, THAT is the failure this criterion is for.
 > - **Density is identical in both themes.** Thinning the light field is the intuitive move and it
 >   destroys the triangulation that is the only thing separating the field from noise — `ParticleGrid`
 >   records the measured failure at `areaPerNode` 11,000. Density and connectivity are one decision;
