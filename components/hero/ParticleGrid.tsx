@@ -98,12 +98,20 @@
  * rule now rather than a reduced-motion special case standing beside a loop
  * that otherwise ran forever. At the END of every frame — after the node loop,
  * because restlessness is not knowable before it — the tick asks whether the
- * next frame could differ from the one just drawn: is the ambient drift on, is
- * there a sphere turning under its own timeline, is the pointer driving the
- * field, is any node still lerping home. Another frame is queued only if the
+ * next frame COULD DIFFER from the one just drawn: is the ambient drift on, is
+ * there a sphere turning under its own timeline, is any node still easing
+ * toward a target it has not reached. Another frame is queued only if the
  * answer is yes. Otherwise the loop parks itself — `raf = 0`, `lastFrame = 0`
  * — and nothing runs at all until `wake()` is called by a build, a resize, a
  * theme flip, a resolved webfont or a pointer event.
+ *
+ * "COULD THE NEXT FRAME DIFFER" IS NOT "IS ANYTHING DISPLACED", and the
+ * distinction is the difference between this working and this doing nothing.
+ * A cursor resting anywhere over a full-viewport field holds a tear open
+ * indefinitely; the nodes are far from home, but they have ARRIVED, and no
+ * further frame can differ. Asking about displacement keeps that loop running
+ * for the whole visit. Asking whether any node is still chasing its target
+ * parks it. See the `chasing` test in the node loop.
  *
  * UNDER REDUCED MOTION THE TICK IS STILL NOT SCHEDULED AT ALL. Not slowed —
  * stopped. That has not changed; what changed is that it is no longer its own
@@ -118,7 +126,8 @@
  *
  * `/about` REACHES THE SAME PARKED STATE WITHOUT THE PREFERENCE. It passes
  * `ambient="settled"` and no sphere, so the field is still until the cursor
- * touches it, tears open, eases shut over ~1.05s and stops — and because the
+ * touches it, tears open, holds torn open — parked, costing nothing — for as
+ * long as the cursor rests, then eases shut over ~1.05s and stops. Because the
  * drift is off, `node.x === node.homeX + node.ox` exactly, so the settle
  * terminates in the same image the mount frame drew. See
  * `ParticleGridProps.ambient`.
@@ -988,6 +997,11 @@ export function ParticleGrid({
         voidAnchor = commandSphereVoid(sphere);
       }
 
+      /** Set by the node loop below if ANY node is not yet at its target — the
+       *  tear opening, closing, or following a moving cursor. Read by
+       *  `restless`. A tear held open by a motionless cursor does NOT set it. */
+      let chasing = false;
+
       for (const node of nodes) {
         /* --- ambient drift, bounded ------------------------------------- */
         // `ambient === "settled"` leaves `dx`/`dy` at 0 for the life of the
@@ -1045,10 +1059,14 @@ export function ParticleGrid({
         // `node.x === node.homeX` hold exactly at rest, which is what makes the
         // settled frame a deterministic picture rather than one of many.
         //
-        // THE TEST MATCHES `restless`'s BELOW, deliberately: this zeroes on
-        // exactly the frames that scan would have called settled, so the last
-        // frame drawn is the parked one and no extra frame is scheduled to
-        // apply the snap.
+        // THE SNAP AND THE PARK TEST ARE THE SAME TEST, which is what stops
+        // them disagreeing about which frame is the settled one. `best.mag`
+        // being 0 means `best.x` and `best.y` are both 0, so the condition
+        // below is literally `chasing`'s |target - offset| <= EPSILON with the
+        // target at 0. The snap therefore fires only on a frame the park test
+        // already calls settled, and setting the offset to exactly 0 keeps it
+        // settled — there is no frame on which one of them moves the node and
+        // the other then sees a change.
         if (
           best.mag === 0 &&
           Math.abs(node.ox) <= SETTLE_EPSILON &&
@@ -1056,6 +1074,46 @@ export function ParticleGrid({
         ) {
           node.ox = 0;
           node.oy = 0;
+        }
+
+        // IS THIS NODE STILL CHASING ITS TARGET? Measured against `best` — the
+        // displacement it is easing TOWARD — and never against zero.
+        //
+        // THAT IS THE WHOLE DIFFERENCE BETWEEN "SOMETHING IS DISPLACED" AND
+        // "SOMETHING IS CHANGING", and it decides whether this page can idle at
+        // all. A held tear is displaced BY CONSTRUCTION: every node inside
+        // `VOID_RADIUS` sits far from home for as long as the cursor rests
+        // there, so a test against zero stays true forever. The field is
+        // full-viewport on `/about` and `pointerleave` only fires at the window
+        // edge, so "the cursor is resting somewhere on the page" is not an edge
+        // case — it is a visitor who moved the mouse once and is now reading.
+        // Against zero, that visitor pays 60fps for the entire visit, which is
+        // precisely the cost this whole mechanism exists to remove.
+        //
+        // Against `best` it is right in every phase, for one reason: while the
+        // pointer MOVES, `best` moves with it and the node cannot converge;
+        // while the pointer is HELD, `best` is constant, the node converges to
+        // within a sub-pixel of it, and no further frame can differ from this
+        // one. Parking there is not an approximation of stillness — the field
+        // has genuinely finished, and the held tear stays exactly as drawn.
+        //
+        // NO PREVIOUS-FRAME STATE, DELIBERATELY. A frame-to-frame delta would
+        // need each node's prior offset, and the first frame after a `wake()`
+        // has no prior offset to compare against — it would have to be
+        // special-cased as "changed" or the loop could park before it moved.
+        // This form is stateless: it asks where the node is relative to where
+        // it is going, which one frame can answer on its own.
+        //
+        // `!chasing &&` short-circuits the scan. Once any node is chasing, the
+        // rest of the pass costs one boolean each, which is what keeps this off
+        // the hero's hot loop — there `ambient === "drift"` makes the answer
+        // moot before it is ever read.
+        if (
+          !chasing &&
+          (Math.abs(best.x - node.ox) > SETTLE_EPSILON ||
+            Math.abs(best.y - node.oy) > SETTLE_EPSILON)
+        ) {
+          chasing = true;
         }
 
         node.x = node.homeX + node.dx + node.ox;
@@ -1074,22 +1132,27 @@ export function ParticleGrid({
          `!reducedMotion` GATES THE WHOLE TEST and must never be demoted to one
          more disjunct: `sphere !== null` is true on the hero under reduced
          motion, so OR-ing it in would start a loop there that is currently,
-         correctly, never scheduled at all. */
+         correctly, never scheduled at all.
+
+         THE QUESTION IS "DID ANYTHING CHANGE", NOT "IS ANYTHING DISPLACED", and
+         getting that wrong is how this mechanism silently does nothing. An
+         earlier version of this predicate asked the second, as
+         `interactive || nodes.some(n => |n.ox| > EPSILON)`. BOTH of those
+         disjuncts hold a loop open forever under a resting cursor — the first
+         because a motionless pointer still counts as active, the second because
+         a held tear is displaced by definition — so removing either ALONE would
+         have changed nothing measurable. `chasing` replaces both at once. See
+         its test in the node loop for why it is measured against `best` rather
+         than against zero. */
       const restless =
         !reducedMotion &&
         // Cheapest first, and the ordering matters: the hero satisfies the
-        // first disjunct, so it never pays for the node scan.
+        // first disjunct, so `chasing` is computed but never consulted.
         (ambient === "drift" ||
           // The sphere turns on its own timeline whether or not anything is
           // touching it.
           sphere !== null ||
-          interactive ||
-          // Still easing home. `LERP` is exponential and never reaches zero, so
-          // this is a sub-pixel floor rather than an equality test.
-          nodes.some(
-            (n) =>
-              Math.abs(n.ox) > SETTLE_EPSILON || Math.abs(n.oy) > SETTLE_EPSILON,
-          ));
+          chasing);
 
       if (restless) {
         raf = requestAnimationFrame(frame);

@@ -641,15 +641,35 @@ page.
 >    removed here. One author, not three.
 > 2. **An interaction that responds when touched, and only then.** The cursor void, its displacement
 >    kernel, its ragged link break and its eased return home are all **kept unchanged**. Touching the
->    field tears it open; leaving eases it shut over ~1.05s and it stops. This is deliberately not
+>    field tears it open; leaving eases it shut over ~1.0s and it stops. This is deliberately not
 >    dimmed and must not be — it is the page's one interaction, and About is meant to be quiet, not
 >    dead.
-> 3. **No idle animation at all.** Measured at 1440×900 with the pointer off the field: **301 canvas
->    frames in 5 seconds before, 0 after.** After a pointer sweep the settle runs 57 frames / 942ms
->    and then stops hard — 0 frames in the following 2 seconds. A theme flip while idle costs exactly
->    one frame; a resize exactly one. On a phone, where the pointer interaction is width-gated off
->    anyway, the whole visit costs **one frame** (377 before). The resting image is byte-identical to
->    the mount image in both themes.
+> 3. **No idle animation at all — including while the cursor is resting on the page.** Measured at
+>    1440×900 with the pointer off the field: **301 canvas frames in 5 seconds before, 0 after.**
+>    After a pointer sweep the settle runs ~60 frames / ~1.0s and then stops hard — 0 in the
+>    following 2 seconds. A theme flip while idle costs exactly one frame; a resize exactly one. On a
+>    phone, where the pointer interaction is width-gated off anyway, the whole visit costs **one
+>    frame** (377 before). The resting image is byte-identical to the mount image in both themes.
+>
+> **A HELD CURSOR IS THE CASE THIS TURNS ON, and it is the common case rather than an edge one.**
+> The field is full-viewport, so "the pointer is inside the field" just means "the pointer is
+> somewhere on the page", and `pointerleave` fires only at the window edge. The ordinary desktop
+> visit is therefore: move the mouse once, then read for a minute with the cursor sitting still. **A
+> predicate that asks "is anything displaced" never parks in that state** — a held tear is displaced
+> by construction — so the loop would have run at 60fps for the entire visit and this whole change
+> would have bought nothing on the path most visitors actually take. The shipped predicate asks
+> **"could the next frame differ"**: while the pointer moves the target moves with it and the nodes
+> cannot converge; while the pointer is held the target is constant, the nodes arrive, and the frame
+> stops being able to change.
+>
+> Measured, pointer moved in once and then held motionless for 5s at 1440×900: **a burst of 57
+> frames (941ms) while the tear opens, then 0 for the remaining ~4s.** The tear is genuinely held
+> open while parked, not quietly closed — against an untorn mount frame it differs across 30,682
+> channel bytes at up to 84/255. Against the same tear with the loop *forced to keep running* for
+> 400 further frames it differs across ~1,900 bytes of 15,552,000 (0.012%) at a max delta of 5–18/255
+> depending on where the nodes fell: sub-pixel antialiasing on node edges, roughly one-sixteenth the
+> extent of the tear itself, and no visitor is ever in a position to compare the two. **Parked and
+> running are the same picture.**
 >
 > **The cost this removes, since it is the argument.** At 1440×900 the field is 153 nodes, so the
 > O(n²) link pass ran **11,628 pair tests per frame** (~698,000/s) and the canvas re-rastered

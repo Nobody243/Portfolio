@@ -726,8 +726,16 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 > `"settled"`, which converts it into exactly the category this rule sanctions: a timed transient
 > fired by an input, with a defined end state — the same class as the MS mark's hover part and the
 > copy-email label swap. Measured: 301 canvas frames per 5 idle seconds before, **0** after; the
-> pointer-driven settle runs 57 frames / 942ms and stops. The hero keeps `"drift"` and is byte-
+> pointer-driven settle runs ~60 frames / ~1.0s and stops. The hero keeps `"drift"` and is byte-
 > identical. Full reasoning and the cost figures live in `docs/07_SITE_RESTRUCTURE.md` §6.
+>
+> **"Transient with an end state" has to be tested as "could the next frame differ", not as "is
+> anything displaced",** and that distinction is worth stating here because it is where this kind of
+> change silently fails. A cursor resting on a full-viewport field holds a displacement open
+> indefinitely while nothing about the image changes. A displacement test never terminates in that
+> state, so the behaviour stays an unbounded loop while *looking* like it has an end state — and on
+> `/about` that state is the ordinary desktop visit, not an edge case. Any future motion audited
+> against this rule should be checked in its HELD state, not just its released one.
 >
 > **The breakpoint clause was live during this change and is worth recording as a worked example.**
 > The obvious implementation — `width < 768 ? static : animated`, since the pointer interaction is
