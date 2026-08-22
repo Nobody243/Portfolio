@@ -25,13 +25,17 @@
  *   - There is no typeface download. The hero uses the webfont the rest of the
  *     page already loads, which is why `AssetLoader` tracks fonts and nothing
  *     else — see its header for the full list of what is and is not gated.
- *   - There is no camera in the scene. The only camera move on this surface is
- *     the EXPANSION below, and it is not the hero's own: it is the second half
- *     of the Intro's handoff, continued on this side of the seam. The Intro's
- *     camera accelerates THROUGH the mark's anchor pixel and this settles in
- *     behind it, out of that same pixel. (It read "the Intro contracts its mark
- *     to a point and this opens out of that point" — the merge-to-a-point
- *     sequence, reverted in `1145a00`.)
+ *   - There is no camera in the scene, AND AS OF 2026-08-22 THERE IS NO
+ *     CAMERA IN THE INTRO EITHER. The one move on this surface is the ARRIVAL
+ *     below, and it is not the hero's own: it is the second half of the Intro's
+ *     handoff, continued on this side of the seam. The Intro's plate now
+ *     dissolves in place over 0.55s while this settles out of `ARRIVAL_SCALE`
+ *     behind it. (This said "the Intro's camera accelerates THROUGH the mark's
+ *     anchor pixel and this settles in behind it, out of that same pixel" until
+ *     the ×17 zoom-in was retired — preserved on `intro-zoom-in-backup` — and
+ *     before that "the Intro contracts its mark to a point and this opens out
+ *     of that point", the merge-to-a-point sequence reverted in `1145a00`.
+ *     Three accounts of one seam; only the first line above is current.)
  *
  * THE VOID IS STILL MEASURED, NOT AGREED — and this component no longer has any
  * part in it. The invariant used to be enforced here: `SaadGlass` measured its
@@ -71,69 +75,129 @@ import { ScrollTrigger, gsap } from "@/lib/animation/gsap";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /**
- * THE EXPANSION — 1.6s, DELIBERATELY LONGER than the navbar's 0.45s slide.
+ * THE ARRIVAL — 1.30s, DELIBERATELY LONGER than the navbar's 0.45s slide and
+ * than the Intro's 0.55s dissolve.
  *
- * THE RULE: the incoming half of a handoff must OUTLAST the outgoing one, or
- * the seam becomes a cut. The mark accelerates out through the viewport over
- * `ZOOM_IN_S` (0.95s) and the hero's settle has to still be running when it
- * leaves. 1.6s against 0.95s is that margin.
+ * THE RULE, unchanged: the incoming half of a handoff must OUTLAST the outgoing
+ * one, or the seam becomes a cut. What changed on 2026-08-22 is the outgoing
+ * half. The Intro's phase 7 was a ×17 camera over `ZOOM_IN_S` 0.95s and is now
+ * `DISSOLVE_S` 0.55s on every route, so this value is re-derived rather than
+ * kept: 1.30 / 0.55 is **2.36x**, where 1.60 / 0.95 was 1.68x. The rule is
+ * honoured with a 40% wider margin than it had.
  *
- * THIS BLOCK ARGUED THE OPPOSITE UNTIL 2026-08-22, AND THE ARGUMENT WAS A
- * LANDMINE. It said "there is no camera any more", that the value was 0.45s
- * and shared from `lib/animation/handoff.ts`, and that a hero still expanding
- * after the plate had gone would be a third thing in a two-thing beat. Every
- * sentence of that was true of the merge-to-a-point Intro, which was built,
- * found broken and reverted in `1145a00`. The camera came back; the comment
- * did not. `8875803` restored the value and rewrote the block four lines below
- * this one, and left this one standing — so the file carried two adjacent
- * constants with contradictory justifications for the same decision.
+ * BUT THE RATIO IS NOT THE INVARIANT, AND THAT IS THE WHOLE DERIVATION. The
+ * test this repo actually uses is HOW MUCH OF THE INCOMING MOVE REMAINS AT THE
+ * FRAME THE PLATE CROSSES 50% OPACITY. `power2.in` is CUBIC, so the plate is
+ * half gone at `∛0.5 × 0.55` = **0.4365s** (the same figure `Intro.tsx`
+ * derives). The arrival's own `power2.out` is `1 − (1 − τ/A)³`:
  *
- * The danger was specific: someone tuning the seam reads a confident argument
- * for `HANDOFF_S`, applies it, and silently reintroduces the early-settle bug.
- * Nothing errors and nothing looks broken — the hero simply finishes half a
- * second early and the camera flies over a surface that has already arrived.
+ *   configuration                      plate-50%   arrival complete   remaining
+ *   ---------------------------------  ----------  -----------------  ---------
+ *   the retired 0.95s camera, A = 1.60   0.5425s        71.1%           28.9%
+ *   the 0.55s fade, A left at 1.60       0.4365s        61.5%           38.5%
+ *   the 0.55s fade, A = 1.30  ← THIS     0.4365s        70.7%           29.3%
+ *   the 0.55s fade, A = 0.95             0.4365s        84.8%           15.2%
+ *
+ * Solving for today's 71.1% gives A = 1.287s. **1.30s reproduces the shipped
+ * seam to within 0.4 percentage points.**
+ *
+ * AND IT CUTS THE TAIL, which is the half of the question the ratio hides. The
+ * plate is fully gone at 0.550s rather than 0.950s, so at A = 1.60 the hero
+ * would still have **1.05s** of visible settling left with nothing covering it
+ * (against 0.65s before) and would sit **3.4% over-scale** at that frame — at
+ * 1440 a point 700px from centre is 23.7px out of place, drifting home at
+ * ~23px/s. That is visible. At 1.30s the tail is 0.75s and the residual scale
+ * is 1.0077.
+ *
+ * **0.926s IS THE NUMBER SOMEONE WILL PROPOSE** — 1.6 × 0.55/0.95, holding the
+ * ratio. It is recorded here so it can be refused with the arithmetic: it puts
+ * 84.8% of the arrival behind an opaque plate, which is the "animates in
+ * secret" failure the whole arrangement exists to repair.
+ *
+ * THIS BLOCK ARGUED FOR 0.45s AND FOR NO CAMERA UNTIL 2026-08-22 (the earlier
+ * one), AND THE ARGUMENT WAS A LANDMINE. That text was true of the
+ * merge-to-a-point Intro, which was built, found broken and reverted in
+ * `1145a00`; the camera came back and the comment did not, so the file carried
+ * two adjacent constants with contradictory justifications for one decision.
+ * The camera has now gone again — but this is NOT a return to that state and
+ * must not be edited back toward it: the seam is still one incoming move
+ * outlasting one outgoing one, and 0.45s would break the plate-50% test in the
+ * other direction.
  *
  * IT IS NOT IMPORTED FROM `handoff.ts` AND MUST NOT BE. That module records the
  * same fact from its side: what the three components share is the START
  * INSTANT, not the duration. The navbar slides in 0.45s, the hero settles over
- * 1.6s, and both begin on the same frame — measured 2205ms each.
+ * 1.30s, and both begin on the same frame.
  */
-const ARRIVAL_S = 1.6;
+const ARRIVAL_S = 1.3;
 /**
- * IT EXPANDS FROM A POINT, AND THE POINT IS DEFINED RATHER THAN IMPLIED.
+ * IT SETTLES OUT OF AN OVER-SCALE. IT DOES NOT GROW FROM A POINT, AND IT IS NOT
+ * A CROSSFADE.
  *
- * The Intro pins `(296, 288)` in the mark's viewBox — not the mark's bounding
- * box — to dead viewport centre, and makes it the camera's transform origin
- * (`50% 90%`), so it is the one pixel that does not move while the zoom runs. The hero section is `h-dvh`, sits at the top of the document, and the
- * page is at scroll 0 for the whole sequence, so the section's own centre IS
- * that pixel and a `50% 50%` origin lands on it exactly. THAT IDENTITY IS WHY
- * THERE IS NO COORDINATE HERE TO KEEP IN SYNC — but it is also the thing that
- * would break silently if the hero ever stopped being full-viewport at scroll
- * 0, so it is written down rather than assumed.
+ * 1.12 → 1.04 on 2026-08-22, and the number lost its old justification outright
+ * rather than being retuned by taste. That justification was: *"a camera moving
+ * forward hands off to a surface that is slightly too close and eases back to
+ * rest; that continuity is the whole illusion."* **There is no camera.** The
+ * Intro's phase 7 now fades the plate in place at `ZOOM_OUT_SCALE`, so 12% was
+ * an unexplained scale on a surface nothing is moving toward.
  *
- * IT SETTLES OUT OF AN OVER-SCALE. IT DOES NOT GROW FROM A POINT.
+ * TWO INDEPENDENT ARGUMENTS PUT IT AT 1.04, and they agree, which is why it is
+ * 1.04 and not something between.
  *
- * Both values below restore `f640107` verbatim, because the Intro's camera is
- * back and the camera is what they exist for.
+ *   1. THE SITE'S TRAVEL BUDGET. `Intro.tsx` used to reject a scale arrival off
+ *      Home in these words — *"12% IS SIX AND A HALF TIMES THE SITE'S TRAVEL
+ *      BUDGET"* — because the timed reveal travels 13px and the scrub caps at
+ *      21px. That block was scoped to routes whose page stack is content, and
+ *      Home is a Tier 1 spectacle surface where the budget does not bind. But
+ *      its PREMISE — that 12% was sized against a ×17 camera — now applies here
+ *      too. At 1440, initial displacement is `d × (S − 1)`:
  *
- * `scale: 0` over 0.45s was correct for the merge-to-point Intro, where the
+ *        element                          d      S = 1.12    S = 1.04
+ *        -------------------------------  -----  ----------  ---------
+ *        viewport corner                  849px   101.9px      34.0px
+ *        tagline leading edge (89px in)   631px    75.7px      25.2px
+ *        the sphere's right rim          ~446px    53.5px      17.8px
+ *
+ *      25.2px at the tagline lands in the same amplitude family as the rest of
+ *      the site instead of six times outside it — while REMAINING A SCALE,
+ *      which is what keeps it a Tier 1 gesture rather than a `Reveal`.
+ *
+ *   2. THE TAGLINE REVEALS INSIDE THIS TWEEN'S TAIL, and the camera used to
+ *      hide that. `introDone` fires on the Intro's `onComplete`, which is now
+ *      0.550s after the hand-off rather than 0.950s. `HeroHeadline`'s tagline
+ *      mask runs 0.70s + a 0.10s stagger from there, i.e. ENTIRELY inside this
+ *      arrival's tail, on a stage that is still scaling. At `ARRIVAL_S 1.30`
+ *      the arrival is 80.8% done at 0.550s, so the residual is 19.2%:
+ *
+ *        1.12 → residual scale 1.0230 → **14.5px** of sideways creep under a
+ *               running mask reveal. Two moves on one element; it reads as a
+ *               wobble.
+ *        1.04 → residual scale 1.0077 → **4.85px**. Sub-perceptual.
+ *
+ * WHAT IS REJECTED, AND WHY IT IS WRITTEN DOWN: `ARRIVAL_SCALE = 1.0`. It makes
+ * the arrival opacity-only, i.e. the plate fades out while the hero fades in —
+ * **a crossfade is a cut with extra steps**, which is precisely what
+ * `lib/animation/handoff.ts` exists to prevent. It would also leave
+ * `power2.out`'s measured justification below with no move to shape. If the
+ * entry ever reads as flat, the lever is this constant UPWARD (1.04 → 1.06),
+ * never a new element, a new phase or a second fade.
+ *
+ * THE `50% 50%` ORIGIN IS NOW A SIMPLIFICATION, NOT A COUPLING — and the
+ * difference matters enough to record. This block used to pin an identity
+ * between the Intro's anchor pixel `(296, 288)`, its `50% 90%` camera origin
+ * and this `50% 50%`, and warned that it "would break silently if the hero ever
+ * stopped being full-viewport at scroll 0". With no camera there is no fixed
+ * point to align to, so `50% 50%` means only "the hero settles about its own
+ * centre" — true at any scroll position and on any section height. THE
+ * FRAGILITY IS GONE. Do not preserve the old constraint for nothing.
+ *
+ * (`scale: 0` over 0.45s was correct for the merge-to-point Intro, where the
  * mark contracted to a dot and the hero genuinely bloomed out of that pixel.
- * Under a zoom-in both are wrong, and wrong in a way that is easy to miss
- * because nothing looks broken: the hero simply finishes early and the camera
- * then flies over a surface that has already arrived.
- *
- * THE RULE, restated because it was removed once already: the incoming half of
- * a handoff must OUTLAST the outgoing one, or the seam becomes a cut. The mark
- * accelerates out through the viewport over `ZOOM_IN_S` (0.95s) while the hero
- * settles in behind it, and the settle has to still be happening when the mark
- * leaves. 1.6s against 0.95s is that margin.
- *
- * 1.12 rather than 0 for the same reason. A camera moving forward hands off to
- * a surface that is slightly too close and eases back to rest; that continuity
- * is the whole illusion. Growing from a dot reads as a separate event that
- * happens to begin where the last one ended.
+ * That sequence was reverted in `1145a00`. Growing from a dot reads as a
+ * separate event that happens to begin where the last one ended, and the
+ * retirement of the camera is not a reason to go back to it.)
  */
-const ARRIVAL_SCALE = 1.12;
+const ARRIVAL_SCALE = 1.04;
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -177,25 +241,30 @@ export function Hero() {
   }, []);
 
   /* -----------------------------------------------------------------------
-     THE EXPANSION — the hero's half of the hand-off.
+     THE ARRIVAL — the hero's half of the hand-off.
 
-     The Intro does not fade out and reveal a static hero. Its camera commits
-     and then accelerates through the mark's anchor pixel at dead centre, and
-     the site settles in behind it out of that same pixel: this runs from the
+     The Intro does not finish and then reveal a static hero. Its plate begins
+     dissolving on the same frame this begins settling, and it is fully gone at
+     0.550s while this is still running for another 0.750s: this runs from the
      SAME INSTANT as the navbar's slide — not for the same duration — and the
      plate finishes dissolving before the arrival is done. Two components that
-     cannot see each other, one beat, held together by one shared origin and
-     one shared start.
+     cannot see each other, one beat, held together by one shared start.
 
-     THIS PARAGRAPH DESCRIBED THE REVERTED INTRO UNTIL 2026-08-22. It said the
-     mark "contracts to a single dot at dead centre, holds there for 60ms", and
-     that this runs "for the same duration as the navbar's slide ... held
-     together by one shared constant". The merge-to-a-point sequence and its
-     60ms hold were reverted in `1145a00`; `ARRIVAL_S`'s own docblock seventy
-     lines above already said the opposite in capitals, including that the value
-     is NOT imported from `handoff.ts`. One file, two contradictory accounts of
-     the same beat — which is exactly the trap `ARRIVAL_S` was rewritten to
-     close.
+     "AND BY ONE SHARED ORIGIN" WAS THE OTHER HALF OF THAT SENTENCE UNTIL
+     2026-08-22, and it is deleted rather than kept: the Intro's `50% 90%` and
+     this `50% 50%` used to have to agree because a camera was flying through
+     the pixel where they met. With the camera retired they are two independent
+     pivots on two independent elements. See `ARRIVAL_SCALE`.
+
+     THIS PARAGRAPH DESCRIBED THE REVERTED MERGE-TO-A-POINT INTRO BEFORE THAT.
+     It said the mark "contracts to a single dot at dead centre, holds there for
+     60ms", and that this runs "for the same duration as the navbar's slide".
+     That sequence and its 60ms hold were reverted in `1145a00`; `ARRIVAL_S`'s
+     own docblock above already said the opposite in capitals, including that
+     the value is NOT imported from `handoff.ts`. One file, two contradictory
+     accounts of the same beat — which is exactly the trap `ARRIVAL_S` was
+     rewritten to close, and the reason this block is rewritten now rather than
+     patched.
 
      UNDER REDUCED MOTION THIS DOES NOT RUN AT ALL. `IntroGate` still fires the
      hand-off on that path, deliberately, so a consumer never has to ask "did
@@ -293,9 +362,12 @@ export function Hero() {
           section is a CONSUMER of the hand-off now, not its owner.
 
           The gap between `arriving` and `introDone` is unchanged and is still
-          the overlap the expansion above depends on: `arriving` flips as the
-          zoom-in STARTS, `introDone` when the plate is gone. Collapsing them
-          into one value would make the hand-off a cut again. */}
+          the overlap the arrival above depends on: `arriving` flips as PHASE 7
+          STARTS — the frame the plate begins dissolving, while it is still
+          fully opaque — and `introDone` when the plate is gone. It read "as the
+          zoom-in STARTS" until 2026-08-22; the instant is the same one, the
+          tween carrying it is not. Collapsing the two values into one would
+          make the hand-off a cut again. */}
     </section>
   );
 }

@@ -1,11 +1,21 @@
 /**
  * THE SEAM between the Intro and the page it opens into.
  *
- * Three components have to agree about one beat: `Intro.tsx` drives a camera
- * that accelerates THROUGH the mark's anchor pixel at dead viewport centre,
- * `Hero.tsx` settles in behind it out of that same pixel, and `Navbar.tsx`
- * slides down from above the viewport. `docs/07` §3 step 6 and §1 both require
- * the last two to be SIMULTANEOUS — "one beat".
+ * Three components have to agree about one beat: `Intro.tsx` dissolves its
+ * plate out from under the settled mark over 0.55s, `Hero.tsx` settles out of a
+ * small over-scale behind it over 1.30s, and `Navbar.tsx` slides down from
+ * above the viewport over 0.45s. `docs/07` §3 step 6 and §1 both require the
+ * last two to be SIMULTANEOUS — "one beat".
+ *
+ * THE FIRST OF THOSE THREE WAS A ×17 CAMERA UNTIL 2026-08-22, on Home only. It
+ * "accelerated THROUGH the mark's anchor pixel at dead viewport centre" and
+ * `Hero.tsx` "settled in behind it out of that same pixel" — which is why this
+ * module used to describe the anchor pixel as a thing the two sides SHARED
+ * GEOMETRICALLY. They no longer do: the dissolve has no fixed point, so the
+ * Intro's `50% 90%` and the hero's `50% 50%` are two independent pivots. THE
+ * SEAM IS NOW HELD BY THE START INSTANT ALONE, which is all this module ever
+ * actually exported. The retired camera is on `intro-zoom-in-backup` / the tag
+ * `intro-zoom-in`.
  *
  * SIMULTANEITY HERE MEANS ONE START INSTANT, NOT ONE DURATION. See
  * `HANDOFF_S`'s note below and `Hero.tsx`'s `ARRIVAL_S`, which state the same
@@ -19,8 +29,8 @@
  * built, found broken and reverted in `1145a00`; the shared-duration half was
  * then reversed by `7b3b5d2` in `HANDOFF_S`'s own note twenty lines below,
  * leaving this header arguing against the constant it introduces. The anchor
- * pixel `(296, 288)` survived both rewrites and is still the one thing the two
- * sides share geometrically.
+ * pixel `(296, 288)` survived both rewrites and stopped being load-bearing at
+ * the third: it is now only where the Intro's own phase-5 contraction pivots.
  *
  * The slide's duration still lives here rather than in `Intro.tsx` because it
  * travels with the DOM contract below: whoever moves the attribute has to see
@@ -39,16 +49,20 @@
 
 /**
  * The navbar's slide. WHAT THE THREE COMPONENTS SHARE IS THE START INSTANT,
- * NOT THE DURATION - and that changed when the Intro's zoom-in was restored.
+ * NOT THE DURATION.
  *
- * `Hero.tsx` used to import this too. It no longer does: under a camera move
- * the hero must still be settling when the mark leaves the viewport, so its
- * arrival runs 1.6s against the zoom-in's 0.95s while the bar slides in 0.45s.
- * Both still BEGIN on the same frame, which is what `docs/07` S3 step 6 and S1
- * actually require - "one coordinated beat" is simultaneity of onset, not of
- * length. Measured after the restore: hero 2205ms, navbar 2205ms.
+ * `Hero.tsx` used to import this too. It no longer does: the hero must still be
+ * settling when the plate has gone, so its arrival runs **1.30s** against the
+ * dissolve's 0.55s while the bar slides in 0.45s. Both still BEGIN on the same
+ * frame, which is what `docs/07` S3 step 6 and S1 actually require - "one
+ * coordinated beat" is simultaneity of onset, not of length.
  *
- * Do not re-share them. A bar taking 1.6s to descend is a different bug from
+ * THOSE FIGURES READ "1.6s against the zoom-in's 0.95s" UNTIL 2026-08-22. The
+ * zoom-in is retired and `ARRIVAL_S` was re-derived against the 0.55s dissolve
+ * on the plate-50% test rather than rescaled by the ratio - `Hero.tsx` carries
+ * the table, including why the proportional answer (0.926s) is wrong.
+ *
+ * Do not re-share them. A bar taking 1.30s to descend is a different bug from
  * the one this module was written to prevent.
  *
  * 0.45s is `EXPAND_S` from the timing brief's §7 table, and it is the only
@@ -58,10 +72,12 @@
  * and the handoff (D+E) is 0.95s, which holds the old `ZOOM_IN_S`'s weight to
  * the millisecond while the total falls from ~3.24s to 2.35s." Those are the
  * FIVE-PHASE merge timings, and that sequence was reverted in `1145a00`. The
- * shipped Intro is SEVEN phases totalling **3.165s** — `INTRO_TOTAL_S` in
- * `components/intro/Intro.tsx`, which computes it from its own phase constants
- * rather than restating it. Do not reason about the seam from the numbers that
- * used to be here.
+ * shipped Intro is SEVEN phases totalling **2.765s ON EVERY ROUTE** —
+ * `INTRO_TOTAL_S` in `components/intro/Intro.tsx`, which computes it from its
+ * own phase constants rather than restating it. (That total read 3.165s on Home
+ * and 2.765s elsewhere until the zoom-in was retired on 2026-08-22; there is
+ * one number now.) Do not reason about the seam from the numbers that used to
+ * be here.
  */
 export const HANDOFF_S = 0.45;
 

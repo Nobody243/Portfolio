@@ -93,8 +93,10 @@ export const LETTER_GAP = 64;
  * centre `(296, 160)`, and it is retained verbatim from the trace mark.
  *
  * Promoted to `docs/07` §3.2 because it constrains layout and not just motion.
- * It is the one point the whole entry sequence is built around, and it wears
- * three hats at once:
+ * It is the one point the whole entry sequence is built around. IT WORE THREE
+ * HATS AND NOW WEARS TWO — the third is retired below rather than deleted,
+ * because the point itself did not move and a reader who finds the old claim in
+ * the history needs to know which part lapsed.
  *
  *   1. THE MARK IS POSITIONED BY THIS POINT, NOT BY ITS BOX. `(296, 288)` is
  *      what sits at dead viewport centre during the Intro. The box centre is
@@ -106,9 +108,15 @@ export const LETTER_GAP = 64;
  *      cap height of the name it replaces. `x = 296` is also the mark's INK
  *      centre — the M runs 32→280 and the S 344→560 — which is why scaling
  *      about it keeps the pair optically centred at every scale.
- *   3. IT IS THE CAMERA'S FIXED POINT. The zoom-out and the zoom-in both pivot
- *      here, so the move pushes into dead viewport centre, which is the pixel
- *      `Hero.tsx` expands out of.
+ *   3. RETIRED 2026-08-22 — IT WAS THE CAMERA'S FIXED POINT. It read: "The
+ *      zoom-out and the zoom-in both pivot here, so the move pushes into dead
+ *      viewport centre, which is the pixel `Hero.tsx` expands out of." The
+ *      ×17 zoom-in is retired (`intro-zoom-in-backup`), so only phase 5's
+ *      zoom-OUT pivots here now, and it pivots to SETTLE rather than to push
+ *      through. `Hero.tsx` no longer expands out of this pixel — its `50% 50%`
+ *      arrival is now just "about its own centre" — so THIS POINT NO LONGER
+ *      COUPLES THE TWO FILES. Hats 1 and 2 are untouched and are why the value
+ *      stays exactly where it is.
  *
  * PREVIOUSLY NAMED `CONTRACT_X` / `CONTRACT_Y`, for a contraction-to-a-point
  * that was built, shipped and reverted (see `docs/07` §3). The point survived

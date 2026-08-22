@@ -10,8 +10,8 @@
  * it needs is already in.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THE SEQUENCE — seven phases, restored. `docs/06_INTRO_AND_CHROME.md` §2 and
- * `docs/07_SITE_RESTRUCTURE.md` §3.
+ * THE SEQUENCE — seven phases, ONE ENDING, ON ALL THREE ROUTES.
+ * `docs/06_INTRO_AND_CHROME.md` §2 and `docs/07_SITE_RESTRUCTURE.md` §3.
  *
  *   1  0.000 → 0.300  HOLD.      "Muhammad Saad", still, long enough to read
  *                                as a name rather than as a flash.
@@ -25,8 +25,19 @@
  *   5  1.395 → 1.995  ZOOM OUT.  The camera backs off to 0.82. A settling, not
  *                                a second move.
  *   6  1.995 → 2.215  BREATH.    Nothing happens. That is the phase.
- *   7  2.215 → 3.165  ZOOM IN.   ×17, straight through the viewport and into
- *                                the Hero. THE ZOOM-IN IS THE TRANSITION.
+ *   7  2.215 → 2.765  DISSOLVE.  The stage holds at 0.82 and the plate fades
+ *                                out from under the mark on `power2.in`. THE
+ *                                DISSOLVE IS THE TRANSITION.
+ *
+ * PHASE 7 WAS A ×17 ZOOM-IN CAMERA ON HOME UNTIL 2026-08-22, AND ONLY ON HOME.
+ * `/work` and `/about` already ended on this dissolve, so the file carried two
+ * endings, one branch (`getHeroStage()`), two totals (3.165s and 2.765s) and a
+ * 128-line docblock explaining why the camera could not travel to the other two
+ * routes. The dissolve is now the only ending: one total, no branch, and the
+ * sequence's last image is the settled mark at `ZOOM_OUT_SCALE` on every route.
+ * The retired camera is preserved on the branch `intro-zoom-in-backup` and the
+ * tag `intro-zoom-in`, the same pair `intro-merge-to-point-backup` /
+ * `intro-plan-a` preserves the reverted merge. `docs/07` §3 records both.
  *
  * WHY THIS SHAPE AND NOT THE ONE IT REPLACES. A "merge to a point" version
  * shipped in between: the two capitals travelled and GREW into the mark's
@@ -69,7 +80,6 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
-import { getHeroStage } from "@/components/hero/heroStage";
 import { MonogramMark } from "@/components/ui/MonogramMark";
 import {
   ANCHOR_X,
@@ -122,58 +132,55 @@ const MORPH_MARK_FROM = 1.1;
 /** 5. Long and soft — this beat exists to be a pause, so it must not read as
  *  another move. */
 const ZOOM_OUT_S = 0.6;
-const ZOOM_OUT_SCALE = 0.82;
-/** 6. The breath at the bottom of the zoom-out, before the camera commits. */
-const BREATH_S = 0.22;
-/** 7. */
-const ZOOM_IN_S = 0.95;
-const ZOOM_IN_SCALE = 17;
 /**
- * The plate dissolves over the back two-thirds of the zoom.
+ * WHERE THE MARK IS LAST SEEN — not a way-point.
  *
- * NOT AT THE TOP: the mark is still small at that point and would read as an
- * object sitting on the hero rather than as something the camera is moving
- * through. NOT AT THE VERY END EITHER, which is where the original started — a
- * fade confined to the last third meant the hero underneath had finished its
- * own arrival before anyone could see it, and the hand-off collapsed back into
- * the cut this whole sequence exists to avoid.
+ * Under the retired zoom-in camera the sequence passed THROUGH 0.82 on its way
+ * to ×17, so this was a transitional size nobody looked at for long. Under the
+ * dissolve ending the stage holds here for the whole of phase 6 and the whole
+ * of phase 7, so 0.82 is the size of the final image of the entire entry
+ * sequence, on every route.
+ *
+ * Retuning it is therefore a change to the last frame of the site's entrance,
+ * not to a transition way-point. Say why, and look at it.
  */
-const PLATE_DISSOLVE_RATIO = 0.66;
+const ZOOM_OUT_SCALE = 0.82;
+/** 6. The breath at the bottom of the zoom-out, before the plate leaves. */
+const BREATH_S = 0.22;
 
 /**
- * PHASE 7, OFF HOME. The plate's dissolve when there is no hero stage to point
- * a camera at — `/work` and `/about`.
+ * PHASE 7 — the plate's dissolve, and the site's ONE ending on all three
+ * routes.
  *
- * IT IS NOT A SECOND ENDING. It is the same ending with nothing to aim at:
- * phase 7 keeps its curve and loses its property, `power2.in` moving from
- * `scale` to `autoAlpha`. The stage holds at `ZOOM_OUT_SCALE` and the mark
- * fades with the plate it is a child of, at the same rate.
+ * IT WAS `OFF_HOME_DISSOLVE_S` UNTIL 2026-08-22, and it was the EXCEPTION: Home
+ * ended on a ×17 camera over 0.95s and this was what `/work` and `/about` got
+ * instead, because they have no hero stage to aim a camera at. The camera is
+ * retired (`intro-zoom-in-backup` / `intro-zoom-in`) and this is now the rule.
+ * The rename is not tidying — a constant called OFF_HOME that runs ON Home is
+ * the class of stale name this repo has shipped repeatedly.
  *
- * WHY THE CAMERA CANNOT COME ALONG, in three parts and none of them taste:
+ * The stage holds at `ZOOM_OUT_SCALE` and the mark fades with the plate it is a
+ * child of, at the same rate. There is no tween on the mark and there must not
+ * be one.
  *
- *   1. THE RECEIVING GEOMETRY DOES NOT EXIST. Home's `scale 1.12 -> 1` at
- *      `50% 50%` lands only because the hero is `h-dvh` at the top of the
- *      document at scroll 0, so the section's centre IS the camera's fixed
- *      point. On `/work` dead viewport centre at scroll 0 is inside the first
- *      card row; on `/about` it is inside the paragraph.
- *   2. A TRANSFORM ON THE PAGE RE-PARENTS THIS PLATE. `transform` creates a
- *      containing block for every `position: fixed` descendant, so a scale
- *      arrival on the page stack would capture the plate that is supposed to be
- *      leaving independently. `PageStack.tsx` states the same rule from its
- *      side.
- *   3. 12% IS SIX AND A HALF TIMES THE SITE'S TRAVEL BUDGET. At 1440 a card
- *      title 700px from centre displaces 84px under `scale 1.12`; the site's
- *      timed reveal travels 13px and its scrub caps at 21px.
+ * WHY `power2.in` RATHER THAN `GSAP_EASE.ui`. Two reasons, and ONLY THE FIRST
+ * APPLIES ON HOME — which is why it is stated first now that Home shares this
+ * curve:
  *
- * WHY `power2.in` RATHER THAN `GSAP_EASE.ui`, and it is the same reason phase 7
- * already gives: every shared curve decelerates into its end state, which is
- * right for something arriving and wrong for something leaving. The plate is
- * leaving. It also buys back the one thing this seam cannot remove — in light
- * mode the ground travels L* 2.41 -> 98.99 across ~93% of the viewport, and no
- * mechanic deletes that ramp. On a 0.55s dissolve `GSAP_EASE.ui` is halfway
- * through the lightness change at 193ms; `power2.in` is halfway at **437ms**,
- * **2.27x** longer, and it delivers **12.5%** rather than 77.6% of the ramp in
- * the first 275ms.
+ *   1. EVERY SHARED CURVE DECELERATES INTO ITS END STATE, which is right for
+ *      something ARRIVING and wrong for something LEAVING. The plate is
+ *      leaving. This holds on all three routes, on any ground, in any theme,
+ *      and it is the reason the curve is correct on Home.
+ *   2. OFF HOME IT ALSO SHAPES A LIGHTNESS RAMP. In light mode the ground
+ *      travels L* 2.41 -> 98.99 across ~93% of the viewport as the plate goes,
+ *      and no mechanic deletes that ramp. On a 0.55s dissolve `GSAP_EASE.ui` is
+ *      halfway through the lightness change at 193ms; `power2.in` is halfway at
+ *      **437ms**, **2.27x** longer, and it delivers **12.5%** rather than 77.6%
+ *      of the ramp in the first 275ms. ON HOME THERE IS NO SUCH RAMP —
+ *      `bg-hero-surface` onto `bg-hero-surface`, 1.00:1 in both themes — so
+ *      Home's curve rests on reason 1 alone. Do not read reason 2 as Home's
+ *      justification; a curve that looks inherited is how a conclusion outlives
+ *      its argument.
  *
  * THOSE TWO `power2.in` FIGURES READ 389ms AND 25% UNTIL 2026-08-22, AND THE
  * ERROR WAS THE CURVE, NOT THE ARITHMETIC. GSAP's `Power2` is CUBIC — Power0
@@ -183,32 +190,41 @@ const PLATE_DISSOLVE_RATIO = 0.66;
  * its 275ms figure was 68% and is 77.6%. Every correction points the SAME
  * WAY — `power2.in` is gentler than this paragraph claimed, not harsher — so
  * the choice of curve is unaffected. What IS affected is anything that keys off
- * the plate-50% frame, which is the whole seam. See below, and
- * `components/intro/IntroEntrance.tsx`.
+ * the plate-50% frame, which is the whole seam. See below, `Hero.tsx`'s
+ * `ARRIVAL_S`, and `components/intro/IntroEntrance.tsx`.
  *
- * DO NOT APPLY THIS CURVE TO HOME. Home's dissolve has no lightness ramp to
- * shape — `bg-hero-surface` onto `bg-hero-surface`, 1.00:1 in both themes — and
- * `PLATE_DISSOLVE_RATIO` above is tuned against a camera.
+ * WHY 0.55s AND NOT LONGER, since longer is gentler: off Home the destination's
+ * entrance is fired at the hand-off + 0.30s and its `y` leg is 0.70s, so a
+ * longer outgoing half puts the incoming one back behind an opaque plate — the
+ * "animates in secret" failure this whole arrangement exists to repair. On Home
+ * the same pressure comes from `Hero.tsx`'s arrival, which is now 1.30s against
+ * this 0.55s.
  *
- * WHY 0.55s AND NOT LONGER, since longer is gentler: the destination's entrance
- * is fired at the hand-off + 0.30s and its `y` leg is 0.70s, so a longer
- * outgoing half puts the incoming one back behind an opaque plate — the
- * "animates in secret" failure this whole arrangement exists to repair.
+ * THE ARITHMETIC, ON THE RIGHT CURVE. `power2.in` is CUBIC, so this plate is
+ * half gone at `∛0.5 × 0.55` = **0.4365s**, not at the 389ms an earlier version
+ * of this paragraph and the seam design both quoted from solving `p² = 0.5`.
+ * At 0.55s the off-Home entrance is 66.3% done at that frame; at 0.75s it would
+ * be 92.9% done — squarely back in the secret-animation band. 0.55s is the
+ * balance point and the tension is real rather than a preference.
  *
- * THE ARITHMETIC, ON THE RIGHT CURVE. `power2.in` is CUBIC (GSAP's Power2 is
- * Cubic; Power1 is the quadratic), so this plate is half gone at
- * `∛0.5 × 0.55` = **0.4365s**, not at the 389ms an earlier version of this
- * paragraph and the seam design both quoted from solving `p² = 0.5`. At 0.55s
- * the entrance is 66.3% done at that frame; at 0.75s it would be 92.9% done —
- * squarely back in the secret-animation band. 0.55s is the balance point and
- * the tension is real rather than a preference.
- *
- * That correction is also why the onset above reads 0.30s and not the 0.20s
+ * That correction is also why the onset off Home reads 0.30s and not the 0.20s
  * that shipped first: at 0.20s the entrance measured 87.1% at plate-50%, which
  * is this paragraph's own rejection criterion, met by the configuration it
  * kept. `components/intro/IntroEntrance.tsx` carries the full table.
+ *
+ * A 128-LINE BLOCK ARGUING "WHY THE CAMERA CANNOT COME ALONG" STOOD HERE, and
+ * it is deleted rather than carried over, because two of its three reasons were
+ * never true of Home and carrying it would have made it the file's largest
+ * conclusion-right / reason-wrong comment. For the record, since the reasons
+ * are the interesting part: (1) "the receiving geometry does not exist" — it
+ * does on Home, where the hero IS `h-dvh` at scroll 0; (2) "a transform on the
+ * page re-parents this plate" — the plate is a body-level sibling via
+ * `IntroProvider`, not a descendant of the hero's stage, so it never bit;
+ * (3) "12% is six and a half times the site's travel budget" — still true, and
+ * it is now the argument that took `ARRIVAL_SCALE` from 1.12 to 1.04 in
+ * `Hero.tsx` rather than an argument about this plate.
  */
-const OFF_HOME_DISSOLVE_S = 0.55;
+const DISSOLVE_S = 0.55;
 
 /** The navbar's slide, from `lib/animation/handoff.ts` so that the timing and
  *  the DOM contract it depends on stay in one place.
@@ -216,8 +232,9 @@ const OFF_HOME_DISSOLVE_S = 0.55;
  *  IT IS THE NAVBAR'S DURATION ONLY. This read "Both halves of the handoff.
  *  Shared with `Hero.tsx` and `Navbar.tsx` through one constant" — `Hero.tsx`
  *  stopped importing it when the zoom-in was restored, because the incoming
- *  half has to OUTLAST the outgoing one (its `ARRIVAL_S` is 1.6s against this
- *  0.45s). What the three components share is the START INSTANT. */
+ *  half has to OUTLAST the outgoing one (its `ARRIVAL_S` is 1.30s against this
+ *  0.45s, and against `DISSOLVE_S`'s 0.55s). What the three components share is
+ *  the START INSTANT. */
 const HANDOFF_DURATION_S = HANDOFF_S;
 
 /* Reduced motion: a different, shorter thing — not this sequence slowed down.
@@ -255,7 +272,8 @@ const T_MORPH = T_SLIDE + SLIDE_S * MORPH_OVERLAP; // 0.995
 const T_SETTLED = T_MORPH + MORPH_S; // 1.395
 
 /**
- * The sequence's full length, DERIVED rather than typed — 3.165s.
+ * The sequence's full length, DERIVED rather than typed — 2.765s, ON EVERY
+ * ROUTE.
  *
  * NOTHING IMPORTS IT, and that is deliberate rather than an oversight waiting
  * to be tidied: the Intro is gated on `onDone`, not on a timer, so no consumer
@@ -269,14 +287,15 @@ const T_SETTLED = T_MORPH + MORPH_S; // 1.395
  * If a consumer ever does appear, read this paragraph first: wanting the total
  * is usually wanting `onDone`.
  *
- * IT IS HOME'S TOTAL. Off Home phase 7 is a 0.55s dissolve rather than a 0.95s
- * camera, so the sequence ends at `T_SETTLED + ZOOM_OUT_S + BREATH_S +
- * OFF_HOME_DISSOLVE_S` = 2.765s. That is deliberate and correct — the whole
- * entry is shorter on the routes that have no hero to arrive into — and it is
- * another reason not to schedule against this constant.
+ * IT IS ONE NUMBER AGAIN. It read 3.165s on Home and 2.765s off it while phase
+ * 7 branched between a 0.95s camera and this 0.55s dissolve, and this block
+ * carried a paragraph explaining that the entry was deliberately shorter on the
+ * routes with no hero to arrive into. The camera is retired, so there is one
+ * phase 7, one derivation and one total — and the three routes' plate lifetimes
+ * are now expected to match each other rather than to differ by 0.4s.
  */
 export const INTRO_TOTAL_S =
-  T_SETTLED + ZOOM_OUT_S + BREATH_S + ZOOM_IN_S; // 3.165
+  T_SETTLED + ZOOM_OUT_S + BREATH_S + DISSOLVE_S; // 2.765
 
 export type IntroSequence = "full" | "mark";
 
@@ -284,8 +303,10 @@ type IntroProps = {
   /**
    * `"full"` — all seven phases, the first-visit entry.
    * `"mark"` — phases 4 through 7 only, starting from the formed monogram. No
-   * name, no drop, no slide: the mark and the camera move that carries you
-   * somewhere else, which is the shape a section transition wants.
+   * name, no drop, no slide: the mark, its settle, and the dissolve that hands
+   * you to whatever is underneath, which is the shape a section transition
+   * wants. (It read "the mark and the camera move that carries you somewhere
+   * else" until the camera was retired on 2026-08-22.)
    */
   sequence?: IntroSequence;
   /**
@@ -295,12 +316,17 @@ type IntroProps = {
    */
   playToken?: number;
   /**
-   * Fired as the ZOOM-IN begins, not when it ends.
+   * Fired as PHASE 7 begins, not when it ends — i.e. on the frame the plate
+   * starts dissolving, while it is still fully opaque.
    *
    * This is the signal the hero uses to start its own arrival, and the overlap
    * between the two is what makes the handoff continuous instead of a cut.
    * `docs/06` §2 requires it, and collapsing it into `onComplete` turns the
    * seam back into a cut. The navbar rides the same instant.
+   *
+   * It read "as the ZOOM-IN begins" until 2026-08-22. The instant is unchanged
+   * — `tHandoff` — but the tween that carries it is now the dissolve on every
+   * route rather than a camera on one.
    */
   onHandoff?: () => void;
   /** Fired once the plate is finished and can be unmounted. */
@@ -375,10 +401,18 @@ export function Intro({
     */
     const reset = () => {
       gsap.set(plate, { autoAlpha: 1 });
-      // The camera's fixed point, written here rather than as a Tailwind
-      // `origin-` class so that ONE author owns it: GSAP writes this
-      // element's `transform`, and a transform origin living in a class is a
-      // value nobody sees when they read the tween.
+      // PHASE 5'S PIVOT. It was "the camera's fixed point" until 2026-08-22,
+      // when the ×17 zoom-in was retired; the value does not move, but what it
+      // serves has narrowed. With no camera, the only tween that reads this
+      // origin is the zoom-OUT's contraction to 0.82, and `50% 90%` is what
+      // makes the mark settle DOWNWARD into the composition's own weight
+      // rather than shrinking about its middle. Two of the three routes have
+      // shipped exactly that for a while; Home now joins them.
+      //
+      // Written here rather than as a Tailwind `origin-` class so that ONE
+      // author owns it: GSAP writes this element's `transform`, and a transform
+      // origin living in a class is a value nobody sees when they read the
+      // tween.
       gsap.set(stage, { scale: 1, transformOrigin: "50% 90%" });
       gsap.set(wrapper, {
         svgOrigin: `${ANCHOR_X} ${ANCHOR_Y}`,
@@ -622,7 +656,10 @@ export function Intro({
     /* The mark is formed and still from here. The two entry points converge:
        `"full"` has spent its setup, `"mark"` has only paid for the morph. */
     const tSettled = sequence === "full" ? T_SETTLED : MORPH_S;
-    const tZoomIn = tSettled + ZOOM_OUT_S + BREATH_S;
+    /* Phase 7's instant, and the hand-off's. It was `tZoomIn` until the camera
+       was retired; the name now says what starts here rather than what used
+       to. */
+    const tHandoff = tSettled + ZOOM_OUT_S + BREATH_S;
 
     /* -------------------------------------------------------------------
        5. ZOOM OUT. The whole stage, so the mark backs off as one object.
@@ -637,52 +674,15 @@ export function Intro({
       tSettled,
     );
 
-    /* 6. BREATH. Nothing is scheduled between the zoom-out and the zoom-in.
+    /* 6. BREATH. Nothing is scheduled between the zoom-out and the dissolve.
           It is a named phase rather than a `+=0.22` buried in a call signature
           because a designer has to be able to retune it. */
-
-    /* THE ONE BRANCH IN THE SEQUENCE, AND IT IS NOT A PATHNAME CHECK.
-       `getHeroStage()` asks the DOM whether this route renders the full-viewport
-       stage the camera is aimed at — the same read the navbar's palette uses,
-       for the reason its own header gives about an open project overlay. Read
-       here, inside the effect, never during render. */
-    const heroStage = getHeroStage() !== null;
-
-    /* -------------------------------------------------------------------
-       7. ZOOM IN, which IS the transition — ON HOME.
-
-       `power2.in` and not one of the shared curves, and this is the single
-       deliberate exception in the file. Every shared curve DECELERATES into its
-       end state, which is correct for something ARRIVING. This is the opposite:
-       the camera commits slowly and then accelerates past the viewport, and it
-       is the HERO underneath that decelerates into place. An eased-out zoom
-       here would put the brakes on at the exact frame the move is supposed to
-       be handing over, which reads as a stop followed by a cut.
-
-       OFF HOME THERE IS NO TWEEN HERE AT ALL. The stage simply holds at
-       `ZOOM_OUT_SCALE`, where phase 5 left it, and phase 7 becomes the plate's
-       own dissolve — see `OFF_HOME_DISSOLVE_S`. `onHandoff` still fires on the
-       same instant, `tZoomIn`, from that tween's `onStart`, so no consumer has
-       to know which exit ran.
-    ------------------------------------------------------------------- */
-    if (heroStage) {
-      tl.to(
-        stage,
-        {
-          scale: ZOOM_IN_SCALE,
-          duration: ZOOM_IN_S,
-          ease: "power2.in",
-          onStart: handoff,
-        },
-        tZoomIn,
-      );
-    }
 
     /* The navbar rides the same instant, in THIS timeline, because
        "simultaneous" arranged as two adjacent calls is simultaneous until one
        of them is retuned. `Hero.tsx` starts its own arrival off `onHandoff`
-       above — on the same instant but NOT on the same constant: it runs 1.6s
-       so the hero is still settling when the camera leaves. This comment
+       below — on the same instant but NOT on the same constant: it runs 1.30s
+       so the hero is still settling when the plate has gone. This comment
        claimed "the same shared duration" and "on the same constant" until
        2026-08-22; both were true only of the reverted merge sequence. */
     if (nav) {
@@ -690,37 +690,37 @@ export function Intro({
       tl.to(
         nav,
         { yPercent: 0, duration: HANDOFF_DURATION_S, ease: "power2.out" },
-        tZoomIn,
+        tHandoff,
       );
     }
 
-    if (heroStage) {
-      tl.to(
-        plate,
-        {
-          autoAlpha: 0,
-          duration: ZOOM_IN_S * PLATE_DISSOLVE_RATIO,
-          ease: GSAP_EASE.ui,
-        },
-        tZoomIn + ZOOM_IN_S * (1 - PLATE_DISSOLVE_RATIO),
-      );
-    } else {
-      /* OFF HOME: the dissolve IS phase 7, so it begins ON the hand-off instant
-         rather than two-thirds of the way through a camera move, and it carries
-         `onHandoff` because there is no zoom tween left to carry it. The mark
-         needs no tween of its own — it is a child of this element and fades
-         with it, at the same rate. */
-      tl.to(
-        plate,
-        {
-          autoAlpha: 0,
-          duration: OFF_HOME_DISSOLVE_S,
-          ease: "power2.in",
-          onStart: handoff,
-        },
-        tZoomIn,
-      );
-    }
+    /* -------------------------------------------------------------------
+       7. DISSOLVE, which IS the transition, on every route.
+
+       THERE IS NO BRANCH HERE ANY MORE. Until 2026-08-22 this section asked
+       `getHeroStage()` and ran one of two endings: a ×17 `power2.in` camera on
+       the stage over 0.95s with the plate dissolving over its back two-thirds,
+       or — off Home, where there is no full-viewport stage to aim at — this
+       fade. `getHeroStage()` was the file's only route-dependent read and it is
+       gone with the camera. `Navbar.tsx` still imports it and is untouched.
+
+       The stage simply holds at `ZOOM_OUT_SCALE`, where phase 5 left it, and
+       the plate fades out from under the mark. It begins ON the hand-off
+       instant rather than two-thirds of the way through a camera move, and it
+       carries `onHandoff` from its own `onStart` because it is the only tween
+       left at this instant. The mark needs no tween of its own — it is a child
+       of this element and fades with it, at the same rate.
+    ------------------------------------------------------------------- */
+    tl.to(
+      plate,
+      {
+        autoAlpha: 0,
+        duration: DISSOLVE_S,
+        ease: "power2.in",
+        onStart: handoff,
+      },
+      tHandoff,
+    );
 
     return () => {
       tl.kill();
@@ -776,21 +776,30 @@ export function Intro({
         className="absolute left-1/2 top-1/2 w-[min(84vw,420px)] -translate-x-1/2 -translate-y-[90%] md:w-[min(62vw,720px)]"
       >
         {/*
-          THE CAMERA, and it is a separate element from the one above on
-          purpose: that div owns the composition's offset and this one owns the
-          zoom, so GSAP never has to share the `transform` property with a
-          Tailwind class.
+          THE STAGE — a separate element from the one above on purpose: that div
+          owns the composition's offset and this one owns `scale`, so GSAP never
+          has to share the `transform` property with a Tailwind class.
 
-          IT IS AN HTML ANCESTOR OF THE SVG RATHER THAN A `<g>` INSIDE IT. An
-          `<svg>` clips to its own viewport, so a ×17 scale applied within the
-          coordinate system would be thrown away at the box edge — the mark
-          would grow into an invisible frame. Scaling the element that CONTAINS
-          the svg scales the viewport too, and the plate's `overflow-hidden` is
-          then the only thing doing any clipping.
+          IT WAS CALLED "THE CAMERA" UNTIL 2026-08-22, and the ×17 zoom-in it
+          was named for is retired. The separation is still required, for the
+          same reason: two authors on one `transform` is the bug, not the scale
+          factor.
+
+          IT IS AN HTML ANCESTOR OF THE SVG RATHER THAN A `<g>` INSIDE IT, and
+          that survives the retirement too. An `<svg>` clips to its own
+          viewport, so a scale applied within the coordinate system is thrown
+          away at the box edge. It mattered acutely at ×17 — the mark would have
+          grown into an invisible frame — and it still holds at phase 5's 0.82,
+          where a `<g>` would leave the mark's outer facets clipped against a
+          box that did not shrink with it.
 
           Its transform origin is set in `reset()` — `50% 90%`, the anchor
-          again, so the camera's fixed point is the same `(296, 288)` that sits
-          at dead viewport centre, which is the pixel `Hero.tsx` expands out of.
+          again, which is the same `(296, 288)` that sits at dead viewport
+          centre. THAT IDENTITY NO LONGER COUPLES THIS FILE TO `Hero.tsx`: with
+          no camera there is no fixed point for the hero to expand out of, and
+          `Hero.tsx`'s `50% 50%` arrival is now simply "the hero settles about
+          its own centre". The coupling is retired; the pixel is still where
+          phase 5 pivots.
         */}
         <div ref={stageRef} style={{ willChange: "transform" }}>
           {/*

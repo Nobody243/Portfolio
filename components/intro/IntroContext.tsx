@@ -45,10 +45,14 @@ import { createContext, useContext } from "react";
 
 export type IntroPhase = {
   /**
-   * True from the instant the Intro's zoom-in STARTS — not when it finishes.
-   * The overlap between this and the plate's dissolve is what makes the
-   * hand-off continuous instead of a cut, so anything that waits for
-   * `introDone` to start moving has misread the seam.
+   * True from the instant the Intro's PHASE 7 starts — the frame the plate
+   * begins dissolving, while it is still fully opaque — not when it finishes.
+   * The overlap between this and that dissolve is what makes the hand-off
+   * continuous instead of a cut, so anything that waits for `introDone` to
+   * start moving has misread the seam.
+   *
+   * It read "the instant the Intro's zoom-in STARTS" until 2026-08-22. Same
+   * instant; the ×17 camera that used to carry it is retired.
    */
   arriving: boolean;
   /** True once the gate is finished and unmounted. */

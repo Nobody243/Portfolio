@@ -134,8 +134,18 @@ this summary is downstream of it. The numbered list below keeps its original num
 0. **Chrome** — a fixed, transparent navbar on `/`, `/work` and `/about` (MS mark + location,
    ABOUT/[icon]/WORK, theme toggle, copy-to-clipboard email + LinkedIn). It is permanently visible
    and carries an active-route indicator. Entry is a real asset Loader followed by the choreographed
-   Intro, whose zoom-in *is* the transition into the Hero. Both are specified in
+   Intro, whose **final phase — a 0.55s dissolve of the plate out from under the settled mark —
+   *is* the transition into whatever route was loaded**. Both are specified in
    `docs/06_INTRO_AND_CHROME.md` — do not re-derive either.
+
+   > **This said "whose zoom-in *is* the transition into the Hero" until 2026-08-22.** Two things
+   > were wrong with it by then. The ×17 zoom-in was Home's phase 7 only — `/work` and `/about`
+   > already ended on the dissolve — so the sentence described one route in three and named the Hero
+   > as the destination on all of them. The zoom-in is now retired outright and the dissolve is the
+   > only ending on every route: `docs/07` §3 step 7 has the reasoning, `docs/06` §2 has the phase
+   > table, and the retired camera is preserved on branch `intro-zoom-in-backup` / tag
+   > `intro-zoom-in`. `Hero.tsx`'s arrival was re-derived against it — `ARRIVAL_S` 1.6 → 1.30s,
+   > `ARRIVAL_SCALE` 1.12 → 1.04.
 
    > **This bullet said "a fixed, transparent navbar on `/` only" and "NO theme toggle in it,
    > deliberately". Both were reversed in Phase 0 (2026-08-21).** `docs/07` §1 put the bar on all

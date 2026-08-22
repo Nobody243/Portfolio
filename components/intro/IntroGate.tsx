@@ -10,11 +10,17 @@
  *   2. The moment it reports ready, `Intro` mounts and plays its scripted
  *      sequence. It is never fighting an in-flight download, because there is
  *      no longer one to fight.
- *   3. `Intro`'s zoom-in fires `onHandoff`, the hero settles in behind the
- *      camera out of the mark's anchor pixel, the navbar slides in on the same
- *      INSTANT (not for the same duration), and `onDone` retires the gate.
- *      This step said "`Intro`'s expansion ... the hero opens out of the
- *      contraction point" — the reverted merge-to-a-point sequence.
+ *   3. `Intro`'s PHASE 7 fires `onHandoff` on its first frame, the plate
+ *      dissolves over 0.55s while the hero settles in behind it over 1.30s, the
+ *      navbar slides in on the same INSTANT (not for the same duration), and
+ *      `onDone` retires the gate.
+ *      This step said "`Intro`'s zoom-in fires `onHandoff`, the hero settles in
+ *      behind the camera out of the mark's anchor pixel" until 2026-08-22, when
+ *      the ×17 camera was retired and the dissolve became the only ending on
+ *      all three routes. Before that it said "`Intro`'s expansion ... the hero
+ *      opens out of the contraction point" — the reverted merge-to-a-point
+ *      sequence. The INSTANT has been the same one throughout; only the tween
+ *      carrying it has changed.
  *
  * The Intro must never be gated on a timer, and the Loader must never be
  * padded to look intentional. Keeping them as two components with one

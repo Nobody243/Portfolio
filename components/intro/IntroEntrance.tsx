@@ -85,7 +85,9 @@
  * reject a 0.75s dissolve, measured on the 0.55s one it kept.
  *
  * 87.1% IS THE NUMBER THIS SEQUENCE USES TO REJECT AN ALTERNATIVE.
- * `Intro.tsx`'s `OFF_HOME_DISSOLVE_S` refuses a 0.75s dissolve on the grounds
+ * `Intro.tsx`'s `DISSOLVE_S` — named `OFF_HOME_DISSOLVE_S` until 2026-08-22,
+ * when the camera was retired and it became the ending on Home too — refuses a
+ * 0.75s dissolve on the grounds
  * that it would leave the entrance most of the way done at plate-50%. The 0.20s
  * onset landed in that same band on the dissolve it kept. `STAGGER.line * 3` is
  * the nearest existing constant to the 0.316s target and needs no stagger, no
