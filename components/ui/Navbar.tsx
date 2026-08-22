@@ -157,6 +157,7 @@ import {
   isActiveRoute,
   NAV_EMAIL,
   NAV_HOME_LABEL,
+  NAV_HOME_ROUTE,
   NAV_ITEMS,
   NAV_LINKEDIN,
   NAV_LOCATION,
@@ -244,8 +245,16 @@ const INDICATOR_EASE = `cubic-bezier(${EASE.ui.join(", ")})`;
 const NAV_ITEM =
   "pointer-events-auto cursor-pointer text-caption font-mono uppercase text-[var(--nav-fg-dim)] transition-colors duration-300 hover:text-[var(--nav-fg)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-accent)]";
 
-/** The one route with a hero on it, and the centre icon's destination. */
-const HOME_ROUTE = "/";
+/**
+ * The one route with a hero on it, and the centre icon's destination.
+ *
+ * IMPORTED, NOT DECLARED, SINCE 2026-08-22. It was a local `const "/"` here
+ * while the bar was its only consumer; the mobile menu now renders a Home entry
+ * too, and two literal `"/"`s in two files can drift into two destinations. The
+ * local alias stays so the four readers below still read as prose — it is a
+ * rename, not a second source.
+ */
+const HOME_ROUTE = NAV_HOME_ROUTE;
 
 /**
  * An in-page target, or `null` if following the link is the right thing to do.

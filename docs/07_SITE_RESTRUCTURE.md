@@ -80,8 +80,30 @@ disagree.
 > are here' announcement."* `e915298` added it — `NavMobileMenu.tsx:222` sets `aria-current` from the
 > same `isActiveRoute` predicate the desktop bar imports, so the two can never name different pages.
 > Below `md` the indicator cluster is `display: none` and this menu is the only navigation there is,
-> which is why it mattered. **There is deliberately no Home entry in that menu**, so on `/` nothing
-> in it is current; that is the menu listing destinations away from where you are, not a second gap.
+> which is why it mattered.
+
+> **THE MENU HAS A HOME ENTRY SINCE 2026-08-22, AND THE SENTENCE THAT USED TO BE HERE WAS WRONG.**
+> It read: *"There is deliberately no Home entry in that menu, so on `/` nothing in it is current;
+> that is the menu listing destinations away from where you are, not a second gap."* It was a second
+> gap, and a worse one than the `aria-current` it was appended to. The bar's centre icon is the site's
+> only Home affordance and it lives in the `hidden md:flex` cluster; the MS mark is deliberately not a
+> link; the menu mapped `NAV_ITEMS`, which is `[About, Work]`. **Below `md`, a visitor on `/about` or
+> `/work` could not return Home except with the browser's back button.**
+>
+> Home is rendered **explicitly** in `NavMobileMenu`, first in the list, from `NAV_HOME_LABEL` and the
+> new `NAV_HOME_ROUTE` — **not** appended to `NAV_ITEMS`, which stays fixed-arity for the reason
+> `navContent.ts` gives: the bar's centre cluster is balanced *around* the icon, so a third array entry
+> is a layout change. A vertical list has no symmetry to break, so the menu is not that change.
+
+> **Two `aria-current="page"` in the DOM on `/about` and `/work` is CORRECT, not a defect. Do not
+> "fix" it.** Measured 2026-08-22 through the actual accessibility tree (CDP
+> `Accessibility.getFullAXTree`), not inferred: the DOM carries two — one in the bar, one in the
+> always-mounted mobile-menu `<dialog>` — and the dialog's computed display is `none`, because
+> `dialog:not([open])` is `display: none` in every UA stylesheet. The tree contains **one** link per
+> internal destination at 1440×900 (ABOUT / Home / WORK, the bar's three) and **zero** at 375×667 with
+> the menu closed. Opening the menu at 375 puts exactly three there. The dialog is always mounted by
+> design — `showModal()` on a freshly-mounted element races the layout effect that calls it — so this
+> shape is permanent.
 
 **The centre icon carries `px-xs`.** Its 19px box was below the 24px minimum target size, and a 19px
 line between a 40.81px one and a 32.64px one (measured at 1440) read as a stray tick. 8px a side takes

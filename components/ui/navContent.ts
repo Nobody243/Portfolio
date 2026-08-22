@@ -89,8 +89,29 @@ export const NAV_ITEMS = [
  *  since the bar started appearing on more than one page — on `/work` "Back to
  *  top" would have been a plain lie, since it leaves the page entirely. "Home"
  *  is true on both, including on Home itself, where it still returns you to the
- *  top. */
+ *  top.
+ *
+ *  IT HAS TWO CONSUMERS SINCE 2026-08-22: the bar's centre icon, where it is
+ *  the `aria-label` on an icon-only control, and the mobile menu, where it is
+ *  the VISIBLE label of a real text entry. Same word, because it is the same
+ *  destination and a visitor who uses both should not meet two names for it. */
 export const NAV_HOME_LABEL = "Home";
+
+/**
+ * Home's href. Third destination, and the only one that is not in `NAV_ITEMS`.
+ *
+ * IT IS NOT IN THAT ARRAY AND MUST NOT BE PUT THERE. This file's header calls
+ * `NAV_ITEMS` fixed-arity chrome for a concrete reason: the bar's centre
+ * cluster is ABOUT · [icon] · WORK, balanced AROUND the icon, so a third
+ * entry in the array is a layout change rather than a data change. Home is
+ * rendered explicitly by both consumers, which is what keeps that true.
+ *
+ * IT LIVES HERE RATHER THAN IN `Navbar.tsx` BECAUSE IT NOW HAS TWO CONSUMERS,
+ * for exactly the reason `isActiveRoute` below gives for itself: two literal
+ * `"/"`s in two files is a pair that can drift, and the failure would be a
+ * menu entry that never announces itself as current while the bar's does.
+ */
+export const NAV_HOME_ROUTE = "/";
 
 /** Announced, and shown, after a successful copy. */
 export const NAV_COPY_CONFIRMATION = "Copied";

@@ -38,6 +38,22 @@
  * element races the layout effect that calls it. `dialog:not([open])` is
  * `display: none` in every UA stylesheet, so an always-mounted closed dialog
  * costs nothing.
+ *
+ * ONE CONSEQUENCE, WHICH LOOKS LIKE A DEFECT IN A GREP AND IS NOT: on `/about`
+ * and `/work` the DOM carries **two** `aria-current="page"` — one in the bar,
+ * one here — and a census that counts attributes will flag it every time.
+ *
+ * MEASURED THROUGH THE ACCESSIBILITY TREE RATHER THAN REASONED ABOUT, on
+ * 2026-08-22, via CDP `Accessibility.getFullAXTree`: the tree contains ONE link
+ * per internal destination at 1440x900 (ABOUT / Home / WORK — the bar's three,
+ * one of them current) and ZERO at 375x667 with this menu closed, because both
+ * the closed dialog and the `hidden md:flex` cluster are `display: none` and a
+ * `display: none` subtree is not in the tree. Opening the menu at 375 puts
+ * exactly three there. So the announcement is never doubled at any width.
+ *
+ * Recorded here, and in `docs/07` §1.1, so the next census does not "fix" it by
+ * conditionally rendering the dialog — which would reintroduce the
+ * `showModal()` race this paragraph exists to prevent.
  */
 
 import type { MouseEvent as ReactMouseEvent } from "react";
@@ -50,6 +66,8 @@ import { LinkedInIcon, MenuIcon } from "@/components/ui/NavIcons";
 import {
   isActiveRoute,
   NAV_EMAIL,
+  NAV_HOME_LABEL,
+  NAV_HOME_ROUTE,
   NAV_ITEMS,
   NAV_LINKEDIN,
   NAV_LOCATION,
@@ -84,6 +102,23 @@ const useIsomorphicLayoutEffect =
  */
 const DIALOG =
   "fixed inset-0 m-0 h-full max-h-none w-full max-w-none overflow-hidden bg-base p-0 text-fg";
+
+/**
+ * Shared by all three entries in the list below — Home, About, Work.
+ *
+ * A CONSTANT RATHER THAN A REPEATED STRING because Home is rendered explicitly
+ * and the other two come from a `.map()`, so the class list physically appears
+ * twice in the JSX. Two copies of a focus ring is exactly the shape that drifts
+ * into one entry losing it.
+ *
+ * NO HOVER, AND THAT IS THE SITE'S RULE RATHER THAN AN OMISSION. The bar's
+ * vocabulary is dim-at-rest escalating to full on hover; these entries are at
+ * `text-h3` in solid `text-fg` on an opaque surface, so there is nothing to
+ * escalate from. Inventing a fourth hover treatment for "large text on its own
+ * surface" is the template tell this menu otherwise avoids.
+ */
+const MENU_LINK =
+  "cursor-pointer text-left text-h3 text-fg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-working";
 
 type NavMobileMenuProps = {
   open: boolean;
@@ -203,6 +238,47 @@ export function NavMobileMenu({
           and a scroll into a locked document goes nowhere.
         */}
         <nav aria-label="Sections" className="mt-2xl flex flex-col gap-md">
+          {/*
+            HOME IS RENDERED EXPLICITLY, NOT APPENDED TO `NAV_ITEMS`, and this
+            entry is a REAL NAVIGATION FIX rather than a nicety.
+
+            Until 2026-08-22 there was no way back to `/` below `md` except the
+            browser's back button. The bar's centre icon — the site's only Home
+            affordance — lives in the `hidden md:flex` cluster, the MS mark is
+            deliberately not a link, and this menu mapped `NAV_ITEMS`, which is
+            `[About, Work]`. So a phone visitor who reached `/about` or `/work`
+            was stranded on a three-page site.
+
+            WHY NOT JUST ADD IT TO THE ARRAY. `navContent.ts` states that
+            `NAV_ITEMS` is fixed-arity chrome and that a third entry is a LAYOUT
+            change, because the bar's centre cluster is balanced AROUND the
+            icon. That is true of the bar and not of this menu, which is a
+            vertical list with no symmetry to break — so Home belongs here as
+            its own element, and the array keeps both its arity and its reason.
+
+            FIRST, NOT MIDDLE. The bar's order is ABOUT · [icon] · WORK, and the
+            icon's central position is a composition decision about a horizontal
+            row. Reproducing it as About / Home / Work in a stacked list would
+            put the site root in the middle of a list for no reason a reader
+            could recover.
+
+            `NAV_HOME_LABEL` and `NAV_HOME_ROUTE` are both imported, and the bar
+            uses the same two for the same destination, so the menu cannot come
+            to name it differently. `choose` is the same handler the two mapped
+            entries use, so the scroll lock is released before navigation here
+            exactly as it is there.
+          */}
+          <Link
+            href={NAV_HOME_ROUTE}
+            aria-current={
+              isActiveRoute(NAV_HOME_ROUTE, pathname) ? "page" : undefined
+            }
+            onClick={(event) => choose(NAV_HOME_ROUTE, event)}
+            className={MENU_LINK}
+          >
+            {NAV_HOME_LABEL}
+          </Link>
+
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
@@ -216,12 +292,16 @@ export function NavMobileMenu({
                  The predicate is imported rather than re-derived so the two can
                  never name different pages — see `navContent.ts`.
 
-                 THERE IS NO HOME ENTRY IN THIS MENU, so on `/` nothing here is
-                 current, and that is correct rather than a gap: the menu lists
-                 destinations away from where you are. */
+                 THIS COMMENT USED TO END: "THERE IS NO HOME ENTRY IN THIS MENU,
+                 so on `/` nothing here is current, and that is correct rather
+                 than a gap: the menu lists destinations away from where you
+                 are." The premise is gone — Home is above — and the argument
+                 was wrong on its own terms: a menu of "destinations away from
+                 where you are" still has to list all of them, and it was
+                 missing the one every visitor had already been to. */
               aria-current={isActiveRoute(item.href, pathname) ? "page" : undefined}
               onClick={(event) => choose(item.href, event)}
-              className="cursor-pointer text-left text-h3 text-fg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-working"
+              className={MENU_LINK}
             >
               {item.label}
             </Link>
