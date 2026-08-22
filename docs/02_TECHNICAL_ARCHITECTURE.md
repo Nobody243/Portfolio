@@ -228,6 +228,17 @@ Image notes — **settled in Ticket 2:**
 - `alt` is content and is required on every image — accurate, hand-written, describing what is
   actually on screen. `caption` is separate, optional, visible editorial copy and never substitutes
   for `alt`.
+- **An art-directed image rendered as two mutually exclusive elements gets `priority` on BOTH, and
+  the identical `sizes` string on both. Added 2026-08-22 from `/about`'s portrait.** CSS cannot move
+  a node between two parents, so a photograph that belongs in different parents at different
+  breakpoints is two `<Image>` elements with the other `display: none`. Next deduplicates identical
+  preloads, so two `priority` props emit **one** `<link rel=preload as=image>` and produce **one**
+  request — measured at 375, 640 and 1440 at DPR 1 and 2, resolving to w=128 / 256 / 256 / 384 / 384
+  / 828. Putting `priority` on only one element measures the same today and is still wrong: the
+  element it is missing from is the one actually painted at its own breakpoint, it ships
+  `loading="lazy"`, and it is fast only as a side effect of a hidden sibling's preload. Both strings
+  must also cover **all** bands, including the band at which that element is hidden — a preload
+  resolves against the viewport, not against the CSS that will later hide the element.
 
 **Skill entry** — one object per skill:
 - `name`, `group` (`"core-dev" | "systems-foundation" | "building-toward"`), optional `note`

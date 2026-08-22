@@ -269,6 +269,26 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  *      box on a slow connection — the worst possible motion event on the page
  *      whose brief is quiet. `priority` removes it, and `placeholder="blur"`
  *      is still refused: it is the alternative this replaces, not a companion.
+ *
+ *      IT IS ON BOTH ELEMENTS, AND THAT WAS RE-EXAMINED ON 2026-08-22 RATHER
+ *      THAN ASSUMED. The reversal above was written as if the plan had asked
+ *      for it; the plan said the opposite, and the reversal was correct but
+ *      undisclosed. `priority` on ONE element was measured as the alternative:
+ *      at 375, 640 and 1440, at DPR 1 and 2, it gives IDENTICALLY one preload,
+ *      one request and the same derivative (w=128 / 256 / 256 / 384 / 384 /
+ *      828). So the second `priority` costs nothing — and it is not redundant
+ *      either.
+ *
+ *      WHAT ONE WOULD COST IS A HIDDEN DEPENDENCY. With `priority` on the
+ *      mobile element only, the DESKTOP `<img>` — the one actually painted at
+ *      1024px and up, inside the initial viewport — carries `loading="lazy"`
+ *      and is fast only because a preload emitted by a `display: none` sibling
+ *      happened to resolve to the derivative it needs. Delete that sibling, or
+ *      narrow its `sizes` to its own band (the "tidy-up" this file already
+ *      warns about twenty lines up), and the visible portrait silently becomes
+ *      lazy on every desktop. Each element declaring its own loading
+ *      requirement is what makes that impossible, and the deduplication above
+ *      is what makes it free.
  */
 export function AboutScreen() {
   /* BY LABEL, NEVER BY INDEX. `content/contact.ts` states that its array order
