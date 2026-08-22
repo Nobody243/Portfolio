@@ -86,13 +86,40 @@
  * accepted, not solved.
  *
  * ENTER ONLY, AND THE FIRST APPEARANCE NEVER ANIMATES. `arrived` below is the
- * same module-scope-boolean idiom `IntroGate` uses for `played`, and it holds
- * for the same reason: a hard load or refresh instantiates a fresh module
- * graph, a client navigation reuses it. On `/` the Intro owns the first three
- * seconds and a page fade underneath it would double-fade the plate against
- * its own dissolve. There is no EXIT animation either — an exit needs
- * `AnimatePresence` holding the outgoing tree, which fights App Router scroll
- * restoration and doubles the time to a readable page.
+ * same module-scope-boolean idiom the Intro's session flags use
+ * (`components/intro/IntroSession.tsx` — it was `IntroGate`'s `played` when
+ * this paragraph was written), and it holds for the same reason: a hard load or
+ * refresh instantiates a fresh module graph, a client navigation reuses it. On
+ * `/` the Intro owns the first three seconds and a page fade underneath it
+ * would double-fade the plate against its own dissolve. There is no EXIT
+ * animation either — an exit needs `AnimatePresence` holding the outgoing tree,
+ * which fights App Router scroll restoration and doubles the time to a readable
+ * page.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * `arrived` ALONE STOPPED BEING ENOUGH WHEN THE INTRO LEFT HOME, and the guard
+ * below consumes `introDone` for that reason rather than for tidiness.
+ *
+ * The paragraph above relies on an invariant that used to hold BY
+ * CONSTRUCTION: the only route that could play an Intro was also the only route
+ * that could be the first `PageStack` mount, so "the Intro is running" and
+ * "this is the first appearance" were the same condition. Since the gate moved
+ * to `app/(site)/(chrome)/layout.tsx` they are not.
+ *
+ * The reachable case, in full: hard-load `/about`. Its `PageStack` mounts with
+ * `fade={false}`, its effect sets `arrived = true`, and the Intro is still
+ * running. Now reach `/` before it finishes — keyboard Tab + Enter on the bar's
+ * Home link (the bar is parked at `yPercent: -100` and off-screen, but it is
+ * still focusable), or browser Back to a previously visited `/`. `/`'s
+ * `PageStack` mounts with `firstAppearance === false` and fades in UNDERNEATH
+ * the running plate. That is exactly the double-fade this header forbids.
+ *
+ * Low-frequency, but reachable, and one term closes it: the two flags can no
+ * longer answer the same question differently. `useIntroHandoff()`'s
+ * no-provider default is `introDone: true`, so a `PageStack` rendered outside
+ * `(chrome)` is unaffected — it fails towards showing content, never towards
+ * hiding it.
+ * ─────────────────────────────────────────────────────────────────────────
  *
  * THE NAVBAR IS NOT IN HERE AND MUST NOT BE. It is rendered by
  * `app/(site)/(chrome)/layout.tsx`, which persists across every navigation
@@ -104,6 +131,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
+import { useIntroHandoff } from "@/components/intro/IntroContext";
 import { DURATION, EASE } from "@/lib/animation/easing";
 
 /**
@@ -175,11 +203,16 @@ export function PageStack({ children, className, fade }: PageStackProps) {
    */
   const prefersReducedMotion = useReducedMotion();
 
+  /** See the header. `true` when there is no provider above, so this can only
+   *  ever ADD a suppression, never remove one. */
+  const { introDone } = useIntroHandoff();
+
   useEffect(() => {
     arrived = true;
   }, []);
 
-  const fades = fade && !firstAppearance && !prefersReducedMotion;
+  const fades =
+    fade && !firstAppearance && !prefersReducedMotion && introDone;
 
   return (
     <main className={className}>
