@@ -57,11 +57,17 @@
  *      Removing it on mount instead would ship one frame of hero-palette bar
  *      over `bg-base` — in light mode that is near-white on warm-white.
  *
- *      Measured, not assumed. Over the hero: `hero-fg` at 72% composites to
- *      ~8.6:1 on `hero-surface`, `hero-accent` is 8.00:1. Past it: `fg` at 72%
- *      is ~9:1 on dark `base` and ~8:1 on light, and `accent-working` is 7.95:1
- *      dark / 5.34:1 light. Every one of those clears AA for the 12px mono the
- *      bar is set in.
+ *      Measured, not assumed — and RE-measured on 2026-08-22, because two of
+ *      these were rounded in the optimistic direction. Over the hero: `hero-fg`
+ *      at 72% composites to #A9ABAD, 8.65:1 on `hero-surface`; `hero-accent` is
+ *      8.01:1. Past it: `fg` at 72% composites to #ADADAE, 8.83:1 on dark
+ *      `base` — THIS LINE SAID "~9:1" — and to #565655, 7.17:1 on light —
+ *      THIS LINE SAID "~8:1", which overstated it by 0.83. `accent-working` is
+ *      7.95:1 dark / 5.34:1 light. Every one of those still clears AA for the
+ *      12px mono the bar is set in, and the light-mode binding case, 7.17:1,
+ *      clears AAA with 2.17 to spare — so nothing moves. The record was wrong,
+ *      not the pixels, and a contrast figure nobody can reproduce is worse than
+ *      no figure at all: the next reviewer either re-derives it or trusts it.
  *
  *   2. OVERLAP. Adaptive colour fixes contrast against the BACKGROUND. It does
  *      nothing about body text passing UNDERNEATH a fixed bar, and that turned
@@ -815,8 +821,21 @@ export function Navbar() {
               `--nav-accent`, NEVER A LITERAL. The bar crosses the hero's pinned
               dark plate and `bg-base`, which flips with the theme; any fixed
               colour is wrong on one of them. Riding the same escalating
-              variable every other control in the bar uses means the line
-              cross-fades with them for free.
+              variable every other control in the bar uses is what keeps the
+              line honest on all three grounds.
+
+              IT DID NOT CROSS-FADE "FOR FREE", AND THIS COMMENT USED TO SAY IT
+              DID. Riding the variable gets the line the right VALUE; it does
+              not get it a transition, because `background-color` was in neither
+              `transition-property` list below. Measured on the shipped build at
+              1440x900, light mode, crossing the hero boundary at scrollY 840:
+              ONE colour step, within one frame of the attribute flip —
+              #14B8A6 -> #0F766E, L* 67.41 -> 44.50, a 22.91-point lightness
+              jump on the one element in the bar that carries state, while every
+              sibling cross-fades over 300ms. Invisible in dark mode, where
+              `--color-hero-accent` and dark `--color-accent-working` are the
+              same hex and the measured step count is ZERO — which is why it
+              shipped. `background-color` is now named in BOTH lists.
 
               IT DOES NOT EXIST BELOW `md`, and needs no gate of its own to
               achieve that: the cluster it lives in is `hidden md:flex`, so the
@@ -825,15 +844,29 @@ export function Navbar() {
 
               THE TRANSITION IS SPLIT ACROSS `className` AND `style`, AND THE
               SPLIT IS NOT ARBITRARY. Only `transition-property` is a class,
-              because that is the one declaration `motion-reduce:transition-none`
+              because that is the one declaration the `motion-reduce:` variant
               has to be able to beat, and an inline `transition-property` would
               outrank any class — someone who asked for less motion would get
               the slide anyway. Duration and timing function are inline because
               both are built from constants at runtime, and Tailwind's scanner
               reads SOURCE TEXT: a class name interpolated from a variable
-              compiles, runs, and emits no CSS at all. With
-              `transition-property: none` from the reduced-motion class, the two
-              inline values are inert, which is the whole point.
+              compiles, runs, and emits no CSS at all.
+
+              UNDER REDUCED MOTION THE VARIANT NARROWS THE LIST, IT NO LONGER
+              EMPTIES IT. It was `motion-reduce:transition-none` — which was
+              right while the list was geometry-only, and became wrong the
+              moment `background-color` joined it, because it would have put the
+              22.91-point lightness snap back for exactly the visitors least
+              able to absorb it. `ThemeToggle.tsx` settles which of the two a
+              colour change is, in as many words: "a COLOUR transition only… it
+              moves nothing and delays no interaction", and "there is NO
+              `prefers-reduced-motion` code path in this file, because there is
+              no motion to reduce". Every other item in this row carries an
+              UNGATED `transition-colors duration-300` and therefore already
+              cross-fades under reduced motion. So the reduced branch drops
+              `transform` and `width` — the only real motion — and keeps the
+              colour, which is what makes the line match its siblings in both
+              motion preferences instead of only one.
             */}
             {indicator ? (
               <span
@@ -841,14 +874,24 @@ export function Navbar() {
                 className={
                   "absolute left-0 top-[calc(100%+6px)] h-[2px] bg-[var(--nav-accent)] " +
                   (indicator.animated
-                    ? "transition-[transform,width] motion-reduce:transition-none"
-                    : // `transition-none` EXPLICITLY, not "no transition class".
-                      // Measured: with the class omitted the computed
+                    ? "transition-[transform,width,background-color] motion-reduce:transition-[background-color]"
+                    : // A NAMED PROPERTY LIST EXPLICITLY, not "no transition
+                      // class". Measured: with the class omitted the computed
                       // `transition-property` is the initial value `all`, and
                       // the inline `transition-duration` below then animates the
                       // supposedly-instant cases — a font swap or a resize would
                       // slide the line over 240ms instead of correcting it.
-                      "transition-none")
+                      //
+                      // IT WAS `transition-none` UNTIL 2026-08-22 AND THAT WAS
+                      // THE COLOUR BUG'S LOAD-BEARING HALF. This branch is what
+                      // the line carries on a FIRST paint — `animated` is false
+                      // until something has moved — so it is the branch in
+                      // force the first time a visitor scrolls past the hero,
+                      // which is the only time most visitors cross it at all.
+                      // `background-color` alone keeps the geometry correction
+                      // instant (the reason above still holds verbatim) and
+                      // gives the colour the fade it always claimed to have.
+                      "transition-[background-color]")
                 }
                 style={{
                   width: `${indicator.width}px`,

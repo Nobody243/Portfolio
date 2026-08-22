@@ -300,6 +300,16 @@ export function CopyEmailButton({
           <span ref={addressRef}>{value}</span>
         </motion.span>
 
+        {/* THE ONLY `--nav-accent` TEXT IN THE BAR, and therefore the only thing
+            in it held to the 4.5:1 text floor rather than the 3:1 non-text one
+            — every other accent use here is an icon hover, the indicator's 2px
+            line, or a focus ring. It clears that floor on every ground the bar
+            can reach (5.34:1 on light `bg-base`, 5.02:1 through the scrim over
+            a paragraph, 7.95–8.01:1 on both dark plates), and it does so ONLY
+            because no solid dark surface ever scrolls under a SCRIMMED bar.
+            `app/globals.css`, the `[data-nav-root]:not([data-over-hero])`
+            block, has the measurement and the reason the guard is load-bearing.
+            Do not read this colour as free. */}
         <motion.span
           className="col-start-1 row-start-1 flex items-center gap-2xs whitespace-nowrap text-[var(--nav-accent)]"
           // Hidden from the accessibility tree in BOTH directions: the button's

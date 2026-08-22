@@ -138,7 +138,11 @@
      TICKET 11: all THREE are theme-exempt, not just the surface. A toggle that
      flips two of three is worse than one that flips none. */
   --color-hero-surface: #07090c;
-  --color-hero-fg: #e8eaec; /* 16.68:1 on hero-surface */
+  /* 16.53:1 on hero-surface. It said 16.68 until 2026-08-22; recomputed from
+     the WCAG 2.x relative-luminance formula it comes from, Y 0.820576 over
+     Y 0.002672. 0.9% optimistic, nothing depends on the difference, and the
+     figures derived from it in `RevealFooter.tsx` moved with it. */
+  --color-hero-fg: #e8eaec;
   --color-hero-accent: #14b8a6; /* 8.00:1 on hero-surface */
 
   /* --- TYPE SCALE ------------------------------------------------------
@@ -716,7 +720,38 @@ html[data-nav-open] {
    `color-mix` on `--color-base` rather than a hex: `base` FLIPS with the theme,
    so this is one rule that is near-black in dark mode and warm-white in light,
    and it can never disagree with the page it is tinting.
---------------------------------------------------------------------------- */
+
+   ─────────────────────────────────────────────────────────────────────────
+   `:not([data-over-hero])` IS LOAD-BEARING FOR CONTRAST, NOT ONLY FOR LOOKS.
+   Added 2026-08-22, because the paragraph above argues the selector purely on
+   intent ("the transparency reads as design there") and the next person to
+   widen or unscope the scrim would have no way to know it is also the only
+   thing holding one AA floor.
+
+   At 80% alpha the scrim's effective ground is 20% of whatever is behind it.
+   Measured, light mode, `--color-accent-working` #0F766E as TEXT:
+
+     plain `bg-base` behind it (#FDFCFA)          5.34:1   pass
+     a paragraph behind it, ~15% ink -> #F6F5F3   5.02:1   pass
+     a SOLID #151515 block behind it -> #CFCECC   3.48:1   FAILS AA
+
+   `--nav-fg-dim` survives the same block at 4.67:1, so the exposure is exactly
+   one element: `CopyEmailButton`'s "Copied" confirmation, the only thing in the
+   bar that renders `--nav-accent` as text rather than as an icon hover, a 2px
+   line or a focus ring — all of which sit on the 3:1 non-text floor and clear
+   it.
+
+   THE THIRD ROW IS UNREACHABLE TODAY, AND THIS SELECTOR IS WHY. The only solid
+   dark surfaces on the site are the hero and the reveal footer's plate, and
+   `Navbar.tsx` sets `data-over-hero` over BOTH — which takes the hero palette
+   and, by this selector, removes the scrim entirely. There is no third solid
+   surface and no route that scrolls one under an unscrimmed bar.
+
+   So: a future solid or heavily-inked surface that scrolls under the bar
+   WITHOUT setting `data-over-hero` re-opens the 3.48:1 case. Give it the
+   attribute (which is the shape the rest of the file already assumes), or
+   raise the tint — do not widen this selector.
+   ───────────────────────────────────────────────────────────────────────── */
 [data-nav-root]:not([data-over-hero]) {
   background-color: color-mix(in oklab, var(--color-base) 80%, transparent);
   /* The blur is what stops the tint reading as a flat grey band: descenders and
