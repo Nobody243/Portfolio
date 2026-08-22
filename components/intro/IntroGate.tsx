@@ -21,32 +21,30 @@
  * transition between them is what makes both of those hard to get wrong later.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * WHEN IT PLAYS: ON A REAL DOCUMENT LOAD OR REFRESH, AND ONLY THEN.
+ * IT NO LONGER DECIDES WHETHER TO PLAY. IT ONLY EXISTS IN ORDER TO PLAY.
  *
- * `docs/07_SITE_RESTRUCTURE.md` §3 fixes the trigger and says any visited flag
- * is "removed, not tuned", while also requiring that a client-side navigation
- * back to Home does NOT replay it. Those two are only compatible with an
- * IN-MEMORY, MODULE-SCOPE BOOLEAN:
+ * This file used to own the whole question with one module-scope boolean,
+ * `played`, read into state in a lazy initialiser, plus an `alreadyPlayed`
+ * branch that fired both callbacks from an effect and rendered `null`. All of
+ * that is gone. The decision moved to `IntroProvider`, which reads
+ * `shouldPlayIntro()` (`components/intro/IntroSession.tsx`) and simply does not
+ * render this component when the answer is no.
  *
- *   - A hard load or refresh instantiates a fresh module graph. `played` is
- *     `false`, so the Intro plays. That is the trigger, exactly.
- *   - A client navigation `/` → elsewhere → `/` reuses the same module. `played`
- *     is `true`, so it does not. `IntroGate` is mounted by `Hero`, which is
- *     mounted by Home, so returning to Home genuinely remounts this component —
- *     without the flag the Intro would replay every single time, which is a
- *     regression the pre-restructure single-page site could not even produce.
+ * WHY IT MOVED, in one line: `played` was written only by an Intro that
+ * actually RAN, and the only thing that could run one was Home — so a document
+ * that entered on `/about` left the flag false and the first click to HOME
+ * played the Intro on a CLIENT NAVIGATION, which `docs/07_SITE_RESTRUCTURE.md`
+ * §3 forbids. The trigger it states — actual document load or browser refresh,
+ * on `/`, `/work` and `/about`, never on `/projects/<slug>` — is now enforced
+ * by three flags in one module rather than by this component's mount site.
  *
- * WHAT WAS REMOVED, AND WHY NOT TUNED. This used to read a `sessionStorage`
- * key, `intro-played`, through `useSyncExternalStore`, with a server snapshot,
- * a try/catch for private-mode Safari, and an early-return branch for the
- * "already played" case. All of it is gone. `sessionStorage` answers "has this
- * TAB seen the intro", which deliberately suppresses it across refreshes — the
- * opposite of what §3 now asks for. There is no version of that flag that also
- * replays on refresh, so it could not be retuned into correctness.
- *
- * NO PERSISTENCE IS A FEATURE HERE. A returning visitor next week should see
- * the intro again; it is the site's first impression, and the whole Tier 1
- * budget was spent on it.
+ * WHAT SURVIVES UNCHANGED, because it was never the broken part: no
+ * persistence, of any kind, on any route. `sessionStorage` (this used to read
+ * an `intro-played` key through `useSyncExternalStore`) answers "has this TAB
+ * seen the intro", which suppresses it across refreshes — the opposite of what
+ * §3 asks for, and not retunable into correctness. A returning visitor next
+ * week should see the Intro again; it is the site's first impression, and the
+ * whole Tier 1 budget was spent on it.
  * ─────────────────────────────────────────────────────────────────────────
  *
  * IT OWNS THE SCROLL LOCK, AND IT IS THE ONLY OWNER. The attribute is set for
@@ -62,22 +60,18 @@ import { useEffect, useRef, useState } from "react";
 
 import { AssetLoader } from "@/components/intro/AssetLoader";
 import { Intro } from "@/components/intro/Intro";
-
-/**
- * Once per page load. MODULE SCOPE, deliberately — see the header.
- *
- * It is written when the sequence FINISHES rather than when it starts, so a
- * navigation that interrupts the Intro half-way leaves it `false` and the next
- * arrival on Home gets the whole thing rather than a gate that silently
- * disappeared mid-beat.
- */
-let played = false;
+import { markIntroSettled } from "@/components/intro/IntroSession";
 
 /**
  * Locks document scroll while the gate is up. Declared in `globals.css` and
  * shared in MECHANISM (not in attribute) with the project overlay's lock,
  * because under reduced motion there is no Lenis instance and a JS-only lock
  * would silently do nothing for exactly the visitors most likely to notice.
+ *
+ * IT REACHES `/about` AND `/work` NOW. On `/about` that is close to a no-op —
+ * the page is `h-dvh overflow-hidden` and does not scroll. On `/work` it is
+ * not: the archive is a long page, and it is held at the scroll position the
+ * document loaded at until the gate retires.
  */
 const SCROLL_LOCK_ATTR = "data-intro-active";
 
@@ -90,9 +84,11 @@ type IntroGateProps = {
    * continuous rather than a cut, so this deliberately fires well before
    * `onDone`.
    *
-   * On the skip paths — an Intro that has already played this page load, or
-   * reduced motion — it fires too, so a consumer never has to special-case
-   * "the intro did not run" to know when it may start.
+   * UNDER REDUCED MOTION IT STILL FIRES, on the plate fade's `onStart`, so a
+   * consumer never has to special-case "the intro did not run" to know when it
+   * may start. The other skip path — "already played this page load" — is not
+   * this component's any more: `IntroProvider` seeds both wires true instead of
+   * mounting a gate that immediately retires itself.
    */
   onHandoff?: () => void;
   /** Fired once the gate is finished and can be unmounted. */
@@ -100,23 +96,6 @@ type IntroGateProps = {
 };
 
 export function IntroGate({ onHandoff, onDone }: IntroGateProps) {
-  /*
-    READ ONCE, INTO STATE, AT MOUNT.
-
-    A bare `if (played) return null` in the render body would be read again on
-    every re-render — including the one this component's own `onComplete`
-    triggers in its parent — so the Intro would vanish from the DOM the instant
-    it set the flag, mid-hand-off, taking the dissolving plate with it. A lazy
-    `useState` initialiser captures the value the gate mounted with and holds it
-    for this instance's whole life. It is also not the cascading-render shape
-    Next 16's `react-hooks/set-state-in-effect` rule rejects.
-
-    `played` is module state and identical on both renders of a hydration pass,
-    so this is safe to read during render: the server bundle has its own module
-    instance and it is always `false` there, which matches a first visit —
-    and a client navigation never re-runs prerender.
-  */
-  const [alreadyPlayed] = useState(() => played);
   const [phase, setPhase] = useState<Phase>("loading");
 
   const onHandoffRef = useRef(onHandoff);
@@ -126,26 +105,20 @@ export function IntroGate({ onHandoff, onDone }: IntroGateProps) {
     onDoneRef.current = onDone;
   }, [onHandoff, onDone]);
 
-  /* Retire immediately if the Intro has already run this page load. This calls
-     parent callbacks rather than setting local state, so it is not the
-     cascading-render shape the lint rule rejects. */
-  useEffect(() => {
-    if (!alreadyPlayed) return;
-    onHandoffRef.current?.();
-    onDoneRef.current();
-  }, [alreadyPlayed]);
+  /* UNCONDITIONAL NOW, and that is a simplification rather than a change of
+     behaviour: this component is only ever rendered when it is going to play,
+     so the `alreadyPlayed` guard this effect used to carry could only ever have
+     been false. `globals.css`'s "IntroGate is the SINGLE owner" note stays
+     literally true.
 
+     Set and cleared in ONE effect, so an unmount mid-sequence — a fast-forward
+     navigation, a hot reload, an error boundary catching something above —
+     cannot strand the document unscrollable. Do not split it. */
   useEffect(() => {
-    if (alreadyPlayed) return;
     const root = document.documentElement;
     root.setAttribute(SCROLL_LOCK_ATTR, "");
-    // Cleared in the SAME effect's cleanup, so an unmount mid-sequence — a
-    // fast-forward navigation, a hot reload, an error boundary catching
-    // something above — cannot strand the document unscrollable.
     return () => root.removeAttribute(SCROLL_LOCK_ATTR);
-  }, [alreadyPlayed]);
-
-  if (alreadyPlayed) return null;
+  }, []);
 
   if (phase === "loading") {
     return <AssetLoader onReady={() => setPhase("playing")} />;
@@ -156,7 +129,12 @@ export function IntroGate({ onHandoff, onDone }: IntroGateProps) {
       sequence="full"
       onHandoff={() => onHandoffRef.current?.()}
       onComplete={() => {
-        played = true;
+        // AT FINISH, NOT AT START — `played`'s one load-bearing property,
+        // preserved verbatim under the new mount point. A run interrupted
+        // half-way leaves `introSettled` false, and `introStarted` is what
+        // then tells the next provider instance to play the rest rather than
+        // skip it.
+        markIntroSettled();
         onDoneRef.current();
       }}
     />

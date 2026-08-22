@@ -1,3 +1,4 @@
+import { IntroProvider } from "@/components/intro/IntroProvider";
 import { Navbar } from "@/components/ui/Navbar";
 
 /**
@@ -42,18 +43,49 @@ import { Navbar } from "@/components/ui/Navbar";
  * `<body className="flex min-h-full flex-col">` in `app/layout.tsx`, exactly as
  * the `(site)` layout's header warns.
  *
+ * `<IntroProvider>` DOES NOT BREAK THAT RULE. A context provider is not an
+ * element, and the gate it mounts renders two `position: fixed` plates — out of
+ * flow, and therefore not flex items of `<body>`. `<header>`'s nearest ancestor
+ * is still `<body>`. Both stated reasons for the no-DOM rule survive intact.
+ *
+ * IT IS THE ENTRY GATE'S MOUNT POINT, AND THIS GROUP IS EXACTLY THE RIGHT
+ * SCOPE. `(chrome)` contains `/`, `/work` and `/about` and nothing else, which
+ * is the set of routes the Intro is meant to play on; `projects/[slug]` sits
+ * outside it and keeps its Tier 3 register, for the same reason
+ * reason 2 above gives about the navbar.
+ *
+ * IT IS ALSO THE THING THAT MAKES THE "once per document" RULE STRUCTURAL. This
+ * layout persists across every navigation inside the group, so the provider
+ * never remounts on a `/` <-> `/work` <-> `/about` click and the Intro
+ * structurally CANNOT replay — the same safeguard `PageStack.tsx` records for
+ * the navbar's entrance, and the reason the gate is NOT mounted per page.
+ * Before this commit it was mounted by `Hero`, i.e. by Home, and the two
+ * failures that produced were one bug: a hard load of `/about` played no Intro,
+ * and the first click to HOME played one on a CLIENT NAVIGATION.
+ *
  * THE BAR RENDERS BEFORE `{children}` and as a sibling of the page's `<main>`,
  * for that same landmark reason — the same trap `RevealFooter`'s `<footer>`
  * avoids by staying outside `<main>`.
  *
- * NO "use client". `Navbar` carries its own directive; this file must stay a
- * server component or every page under it crosses the client boundary.
+ * NO "use client". `Navbar` carries its own directive and so does
+ * `IntroProvider`; this file must stay a server component or every page under
+ * it crosses the client boundary. `<Navbar />` and `{children}` are passed to
+ * the provider AS CHILDREN, which is what keeps them server-rendered — a client
+ * component's `children` are rendered by the server and handed through, so
+ * nothing under here is pulled across the boundary.
+ *
+ * MEASURED RATHER THAN ASSUMED, because "the children pass-through held" is
+ * exactly the kind of claim that is true until it silently is not. Total JS
+ * fetched on a cold load, before and after this commit: `/` 820.9 -> 821.3 KB,
+ * `/work` 845.2 -> 845.7 KB, `/about` 820.9 -> 821.3 KB. One chunk each, and
+ * it is this provider's own module — nothing resembling page content, and in
+ * particular none of `/work`'s five project descriptions.
  */
 export default function ChromeLayout({ children }: LayoutProps<"/">) {
   return (
-    <>
+    <IntroProvider>
       <Navbar />
       {children}
-    </>
+    </IntroProvider>
   );
 }

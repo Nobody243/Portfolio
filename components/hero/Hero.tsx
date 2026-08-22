@@ -67,7 +67,6 @@ import { HERO_SECTION_ID } from "@/components/hero/heroContent";
 import { HeroHeadline } from "@/components/hero/HeroHeadline";
 import { ParticleGrid } from "@/components/hero/ParticleGrid";
 import { useIntroHandoff } from "@/components/intro/IntroContext";
-import { IntroProvider } from "@/components/intro/IntroProvider";
 import { ScrollTrigger, gsap } from "@/lib/animation/gsap";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
@@ -136,31 +135,7 @@ const ARRIVAL_S = 1.6;
  */
 const ARRIVAL_SCALE = 1.12;
 
-/**
- * THIS WRAPPER IS A STAGING STEP AND IS NOT WHERE THE PROVIDER BELONGS.
- *
- * The gate's mount condition is still "the Home page is rendering", which is
- * the bug: a document that loads on `/about` or `/work` plays no Intro, and the
- * first client navigation to `/` plays one — on a client navigation, which
- * `docs/07_SITE_RESTRUCTURE.md` §3 forbids. The NEXT commit moves
- * `<IntroProvider>` to `app/(site)/(chrome)/layout.tsx` and this wrapper
- * disappears entirely.
- *
- * It exists for one commit so that the state refactor below — two `useState`s
- * and two callbacks becoming one context read — can be verified as
- * behaviour-neutral BEFORE the route scope changes underneath it. A component
- * cannot consume a context it renders itself, which is the only reason `Hero`
- * is briefly two components.
- */
 export function Hero() {
-  return (
-    <IntroProvider>
-      <HeroSection />
-    </IntroProvider>
-  );
-}
-
-function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
@@ -312,8 +287,10 @@ function HeroSection() {
       {/* LAYER 4 IS NOT IN HERE ANY MORE. The entry gate — real loader, then the
           Intro — used to be the last child of this section, and its two
           callbacks were this component's two `useState` setters. It is now
-          rendered by `IntroProvider` above and reaches this file through
-          `useIntroHandoff()`.
+          rendered by `IntroProvider` in `app/(site)/(chrome)/layout.tsx` —
+          one level above every page in the group, so it is no longer any page's
+          child — and reaches this file through `useIntroHandoff()`. This
+          section is a CONSUMER of the hand-off now, not its owner.
 
           The gap between `arriving` and `introDone` is unchanged and is still
           the overlap the expansion above depends on: `arriving` flips as the

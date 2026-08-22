@@ -799,7 +799,48 @@ export function Navbar() {
         // NO `transition-transform` AND NO `transform` OF ITS OWN. Both went
         // with hide-on-scroll; the element is now permanently at rest and the
         // only thing that moves in the bar is the entrance layer inside it.
-        className="pointer-events-none fixed inset-x-0 top-0 z-40"
+        //
+        // ─────────────────────────────────────────────────────────────────
+        // `z-[55]`, AND THE VALUE IS BETWEEN TWO OTHERS ON PURPOSE. IT WAS
+        // `z-40` UNTIL THE INTRO'S GATE MOVED TO THE `(chrome)` LAYOUT.
+        //
+        // Required body-level order, bottom to top:
+        //
+        //   <main> 10  <  Intro plate 50  <  header 55  <  AssetLoader 60
+        //
+        // `z-40` was correct only by accident, and the accident ended with the
+        // move. MEASURED before it, on `/` at t=600ms: the plate is `fixed
+        // inset-0 z-50` but it was rendered by `Hero`, INSIDE
+        // `<main class="relative z-10">` — and `position: relative` with a
+        // z-index establishes a stacking context, so the plate's 50 was LOCAL
+        // TO `<main>` and never reached the body-level stack. 40 > 10, so the
+        // bar painted above the plate no matter what number the plate carried.
+        //
+        // That was not a defect; it is the shipped seam. Confirmed two ways at
+        // t=2611ms with the plate at opacity 1.000: `elementFromPoint` at the
+        // ABOUT link's centre returns the link itself, and the screenshot shows
+        // the whole bar legible over the opaque plate. The bar travels
+        // `y -58.2 -> 0` between t=2344 and t=2744ms and the plate is fully
+        // opaque for every frame of it.
+        //
+        // The move makes the plate a direct child of `<body>`, so its `z-50`
+        // becomes a REAL body-level z-index for the first time and the order
+        // inverts: at `z-40` the bar would slide in BEHIND an opaque plate and
+        // simply be present when the plate cleared. `docs/07` §3 step 6 needs
+        // the hero settle and this slide to be one coordinated beat — and that
+        // beat would survive in the timeline and vanish from the screen.
+        // NOTHING WOULD THROW AND NO TRANSFORM-READING TEST WOULD NOTICE: the
+        // tween still runs, the onset delta is still one frame. It is visible
+        // only in pixels.
+        //
+        // 55 rather than raising the plate: it changes ONE number instead of
+        // two, and it leaves `z-50` and `z-[60]` — the values `docs/06` §3,
+        // `app/(site)/(chrome)/page.tsx` and both intro components quote — where
+        // they are. IF THE PLATE OR THE LOADER IS EVER RENUMBERED, THIS HAS TO
+        // MOVE WITH THEM; it is the only value on the site that is defined by
+        // sitting between two others.
+        // ─────────────────────────────────────────────────────────────────
+        className="pointer-events-none fixed inset-x-0 top-0 z-[55]"
       >
         {/*
           FULL-BLEED, AND DELIBERATELY NOT THE SITE SPINE.
