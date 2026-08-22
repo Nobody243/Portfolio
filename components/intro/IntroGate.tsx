@@ -75,6 +75,29 @@ import { markIntroSettled } from "@/components/intro/IntroSession";
  */
 const SCROLL_LOCK_ATTR = "data-intro-active";
 
+/**
+ * The classic scrollbar's width, measured before the lock is applied and read
+ * back by the `padding-right` in the same `globals.css` block.
+ *
+ * IT EXISTS BECAUSE THE RELEASE WAS NEVER COMPENSATED, ONLY THE APPLY. The CSS
+ * block used to argue the compensation away with "the plate is opaque … there
+ * is nothing visible to shift", which is true of the frame the lock goes ON and
+ * says nothing about the frame it comes OFF — by which point the plate has
+ * dissolved and the page is being looked at. REPRODUCED at 1440x900 in headed
+ * Chromium: at the release frame `clientWidth` goes 1440 -> 1425, the navbar's
+ * right cluster (theme toggle, email, LinkedIn) jumps 15px left and its centre
+ * cluster jumps 7.5px, one frame after the plate clears.
+ *
+ * SAME MECHANISM AND SAME VARIABLE SHAPE AS `--nav-scrollbar-width`
+ * (`NavMobileMenu.tsx`), whose block in `globals.css` already accepted this
+ * exact argument for the menu: "removing the scrollbar would visibly shift the
+ * page behind it". MEASURED, never guessed — `innerWidth - clientWidth` is 0 on
+ * overlay-scrollbar platforms (iOS, Android, macOS by default) and on `/about`,
+ * which is `h-dvh overflow-hidden` and has no scrollbar to remove, and the
+ * `var()` fallback keeps that honest rather than substituting a constant.
+ */
+const SCROLLBAR_VAR = "--intro-scrollbar-width";
+
 type Phase = "loading" | "playing";
 
 type IntroGateProps = {
@@ -116,8 +139,20 @@ export function IntroGate({ onHandoff, onDone }: IntroGateProps) {
      cannot strand the document unscrollable. Do not split it. */
   useEffect(() => {
     const root = document.documentElement;
+    /* MEASURE BEFORE LOCKING — the scrollbar has to still be there to have a
+       width. This runs in a passive effect, after the browser has painted the
+       plate at least once, so the document is still in its unlocked geometry
+       here and the plate is already covering the reflow the lock is about to
+       cause. */
+    root.style.setProperty(
+      SCROLLBAR_VAR,
+      `${window.innerWidth - root.clientWidth}px`,
+    );
     root.setAttribute(SCROLL_LOCK_ATTR, "");
-    return () => root.removeAttribute(SCROLL_LOCK_ATTR);
+    return () => {
+      root.removeAttribute(SCROLL_LOCK_ATTR);
+      root.style.removeProperty(SCROLLBAR_VAR);
+    };
   }, []);
 
   if (phase === "loading") {

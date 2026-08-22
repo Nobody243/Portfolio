@@ -576,11 +576,84 @@ html[data-overlay-open] {
    a JS-only lock would silently do nothing for exactly the visitors most
    likely to notice the page moving under a plate they cannot see past.
 
-   NO `padding-right` COMPENSATION, unlike the overlay. That exists to stop the
-   page shifting when the scrollbar is removed from under content the visitor
-   is already looking at. Here the plate is opaque, covers the viewport edge to
-   edge, and is up before anything has been read — there is nothing visible to
-   shift. Adding the compensation would instead shift the plate itself.
+   IT TAKES THE `padding-right` COMPENSATION AS OF 2026-08-22, AND THE
+   ARGUMENT THAT USED TO REFUSE IT WAS ABOUT THE WRONG END OF THE LOCK.
+
+   It read: "NO `padding-right` COMPENSATION, unlike the overlay. That exists
+   to stop the page shifting when the scrollbar is removed from under content
+   the visitor is already looking at. Here the plate is opaque, covers the
+   viewport edge to edge, and is up before anything has been read — there is
+   nothing visible to shift. Adding the compensation would instead shift the
+   plate itself."
+
+   Every sentence of that is true of the frame the lock is APPLIED and silent
+   about the frame it is RELEASED. The gate unmounts after the plate has
+   dissolved, so the scrollbar comes back under a page that is fully visible
+   and, off Home, still mid-entrance.
+
+   REPRODUCED rather than reasoned. Headed Chromium at 1440x900 — the bundled
+   HEADLESS Chromium uses overlay scrollbars, `innerWidth - clientWidth` is 0 on
+   every route, and the mechanism cannot fire there at all, which is why this
+   went unseen. At the release frame `documentElement.clientWidth` goes
+   1440 -> 1425 and 53 elements move on the x axis:
+
+     `/work`   the navbar's right cluster (theme toggle, email, LinkedIn)
+               jumps 15px left; the centre cluster (ABOUT / mark / WORK,
+               `left-1/2 -translate-x-1/2`) jumps 7.5px. The archive's cards
+               do NOT move — the grid is capped at `md:max-w-[57rem]` — so a
+               probe that watched only the cards reports clean.
+     `/`       identical navbar shift, 79 elements. THIS IS NOT NEW AND WAS
+               NOT CAUSED BY THE INTRO'S RELOCATION; Home has always done it.
+               The move extended it to a second route, and finding it there
+               is what found it here.
+     `/about`  ZERO elements. The page is `h-dvh overflow-hidden`, has no
+               scrollbar to remove, `clientWidth` never changes, and the
+               measurement below writes `0px`. The no-op stays a no-op.
+
+   THE OLD OBJECTION — "would instead shift the plate itself" — WAS MEASURED,
+   NOT ASSUMED, AND DOES NOT HOLD. The plate is `fixed inset-0`, and a fixed
+   element's containing block is the initial containing block, not the root
+   element's padding box, so root padding cannot move it. `overflow: clip` on
+   the root does not change that either: overflow on the root element
+   propagates to the viewport and the root itself is treated as `visible`, so
+   it establishes no containing block for fixed descendants. Measured across
+   the apply and release frames with the compensation in place: plate left 0,
+   width 1440, unchanged.
+
+   The 15px strip the padding opens is painted by the root element's own
+   background, which propagates to the canvas — and it is behind an opaque
+   full-viewport plate for the entire time the padding exists.
+
+   `--intro-scrollbar-width` is MEASURED by `IntroGate` immediately before it
+   sets the attribute, exactly as `--nav-scrollbar-width` is measured by the
+   menu, and the `var()` fallback of `0px` is what keeps overlay-scrollbar
+   platforms honest instead of substituting a guess.
+
+   IT TAKES TWO RULES, NOT ONE, BECAUSE ROOT PADDING CANNOT REACH A `fixed`
+   ELEMENT — which is the same fact that clears the plate and condemns the bar.
+   Root `padding-right` compensates everything laid out inside the root's
+   content box, and MEASURED after adding it, the 53 shifting elements on
+   `/work` fall to 30 with `<body>`, `<main>`, every `<section>` and the footer
+   all gone. All 30 that remain are inside `<header>`, because `<header>` is
+   `fixed inset-x-0` and resolves against the INITIAL CONTAINING BLOCK, whose
+   width is exactly what changes when a classic scrollbar comes back: 1440 to
+   1425. Root padding is invisible to it, which is why the bar's right cluster
+   still jumped 15px after the first rule alone.
+
+   So the bar carries the same compensation on itself for the duration of the
+   lock. `<header>` has no padding of its own — `px-md` sits on the layer
+   inside it — so this adds rather than overrides, and `[data-nav-root]` is the
+   hook this file already hangs the bar's three palette variables off rather
+   than a new coupling invented here.
+
+   WHY NOT `overflow: hidden` PLUS `scrollbar-gutter: stable`, which would hold
+   the ICB steady and need neither rule: `clip` is chosen deliberately and the
+   overlay lock's block above states why — it matches the value Lenis's own
+   stylesheet uses for `.lenis.lenis-stopped`, and `hidden` makes the element a
+   scroll container that can still be scrolled programmatically. `clip` is not
+   a scroll container, so `scrollbar-gutter` does not apply to it at all.
+   Trading a real scroll-lock guarantee for two lines of padding is the wrong
+   way round.
 
    `components/intro/IntroGate.tsx` is the SINGLE owner: it sets the attribute
    and removes it in the same effect's cleanup, so an unmount mid-sequence
@@ -604,6 +677,14 @@ html[data-overlay-open] {
 --------------------------------------------------------------------------- */
 html[data-intro-active] {
   overflow: clip;
+  padding-right: var(--intro-scrollbar-width, 0px);
+}
+
+/* The `fixed` half of the same compensation — see the note above. Without it
+   the bar's right cluster jumps 15px and its centre cluster 7.5px on the frame
+   after the plate clears, on every route that scrolls. */
+html[data-intro-active] [data-nav-root] {
+  padding-right: var(--intro-scrollbar-width, 0px);
 }
 
 /* ---------------------------------------------------------------------------

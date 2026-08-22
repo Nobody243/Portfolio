@@ -274,7 +274,17 @@ figures.
 all, so it has no branch here.
 
 `components/intro/IntroGate.tsx` is the **single owner** of the
-`html[data-intro-active]` scroll lock, for the whole gate — both plates. Neither
+`html[data-intro-active]` scroll lock, for the whole gate — both plates.
+**It takes JS-measured `padding-right` compensation, on the root AND on
+`[data-nav-root]`, as of 2026-08-22.** The lock removes the classic scrollbar,
+and the gate unmounts AFTER the plate has dissolved, so without compensation the
+scrollbar returns under a fully visible page: measured at 1440x900 in headed
+Chromium, 53 elements moved on `/work` and the bar's right cluster jumped 15px
+one frame after the plate cleared. The second rule exists because `<header>` is
+`fixed` and resolves against the initial containing block, which root padding
+cannot reach. `/about` is unaffected — it does not scroll, so the measurement is
+`0px`. Playwright's HEADLESS Chromium uses overlay scrollbars and cannot
+reproduce any of this; use headed. Full record in `app/globals.css`. Neither
 child touches it. Two components setting and clearing one attribute with
 overlapping lifetimes is how a document ends up permanently unscrollable, and it
 is also what keeps `Intro` safe to reuse elsewhere: a transition that is not
