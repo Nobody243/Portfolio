@@ -21,7 +21,25 @@
  * same speed on a 60Hz and a 120Hz display, but the angle itself is state. A
  * clock-derived angle cannot later be driven by a ScrollTrigger scrub; this one
  * can, without restructuring anything.
+ *
+ * THAT PARAGRAPH WAS HALF TRUE UNTIL 2026-08-22, and the half it got wrong is
+ * worth keeping on the record because the claim is the kind that reads as
+ * verified. `idleY`/`idleX` — the TARGET — really were advanced by real elapsed
+ * `dt` and really did run at the same speed on any display. The four damping
+ * lines in `stepCommandSphere` that carry the RENDERED angles toward that
+ * target did not: they closed a fixed 6% of the gap per frame, so a 69ms frame
+ * moved the globe exactly as far as a 40ms one. Measured, corr(dt, step) was
+ * -0.05 — the sphere's catch-up was statistically independent of elapsed time,
+ * and the lag between angle and idle target was a function of the refresh rate.
+ * The damping now goes through `dampingFactor`, which is the exponential
+ * identity for the same coefficient over real time and returns 0.06 unchanged
+ * at 60Hz. See `lib/animation/frameRate.ts`.
  */
+
+import {
+  clampFrameMs,
+  dampingFactor,
+} from "@/lib/animation/frameRate";
 
 /* -------------------------------------------------------------------------
    Distribution
@@ -169,16 +187,14 @@ const CURSOR_MAX_X = 12 * DEG;
  * 0.06, NOT the field's 0.12. The mesh's nodes are 2px and snap convincingly; a
  * 432px object moving at the same rate reads as twitchy. The heavier damping is
  * what makes the sphere feel like it has mass.
+ *
+ * IT IS PER 60Hz FRAME, AND IT IS NOT APPLIED AS ONE. The number keeps its
+ * original meaning — `dampingFactor(0.06, 16.667)` is 0.06 to the last bit — but
+ * `stepCommandSphere` converts it to the elapsed time the frame actually took
+ * before using it. Retune this by eye on a 60Hz display exactly as before; what
+ * changed is that the feel now survives a 144Hz panel and a dropped frame.
  */
 const DAMPING = 0.06;
-
-/**
- * A single frame's `dt` is clamped to this. rAF stops firing in a background
- * tab, so the first frame after a return carries the whole hidden interval —
- * unclamped, a visitor coming back from another tab sees the sphere teleport
- * through half a revolution.
- */
-const MAX_DT_MS = 50;
 
 /**
  * The frozen orientation under `prefers-reduced-motion`, and also the starting
@@ -500,6 +516,13 @@ export function placeCommandSphere(
  * Auto-rotation is never suspended while the pointer is present: the cursor
  * tilt is an offset ADDED TO the running idle angle, not a replacement for it.
  * A sphere that freezes its spin under the cursor looks broken.
+ *
+ * A `dtMs` OF 0 IS A NO-OP, BY CONSTRUCTION AND ON PURPOSE. `ParticleGrid`
+ * passes 0 on the first frame after a mount or after a parked loop wakes,
+ * because there is no previous timestamp to subtract. No time has passed, so
+ * the idle target does not advance and `dampingFactor` returns 0, so neither do
+ * the angles. The frame is still projected and drawn from the state it already
+ * holds; the next frame carries a real delta. Nothing is stranded.
  */
 export function stepCommandSphere(
   sphere: CommandSphere,
@@ -508,7 +531,11 @@ export function stepCommandSphere(
   height: number,
   pointer: PointerInput | null,
 ): void {
-  const dt = Math.min(Math.max(dtMs, 0), MAX_DT_MS);
+  const dt = clampFrameMs(dtMs);
+  // ONE COEFFICIENT FOR ALL FOUR LINES BELOW, computed once. They damp the same
+  // way over the same frame, and computing it four times would be four chances
+  // for them to stop agreeing.
+  const k = dampingFactor(DAMPING, dt);
 
   sphere.idleY += IDLE_RATE_Y * dt;
   sphere.idleX += IDLE_RATE_X * dt;
@@ -522,11 +549,11 @@ export function stepCommandSphere(
     targetOffsetX = ny * CURSOR_MAX_X;
   }
 
-  sphere.offsetY += (targetOffsetY - sphere.offsetY) * DAMPING;
-  sphere.offsetX += (targetOffsetX - sphere.offsetX) * DAMPING;
+  sphere.offsetY += (targetOffsetY - sphere.offsetY) * k;
+  sphere.offsetX += (targetOffsetX - sphere.offsetX) * k;
 
-  sphere.angleY += (sphere.idleY + sphere.offsetY - sphere.angleY) * DAMPING;
-  sphere.angleX += (sphere.idleX + sphere.offsetX - sphere.angleX) * DAMPING;
+  sphere.angleY += (sphere.idleY + sphere.offsetY - sphere.angleY) * k;
+  sphere.angleX += (sphere.idleX + sphere.offsetX - sphere.angleX) * k;
 }
 
 /* -------------------------------------------------------------------------

@@ -140,6 +140,11 @@ import {
   HERO_COMMAND_FRAGMENTS,
 } from "@/components/hero/heroContent";
 import {
+  clampFrameMs,
+  dampingFactor,
+  frameScale,
+} from "@/lib/animation/frameRate";
+import {
   createCommandSphere,
   placeCommandSphere,
   projectCommandSphere,
@@ -365,10 +370,26 @@ const VOID_RADIUS = 145;
  *  one set the mesh's connectivity together and must be retuned together. */
 const LINK_RADIUS = 120;
 
-/** How fast a node eases toward its target offset. Brief: ~0.12. */
+/**
+ * How fast a node eases toward its target offset. Brief: ~0.12.
+ *
+ * PER 60Hz FRAME, AND NO LONGER APPLIED AS ONE. It used to be multiplied in
+ * directly, which closed a fixed 12% of the gap every frame no matter how long
+ * the frame took — so the void opened and closed at the display's refresh rate
+ * rather than in a fixed number of milliseconds, and a 144Hz panel ran the
+ * whole interaction 2.4x fast. It now goes through `dampingFactor`, which
+ * returns exactly 0.12 at 16.667ms, so 60Hz is unchanged to the bit. Retune it
+ * by eye on a 60Hz display exactly as before.
+ */
 const LERP = 0.12;
 /** Ambient wander is bounded to this radius around home, CSS px. Read only on
- *  the `ambient: "drift"` path, which today is `HERO_FIELD`'s. */
+ *  the `ambient: "drift"` path, which today is `HERO_FIELD`'s.
+ *
+ *  `vx`/`vy` ARE PER 60Hz FRAME TOO, and are scaled by `frameScale` rather than
+ *  by `dampingFactor`: a velocity integrates linearly, so twice the elapsed
+ *  time is exactly twice the distance. Measured before that scaling existed,
+ *  the mesh moved 0.056px per frame at both 60fps and 34fps — i.e. 3.37px/s
+ *  against 1.91px/s for the same code on the same machine. */
 const DRIFT_CLAMP = 15;
 
 /**
@@ -387,6 +408,12 @@ const DRIFT_CLAMP = 15;
  * gives n ≈ 62 frames, or ~1.05s at 60Hz. Lower it and the tail gets longer for
  * no visible gain; raise it far enough and the node visibly snaps the last
  * fraction of a pixel.
+ *
+ * THE ~1.05s IS NOW THE INVARIANT AND THE 62 FRAMES IS THE 60Hz COROLLARY,
+ * which is the reverse of how it read when `LERP` was applied per frame. Both
+ * sentences above were true only at 60Hz then: a 144Hz visitor got the same 62
+ * frames in 0.43s. With `LERP` dt-scaled the duration holds and the frame count
+ * is whatever the display supplies — 151 frames at 144Hz, still ~1.05s.
  */
 const SETTLE_EPSILON = 0.05;
 
@@ -968,8 +995,26 @@ export function ParticleGrid({
       // loop below having run. See the `restless` block after it.
       ctx.clearRect(0, 0, width, height);
 
-      const dt = lastFrame === 0 ? 0 : now - lastFrame;
+      // CLAMPED, WHICH IT DID NOT USED TO BE. While every step below was a
+      // fixed amount per frame, an enormous `dt` was harmless here because
+      // nothing read it — only `stepCommandSphere` did, and it clamps its own
+      // argument. Now that the drift and the lerp are both dt-scaled, the first
+      // frame back from a background tab would carry the entire hidden interval
+      // and jump the whole mesh in one frame. `clampFrameMs` is the same 50ms
+      // ceiling the sphere already used, shared rather than restated — see
+      // `lib/animation/frameRate.ts` on why one number and not two.
+      const dt = lastFrame === 0 ? 0 : clampFrameMs(now - lastFrame);
       lastFrame = now;
+
+      // Hoisted out of the node loop: one multiplier and one coefficient for
+      // every node in this frame. Recomputing them per node would be up to 300
+      // `Math.pow` calls a frame for a value that cannot vary within one.
+      //
+      // BOTH ARE 1.0 / `LERP` AT EXACTLY 60Hz, which is what makes this a fix
+      // and not a retune. `frameScale(16.667) === 1` and
+      // `dampingFactor(0.12, 16.667) === 0.12`.
+      const driftScale = frameScale(dt);
+      const lerpK = dampingFactor(LERP, dt);
 
       const interactive = canInteract() && pointer.current.active;
 
@@ -1008,8 +1053,8 @@ export function ParticleGrid({
         // node, so `node.x = node.homeX + node.ox` below still holds exactly —
         // nothing else in this loop needs to know the drift is off.
         if (!reducedMotion && ambient === "drift") {
-          node.dx += node.vx;
-          node.dy += node.vy;
+          node.dx += node.vx * driftScale;
+          node.dy += node.vy * driftScale;
           const drift = Math.hypot(node.dx, node.dy);
           if (drift > DRIFT_CLAMP) {
             // Reflect rather than clamp: a hard clamp parks the node on the
@@ -1042,8 +1087,8 @@ export function ParticleGrid({
           if (p.mag > best.mag) best = p;
         }
 
-        node.ox += (best.x - node.ox) * LERP;
-        node.oy += (best.y - node.oy) * LERP;
+        node.ox += (best.x - node.ox) * lerpK;
+        node.oy += (best.y - node.oy) * lerpK;
 
         // THE LAST SUB-PIXEL OF THE RETURN IS SNAPPED, and only when nothing is
         // pulling. `LERP` is exponential and never reaches zero, so a field
@@ -1165,6 +1210,21 @@ export function ParticleGrid({
         // next combines `ambient="settled"` with a sphere, and clearing it here
         // makes the first frame after a wake behave exactly like the first
         // frame after mount.
+        //
+        // IT CAN BITE TODAY NOW, AND ON THE PARKING CALLER ITSELF. `dt` no
+        // longer feeds only the sphere: `driftScale` and `lerpK` above read it
+        // too, so a stale `lastFrame` would hand `/about`'s cursor void a
+        // multi-second step and snap the whole tear open in one frame. This
+        // line and `clampFrameMs` are now two independent guards against the
+        // same thing, which is the correct number of guards for it.
+        //
+        // THE COST IS ONE STATIONARY FRAME PER WAKE, and it is deliberate.
+        // `lastFrame === 0` gives `dt = 0`, so `driftScale` and `lerpK` are
+        // both 0 and that frame moves nothing. It does not strand the settle:
+        // `chasing` is measured against `best` rather than against the previous
+        // frame, so it is still true on a frame that did not move, and the loop
+        // queues the next one — which carries a real delta. The visible effect
+        // is that the void's ~1.05s close starts one frame (~16ms) later.
         lastFrame = 0;
       }
 
