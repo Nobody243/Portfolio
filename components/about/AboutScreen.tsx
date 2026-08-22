@@ -18,6 +18,51 @@ import { MonogramMark } from "@/components/ui/MonogramMark";
 import { contact } from "@/content/contact";
 
 /**
+ * The portrait's `sizes`, SHARED VERBATIM BY BOTH `<Image>` ELEMENTS BELOW,
+ * and the sharing is what makes two elements cost one download.
+ *
+ * THERE ARE TWO ELEMENTS BECAUSE CSS CANNOT REPARENT A NODE. Below 1024px the
+ * photograph belongs inside the mark's row; from 1024px up it is a sibling of
+ * the whole text block. No arrangement of `order`, `contents` or positioning
+ * moves a node between those two parents, so each placement gets its own
+ * element and the other is `display: none`. Exactly one is ever rendered.
+ *
+ * BOTH CARRY THIS FULL THREE-BAND STRING, INCLUDING THE BAND AT WHICH THAT
+ * ELEMENT IS HIDDEN. That is not sloppiness — it is the mechanism. `priority`
+ * makes each element emit a `<link rel=preload as=image>` carrying
+ * `imageSrcSet` + `imageSizes`, and the browser resolves a preload against ITS
+ * OWN viewport, not against the CSS that will later hide the element. Because
+ * the two strings are identical, Next deduplicates them into a SINGLE preload
+ * (verified in the served HTML) and it resolves to exactly the derivative the
+ * visible element needs. Narrowing either string to just its own band —
+ * `"384px"` on the desktop one being the obvious "tidy-up" — would make a
+ * phone preload a desktop derivative it never paints. VERIFIED: exactly one
+ * image request at every tested viewport and every tested DPR.
+ *
+ * EXACT PIXELS, NOT A `vw` EXPRESSION, matching this file's standing rule. The
+ * `lg` band is fluid (247px at 1024 growing to the 384px cap at 1161), and
+ * declaring the band's MAXIMUM only ever over-selects — 247 and 384 land on
+ * the same 384 bucket anyway.
+ *
+ * MEASURED SELECTION, one request in every case: w=128 at 375/DPR-1, w=256 at
+ * 375/DPR-2 and at 640-1023/DPR-1, w=384 at 375/DPR-3 and at every desktop
+ * DPR-1, w=828 at desktop DPR-2 (384 x 2 = 768 selects the 828 bucket), w=1200
+ * at desktop DPR-3. 828 is the realistic ceiling; 1200 is the true one and is
+ * still ~3.4x smaller than the master in each dimension.
+ *
+ * THE 4096x4096 MASTER IS STRUCTURALLY UNREACHABLE, verified rather than
+ * assumed: 4096 exceeds `next/image`'s largest deviceSize (3840), so no bucket
+ * resolves to it and the largest URL in the srcset is w=3840. `next/image`
+ * also writes that same w=3840 URL into the plain `src` attribute as the
+ * no-srcset fallback — it is a RESAMPLED DERIVATIVE, not the master, and no
+ * browser that understands `srcset` ever requests it (confirmed: exactly one
+ * request per load, always the bucket above). The two ways to break the
+ * guarantee are `unoptimized: true` in `next.config.ts` and a raw
+ * `<img src={portrait.src}>`. Neither exists; neither may be added.
+ */
+const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112px";
+
+/**
  * `/about` — one screen, one paragraph, three controls, and nothing else.
  *
  * THE ONE DELIBERATELY QUIET PAGE ON THE SITE. `docs/07_SITE_RESTRUCTURE.md` §6
@@ -73,10 +118,42 @@ import { contact } from "@/content/contact";
  * reversal of Rule S-1); CONTENT SECTIONS KEEP THE SPINE, and this is one.
  *
  * IT USED TO BE BYTE-IDENTICAL AND IS NO LONGER, because the portrait added
- * `lg:flex lg:items-center lg:gap-2xl` to the same element. The four spine
- * classes are untouched and Tailwind sorts the added ones in among them; a
- * reviewer diffing the container against Skills' should compare the max-width
- * and the three paddings, not the whole string.
+ * `lg:flex lg:items-center lg:gap-xl xl:gap-2xl` to the same element. The four
+ * spine classes are untouched and Tailwind sorts the added ones in among them;
+ * a reviewer diffing the container against Skills' should compare the
+ * max-width and the three paddings, not the whole string.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * TWO REVERSED RULES, RECORDED RATHER THAN DELETED — 2026-08-22. Both were
+ * stated at the portrait's call site in capitals, and both rested on the same
+ * premise, which Saad has since overridden.
+ *
+ *   1. "`hidden lg:block`, AND THE FETCH IS THE POINT." The portrait rendered
+ *      from 1024px up and NOWHERE ELSE, and the argument was that there is no
+ *      room for it below `lg` that does not clip or force a scroll. The
+ *      no-scroll half of that is untouched and absolute — see absence 1. What
+ *      changed is the conclusion drawn from it: the portrait now pairs with
+ *      the mark in the header row, which costs only the difference between
+ *      112px and 56px, and the action row's 1-up + 2-up rearrangement returns
+ *      more than that difference. MEASURED at 375x667: the content box was
+ *      576.52px tall and is 574.72px — it SHRANK by 1.80px with a photograph
+ *      added to it. Bottom slack 17.75px -> 18.64px, top 72.73px -> 73.64px.
+ *      The portrait is paid for, not squeezed in.
+ *
+ *   2. "DO NOT ADD `priority`, AND DO NOT SET `loading=\"eager\"`." That rule
+ *      existed to keep a 617KB master off phones, and it was correct while the
+ *      image was `display: none` on a phone — `display: none` plus lazy is
+ *      genuinely what stopped the fetch. It is obsolete on both halves now.
+ *      617,333 bytes is the MASTER's size on disk and was never what shipped:
+ *      MEASURED off the optimiser at q=75, 1,286 bytes at w=128 (a DPR-1
+ *      phone), 2,884 at w=256 (DPR-2), 4,588 at w=384 (DPR-3) and 16,488 at
+ *      w=828 (a DPR-2 desktop), all WebP — the phone case is 0.2% of the
+ *      master. And the image now sits inside the initial viewport at every
+ *      breakpoint, where `loading="lazy"` fetches it immediately ANYWAY but
+ *      without preload priority, which produces a visible pop into an empty
+ *      box on a slow connection — the worst possible motion event on the page
+ *      whose brief is quiet. `priority` removes it, and `placeholder="blur"`
+ *      is still refused: it is the alternative this replaces, not a companion.
  */
 export function AboutScreen() {
   /* BY LABEL, NEVER BY INDEX. `content/contact.ts` states that its array order
@@ -135,18 +212,34 @@ export function AboutScreen() {
 
         <div className="relative flex h-full items-center pt-xl sm:pt-2xl">
           {/* THE SPINE, NOW ALSO THE ROW. `lg:flex` turns the same container
-              into text-then-portrait at 1024px and changes nothing below it,
-              so the sub-`lg` page is byte-for-byte the one that shipped in
-              `d461001`. The text block keeps its 34rem cap and its default
-              `flex-shrink: 1`. Between 1024px and ~1091px the container is
-              NARROWER than 544 + 89 + 280 = 913px plus its own 178px of
-              padding, so the measure yields up to ~67px there rather than the
-              portrait shrinking or the row overflowing. That is the intended
-              trade: the portrait is fixed-width by design and the measure is
-              the elastic one. It is back to a full 544px by 1091px and stays
-              there. */}
-          <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:flex lg:items-center lg:gap-2xl lg:px-2xl">
-            <div className="max-w-[34rem]">
+              into text-then-portrait at 1024px.
+
+              THE MEASURE IS NO LONGER THE ELASTIC ONE, AND THAT REVERSAL IS
+              THE FIX. Until 2026-08-22 `shrink-0` sat on the PORTRAIT and this
+              comment argued for it in as many words: "the portrait is
+              fixed-width by design and the measure is the elastic one", so
+              between 1024px and ~1091px the container was narrower than
+              544 + 89 + 280 and the 34rem measure yielded rather than the
+              image shrinking. MEASURED AT 1024x600 BEFORE THE CHANGE: the
+              measure was 477px, not 544px, and the paragraph wrapped to eight
+              lines instead of seven.
+
+              That trade is backwards for this page. The paragraph is the
+              content; the photograph is the enhancement. So `shrink-0` moved
+              to the TEXT and the portrait took `flex-1` (basis 0, grow into
+              whatever the text leaves, freeze at its cap). Measured after:
+              the measure is 544px at 1024, 1091, 1161, 1280, 1440 and 2560,
+              and the portrait is the elastic one — 247px at 1024, 314px at
+              1091, capped from 1161 up.
+
+              `lg:gap-xl xl:gap-2xl`, NOT `gap-2xl` THROUGHOUT. At 1024 the
+              container is 846px, and 544 + 89 + 213 (the portrait's floor)
+              is 846 EXACTLY — a row with zero slack is one rounding
+              difference from an overflow. At `gap-xl` the same row is 812px
+              with 34px in hand. Both are existing spine steps; no new token,
+              and the wider gap returns at `xl` where there is room for it. */}
+          <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:flex lg:items-center lg:gap-xl lg:px-2xl xl:gap-2xl">
+            <div className="max-w-[34rem] lg:shrink-0">
               {/*
                 THE MARK IS `variant="nav"` AT A LARGER SIZE — NOT A THIRD
                 VARIANT. `MonogramMark.tsx`'s own header says it: "the navbar
@@ -168,12 +261,56 @@ export function AboutScreen() {
 
                 STATIC. NO ANIMATION ON IT, AT ALL — §6: "static only, no
                 animation here; About stays the quiet page."
+
+                IT SHARES ITS ROW BELOW 1024px, and the wrapper below is why.
+                See the mobile portrait's own note: the two identity artifacts
+                pair at a fixed 2:1, mark first. At `lg` the portrait leaves
+                for the second column and `lg:block` puts this element back in
+                exactly the block context it had before the row existed.
               */}
-              <MonogramMark
-                variant="nav"
-                label={ABOUT_PAGE_MARK_LABEL}
-                className="h-[56px] w-auto text-fg sm:h-[72px]"
-              />
+              <div className="flex items-center gap-md lg:block">
+                <MonogramMark
+                  variant="nav"
+                  label={ABOUT_PAGE_MARK_LABEL}
+                  className="h-[56px] w-auto text-fg sm:h-[72px]"
+                />
+
+                {/*
+                  THE PORTRAIT, BELOW 1024px — PAIRED WITH THE MARK, NOT
+                  STACKED ABOVE THE PARAGRAPH.
+
+                  Below `lg` the page is one column and there is no second
+                  column to put a photograph in. Stacking it would cost its
+                  full height; putting it in the mark's row costs only the
+                  DIFFERENCE between the two, and it makes a composition
+                  rather than an insertion — the site's two identity artifacts
+                  on one line. It is exactly 2x the mark's height at both
+                  sizes (112/56 below 640, 144/72 above), which is one ratio
+                  expressed at two sizes rather than two arbitrary numbers.
+
+                  MARK FIRST, PORTRAIT SECOND. The mark is the page's
+                  established visual entry and reading order is not re-ordered
+                  for a photograph.
+
+                  NOT A CENTRED CIRCULAR AVATAR ABOVE THE NAME. That is the
+                  universal template mobile About page, and this codebase
+                  ships no radius token to build it with.
+
+                  `shrink-0` GUARDS THE 2:1, and it never engages today.
+                  Measured at 375: 103.59 (mark at h-56, viewBox 592x320) +
+                  21 (gap-md) + 112 = 236.59 inside a 333px measure, 96px
+                  spare. At 640: 133.19 + 21 + 144 = 298.19 inside 530px, 232
+                  spare. Without it, a future longer mark would silently
+                  squeeze the photograph out of square rather than overflow.
+                */}
+                <Image
+                  src={portrait}
+                  alt={ABOUT_PAGE_PORTRAIT_ALT}
+                  sizes={PORTRAIT_SIZES}
+                  priority
+                  className="aspect-square w-[112px] shrink-0 object-cover sm:w-[144px] lg:hidden"
+                />
+              </div>
 
               {/*
                 THE HEADROOM IS NOT OPTIONAL. 65 words at `text-body` (16px,
@@ -197,70 +334,137 @@ export function AboutScreen() {
               {/*
                 THE ACTION ROW — one primary, two secondary, in that order.
 
-                STACKED AND FULL-WIDTH BELOW 640, a row above it. Three
-                side-by-side controls inside 333px of mobile measure give each
-                ~97px, which truncates "LinkedIn". The column gets full width
-                for free: a flex column's default `align-items: stretch` is what
-                sizes the children, so no width class is needed on any of the
-                three — which matters, because one of them is rendered by a
-                different component.
+                BELOW 640 IT IS 1-UP + 2-UP: View CV full width on row one,
+                GitHub and LinkedIn side by side on row two. It used to be
+                three full-width controls stacked, and the comment here
+                defended that against THREE-ACROSS: "three side-by-side
+                controls inside 333px of mobile measure give each ~97px, which
+                truncates LinkedIn". THAT CLAIM IS STILL TRUE and is not what
+                changed — three across is still refused. Two across is a
+                different sum: MEASURED at 375, (333 - 13) / 2 = 160.0px per
+                control against LinkedIn's intrinsic 109.28px (8 glyphs of
+                12px mono at 0.6em advance = 57.6, plus 0.08em tracking =
+                7.68, plus 2 x 21 padding, plus 2 x 1 border). 50.7px of
+                headroom, and 43.2px at 360. Neither control's `scrollWidth`
+                exceeds its `clientWidth` at any tested width.
+
+                IT IS ALSO WHAT PAYS FOR THE MOBILE PORTRAIT. Measured at
+                375x667: the stacked column was 158.39px tall
+                (42.8 + 13 + 44.8 + 13 + 44.8 — the two secondaries are 2px
+                taller than the filled primary because they carry a 1px
+                border); 1-up + 2-up is 100.60px. The 57.79px returned covers
+                the 56.0px the portrait adds to the mark's row, so the page's
+                vertical slack does not shrink. And it is the better hierarchy
+                independently: one primary and two secondaries IS a 1 + 2, and
+                three identical full-width stacked buttons is Tailwind's
+                default mobile CTA stack.
+
+                ABOVE 640 NOTHING CHANGED. `sm:contents` dissolves the pair's
+                wrapper, so the three controls are direct children of this row
+                again and the arrangement is the one that shipped. That is why
+                the wrapper is a bare `<div>` — `display: contents` on an
+                element with semantics would take them out of the tree with it.
+
+                The column gets full width for free: a flex column's default
+                `align-items: stretch` is what sizes the children, so no width
+                class is needed on any of the three — which matters, because
+                one of them is rendered by a different component and takes no
+                `className`.
               */}
               <div className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center">
                 <CvAction />
-                {/* `ExternalLink` for the semantics only — `target`, `rel` and
-                    the announced new-tab note, which is the whole reason it
-                    exists. The dressing is this page's, passed in, exactly as
-                    that component's header requires: colour and size always
-                    belong to the call site. These are CONTROLS, so they take
-                    the outlined button dressing rather than the teal underlined
-                    treatment that belongs to links inside prose. */}
-                {github ? (
-                  <ExternalLink
-                    href={github.href}
-                    className={ABOUT_BUTTON_SECONDARY}
-                  >
-                    {github.label}
-                  </ExternalLink>
-                ) : null}
-                {linkedin ? (
-                  <ExternalLink
-                    href={linkedin.href}
-                    className={ABOUT_BUTTON_SECONDARY}
-                  >
-                    {linkedin.label}
-                  </ExternalLink>
-                ) : null}
+                {/* THE 2-UP PAIR. `grid-cols-2` rather than two `flex-1`
+                    children, so the halves are equal by construction and
+                    neither secondary needs a width class of its own — the
+                    dressing constants stay pure box-and-voice.
+
+                    `sm:contents` IS THE WHOLE MECHANISM and it is the reason
+                    this wrapper is allowed to exist: above 640 it stops being
+                    a box at all, and GitHub and LinkedIn become direct
+                    children of the flex row above, at their natural widths.
+                    The alternative — one flat row with `basis-full` on the
+                    primary — would need a `className` on `CvAction`, which
+                    takes none, and widening its API for a layout detail is
+                    the wrong direction.
+
+                    IF ONE LINK IS ABSENT this becomes a two-column grid with
+                    one occupied column, i.e. a half-width control. That is
+                    correct and deliberate: the row's rule (below) is that a
+                    missing contact entry renders nothing at all, never a
+                    placeholder, and a lone secondary at half width still
+                    reads as a secondary. */}
+                <div className="grid grid-cols-2 gap-sm sm:contents">
+                  {/* `ExternalLink` for the semantics only — `target`, `rel`
+                      and the announced new-tab note, which is the whole reason
+                      it exists. The dressing is this page's, passed in,
+                      exactly as that component's header requires: colour and
+                      size always belong to the call site. These are CONTROLS,
+                      so they take the outlined button dressing rather than the
+                      teal underlined treatment that belongs to links inside
+                      prose. */}
+                  {github ? (
+                    <ExternalLink
+                      href={github.href}
+                      className={ABOUT_BUTTON_SECONDARY}
+                    >
+                      {github.label}
+                    </ExternalLink>
+                  ) : null}
+                  {linkedin ? (
+                    <ExternalLink
+                      href={linkedin.href}
+                      className={ABOUT_BUTTON_SECONDARY}
+                    >
+                      {linkedin.label}
+                    </ExternalLink>
+                  ) : null}
+                </div>
               </div>
             </div>
 
             {/*
-              THE PORTRAIT. Everything about it is a decision:
+              THE PORTRAIT, FROM 1024px UP. Everything about it is a decision:
 
-              `hidden lg:block`, AND THE FETCH IS THE POINT — not the pixels.
-              This page is `h-dvh overflow-hidden` and physically cannot
-              scroll, and it ships with roughly 18px of vertical slack at
-              375x667, where the paragraph wraps to twelve lines. There is no
-              room for a portrait below `lg` that does not either clip or force
-              the page to scroll, and scrolling is the one thing §6 forbids.
-              Hiding it is not lossy: the page was complete without it — that
-              is exactly what `d461001` shipped — so this is an enhancement at
-              widths that can afford one, not content a phone is missing. DO
-              NOT "fix" the hiding by letting this page scroll.
+              `lg:ml-auto` IS GONE, AND IT WAS THE ACTUAL DEFECT — not the
+              width. At 1440 the content box is 1262px; 544 (measure) + 89
+              (gap) + 340 (the old fixed width) left 289px of free space, and
+              `ml-auto` absorbed ALL of it into the image's left margin. The
+              measured gap between the paragraph and the photograph was
+              378px where `gap-2xl` claimed 89. The two stopped reading as a
+              pair and read as two objects that had drifted apart, which is
+              also what an unfinished grid looks like.
 
-              DO NOT ADD `priority`, AND DO NOT SET `loading="eager"`. Those
-              two words are what make `hidden` actually save the download.
-              `display: none` alone does NOT stop a browser fetching an
-              `<img src>`; `next/image`'s default `loading="lazy"` does, because
-              a `display: none` element has no box and therefore never
-              intersects the viewport. Eager-loading it would silently pull
-              617KB-worth of resampled portrait onto every phone that opens
-              this page and show none of it.
+              `lg:flex-1` PUTS THE RESIDUAL ON THE RIGHT INSTEAD, and that is
+              the composition rather than a leftover. Three places the slack
+              could go: the middle (`ml-auto`, the bug — air inside a pair
+              breaks it); into the image (a 629px square beside a 65-word bio
+              makes this a portrait page with a caption, and it breaks the
+              height relationship below); or the right, over the particle
+              field, where air outside a pair binds it. `lg:justify-center`
+              would also close the void and is refused for a separate reason:
+              it would indent the paragraph ~122px from the spine every other
+              section on the site starts on.
+
+              `lg:max-w-[384px]` IS DERIVED, NOT CHOSEN. The text block
+              measures 384.95px tall at `sm` and up (mark 72 + mt-lg 34 +
+              paragraph 179.16 + mt-xl 55 + action row 44.8). A square whose
+              side equals that height is the one that terminates on the same
+              line as the text under `lg:items-center`, so the row reads as a
+              single rectangle. 384 rather than 385 because 384 is a real
+              `next/image` bucket and halves cleanly; the 0.95px shortfall is
+              a sub-line rounding, not a misalignment.
+
+              `lg:min-w-[213px]` IS LOAD-BEARING TWICE. It is the floor that
+              keeps 544 + 55 + 213 = 812 inside the 846px container at 1024 —
+              and it is also what overrides `min-width: auto` on a flex item,
+              which for a replaced element resolves to a content-based minimum
+              and would otherwise pin the image at its cap forever.
 
               PLAIN `lg`, NOT A CUSTOM BREAKPOINT. Trajectory needed one
               (`--breakpoint-photo`, now deleted) because its 144px label rail
               left the photo column ~48px at 1024px. This page has no rail: at
-              1024px the container gives 846px and the prose takes at most 544,
-              so `lg` is genuinely enough room.
+              1024px the container gives 846px and the prose takes 544, so
+              `lg` is genuinely enough room.
 
               1:1, AND THAT IS NOT AN AESTHETIC CHOICE. The source file is
               4096x4096. A square box is therefore the only ratio that is not
@@ -271,17 +475,15 @@ export function AboutScreen() {
               codebase and a soft-cornered photo would be the exception
               announcing itself; the rest is this page's brief — it is the
               quiet page, and a blur-up placeholder is a filter that resolves,
-              which is motion.
-
-              `sizes` is exact rather than viewport-relative because the box
-              is: 340px from `xl`, 280px from `lg`. Below `lg` nothing is
-              fetched at all, so no branch is needed for it.
+              which is motion. `priority` is the right answer to the pop a
+              blur-up would paper over.
             */}
             <Image
               src={portrait}
               alt={ABOUT_PAGE_PORTRAIT_ALT}
-              sizes="(min-width: 1280px) 340px, 280px"
-              className="hidden aspect-square shrink-0 object-cover lg:ml-auto lg:block lg:w-[280px] xl:w-[340px]"
+              sizes={PORTRAIT_SIZES}
+              priority
+              className="hidden aspect-square object-cover lg:block lg:min-w-[213px] lg:max-w-[384px] lg:flex-1"
             />
           </div>
         </div>
