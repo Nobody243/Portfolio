@@ -175,6 +175,7 @@ import {
 } from "@/components/ui/ThemeToggle";
 import { NAV_HEIGHT_PX } from "@/components/ui/msMarkGeometry";
 import { getHeroStage } from "@/components/hero/heroStage";
+import { useIntroHandoff } from "@/components/intro/IntroContext";
 import { REVEAL_FOOTER_SENTINEL_ID } from "@/components/sections/contactContent";
 import { NAV_ENTRANCE_ATTR } from "@/lib/animation/handoff";
 import { ScrollTrigger } from "@/lib/animation/gsap";
@@ -373,17 +374,61 @@ export function Navbar() {
 
      THE SERVER-RENDERED VALUE IS FROZEN AT MOUNT, deliberately. On `/` the
      attribute ships in the HTML, because the top of the page is the hero and
-     that is where the bar starts; on `/work` it ships absent, so the past-hero
-     palette and its scrim are correct from the first painted frame rather than
-     from the first effect. After mount the effect below is the ONLY author —
-     which is why this is `useState`-with-an-initialiser and not a value
-     recomputed from `pathname` on every render. The bar is mounted by the
-     `(chrome)` layout and survives client navigation between `/` and `/work`,
-     so a re-rendered attribute would fight the ref-written one; worse, during
-     an open project overlay the pathname is `/projects/<slug>` while Home is
-     still mounted BEHIND it, hero and all.
+     that is where the bar starts; on `/work` past the Intro it ships absent, so
+     the past-hero palette and its scrim are correct from the first painted
+     frame rather than from the first effect. After mount the effect below is
+     the ONLY author — which is why this is `useState`-with-an-initialiser and
+     not a value recomputed from `pathname` on every render. The bar is mounted
+     by the `(chrome)` layout and survives client navigation between `/` and
+     `/work`, so a re-rendered attribute would fight the ref-written one; worse,
+     during an open project overlay the pathname is `/projects/<slug>` while
+     Home is still mounted BEHIND it, hero and all.
+
+     ─────────────────────────────────────────────────────────────────────────
+     THE INTRO'S PLATE IS A THIRD GROUND, ADDED 2026-08-22, AND IT WAS A BUG.
+
+     This read `pathname === HOME_ROUTE` alone. That was correct while the
+     Intro only played on `/`; once it played on all three routes it was wrong
+     on two of them, and the failure was not subtle. MEASURED at 1440x900,
+     light, t = 2000ms with the plate up: `/` had `data-over-hero` and was
+     transparent with `--nav-fg: #e8eaec`; `/work` and `/about` had the
+     attribute ABSENT, so `[data-nav-root]:not([data-over-hero])` painted
+     `color-mix(in oklab, var(--color-base) 80%, transparent)` plus a 10px
+     backdrop blur across the top of an opaque #07090C plate, with
+     `--nav-fg: #151515`.
+
+     AND IT WAS WORSE THAN A LIGHT BAR: the entrance layer inside is parked at
+     `yPercent: -100` until the hand-off, so what actually painted was an EMPTY
+     light-grey slab — a bar-shaped hole in the Intro, for the whole ~2.2s
+     before phase 7 starts. Screenshot: `scratchpad/navwhite-work.png`.
+
+     `!arriving` IS THE TERM, AND THE INSTANT MATTERS MORE THAN THE ATTRIBUTE.
+     `arriving` is false only while an Intro is in front of this document and
+     has not yet handed off; it is seeded TRUE on a client navigation, so a
+     `/work` reached by clicking is unaffected. Releasing the ground at the
+     hand-off — rather than at `introDone`, when the plate is finally gone —
+     is a contrast decision and it is derived rather than preferred:
+
+       Off Home the plate's dissolve is a LIGHTNESS RAMP. In light mode the
+       ground behind this bar travels L* 2.41 -> 98.99 over 0.55s. Hold the
+       hero palette across that ramp and #e8eaec ink ends up on a near-white
+       ground: at t = 0.50s of 0.55s the composite is ~#C0BFBE and the ink
+       measures **1.45:1**. Release at the hand-off instead and the bar takes
+       its OWN scrim on the same frame — 80% `--color-base` over whatever the
+       plate is doing, which is never darker than ~#CBCBCB in light mode — so
+       #151515 stays above 12:1 for every frame of the ramp. The swap itself is
+       discrete (see `apply()` below), so there is no midpoint to pass through.
+
+       The cost is stated rather than hidden: for the first ~50ms of the
+       dissolve the bar carries its light scrim while its own row is still
+       sliding in, i.e. the old empty slab, for about three frames instead of
+       for 2.2 seconds. That window is the frame the bar is DEFINED to arrive
+       on by `docs/07` §3 step 7, and the alternative — pinning the bar's
+       background to `--color-hero-surface` for the plate's whole life — trades
+       it for a dark bar sitting over the page as the page appears.
   ----------------------------------------------------------------------- */
-  const [initialOverHero] = useState(() => pathname === HOME_ROUTE);
+  const { arriving } = useIntroHandoff();
+  const [initialOverHero] = useState(() => pathname === HOME_ROUTE || !arriving);
 
   /* -----------------------------------------------------------------------
      RE-RUNS ON EVERY ROUTE CHANGE, and that dependency is load-bearing rather
@@ -508,16 +553,24 @@ export function Navbar() {
       return el.getBoundingClientRect().top + (Number.isFinite(pad) ? pad : 0);
     };
 
-    /* TWO GROUNDS, ONE ATTRIBUTE. Kept in a plain object rather than in state
+    /* THREE GROUNDS, ONE ATTRIBUTE. Kept in a plain object rather than in state
        for the reason the whole effect exists: writing the attribute from a ref
        costs no render, and a `setState` here is what Next 16's
        `react-hooks/set-state-in-effect` rule hard-errors on.
 
-       The two are mutually exclusive in practice — no page puts the hero and
-       the plate under the bar at once — but they are OR-ed rather than assumed
-       exclusive, so a page that managed both would take the dark palette
-       rather than flicker between two authors of one attribute. */
-    const ground = { hero: false, plate: false };
+       `hero` and `plate` are mutually exclusive in practice — no page puts the
+       hero and the reveal footer under the bar at once — but all three are
+       OR-ed rather than assumed exclusive, so a page that managed two would
+       take the dark palette rather than flicker between two authors of one
+       attribute. `intro` OVERLAPS `hero` by construction on `/`, which is
+       exactly why it is a third term here and not a fourth author: on Home the
+       OR means the attribute simply never changes across the hand-off, and the
+       bar's ground goes #07090C -> #07090C with nothing to swap.
+
+       `intro` WAS ADDED 2026-08-22 for the empty-light-slab bug — the block at
+       `initialOverHero` above has the measurement, the reason the release
+       instant is the hand-off rather than `introDone`, and the cost. */
+    const ground = { hero: false, plate: false, intro: !arriving };
 
     /* THE PALETTE SWAP IS DISCRETE, AND THAT IS A FIX, NOT AN OVERSIGHT.
 
@@ -567,7 +620,7 @@ export function Navbar() {
        without it a forced layout would run on calls that write nothing. */
     let dark: boolean | null = null;
     const apply = () => {
-      const next = ground.hero || ground.plate;
+      const next = ground.hero || ground.plate || ground.intro;
       if (next === dark) return;
       dark = next;
 
@@ -651,7 +704,14 @@ export function Navbar() {
     apply();
 
     return () => kills.forEach((kill) => kill());
-  }, [pathname]);
+    /* `arriving` IS A DEPENDENCY, AND IT FIRES EXACTLY ONCE PER DOCUMENT.
+       It is monotonic false -> true (`IntroProvider`'s `setPhase` never runs it
+       back), so this effect re-runs one extra time, at the hand-off, and both
+       ScrollTriggers are rebuilt against a page that is at scroll 0 and fully
+       laid out. It is deliberately NOT read through a ref: the whole point is
+       that the palette must change on that frame, and `apply()` only runs from
+       inside this effect. */
+  }, [pathname, arriving]);
 
   /* -----------------------------------------------------------------------
      Where the indicator line sits.

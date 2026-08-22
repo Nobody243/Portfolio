@@ -687,10 +687,37 @@ is still completely transparent — no fill, no blur** — which is where the
 transparency actually reads as design rather than as a defect, and is the part
 of the spec's intent worth protecting.
 
-**"Past the hero" now means "not on a dark plate", and since Phase 5 there are
-two of those.** `data-over-hero` is set over the reveal footer as well as over
-the hero, so the scrim is suppressed on both dark surfaces and applies only over
-`bg-base` — the only ground it was ever needed on.
+**"Past the hero" now means "not on a dark plate", and there are THREE of those.**
+`data-over-hero` is set over the reveal footer and over the Intro's plate as well
+as over the hero, so the scrim is suppressed on all three dark surfaces and
+applies only over `bg-base` — the only ground it was ever needed on.
+
+> **This said "since Phase 5 there are two of those" until 2026-08-22, and the
+> third was a shipped bug rather than a missing sentence.** `Navbar.tsx` derived
+> its server-rendered `data-over-hero` from `pathname === "/"` alone, which was
+> correct while the Intro only played on Home and wrong on two routes out of
+> three once the gate moved to the `(chrome)` layout. MEASURED at 1440×900,
+> light, t = 2000ms with the plate up: `/` had the attribute and was transparent
+> on `--nav-fg: #e8eaec`; `/work` and `/about` had it ABSENT, so
+> `[data-nav-root]:not([data-over-hero])` laid an 80% `--color-base` tint and a
+> 10px backdrop blur across the top of an opaque `#07090C` plate. The bar's own
+> row is parked at `yPercent: -100` until the hand-off, so what painted was an
+> empty light-grey slab — a bar-shaped hole in the Intro — for the whole ~2.2s
+> before the plate began to dissolve.
+>
+> The third ground is `!arriving` from `IntroContext`, OR-ed into the same
+> attribute, and it is RELEASED AT THE HAND-OFF rather than at `introDone`.
+> Off Home the plate's dissolve is a lightness ramp: in light mode the ground
+> behind the bar travels L\* 2.41 → 98.99 over 0.55s, so holding the hero palette
+> across it would put `#e8eaec` ink on a near-white ground. Releasing at the
+> hand-off means the bar takes its own scrim on the same frame instead.
+> **MEASURED per frame, decoded from composited pixels, 717 frames across the
+> whole plate lifetime on all three routes in both themes: the worst frame is
+> 11.25:1** (light `/work` and `/about`, the first frame after the crossing,
+> `#151515` on the `#CBCBCA` composite of the scrim over the still-opaque
+> plate), rising to 17.92:1 as the plate clears. **Zero frames below 4.5:1.**
+> On `/` the ink never changes across the hand-off at all, because `intro`
+> overlaps `hero` there by construction.
 
 **The plate case was previously UNOBSERVED, not handled.** `Navbar.tsx` bound one
 ScrollTrigger, to the hero, and nothing tested the plate at all. Measured on the

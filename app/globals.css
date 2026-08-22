@@ -711,16 +711,23 @@ html[data-nav-open] {
 /* ---------------------------------------------------------------------------
    THE NAVBAR'S ADAPTIVE PALETTE, `[data-nav-root]`.
 
-   The bar is fixed and transparent, and it crosses three different grounds on
-   `/`: the hero (`bg-hero-surface`, PINNED DARK in both themes), the mid-page
-   sections (`bg-base`, which FLIPS), and the reveal footer's plate (dark
-   again). One fixed colour cannot serve all three — light text vanishes on
-   #FDFCFA, dark text vanishes on the hero — so the bar swaps its palette at
-   TWO boundaries: the hero's bottom edge and the plate's top edge.
-   `components/ui/Navbar.tsx` has the measured contrast figures and both
-   triggers.
+   The bar is fixed and transparent, and it crosses FOUR different grounds:
+   the Intro's plate (`bg-hero-surface`, on ALL THREE content routes, before
+   anything has scrolled at all), the hero (`bg-hero-surface` again, PINNED DARK
+   in both themes, `/` only), the mid-page sections (`bg-base`, which FLIPS),
+   and the reveal footer's plate (dark again). One fixed colour cannot serve all
+   four — light text vanishes on #FDFCFA, dark text vanishes on the hero — so
+   the bar swaps its palette at THREE boundaries: the Intro's hand-off, the
+   hero's bottom edge and the plate's top edge. `components/ui/Navbar.tsx` has
+   the measured contrast figures and all three.
 
-   THE PLATE IS THE THIRD GROUND AND IT WAS UNHANDLED UNTIL PHASE 5 — MEASURED,
+   THIS SAID "three grounds on `/`" AND "TWO boundaries" UNTIL 2026-08-22, and
+   the missing one was a shipped bug: `Navbar.tsx` seeded the attribute from
+   `pathname === "/"`, so on `/work` and `/about` the scrim below painted an
+   empty light-grey slab over the opaque Intro plate for ~2.2s. `docs/06` §6 has
+   the measurement and the 717-frame per-frame contrast capture that closed it.
+
+   THE REVEAL FOOTER'S PLATE WAS UNHANDLED UNTIL PHASE 5 — MEASURED,
    not assumed. On the shipped build at 1024x600 the bar's 59px strip overlapped
    the Contact plate by 129px at maximum scroll (plate top -70, bar bottom 59)
    with `data-over-hero` absent, i.e. #151515-ish labels and an 80% #FDFCFA
