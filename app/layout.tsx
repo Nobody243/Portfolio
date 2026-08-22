@@ -187,13 +187,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {/*
-          NO-JS NET — TWO RULES, THREE ATTRIBUTES, ONE PLACE.
+          NO-JS NET — THREE RULES, FOUR ATTRIBUTES, ONE PLACE.
 
           IT SAID "TWO ATTRIBUTES" UNTIL 2026-08-22 and the count was right at
           the time; [data-page-stack] joined Rule 1 when the route transition
           shipped. Rule 1 is one rule about one failure mode, and a second
           component with the same failure mode belongs in it rather than in a
           Rule 3.
+
+          THEN IT SAID "TWO RULES, THREE ATTRIBUTES", LATER THE SAME DAY, AND
+          RULE 3 EXISTS AFTER ALL — because a third, genuinely different failure
+          mode arrived with the Intro's relocation. It is written up in full
+          below rather than folded into Rule 2, precisely so that this count is
+          the thing a reader checks.
 
           Rule 1, [data-reveal] and [data-page-stack] — for every <Reveal> on
           the site, present and future, and for <PageStack>.
@@ -227,6 +233,55 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           and the accessibility tree, so keyboard focus cannot land on
           something inert.
 
+          Rule 3, [data-intro-plate] — for the entry gate's two plates
+          (AssetLoader's and Intro's). ADDED 2026-08-22, AND IT CLOSES A
+          REGRESSION WE INTRODUCED. `IntroProvider` reads `shouldPlayIntro()`
+          during PRERENDER, where every session flag is false by construction,
+          so it answers "yes" and AssetLoader's `fixed inset-0 z-[60]` plate
+          ships in the static HTML of `/`, `/work` and `/about`. With scripting
+          disabled it never advances, never dissolves and never unmounts.
+          MEASURED before this rule, 1440x900, scripting off: all three routes
+          were ONE COLOUR — `#07090C` at 100.0% of the viewport, zero rows with
+          content.
+
+          `/work` AND `/about` RENDERED CORRECTLY WITH SCRIPTING DISABLED BEFORE
+          THE INTRO'S GATE MOVED INTO THE `(chrome)` LAYOUT. Those two are ours,
+          and this is the fix.
+
+          `/` IS DIFFERENT AND IS FIXED HERE ANYWAY — SAY SO OUT LOUD. Home has
+          shipped this blank plate for as long as the gate has existed, so on
+          that route this is not a regression repair but a CHANGE OF SHIPPED
+          BEHAVIOUR: a no-JS visitor to `/` used to get a near-black rectangle
+          and now gets the page. It is the same defect with the same one-line
+          fix, so special-casing `/` to stay broken would mean carrying a
+          deliberate exception for no reason anyone could defend later.
+
+          IT IS NOT RULE 2'S FAILURE MODE. Rule 2 hides a DEAD CONTROL —
+          something interactive that would render and do nothing. This hides a
+          DEAD COVER — something non-interactive that would render and never
+          leave. `display: none` is the right verb for both, for different
+          reasons: the toggle needs to leave the tab order, whereas the plates
+          are already `aria-hidden="true"` and unfocusable, so here it is purely
+          about paint. Two reasons, two rules.
+
+          WHAT A NO-JS VISITOR GETS AFTER IT, verified with scripting disabled
+          on all three routes at 1440x900: the fully laid-out dark page. Rule 1
+          has already undone every `[data-reveal]` opacity, so `/work` shows all
+          five cards with their covers plus Experience, `/about` shows the mark,
+          the paragraph, the three CTAs and the portrait, and both reach the
+          reveal footer's real Contact links by scrolling. `/` shows the navbar
+          and every section from Trajectory down — but its FIRST SCREEN is still
+          near-empty, because the hero's particle field is a canvas drawn by JS
+          and `HeroHeadline` is gated on `introDone`, which is false in the
+          prerender. That is a separate, pre-existing gap and not this rule's to
+          close; what this rule changes is that the rest of the page is now
+          reachable at all.
+
+          THERE IS EXACTLY ONE THEME WITHOUT JS, and it is dark. `lib/theme.ts`
+          has no `prefers-color-scheme` path by design, so the OS preference
+          changes nothing — measured both ways, identical pixels. "Both themes"
+          is not a test that exists on this path.
+
           ONE HONEST CAVEAT ON [data-page-stack], because a net whose reason is
           wrong reads as verified forever. PageStack's FIRST appearance never
           animates — that is its module-scope guard, and it is what keeps the
@@ -236,16 +291,29 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           disabled. It is listed anyway because the guard is one line: loosen it
           and every route becomes a blank page for a no-JS visitor, silently.
 
+          A SECOND CAVEAT, ON THE OTHER HALF OF [data-intro-plate], for the same
+          reason. Intro.tsx's plate only ever mounts after AssetLoader reports
+          ready, which requires JS — so it can never appear in a document that
+          has none, and on that element the attribute is insurance rather than a
+          live fix. AssetLoader's plate is the one that actually ships. Both
+          carry it because the two are one gate and one surface, and an
+          attribute on only one of them is the asymmetry that gets "tidied" the
+          wrong way later.
+
           Each rule is keyed to a data attribute its component sets on its root
           (`data-reveal` on Reveal, `data-page-stack` on PageStack,
-          `data-theme-toggle` on ThemeToggle). RENAME ANY OF THEM AND THIS
-          SELECTOR MUST CHANGE IN THE SAME COMMIT. All three cost nothing at
+          `data-theme-toggle` on ThemeToggle, `data-intro-plate` on BOTH
+          AssetLoader's plate and Intro's). RENAME ANY OF THEM AND THIS SELECTOR
+          MUST CHANGE IN THE SAME COMMIT — this file's own convention, and the
+          one failure mode it cannot detect for itself. All four cost nothing at
           runtime.
 
           Caveat, stated rather than glossed: <noscript> applies only when
           scripting is DISABLED. If JS is enabled but fails to load or throws,
-          the toggle is visible and inert. That is true of the whole app and is
-          not this net's job to solve.
+          the toggle is visible and inert — and the entry plate is up forever,
+          which is the same caveat with much higher stakes now that Rule 3
+          exists. That is true of the whole app and is not this net's job to
+          solve.
         */}
         <noscript
           // A static literal, so there is no injection surface — and this form
@@ -260,7 +328,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           // Verified present, verbatim, in the built HTML — not assumed.
           dangerouslySetInnerHTML={{
             __html:
-              "<style>[data-reveal],[data-page-stack]{opacity:1!important;transform:none!important}[data-theme-toggle]{display:none!important}</style>",
+              "<style>[data-reveal],[data-page-stack]{opacity:1!important;transform:none!important}[data-theme-toggle]{display:none!important}[data-intro-plate]{display:none!important}</style>",
           }}
         />
       </head>

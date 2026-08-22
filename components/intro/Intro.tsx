@@ -711,6 +711,20 @@ export function Intro({
   return (
     <div
       ref={plateRef}
+      // Consumed by the no-JS net in app/layout.tsx, and SHARED with
+      // `AssetLoader.tsx`'s plate because the two are one gate — one attribute,
+      // one rule. Do not rename without changing that selector in the same
+      // commit.
+      //
+      // ON THIS PLATE IT IS INSURANCE, NOT A LIVE FIX, and that is stated
+      // rather than glossed for the same reason `[data-page-stack]`'s caveat
+      // is: this component only ever mounts after `AssetLoader` reports ready,
+      // which requires JS, so it can never appear in a document that has none.
+      // The plate that DOES ship in the static HTML is the loader's. This one
+      // carries the attribute anyway because the two plates are the same
+      // surface to a reader, and an attribute on only one of them is the kind
+      // of asymmetry that gets "tidied" the wrong way later.
+      data-intro-plate
       // FIXED, not absolute: the plate must cover the VIEWPORT rather than any
       // one section, so nothing can be revealed by a scroll that lands before
       // the lock attaches — and so the navbar, which is also fixed, is covered

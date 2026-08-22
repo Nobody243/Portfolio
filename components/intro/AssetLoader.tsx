@@ -217,6 +217,18 @@ export function AssetLoader({ onReady }: AssetLoaderProps) {
 
   return (
     <div
+      // Consumed by the no-JS net in app/layout.tsx, exactly as `data-reveal`
+      // and `data-theme-toggle` are, and shared with `Intro.tsx`'s plate
+      // because the two are one gate. Do not rename without changing that
+      // selector in the same commit.
+      //
+      // WHY IT IS NEEDED: `IntroProvider` reads `shouldPlayIntro()` during
+      // PRERENDER, where every session flag is false by construction, so it
+      // answers "yes" and THIS PLATE SHIPS IN THE STATIC HTML of `/`, `/work`
+      // and `/about`. With scripting disabled it never advances, never
+      // dissolves and never unmounts: an opaque `#07090C` cover over the whole
+      // page, measured at 100% of 1440x900 on all three routes.
+      data-intro-plate
       // The plate is up from FIRST PAINT even while the readout is not, and
       // that is deliberate. The Intro's plate follows immediately on the same
       // `bg-hero-surface`, so the two are visually one continuous surface and
