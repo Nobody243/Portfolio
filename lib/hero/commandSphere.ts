@@ -117,7 +117,21 @@ const D_MAX_COMPACT = 260;
 
 /**
  * The navbar's occupied height, from `Navbar.tsx`'s container: `py-sm` below
- * 640, `sm:py-md` at 640 and above, tallest child 22px.
+ * 640, `sm:py-md` at 640 and above.
+ *
+ * THE TALLEST IN-FLOW CHILD IS 22px ONLY BELOW `md`. It is the mobile menu
+ * button's `MenuIcon` at `h-[22px]`, which is `md:hidden`; from 768px up the
+ * tallest in-flow child is the 17px MS mark (the centre cluster is
+ * `position: absolute` and out of flow — `Navbar.tsx:189-192` states this).
+ * So the bar actually measures **48px below 640, 64px from 640 to 767, and
+ * 59px at 768 and above**.
+ *
+ * THIS COMMENT SAID "tallest child 22px" FLATLY, WHICH OVER-RESERVES 5px AT
+ * `md` AND UP. The values below are unchanged and stay unchanged: 64 is exact
+ * in the 640-767 band and conservative above it, and this constant feeds
+ * `NAV_CLEARANCE`, where erring toward more clear air is the safe direction.
+ * Corrected as a comment only — do not "fix" the number, which would tighten a
+ * clearance for no gain.
  */
 const NAV_HEIGHT_COMPACT = 48;
 const NAV_HEIGHT = 64;

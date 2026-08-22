@@ -301,9 +301,20 @@ import { contact } from "@/content/contact";
  * VALUE AT EVERY BREAKPOINT.
  *
  * Exactly 2x the navbar's 17px and well clear of the 17px legibility floor
- * (`MIN_HEIGHT_PX` in `msMarkGeometry.ts`), so the M's 44-unit bar gap holds
- * with ~4.2px of clear air. At the 592x320 viewBox it renders 62.9px wide,
- * comfortable inside the 318px of content available at a 360px viewport.
+ * (`MIN_HEIGHT_PX` in `msMarkGeometry.ts`), so the **S's** 44-unit gap — the
+ * tightest clear air anywhere in the mark — holds with 4.68px of it
+ * (44 x 34 / 320, against 2.34px at the 17px floor). At the 592x320 viewBox the
+ * stamp renders 62.9px wide, comfortable inside the 318px of content available
+ * at a 360px viewport.
+ *
+ * THE 34px IS RIGHT; THE DERIVATION UNDER IT WAS NOT. This read "the M's
+ * 44-unit bar gap holds with ~4.2px of clear air". The M is ONE polygon and has
+ * no bar gaps — that was the THREE-BAR faceted M, whose gap was 40 units, which
+ * is where the ~4.2px came from (40 x 34 / 320 = 4.25). Both `Navbar.tsx` and
+ * `msMarkGeometry.ts` already record the S as what binds, and `docs/07` §2.1
+ * records fixing this identical dead derivation elsewhere. Nothing about the
+ * size changes; the sentence now points at the constraint that actually
+ * governs it, so a future resize is measured against the right gap.
  *
  * NO BREAKPOINT RAMP, deliberately: a mark that grows with the viewport reads
  * as a logo lockup rather than as a stamp.

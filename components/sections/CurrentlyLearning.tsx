@@ -17,8 +17,9 @@ import {
 import { formatMonthYear } from "@/lib/formatMonthYear";
 
 /**
- * In Progress — Tier 3, the fifth section on `bg-base`, directly after
- * Experience.
+ * In Progress — Tier 3. On `/work`, the THIRD section on `bg-base`, directly
+ * after Experience: the archive, the internship, then what is in progress.
+ * (This said "the fifth section", which it was on the one-page site.)
  *
  * IT RENDERS NOTHING TODAY, BY DECISION, AND THAT IS THE WHOLE TICKET.
  * `content/currentlyLearning.ts` is empty — genuinely, confirmed by Saad on
@@ -28,16 +29,26 @@ import { formatMonthYear } from "@/lib/formatMonthYear";
  * acceptance criterion ("trivially editable by updating the data file only")
  * stated as a mechanism rather than as a promise.
  *
- * WHY NOT AN HONEST EMPTY STATE, given Skills ships one three sections up. That
- * is exactly the reason. `Skills.tsx` already renders `00` beside "Currently
- * Building Toward" and carries the visible-trajectory signal — the digits are
- * the proof that the code ran and that zero is the answer. A second empty state
- * a few screens later makes the page state the same absence TWICE, in the exact
- * direction the site claims to be heading. Once reads as honest; twice reads as
- * thin, and the second one starts to read as an apology. This is a COMPOSITION
- * decision, not a retreat from honesty: the honest signal still ships, in full,
- * once, in Skills. Do not "restore" an empty state here — that undoes the
- * decision and duplicates Skills' work.
+ * WHY NOT AN HONEST EMPTY STATE. `Skills.tsx` renders `00` beside "Currently
+ * Building Toward" and carries the visible-trajectory signal in full — the
+ * digits are the proof that the code ran and that zero is the answer. A second
+ * empty state states the same absence TWICE, in the exact direction the site
+ * claims to be heading; once reads as honest, twice starts to read as an
+ * apology.
+ *
+ * THE ARGUMENT IS WEAKER THAN IT WAS AND THE COMMENT MUST NOT PRETEND
+ * OTHERWISE. It used to read "given Skills ships one three sections up ...
+ * makes THE PAGE state the same absence twice". That was the one-page site.
+ * Skills is on `/` and this is on `/work`, so the two can no longer appear on
+ * one page at all, and nobody scrolls past both in one gesture. What survives
+ * is the weaker form: a visitor who reads `/` and then `/work` still meets the
+ * absence twice in one session, a screen apart rather than a scroll apart.
+ *
+ * SO TREAT THIS AS A DESIGN CALL THAT IS STILL OPEN, NOT AS A RULE. Returning
+ * `null` is still what ships and is still what Ticket 9's acceptance criterion
+ * describes as a mechanism. But adding an honest empty state here would no
+ * longer contradict a stated decision the way it once would — it is Saad's
+ * call, and it needs a fresh answer rather than this paragraph's old one.
  *
  * DELIBERATELY A SERVER COMPONENT, exactly as About, Skills, Projects,
  * ProjectDetail and Experience are. There is no "use client" here and there

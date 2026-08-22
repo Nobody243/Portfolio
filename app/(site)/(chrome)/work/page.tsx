@@ -91,7 +91,27 @@ export default function WorkPage() {
         <h1 className="sr-only">Work</h1>
         {/* Section order is fixed: the archive, then the internship, then
             what is in progress. Each is `bg-base` with Rule S-2's standard
-            89/89 seam, so the three stack with no seam work needed here. */}
+            89/89 seam, so the three stack with no seam work needed here.
+
+            THE FIRST SECTION'S `pt-2xl` IS DOING TWO JOBS, AND ONLY ONE OF
+            THEM IS WRITTEN DOWN WHERE IT LIVES. `Projects.tsx` calls that
+            padding "Rule S-2's standard seam", which is what it is between two
+            sections — but at the TOP of this page there is no section above it.
+            What is above it is the permanently-visible fixed navbar, which is
+            `position: fixed` and takes no space in flow, so this page's
+            clearance under the chrome is a SIDE EFFECT of S-2's seam value.
+
+            Measured: the bar is 48px below 640 (the 22px `md:hidden` menu icon
+            plus `py-sm`), 64px from 640 to 767, and 59px at 768 and up. Against
+            `pt-2xl` (89px) that leaves **41 / 25 / 30px** of clear air. All
+            three are positive and the page reads correctly at rest.
+
+            `/about` owns the same job explicitly — `AboutScreen.tsx` states its
+            top inset's dual role in full — and this page does not. So: IF THE
+            SEAM VALUE OR THE BAR'S HEIGHT EVER CHANGES, RE-MEASURE HERE. A
+            change made for seam reasons alone can put content under the bar
+            without touching this file, and nothing will report it. The 25px
+            band at 640-767 is the tightest and is the one to check first. */}
         <Projects projects={projects} motion="reveal" />
         <Experience />
         {/* Renders NOTHING while `content/currentlyLearning.ts` is empty — the

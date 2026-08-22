@@ -15,8 +15,18 @@
  * Registration is SSR-safe: gsap core, ScrollTrigger and CustomEase all guard
  * their DOM access, so this module evaluating during prerender is harmless.
  *
- * NOTE: Lenis <-> ScrollTrigger sync is deliberately not wired here yet. It
- * belongs with the first real timeline (Ticket 3, hero) — see LenisProvider.
+ * LENIS <-> SCROLLTRIGGER SYNC IS NOT HERE, AND IT IS NOT MISSING EITHER.
+ * `components/ui/ScrollTriggerSync.tsx` owns it — the `lenis.on("scroll",
+ * ScrollTrigger.update)` binding and the post-webfont `ScrollTrigger.refresh()`
+ * — as its own component, so that every scroll-triggered section depends on a
+ * thing that survives a hero refactor and `LenisProvider` stays free of a GSAP
+ * import. Read that file's header before adding any scroll plumbing; it
+ * already rules out `scrollerProxy` and `gsap.ticker.add(lenis.raf)` by name.
+ *
+ * This note read "deliberately not wired here yet ... belongs with the first
+ * real timeline (Ticket 3, hero)" until 2026-08-22. It was written before the
+ * sync existed and never updated after it shipped, so a reader looking for the
+ * binding found a "not yet" in the module they would naturally check first.
  */
 
 import { gsap } from "gsap";

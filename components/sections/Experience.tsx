@@ -13,7 +13,10 @@ import { experience } from "@/content/experience";
 import { formatMonthYear } from "@/lib/formatMonthYear";
 
 /**
- * Experience — Tier 3, the fourth section on `bg-base`, directly after Work.
+ * Experience — Tier 3. On `/work`, the SECOND section on `bg-base`, directly
+ * after the project archive and directly before In Progress. (This said "the
+ * fourth section", which it was on the one-page site; the component itself is
+ * unchanged and route-agnostic.)
  *
  * DELIBERATELY A SERVER COMPONENT, exactly as About, Skills, Projects and
  * ProjectDetail are. There is no "use client" here and there must not be one:

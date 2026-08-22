@@ -68,20 +68,33 @@ export const DURATION = {
    *
    * WHAT REPLACED IT, for anyone who came here looking: the Intro's timeline
    * constants are local to `components/intro/Intro.tsx`, because they are one
-   * sequence's internal phase split and nothing else may reuse them. The single
-   * value that genuinely crosses a module boundary — the shared length of the
-   * hero expansion and the navbar entrance — is `HANDOFF_S` in
+   * sequence's internal phase split and nothing else may reuse them. The one
+   * value that genuinely crosses a module boundary is `HANDOFF_S` in
    * `lib/animation/handoff.ts`, with the reasoning for why it is not here.
+   * (It read "the SHARED LENGTH of the hero expansion and the navbar
+   * entrance". It is the navbar's slide only — 0.45s against the hero's 1.6s
+   * `ARRIVAL_S`. What the two share is the start instant.)
    */
 } as const;
 
 /** Delay between siblings in a staggered sequence, in seconds. */
 export const STAGGER = {
   /**
-   * Hero headline lines. TWO CONSUMERS, BOTH TIER 1: the hero's two tagline
-   * units, and the Contact close beat's three blocks (Ticket 10). No Tier 2 or
-   * Tier 3 section consumes it, and none should without reading the invariant
-   * below.
+   * Hero headline lines. ONE CONSUMER: the hero's two tagline units
+   * (`HeroHeadline.tsx:119`, `:124`). No Tier 2 or Tier 3 section consumes it,
+   * and none should without reading the invariant below.
+   *
+   * IT HAD TWO. The second was the Contact close beat's three blocks, and this
+   * block used to say so and then build a worked example on it (see the
+   * invariant below). That sequence — three `Reveal`s at monotonic delays
+   * 0 / 0.10 / 0.20 — was RETIRED AT EVERY WIDTH when Contact became the
+   * reveal-footer curtain: the plate is in the viewport from first paint,
+   * pinned and occluded, so an IntersectionObserver reveal fires behind the
+   * page and finishes before anyone sees it. `RevealFooter.tsx:165-177` is the
+   * full record and says outright that restoring it would ship a footer that
+   * animates in secret. The example below is kept as an EXAMPLE, in the past
+   * tense, because it is the clearest statement of the invariant this project
+   * has — but it no longer describes anything on screen.
    *
    * Ticket 4's About section was designed to reuse this for its first beat,
    * which is why no STAGGER.section entry was ever added. It then removed the
@@ -96,12 +109,13 @@ export const STAGGER = {
    * as "never stagger": DELAYS MUST INCREASE MONOTONICALLY IN DOCUMENT ORDER.
    * About's defect was a NON-MONOTONIC sequence (0 / 0.10 / 0), which renders
    * backwards when a jump lands every unit on one observer tick. Contact's
-   * 0 / 0.10 / 0.20 cannot: increasing delays still play top-to-bottom on a
-   * simultaneous tick. An INDEX CASCADE (`delay={index * STAGGER.line}`) is
-   * still wrong wherever units have independent triggers and a reader may
-   * arrive at one deliberately — the delay is then measured from the wrong
-   * origin. It is safe only where the units always enter together, as the
-   * Contact bookend panel's three blocks do.
+   * retired 0 / 0.10 / 0.20 could not: increasing delays still play
+   * top-to-bottom on a simultaneous tick. An INDEX CASCADE
+   * (`delay={index * STAGGER.line}`) is still wrong wherever units have
+   * independent triggers and a reader may arrive at one deliberately — the
+   * delay is then measured from the wrong origin. It is safe only where the
+   * units always enter together, as the Contact bookend panel's three blocks
+   * did.
    *
    * Retuned 0.08 -> 0.10 in Ticket 3.
    *
@@ -111,6 +125,19 @@ export const STAGGER = {
    * while staying well inside one gesture.
    */
   line: 0.1,
-  /** Project card entrance (Tier 2). */
+  /**
+   * Project card entrance (Tier 2). **ZERO CONSUMERS — nothing imports it.**
+   *
+   * `Projects.tsx:113` is the standing decision and the reason: a jump-link
+   * arrival on `#work` lands a whole row on one observer tick, and an index
+   * cascade would then render that row out of order. The scrub did not
+   * reintroduce it either — a scrub has no `delay` to stagger with.
+   *
+   * KEPT, NOT DELETED, and deliberately labelled: the value is the documented
+   * cadence for a card grid that ever enters under a single trigger, and its
+   * absence from the gallery is a decision worth being able to point at. If a
+   * second unused entry ever joins it, delete both — one dead constant with a
+   * stated reason is a record; two is a habit.
+   */
   card: 0.09,
 } as const;
