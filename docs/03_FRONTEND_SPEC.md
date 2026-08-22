@@ -11,7 +11,8 @@
 | `bg-tint-cool` | `#0B1116` | Faint blue undertone — reserved for cloud/infra-leaning content blocks, used sparingly |
 | `bg-tint-warm` | `#0B120E` | Faint green undertone — reserved for code/dev-leaning content blocks, used sparingly |
 | `accent-hero` | `#00E5FF` | Hero 3D glow/particles/lighting, and the small Contact-section echo ONLY |
-| `accent-working` | `~#14B8A6` (tune in-browser for contrast) | Links, tags, highlights, borders — everywhere else |
+| `accent-working` | `#14B8A6` | Links, tags, highlights, borders — everywhere else |
+| `--field-ink` | `#9EC9D4` | `/about`'s particle field ONLY. Not an accent, no utilities — see below |
 
 **Light mode (toggle):**
 | Token | Hex | Use |
@@ -23,11 +24,62 @@
 | `text-fg` | `#151515` | Body/heading text |
 | `accent-hero` | `#00E5FF` — same hex as dark mode | Unchanged; renders on the 3D scene's own dark backdrop. See the accent-tuning clarification below |
 | `accent-working` | `#0F766E` (dark mode: `#14B8A6`) | Same teal, darkened for contrast — `#14B8A6` on `#FDFCFA` is 2.44:1 and fails AA for text |
+| `--field-ink` | `#33474C` (dark mode: `#9EC9D4`) | `/about`'s particle field ONLY. Flips direction with the ground, unlike either accent |
 
 **Rule:** the two tinted whites are a subtle echo of the cyber(green)/cloud(blue) duality — they should
 be used as occasional, quiet background tints (e.g. behind a "Systems Foundation" vs "Currently Building
 Toward" skill group), never as competing primary surfaces. If in doubt, default to `bg-base` or
 `bg-elevated`. No other accent or neutral colors are introduced anywhere in the system.
+
+> **`--field-ink` is the one addition to that list, and it is not an accent.** Added 2026-08-22.
+> `/about` renders the hero's particle mesh at `QUIET_FIELD` density, and until that date the canvas
+> hardcoded `--accent-hero`, so a Tier 2/3 page painted a full-viewport field in `#00E5FF` in **both**
+> themes. That was never a theme bug: light mode did not inherit a dimmed dark value, it painted the
+> identical hex while the ground flipped out from under it. Measured at the shipped `nodeAlpha` of
+> 0.28, the composite was ΔL\* **+24.30** against `#0A0A0B` (emitted light, a star) and ΔL\* **−6.00**
+> against `#FDFCFA` (a dark speck on warm paper). The direction inverts, which is why lowering the
+> opacity could not fix it — it produces fainter dirt.
+>
+> Teal was refused as the replacement: `globals.css` already draws that line for image frames
+> ("keeping these neutral is what lets teal mean *activate this* and nothing else"), and a
+> full-viewport non-interactive layer is the largest possible version of that mistake. A pure neutral
+> was refused too — grey speckle on near-black is what sensor noise looks like, and a small cool bias
+> is the difference between atmosphere and noise.
+>
+> Registered as `--field-ink`, **outside** the `--color-*` namespace, so `text-field-ink` /
+> `bg-field-ink` do not exist — the same mechanical guard `--accent-hero` uses, for the same reason.
+> One consumer, `components/hero/ParticleGrid.tsx`, which reads it as canvas channels.
+>
+> Measured on the shipped build, sampled off the composited canvas at 1440×900 and 375×667:
+>
+> | | Dark on `#0A0A0B` | Light on `#FDFCFA` |
+> |---|---|---|
+> | ink | `#9EC9D4` | `#33474C` |
+> | `nodeAlpha` | 0.30 | 0.17 |
+> | node composite | `#374448`, L\* 27.88, ΔL\* **+25.12**, 1.96:1 | `#DBDEDD`, L\* 88.22, ΔL\* **−10.77**, 1.32:1 |
+> | `linkPeakAlpha` | 0.09 | 0.07 |
+> | link composite | `#181C1D`, L\* 9.90, ΔL\* **+7.14**, 1.15:1 | `#EFEFED`, L\* 94.40, ΔL\* **−4.59**, 1.12:1 |
+> | `linkFalloff` | 1.0 (linear) | **0.6** |
+> | `areaPerNode` / `maxNodes` | 8,500 / 160 | 8,500 / 160 — identical |
+>
+> Three of those need their reason recorded, because each is the opposite of the obvious move:
+>
+> - **The dark field's weight did not change.** ΔL\* +25.12 against the old cyan's +24.30 — under one
+>   L\* point. Only the hue moved. That is the whole design: dark was never the broken half.
+> - **The light delta is 43% of dark's, not equal to it.** Matching ΔL\* would put a mid-grey speckle
+>   on white, and matching the WCAG ratio lands in the same place. Both metrics are blind to the fact
+>   that a light mark on near-black blooms and merges into haze while a dark mark on near-white stays
+>   a discrete object.
+> - **Density is identical in both themes.** Thinning the light field is the intuitive move and it
+>   destroys the triangulation that is the only thing separating the field from noise — `ParticleGrid`
+>   records the measured failure at `areaPerNode` 11,000. Density and connectivity are one decision;
+>   the correction lives entirely in the ink. The **`linkFalloff` gamma** is the same argument applied
+>   to structure: ported linearly, light would hold links only to d ≈ 80px of the 120px `LINK_RADIUS`
+>   against dark's 102px, losing the longest third of every link — and the long links are the ones
+>   that triangulate. At gamma 0.6 the light threshold returns to d ≈ 101px.
+>
+> Both node composites stay **below 3:1**, which is the ceiling: this is decoration behind a 65-word
+> paragraph, and anything at or above the non-text floor competes with the copy.
 
 > **Both tints ship in BOTH modes.** An earlier version of these tables listed `bg-elevated` and the
 > two tints under light mode only, which read as though they were a light-mode technique. They are
@@ -104,7 +156,21 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > `aria-hidden` does not exempt anything here: it hides an element from screen readers, while 1.4.3
 > exists for low-vision users looking straight at it.
 
-> ### `accent-hero` has exactly ONE DOM consumer site-wide. Ticket 10.
+> ### `accent-hero` has exactly ONE DOM consumer site-wide — and count RENDER SITES, not code paths. Ticket 10.
+>
+> **This heading counted code paths, and counting code paths is exactly what let a Tier 1 accent onto
+> a Tier 2 page.** Corrected 2026-08-22. The two code paths below were always real and are still real
+> — but on 2026-08-22 `ParticleGrid` was generalised from hero-only to take a `field` prop, and the
+> `getComputedStyle` read below started executing from **three render sites across two tiers**: the
+> Hero (Tier 1, licensed), the reveal footer's echo (Tier 1, licensed), and `/about` (Tier 2, not).
+> The audit command this section recommends — `grep -rn "accent-hero" components/` — returned two hits
+> throughout and reported clean the entire time, because nobody had to type the token to leak it.
+>
+> **Audit `grep -rn "ParticleGrid" components/` alongside it.** A component that reads a colour is a
+> render site for that colour everywhere it is mounted, and the grep for the token cannot see that.
+> The leak is closed: `ParticleFieldTuning` now carries the property name per preset, so `HERO_FIELD`
+> says `--accent-hero` and `QUIET_FIELD` says `--field-ink`, and the Tier boundary is a value at the
+> call site rather than a comment in the draw pass. Two code paths, **two render sites, one tier.**
 >
 > `--accent-hero` is registered **outside** Tailwind's `--color-*` namespace, so `text-accent-hero` /
 > `bg-accent-hero` **do not exist and never will**. That exclusion is a mechanical guard, not an
@@ -113,9 +179,17 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > usable from any file — the exact leak the guard prevents, renamed. Tailwind renders *nothing* for
 > an unknown utility rather than erroring, which is what makes the guard work.
 >
-> The hero reaches cyan through `components/hero/ParticleGrid.tsx:537`, which reads
-> `getComputedStyle(document.documentElement).getPropertyValue("--accent-hero")` once per rebuild and
-> hands the parsed channels to a **Canvas2D** context — not a DOM path.
+> The hero reaches cyan through `components/hero/ParticleGrid.tsx`'s `readInk()`, which reads
+> `getComputedStyle(document.documentElement).getPropertyValue(...)` — the property **named by the
+> active preset**, which is `--accent-hero` for `HERO_FIELD` and `--field-ink` for `QUIET_FIELD` —
+> and hands the parsed channels to a **Canvas2D** context, not a DOM path.
+>
+> > **It used to say "once per rebuild", and that was a latent bug rather than a description.**
+> > `readInk` ran only inside `build()`, which runs on mount and on a debounced resize; the effect's
+> > deps cannot observe a theme flip. Harmless only because `--accent-hero` is theme-exempt, and a
+> > shipped bug the moment any field's ink is not. It now also runs from a `MutationObserver` on
+> > `<html>`'s class — `lib/theme.ts`'s `applyTheme` is the single writer of that class, including for
+> > cross-tab sync, so one observer catches every way the theme can change.
 >
 > > **This sentence used to send readers to `lib/three/accentHero.ts` — "a JS constant handed to a
 > > WebGL material".** There is no `lib/three/` directory and there never was; the hero has been

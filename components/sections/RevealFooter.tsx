@@ -390,6 +390,17 @@ export function RevealFooter() {
             `outline-hero-accent` (a DIFFERENT token) plus this one line, and a
             reviewer can audit the whole rule in one command.
 
+            THAT ONE COMMAND IS NO LONGER THE WHOLE AUDIT, and this is the one
+            place worth saying so. It audits the DOM path, which is what it
+            claims and all it ever claimed. It does NOT audit the JS path:
+            `ParticleGrid` reads the token by name and is mounted on two routes,
+            so when it was generalised from hero-only on 2026-08-22 the cyan
+            reached `/about` — a Tier 2 page — while this grep kept returning
+            two hits and kept reporting clean. Closed by giving each field
+            preset its own property name (`QUIET_FIELD` takes `--field-ink`),
+            but the lesson is the count: audit RENDER SITES, not code paths, and
+            run `grep -rn "ParticleGrid" components/` beside this one.
+
             `aria-hidden` and carrying no text: it is a marker of the beat, not
             an affordance. Cyan TEXT was rejected on a stronger ground than
             contrast — a coloured short string reads as something to click, and

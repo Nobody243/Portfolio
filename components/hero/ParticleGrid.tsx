@@ -28,20 +28,32 @@
  * interleaved with the mesh loop. Sharing a tick is a performance decision; it
  * is not licence to entangle them.
  *
- * THE PALETTE IS THE SAME VARIABLE, NOT A MATCHED ONE. `--accent-hero` is
- * parsed to channels into `accent`, and the sphere reads that same local. Two
- * `getPropertyValue` calls can disagree after a theme change; one cannot.
+ * THE PALETTE IS THE SAME VARIABLE, NOT A MATCHED ONE. The active field's ink
+ * property is parsed to channels into `ink`, and the sphere reads that same
+ * local. Two `getPropertyValue` calls can disagree after a theme change; one
+ * cannot.
  *
- * IT USED TO SAY "once per rebuild", AND THAT WAS THE BUG. `readAccent` ran
- * only inside `build()`, and `build()` runs on mount and on a debounced
- * `resize` — neither of which fires when the theme flips. The effect's deps
- * (`reducedMotion`, `field`, `withSphere`) cannot observe a theme change
- * either. That was harmless for exactly one reason: `--accent-hero` is
- * deliberately not overridden in `html.light` (`app/globals.css`, ACCENT
- * POLICY), so there was never a second value to re-read. The moment any field
- * takes a theme-dependent ink, the canvas keeps painting the previous theme's
- * colour until something triggers a resize — silently, with a green build. The
- * `MutationObserver` below closes that, ahead of the ink that needs it.
+ * WHICH PROPERTY IT READS IS THE PRESET'S DECISION, NOT THIS FILE'S. The hero
+ * names `--accent-hero`; `/about`'s `QUIET_FIELD` names `--field-ink`. Until
+ * 2026-08-22 the property was hardcoded here, which is precisely how a Tier 1
+ * accent came to paint a full-viewport field on a Tier 2 page when this
+ * component was generalised from hero-only: nothing at either call site
+ * mentioned a colour, so nothing at either call site could be reviewed for one.
+ * `--accent-hero` still has exactly two code paths site-wide — this read and
+ * the reveal footer's 34x3px bar — but it now has TWO render sites in ONE tier
+ * instead of three across two, which is the count that actually mattered and
+ * the one `grep -rn "accent-hero" components/` could never have caught.
+ * Audit `grep -rn "ParticleGrid" components/` alongside it.
+ *
+ * IT USED TO SAY "once per rebuild", AND THAT WAS THE OTHER HALF OF THE BUG.
+ * `readInk` (then `readAccent`) ran only inside `build()`, and `build()` runs
+ * on mount and on a debounced `resize` — neither of which fires when the theme
+ * flips. The effect's deps (`reducedMotion`, `field`, `withSphere`) cannot
+ * observe a theme change either. That was harmless for exactly one reason:
+ * `--accent-hero` is deliberately not overridden in `html.light`
+ * (`app/globals.css`, ACCENT POLICY), so there was never a second value to
+ * re-read. `--field-ink` has one, so the `MutationObserver` below is what keeps
+ * the canvas from painting the previous theme's colour until a resize.
  *
  * DISPLACEMENT, NOT BRIGHTENING. Nothing in this file lights a particle up
  * near the pointer, and nothing should be added that does. The cursor shoves
@@ -106,6 +118,11 @@ import {
   type CommandSphere,
 } from "@/lib/hero/commandSphere";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
+// The class on <html> is the site's single source of truth for the applied
+// theme (`lib/theme.ts`). Importing the reader rather than writing
+// `classList.contains("dark")` here keeps it that way — a second spelling of
+// the same test is how the two drift apart when the class names change.
+import { readAppliedTheme } from "@/lib/theme";
 
 /* -------------------------------------------------------------------------
    Field constants. CSS pixels throughout — the DPR scale is applied to the
@@ -113,18 +130,65 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 ------------------------------------------------------------------------- */
 
 /**
- * THE FOUR NUMBERS A CALLER MAY RETUNE, AND ONLY THESE FOUR.
+ * THE NUMBERS A CALLER MAY RETUNE, AND ONLY THESE.
  *
  * Everything else in this file is fixed for every instance: `LINK_RADIUS`,
  * `VOID_RADIUS`, `LERP`, `DRIFT_CLAMP` and the node radii are what make the
  * field read as *this* field, and a caller that changed them would be building
  * a second effect rather than dimming this one.
  *
- * ONE OBJECT, NOT FOUR LOOSE PROPS. The four move together — density and alpha
- * are a single perceptual decision, and a call site that passed three of them
- * would be an unnoticed half-tuning. Presets below; nobody constructs one of
- * these inline.
+ * ONE OBJECT, NOT LOOSE PROPS. Density and ink are a single perceptual
+ * decision, and a call site that passed some of them would be an unnoticed
+ * half-tuning. Presets below; nobody constructs one of these inline.
+ *
+ * IT USED TO SAY "THE FOUR NUMBERS", with `nodeAlpha` and `linkPeakAlpha` flat
+ * alongside the two density numbers and no colour in the type at all — the ink
+ * was a hardcoded `--accent-hero` read in the draw pass. That is how a Tier 1
+ * accent ended up painting a full-viewport field on a Tier 2 page: the ink was
+ * not a value anyone could see at the call site, so generalising this component
+ * from hero-only carried the cyan across without anyone editing a line that
+ * said `accent-hero`. Density stays flat because it does not theme; everything
+ * ink-side moved into a per-theme `FieldInk` pair so the Tier boundary is a
+ * value you can grep rather than a comment you have to trust.
  */
+export type FieldInk = {
+  /**
+   * The CSS custom property to read, BY NAME.
+   *
+   * A property name and not a hex, because `app/globals.css` is the source of
+   * truth for every colour value on this site and a literal here would be a
+   * second one. A property name and not a boolean flag, because the flag would
+   * have to be translated back into a name somewhere in the draw path, and
+   * that translation is the thing that goes stale.
+   */
+  ink: string;
+  /** Node alpha. Slightly above the links so the dots read as the structure. */
+  nodeAlpha: number;
+  /** Peak link alpha, at zero separation. Brief: 12-18% for the hero. */
+  linkPeakAlpha: number;
+  /**
+   * Exponent on the link's distance falloff. 1 = linear, i.e. the shipped
+   * curve. Below 1 the curve lifts in the middle, which extends the distance
+   * at which a link is still dark enough to read as a continuous line.
+   *
+   * IT IS NOT A TASTE KNOB. It exists because the two grounds have different
+   * thresholds for "this line has broken into dashes": ~ΔL* 1.0 on near-black,
+   * where a faint light line still blooms into something continuous, against
+   * ~ΔL* 1.5 on near-white, where a 1px line below that aliases into dots.
+   * Ported linearly, About's light field would hold links only to d ≈ 80px of
+   * the 120px `LINK_RADIUS` against dark's 102px — losing the longest third of
+   * every link, and the long links are exactly the ones that triangulate the
+   * mesh. At gamma 0.6 the light threshold moves to d ≈ 101px. The number
+   * equalises the mesh's effective connectivity across the two themes; it is
+   * the same perceptual-weight argument as the alphas, applied to structure.
+   *
+   * The link still reaches exactly zero at `LINK_RADIUS` in both themes, which
+   * is load-bearing — see this file's header on the ragged break at the void's
+   * edge. A floored alpha would make links pop in and out instead of fraying.
+   */
+  linkFalloff: number;
+};
+
 export type ParticleFieldTuning = {
   /**
    * One node per this many square pixels.
@@ -154,23 +218,54 @@ export type ParticleFieldTuning = {
    * with the density; still a real cap.
    */
   maxNodes: number;
-  /** Node alpha. Slightly above the links so the dots read as the structure. */
-  nodeAlpha: number;
-  /** Peak link alpha, at zero separation. Brief: 12-18%. */
-  linkPeakAlpha: number;
+  /**
+   * The ink, per theme. Selected by the class on <html> at draw time, which is
+   * `lib/theme.ts`'s documented single source of truth.
+   *
+   * DENSITY IS NOT IN HERE, and that is the counter-intuitive half. The
+   * instinct is to thin the field in light mode, since dark specks on white are
+   * the more salient. Doing so walks straight into the measured failure
+   * recorded on `areaPerNode` above: raising it pushes the mean node spacing
+   * toward `LINK_RADIUS`, most pairs fail the threshold, and the mesh degrades
+   * into scattered dots — which is the noise reading the ink is being retuned
+   * to avoid, arrived at by a different route. Density and connectivity are one
+   * decision and both themes get the same one; the whole correction lives in
+   * the ink.
+   */
+  dark: FieldInk;
+  light: FieldInk;
 };
 
 /** The hero's field, and the default: unchanged from before this file took a
- *  prop at all. Every number is the one the hero was tuned to. */
+ *  prop at all. Every number is the one the hero was tuned to.
+ *
+ *  THE TWO HALVES ARE BYTE-IDENTICAL ON PURPOSE, and that is the point of
+ *  writing them out. `--color-hero-surface` is pinned dark in both themes (see
+ *  `app/globals.css`, the HERO TOKENS block), so the field that sits on it must
+ *  not theme either — and `--accent-hero` is itself theme-exempt, so even the
+ *  ink name would be the same. Expressing that as two identical objects makes
+ *  the pinning visible AT THE VALUE, the same way `globals.css` declares the
+ *  three hero tokens as one block with one rationale. It is not redundancy to
+ *  collapse: collapsing it is how the hero silently acquires a light mode. */
 export const HERO_FIELD: ParticleFieldTuning = {
   areaPerNode: 5_200,
   maxNodes: 300,
-  nodeAlpha: 0.5,
-  linkPeakAlpha: 0.16,
+  dark: {
+    ink: "--accent-hero",
+    nodeAlpha: 0.5,
+    linkPeakAlpha: 0.16,
+    linkFalloff: 1,
+  },
+  light: {
+    ink: "--accent-hero",
+    nodeAlpha: 0.5,
+    linkPeakAlpha: 0.16,
+    linkFalloff: 1,
+  },
 };
 
 /**
- * The About page's field — the same mesh, thinner.
+ * The About page's field — the same mesh, thinner, and in a different ink.
  *
  * WHY NOT `opacity` ON THE CANVAS, which is the one-line version of this. The
  * canvas composites over `bg-base`, which flips between themes. A blanket
@@ -179,9 +274,31 @@ export const HERO_FIELD: ParticleFieldTuning = {
  * into triangles, is what actually reads as busy behind a paragraph. Dropping
  * the count and the alphas independently thins the mesh instead of veiling it.
  *
- * Values from `.claude/handoff/about-design.md` §5: ~39% fewer nodes, a 160
- * cap so a large viewport cannot walk it back up, and roughly 55% of the
- * hero's ink on both passes.
+ * Density from `.claude/handoff/about-design.md` §5: ~39% fewer nodes and a 160
+ * cap so a large viewport cannot walk it back up. Both numbers are unchanged.
+ *
+ * THE INK IS NO LONGER THE HERO'S, AND THAT IS THE WHOLE POINT OF THIS PRESET
+ * HAVING ONE. It used to inherit the draw pass's hardcoded `--accent-hero`,
+ * described here as "roughly 55% of the hero's ink on both passes" — true of
+ * the alphas and quietly false about the colour, because `--accent-hero` is
+ * Tier 1 and `/about` is Tier 2/3. `--field-ink` is the dedicated low-chroma
+ * ink; `app/globals.css` carries the full arithmetic for both values. In
+ * summary: the dark field's weight is unchanged to within 0.4 L* (ΔL* +24.69
+ * against the old cyan's +24.30) and only the hue moves, while light drops to
+ * ΔL* −11.05 — 45% of dark's delta, because a dark mark on near-white does not
+ * bloom the way a light mark on near-black does.
+ *
+ * THE CONNECTION TO THE HERO IS STRUCTURE, NOT HUE, and it always was: same
+ * canvas, same mesh, same `LINK_RADIUS`, same displacement kernel, same cursor
+ * void. That is this file's single-artifact rule applied to the background. The
+ * hero keeps the cyan and therefore keeps meaning something.
+ *
+ * THE TWO ALPHAS ARE NOT A DIMMED PAIR OF THE DARK ONES. In dark the nodes
+ * glow and carry the effect on their own, so the links sit at 27% of the node
+ * weight. In light nothing glows, so the DRAWN LINES have to carry the
+ * structure and they rise to 41% of it — even though 0.07 is the lower absolute
+ * alpha. Structure is precisely what stops a field of dark specks on white
+ * reading as dust. See `linkFalloff` for the other half of that.
  *
  * CURSOR DISPLACEMENT IS NOT DIMMED and must not be — it is the field's one
  * interaction, and About is meant to be quiet, not dead.
@@ -189,8 +306,18 @@ export const HERO_FIELD: ParticleFieldTuning = {
 export const QUIET_FIELD: ParticleFieldTuning = {
   areaPerNode: 8_500,
   maxNodes: 160,
-  nodeAlpha: 0.28,
-  linkPeakAlpha: 0.09,
+  dark: {
+    ink: "--field-ink",
+    nodeAlpha: 0.3,
+    linkPeakAlpha: 0.09,
+    linkFalloff: 1,
+  },
+  light: {
+    ink: "--field-ink",
+    nodeAlpha: 0.17,
+    linkPeakAlpha: 0.07,
+    linkFalloff: 0.6,
+  },
 };
 
 const MIN_NODES = 24;
@@ -538,21 +665,36 @@ export function ParticleGrid({
     /** rAF timestamp of the previous tick, for real elapsed `dt`. */
     let lastFrame = 0;
 
-    /** Read on every rebuild AND on every theme flip — cheap, and it lets a
-     *  themed accent flow through without this file hardcoding a hex. THE
-     *  SPHERE READS THIS SAME LOCAL; a second `getPropertyValue` could
-     *  disagree with it after a theme flip. */
-    let accent = "0, 229, 255";
-    const readAccent = () => {
+    /**
+     * The active theme's ink, as canvas channels, plus the alphas and falloff
+     * that go with it. Read on every rebuild AND on every theme flip — cheap,
+     * and it lets a themed ink flow through without this file hardcoding a hex.
+     * THE SPHERE READS THIS SAME LOCAL; a second `getPropertyValue` could
+     * disagree with it after a theme flip.
+     *
+     * THERE IS NO LITERAL FALLBACK COLOUR ANY MORE. It used to initialise to
+     * `"0, 229, 255"` — the hero cyan, spelled out here as a second source of
+     * truth for a value `app/globals.css` owns, and on a code path `/about`
+     * also runs. A failed read now leaves the last good value in place and
+     * `inkRead` false, and the ink-consuming passes below are skipped until a
+     * read succeeds. The only way that state can persist is a stylesheet that
+     * never applied, in which case an unpainted canvas is the correct degraded
+     * result rather than a Tier 1 accent appearing somewhere by default.
+     */
+    let ink = "";
+    let inkRead = false;
+    let paint: FieldInk = field.dark;
+    const readInk = () => {
+      paint = field[readAppliedTheme()];
       const raw = getComputedStyle(document.documentElement)
-        .getPropertyValue("--accent-hero")
+        .getPropertyValue(paint.ink)
         .trim();
       // #00e5ff -> "0, 229, 255". Canvas needs channels for rgba().
       const hex = raw.replace("#", "");
-      if (hex.length === 6) {
-        const n = parseInt(hex, 16);
-        accent = `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
-      }
+      if (hex.length !== 6) return;
+      const n = parseInt(hex, 16);
+      ink = `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+      inkRead = true;
     };
 
     /**
@@ -611,7 +753,7 @@ export function ParticleGrid({
         };
       });
 
-      readAccent();
+      readInk();
       readFont();
 
       // The sphere is rebuilt only when the fragment count actually changes —
@@ -767,8 +909,22 @@ export function ParticleGrid({
         node.y = node.homeY + node.dy + node.oy;
       }
 
+      // NOTHING BELOW PAINTS UNTIL THE INK HAS BEEN READ ONCE. The geometry
+      // above still runs, so the field keeps living and the first successful
+      // read — the next rebuild or the next theme flip — self-heals into a
+      // moving field rather than a frozen one.
+      if (!inkRead) return;
+
       /* --- links, from DISPLACED positions ----------------------------- */
       ctx.lineWidth = 1;
+      // Hoisted out of an O(n²) loop, and `linear` is not premature: at
+      // `HERO_FIELD`'s 300 nodes this branch is taken ~45,000 times a frame,
+      // and the hero's falloff is 1 in both themes, so it keeps the hero's
+      // link pass on the exact arithmetic it shipped with — no `Math.pow`, no
+      // change to a single painted pixel.
+      const peak = paint.linkPeakAlpha;
+      const gamma = paint.linkFalloff;
+      const linear = gamma === 1;
       for (let i = 0; i < nodes.length; i++) {
         const a = nodes[i];
         for (let j = i + 1; j < nodes.length; j++) {
@@ -780,8 +936,9 @@ export function ParticleGrid({
           if (Math.abs(dx) > LINK_RADIUS || Math.abs(dy) > LINK_RADIUS) continue;
           const dist = Math.hypot(dx, dy);
           if (dist >= LINK_RADIUS) continue;
-          ctx.strokeStyle = `rgba(${accent}, ${
-            (1 - dist / LINK_RADIUS) * field.linkPeakAlpha
+          const t = 1 - dist / LINK_RADIUS;
+          ctx.strokeStyle = `rgba(${ink}, ${
+            (linear ? t : Math.pow(t, gamma)) * peak
           })`;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
@@ -791,7 +948,7 @@ export function ParticleGrid({
       }
 
       /* --- nodes -------------------------------------------------------- */
-      ctx.fillStyle = `rgba(${accent}, ${field.nodeAlpha})`;
+      ctx.fillStyle = `rgba(${ink}, ${paint.nodeAlpha})`;
       for (const node of nodes) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
@@ -800,11 +957,14 @@ export function ParticleGrid({
 
       /* --- the sphere, LAST, so it composites in front of the mesh ------- */
       if (sphere) {
+        // `ink` is `--accent-hero` here and only here: the sphere is built only
+        // when `withSphere`, which is the hero's call site, whose preset names
+        // that property in both of its identical theme halves.
         drawCommandSphere(
           ctx,
           sphere,
           sphereOrder,
-          accent,
+          ink,
           fontStack,
           compact,
           width,
@@ -862,7 +1022,7 @@ export function ParticleGrid({
      * reseed every node's random home position, so toggling the theme would
      * visibly scramble the mesh — a layout change to announce a colour change.
      * The animated path picks the new channels up on the very next rAF for
-     * free, because `frame()` reads `accent` fresh every tick; only the
+     * free, because `frame()` reads `ink` fresh every tick; only the
      * reduced-motion path, which draws once and never again, has to be told to
      * repaint.
      *
@@ -872,7 +1032,7 @@ export function ParticleGrid({
      * be theme-exempt is nil — and gating it is how the two paths drift apart.
      */
     const themeObserver = new MutationObserver(() => {
-      readAccent();
+      readInk();
       if (reducedMotion) drawOnce();
     });
     themeObserver.observe(document.documentElement, {

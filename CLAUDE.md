@@ -100,6 +100,18 @@ for contrast):**
   (7.95:1), `#0F766E` in light (5.34:1). Same teal, darkened for light mode because `#14B8A6` on
   `#FDFCFA` is 2.44:1 and fails AA for text. One hue family, tuned per background — not two accents.
 - Rule: no other accent colors. Two accents total, each with one clear job. Never mix.
+- `--field-ink` (Tier 2/3, ONE consumer — `/about`'s particle field): `#9EC9D4` in dark, `#33474C` in
+  light. **It is not a third accent and must never be used as one** — no utilities exist for it, by the
+  same mechanical guard `accent-hero` uses. It exists because `/about` renders the hero's particle mesh
+  and, until 2026-08-22, the canvas hardcoded `--accent-hero` — so a Tier 2 page painted a
+  full-viewport Tier 1 accent in *both* themes. Teal was refused as the replacement: a full-viewport
+  non-interactive layer in the affordance colour is the largest possible version of "a teal frame
+  around something you cannot click". Full arithmetic in `docs/03_FRONTEND_SPEC.md` and
+  `app/globals.css`.
+- **Tier is a property of RENDER SITES, not of code paths.** The leak above was invisible for exactly
+  that reason: `grep -rn "accent-hero" components/` returned two hits and reported clean the whole
+  time, because generalising a component carried the colour to a new tier without anyone typing the
+  token. A component that reads a colour is a render site for that colour everywhere it is mounted.
 
 **Typography:**
 - Headings / UI / body: Space Grotesk

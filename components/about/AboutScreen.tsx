@@ -124,8 +124,13 @@ export function AboutScreen() {
           saw the pointer, and the field would only respond in the margins.
           Same arrangement as `Hero.tsx`'s stage, for the same reason. */}
       <div className="absolute inset-0">
-        {/* The same mesh the hero draws, thinned rather than veiled — see
-            `QUIET_FIELD`. `sphere={false}` keeps the command sphere on Home. */}
+        {/* The same mesh the hero draws, thinned rather than veiled, and in
+            `--field-ink` rather than the hero's Tier 1 cyan — see
+            `QUIET_FIELD`. THAT SECOND HALF IS WHY THE PRESET NAMES A COLOUR:
+            until 2026-08-22 the canvas hardcoded `--accent-hero`, so this line
+            painted a full-viewport Tier 1 accent on a Tier 2 page in both
+            themes, and nothing at this call site said so.
+            `sphere={false}` keeps the command sphere on Home. */}
         <ParticleGrid field={QUIET_FIELD} sphere={false} />
 
         <div className="relative flex h-full items-center pt-xl sm:pt-2xl">

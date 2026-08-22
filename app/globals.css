@@ -281,6 +281,68 @@
 }
 
 /* ---------------------------------------------------------------------------
+   THE BACKGROUND FIELD'S INK — Tier 2/3, and NOT an accent.
+
+   Registered as `--field-ink`, NOT `--color-field-ink`, for the same mechanical
+   reason as `--accent-hero` above: `text-field-ink` / `bg-field-ink` must not
+   exist. This colour has exactly ONE consumer — `components/hero/ParticleGrid`,
+   a 2D canvas that reads it as channels — and a utility for it is an invitation
+   to paint something else with it.
+
+   WHY THE TOKEN EXISTS AT ALL. `/about` renders the same particle mesh the hero
+   does, at `QUIET_FIELD` density. Until 2026-08-22 that canvas read
+   `--accent-hero` on both routes, so a Tier 2/3 page painted a full-viewport
+   field in #00E5FF in BOTH themes — a Tier 1 accent on a Tier 2 surface. It was
+   never a theme bug: light mode did not inherit a dimmed dark value, it painted
+   the identical hex and the ground flipped out from under it. Measured at the
+   shipped alpha of 0.28, the composite was ΔL* +24.30 against the dark base
+   (emitted light) and ΔL* −6.00 against the light base (a dark speck on warm
+   paper). The direction inverts, which is why lowering the opacity could not
+   fix it — it produces fainter dirt.
+
+   WHY NOT `--color-accent-working`. Teal is the affordance colour. The border
+   block below already draws this exact line for image frames: "keeping these
+   neutral is what lets teal mean 'activate this' and nothing else." A
+   full-viewport non-interactive background field is the largest possible
+   version of that mistake.
+
+   WHY NOT A PURE NEUTRAL. Grey speckle on near-black is what sensor noise and
+   film grain look like. A small cool bias is the difference between atmosphere
+   and noise. Both values below are low-chroma and deliberately on neither the
+   cyan nor the teal.
+
+   THE VALUES, and the arithmetic that produced them:
+     dark  #9EC9D4 at nodeAlpha 0.30 over #0A0A0B -> #364347, L* 27.45,
+           ΔL* +24.69, 1.93:1. Today's cyan is ΔL* +24.30 / 1.91:1, so the dark
+           field's WEIGHT is unchanged to within 0.4 L* — only the hue moves.
+     light #33474C at nodeAlpha 0.17 over #FDFCFA -> #DBDDDC, L* 87.94,
+           ΔL* −11.05, 1.33:1.
+
+   The light delta is 45% of the dark one on purpose. Matching ΔL* would put a
+   mid-grey speckle on white; matching the WCAG ratio lands in the same place.
+   Both metrics are blind to the fact that a light mark on near-black blooms and
+   merges into haze while a dark mark on near-white stays a discrete object, and
+   to the veiling term ambient room light adds at the display's black floor. For
+   hairline and graticule work a dark-on-light mark needs roughly half the L*
+   delta of a light-on-dark one to read at the same strength.
+
+   The chroma is the point: today's light composite #B7F6FB has a channel spread
+   of 68 at 6 points of value. #DBDDDC has a spread of 2 at 11. The light field
+   stops being coloured and becomes drawn.
+
+   The hero is NOT a consumer of this token and must not become one. It is a
+   pinned dark plate in both themes and its cyan is Tier 1 and correct;
+   `HERO_FIELD` names `--accent-hero` and `QUIET_FIELD` names this.
+--------------------------------------------------------------------------- */
+:root {
+  --field-ink: #9ec9d4;
+}
+
+html.light {
+  --field-ink: #33474c;
+}
+
+/* ---------------------------------------------------------------------------
    LIGHT MODE — opt-in only.
 
    Selector is `html.light` (specificity 0,1,1) rather than a bare `.light`
