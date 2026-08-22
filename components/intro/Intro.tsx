@@ -669,7 +669,36 @@ export function Intro({
           at dead viewport centre, which is the pixel `Hero.tsx` expands out of.
         */}
         <div ref={stageRef} style={{ willChange: "transform" }}>
-          <MonogramMark variant="intro" className="block h-auto w-full" />
+          {/*
+            `text-hero-fg` IS NOT DECORATION — WITHOUT IT THE MARK FOLLOWS THE
+            THEME WHILE THE PLATE DOES NOT.
+
+            `MonogramMark` fills every path with `currentColor` and its header
+            says the call site supplies the colour. Nothing between `<body>` and
+            this `<svg>` declared `color`, so it resolved to
+            `body { color: var(--color-fg) }` — which flips with the theme,
+            while the plate above is pinned `--color-hero-surface` (#07090C) in
+            BOTH themes. MEASURED on a production build, `/` at t=900ms:
+
+              dark   #EDEDED on #07090C  17.03:1  (0.5 brighter than intended)
+              light  #151515 on #07090C   1.09:1  the mark is not there
+
+            The whole sequence was a dark-grey silhouette on near-black for
+            every light-mode visitor. `RevealFooter.tsx`'s stamp
+            (`className="block text-hero-fg"`) is the established fix and the
+            reason is the same one written there: on a pinned dark surface the
+            ink is pinned too.
+
+            Declared cost on Home rather than buried: dark mode moves
+            #EDEDED -> #E8EAEC, 17.03:1 -> 16.53:1, dL* 1.15 — at the
+            just-noticeable threshold — and it makes this mark identical to the
+            reveal footer's and to the hero headline's, which is the correct
+            state. Light mode goes 1.09:1 -> 16.53:1.
+          */}
+          <MonogramMark
+            variant="intro"
+            className="block h-auto w-full text-hero-fg"
+          />
         </div>
       </div>
     </div>
