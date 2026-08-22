@@ -43,8 +43,14 @@ export const HERO_TAGLINE_UNITS = [
   "cybersecurity & cloud.",
 ] as const;
 
-/** Joined form, for anywhere the statement is needed as one string. */
-export const HERO_TAGLINE = HERO_TAGLINE_UNITS.join(" ");
+/* `HERO_TAGLINE` — the joined single-string form — WAS DELETED ON 2026-08-22.
+   Its docstring read "for anywhere the statement is needed as one string", and
+   in the whole repo there was nowhere: zero importers since the day it was
+   written. A dead export whose comment asserts a use is the failure
+   `lib/animation/easing.ts` records the cost of (`DURATION.hero`), because it
+   reads as verified on every future pass. If page metadata or an OG
+   description ever wants the sentence, `HERO_TAGLINE_UNITS.join(" ")` is one
+   call at the site that actually needs it. */
 
 /**
  * The hero section's DOM id.

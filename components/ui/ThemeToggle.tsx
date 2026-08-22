@@ -129,6 +129,16 @@ export const THEME_TOGGLE_ON_BASE =
  * `outline-offset-2`, matching the `ExternalLink` atoms rather than
  * `HeroHeadline`'s scroll cue (`offset-4`, sized for a 20px icon). This is a
  * text-sized control.
+ *
+ * IT HAS NO CALL SITE TODAY, and that is stated here rather than left for a
+ * dead-export sweep to rediscover. The toggle appears in exactly two places
+ * and neither is a pinned-dark surface: the bar (`_IN_NAV`) and the mobile
+ * menu (`_ON_BASE`). This constant is the third of a deliberately exhaustive
+ * set covering the site's three surfaces, and the header above is explicit
+ * that picking the wrong one is a bug rather than a preference — so deleting
+ * it would leave two and invite the next hero-surface toggle to pick a colour
+ * by eye. Kept as the answer to a question that will be asked, not as a value
+ * in use.
  */
 export const THEME_TOGGLE_ON_HERO =
   "text-caption font-mono text-hero-accent cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hero-accent";

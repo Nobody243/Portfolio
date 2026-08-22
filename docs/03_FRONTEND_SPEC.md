@@ -347,6 +347,25 @@ The hero established this deliberately — its wordmark is an object in a space 
 annotation anchored to the frame. Re-centring any later section would retroactively demote that to an
 artefact of the 3D layout rather than a compositional claim.
 
+**S-1 swept mechanically, 2026-08-22.** Every occurrence of `max-w-[1440px]` in `app/` and
+`components/`, comment-stripped, with each container's *full* class string diffed against the spine:
+**twelve containers, ten byte-identical, two known deviations and no third.**
+
+| Deviation | Class string | Verdict |
+|---|---|---|
+| `AboutScreen.tsx` | spine + `lg:flex lg:items-center lg:gap-xl xl:gap-2xl` | **Sanctioned.** Its own header says to diff the max-width and the three paddings, not the whole string. All four match. |
+| `HeroHeadline.tsx` | `relative mx-auto h-full w-full max-w-[1440px]` | **Sanctioned, and it is a THIRD FORM of the same spine.** The container carries no padding because its child is absolutely positioned and takes the gutters as *insets*: `right-md left-md sm:right-xl sm:left-xl lg:left-2xl` — the same 21 / 55 / 89 sequence on the left edge, which is the edge S-1 is about. |
+
+*Noted while sweeping, not changed: the hero's inset form is **asymmetric above `lg`** — `lg:left-2xl`
+(89px) has no matching `lg:right-2xl`, so the right inset stays at 55px. The headline is left-aligned,
+so the right inset only caps the measure and the leading edge still lands exactly on the spine. It is
+recorded because "S-1 holds here" and "this container is symmetric" are different claims and a future
+sweep will otherwise re-derive the difference.*
+
+Also swept in the same pass: **zero** `text-center` anywhere in `app/` or `components/`, and every one
+of the twelve `mx-auto` occurrences is a spine container rather than a centred text block — which is
+the mechanical form of *"nothing on this site is ever a centred content column."*
+
 **S-1's chrome carve-out — REVERSED for chrome only, 2026-08-21, per `docs/07_SITE_RESTRUCTURE.md`
 §1.** S-1 originally read "the site has one spine and chrome does not get its own." That is no longer
 true of chrome, and the rule is corrected here rather than left to be discovered in a diff.
