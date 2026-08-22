@@ -5,13 +5,30 @@
 | Layer | Choice | Why |
 |---|---|---|
 | Framework | Next.js (App Router) | Saad already knows it from the internship; strong performance/SEO defaults matter since recruiters will cold-load this link |
-| 3D | React Three Fiber + drei | Three.js expressed as React components — avoids fighting React's render loop with imperative Three.js code; drei supplies common helpers (camera rigs, loaders) so we're not reinventing them |
+| Hero visual | **Canvas2D + SVG. No WebGL.** | The hero is a 2D canvas particle field (`components/hero/ParticleGrid.tsx`) plus SVG for the Intro's mark. See the row below for what this replaced and why the packages are gone |
 | Scroll-synced animation | GSAP + ScrollTrigger | Industry standard for precisely choreographed scroll timelines — this is what actually drives the Tier 1 → 2 → 3 energy curve |
 | Smooth scroll | Lenis | Gives the whole site the "buttery" felt-smoothness that's part of the brief even in the minimal Tier 3 sections |
 | Component-level transitions | Framer Motion | Handles the project-card → detail shared-element transition and general UI micro-interactions; kept separate from GSAP so the two don't fight over the same elements |
 | Styling | Tailwind CSS | Fast, already known, works well for the restrained Tier 3 sections |
 | Hosting | Vercel | Zero-friction with Next.js, already used for other projects (Aero-Grid) |
 | Fonts | Space Grotesk (headings/UI), JetBrains Mono (technical accents) | See Frontend Spec doc |
+
+> **The 3D row used to read: "React Three Fiber + drei — Three.js expressed as React components …
+> drei supplies common helpers (camera rigs, loaders) so we're not reinventing them."** The R3F hero
+> scene (`SaadGlass`, `TextGeometry`, the extruded SAAD wordmark) was replaced during the hero
+> rebuild by a Canvas2D particle field and an SVG mark. The four packages —
+> `@react-three/drei@10.7.8`, `@react-three/fiber@9.7.0`, `three@0.185.1`, `@types/three@0.185.4` —
+> **survived that deletion with zero importers anywhere in the repo**, along with an
+> `"overrides": { "three": "$three" }` block whose only job was to pin them and drei's own transitive
+> graph (`gainmap-js`, `camera-controls`, `maath`, `meshline`, `stats-gl`). **All of it was
+> uninstalled on 2026-08-22.** The build stayed at 16/16 pages, which is the point: nothing was
+> using them, and nothing said so.
+>
+> **`public/fonts/space-grotesk-latin.typeface.json` is NOT part of that removal.** Its extension is
+> a three.js convention and it is the one file in the repo that still looks like R3F debris. It is
+> read at build time by `scripts/extract-glyph-outlines.mjs` to generate
+> `components/ui/msMarkGlyphs.ts`, which drives the Intro's name → MS-mark sequence. Deleting it
+> breaks the Intro. `app/layout.tsx` and `public/fonts/README.md` both carry the same warning.
 
 No backend framework, no database, no auth provider — this is a static/content-driven site. If a contact
 form is added, it posts to a lightweight serverless function or a third-party form endpoint (see
@@ -22,18 +39,27 @@ form is added, it posts to a lightweight serverless function or a third-party fo
 ```
 /app
   /(site)
-    /page.tsx                — Hero + all sections composed on one scroll (or routed sections, TBD at build time)
+    /(chrome)                — the three chrome-bearing routes. The group exists so Navbar +
+                               IntroGate mount ONCE in its layout instead of per page
+      /page.tsx              — Home: Hero, Trajectory, Skills, Projects (featured three)
+      /about/page.tsx        — /about, one screen, does not scroll
+      /work/page.tsx         — /work: full project archive, Experience, CurrentlyLearning
     /projects/[slug]/page.tsx — Project detail pages
+    /@modal/(.)projects/[slug] — the intercepted overlay for the same URL
+  /not-found.tsx
   /layout.tsx
   /globals.css
 /components
-  /hero                      — 3D scene, loader, reveal transition
-  /sections                  — About, Skills, Experience, CurrentlyLearning, RevealFooter
+  /hero                      — Hero, HeroHeadline, ParticleGrid (Canvas2D), heroContent
+  /intro                     — AssetLoader, Intro, IntroGate. See docs/06
+  /about                     — AboutScreen, CvAction, and /about's content + button styles
+  /sections                  — Trajectory, Skills, Experience, CurrentlyLearning, Projects,
+                               ProjectCard, ProjectDetail(+Frame), ProjectOverlay, RevealFooter,
+                               and each one's `*Content.ts` copy file
                                (RevealFooter absorbed the old Contact section in Phase 5 — see
                                "The page stack" below, which is a hard layout requirement rather
                                than a styling preference)
-  /projects                  — ProjectCard, ProjectGallery, ProjectDetail
-  /ui                        — shared primitives (buttons, section wrappers, theme toggle)
+  /ui                        — shared primitives (nav, mark geometry, theme toggle, reveals)
 /content
   types.ts                   — shared content types. NOT in the original listing: a deliberate
                                fourth file, because Project.category is typed as SkillGroup and
@@ -43,17 +69,45 @@ form is added, it posts to a lightweight serverless function or a third-party fo
   projects.ts                — structured project data (see "Content shape" below)
   skills.ts                  — structured skills data, grouped by SkillGroup
   currentlyLearning.ts       — structured "in progress" entries
+  experience.ts              — the internship entry
+  contact.ts                 — the real links (email, GitHub, LinkedIn)
 /lib
-  /three                     — reusable R3F scene helpers
-  /animation                 — GSAP timeline configs, shared easing curves
+  /animation                 — GSAP timeline configs, shared easing curves, the Intro→Hero handoff
+  /hero                      — commandSphere.ts, the hero visual's geometry maths
+  /hooks                     — useReducedMotion, useSectionScroll
   theme.ts                   — theme storage key, apply/read helpers, and the pre-paint anti-flash
                                script source. Deliberately has NO "use client": it is imported by
                                both the server root layout and the client toggle, and adding a
                                directive would drag the layout into a client boundary for a string.
                                See "Client-side persisted state" below.
+  metadata.ts                — the shared OG/Twitter image descriptor
+  formatMonthYear.ts         — the one date formatter, shared by Experience and project detail
+/scripts
+  extract-glyph-outlines.mjs — build-time only. Reads the typeface JSON, writes msMarkGlyphs.ts
 /public
-  /fonts, /models, /images
+  /fonts, /images, /resume, og-hero.png
 ```
+
+> **What this listing used to say, and why it was wrong.** Five entries described a site that had
+> already changed, and this doc is where someone new starts:
+>
+> - **`/page.tsx — Hero + all sections composed on one scroll (or routed sections, TBD at build
+>   time)`.** That was decided long ago and the decision went the other way: `docs/07` splits the
+>   site into three routes. The "TBD" outlived the decision by the whole restructure.
+> - **`/hero — 3D scene, loader, reveal transition`.** There is no 3D scene, and the loader moved to
+>   `/components/intro` in the Loader/Intro split (`docs/06` §1).
+> - **`/projects — ProjectCard, ProjectGallery, ProjectDetail`.** The directory still exists, but it
+>   is empty apart from a `.gitkeep`; every one of those three components lives in
+>   `/components/sections`, and `ProjectGallery` was never built under that name (`Projects.tsx` is
+>   the gallery). Left in place rather than deleted, because nothing depends on the answer — but
+>   nothing should be added there without moving the rest.
+> - **`/lib/three — reusable R3F scene helpers`.** Never created; `lib/hero/` is where the hero's
+>   maths actually lives. `docs/03` sent readers to a file inside it as recently as this sweep.
+> - **`/public/models`.** An empty `.gitkeep` directory left behind by the deleted 3D scene, removed
+>   2026-08-22.
+>
+> `/components/intro`, `/components/about`, `/lib/hero`, `/lib/hooks`, `/scripts` and the whole
+> `(chrome)` route group were real and unlisted.
 
 ### The page stack — a required shape, not a preference
 

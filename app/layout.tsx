@@ -11,11 +11,20 @@ import { themeInitScript } from "@/lib/theme";
 //
 // `/public/fonts` NOW EXISTS, and this comment used to say it never would.
 // next/font/google self-hosts both faces below at build time, so no webfont
-// file is served from there — but Ticket 3 needed Space Grotesk as a three.js
-// TYPEFACE JSON for the extruded hero wordmark, which is a geometry source
-// rather than a font the browser loads. That asset, and its required OFL
-// notice, live in /public/fonts. See public/fonts/README.md for provenance and
-// how to regenerate it.
+// file is served from there — but `space-grotesk-latin.typeface.json` lives
+// there as OUTLINE PATH DATA, a geometry source rather than a font the browser
+// loads. That asset, and its required OFL notice, live in /public/fonts. See
+// public/fonts/README.md for provenance and how to regenerate it.
+//
+// DO NOT DELETE THAT ASSET WITH THE NEXT ROUND OF WEBGL CLEANUP. This comment
+// used to say Ticket 3 needed it "as a three.js TYPEFACE JSON for the extruded
+// hero wordmark" — that wordmark (`SaadGlass`, `TextGeometry`) and the whole
+// R3F scene are gone, and the R3F packages themselves were uninstalled on
+// 2026-08-22. The file's EXTENSION still says `.typeface.json`, which is a
+// three.js convention, so it reads as three.js debris. It is not: the file is
+// consumed at BUILD time by `scripts/extract-glyph-outlines.mjs`, which
+// generates `components/ui/msMarkGlyphs.ts` — the Intro's name-to-MS-mark
+// sequence. Removing it breaks the Intro's glyph pipeline, not a dead 3D scene.
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
