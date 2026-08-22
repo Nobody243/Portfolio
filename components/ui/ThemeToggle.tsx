@@ -147,10 +147,12 @@ export const THEME_TOGGLE_ON_HERO =
  * So it uses THE BAR'S OWN ESCALATING VARIABLES — `--nav-fg-dim`, `--nav-fg`,
  * `--nav-accent` (`app/globals.css`, `[data-nav-root]`) — which resolve to the
  * `--color-fg` family over base and to the `--color-hero-fg` family over the
- * hero, swapping by CSS cascade with no render. Measured there: 72% `hero-fg`
- * composites to ~8.6:1 on the hero, 72% `fg` is ~9:1 on dark base and ~8:1 on
- * light. This is a text control, so it is held to the text floor, not the 3:1
- * non-text one.
+ * hero, swapping by CSS cascade with no render. Measured there, and corrected
+ * on 2026-08-22 alongside the same three figures in `Navbar.tsx`: 72%
+ * `hero-fg` composites to 8.65:1 on the hero, 72% `fg` to 8.83:1 on dark base
+ * (said "~9:1") and 7.17:1 on light (said "~8:1"). This is a text control, so
+ * it is held to the text floor, not the 3:1 non-text one — 7.17:1 is the
+ * binding case and it clears AAA.
  *
  * IT IS BYTE-FOR-BYTE THE BAR'S OWN TREATMENT: dim at rest, full `--nav-fg` on
  * hover, `transition-colors duration-300`, and a `--nav-accent` focus ring at

@@ -122,11 +122,18 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 >
 > | | `bg-hero-surface` (pinned, both themes) |
 > |---|---|
-> | full | 16.5:1 ✓ |
-> | `/70` | **8.21:1 ✓** |
+> | full | 16.53:1 ✓ |
+> | `/70` | **8.17:1 ✓** |
 > | `/55` | 5.38:1 ✓ |
-> | `/50` | 4.60:1 ✓ — 0.10 headroom |
-> | `/45` | 3.91:1 ✗ |
+> | `/50` | 4.63:1 ✓ — 0.13 headroom |
+> | `/45` | 3.90:1 ✗ |
+>
+> *Recomputed 2026-08-22. Four of the five moved, because all five descend from
+> one overstated base: `globals.css` carried `--color-hero-fg` as 16.68:1 and it
+> is 16.53:1. Nothing crosses a threshold in either direction — `/45` still
+> fails, `/50` still passes — so the conclusions below stand unchanged. The
+> composites, for anyone re-deriving: `/70` #A4A6A9, `/55` #838587, `/50`
+> #787A7C.*
 >
 > The arithmetic floor here is `/50`, not `/70`. **Ship `/70` anyway.** Two reasons: 0.10 of headroom
 > is the same thin margin that got `/60` on `bg-elevated` rejected as unsafe below; and one site-wide

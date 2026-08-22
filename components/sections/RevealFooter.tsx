@@ -156,7 +156,9 @@ import { contact } from "@/content/contact";
  * THE OPACITY FLOOR HERE IS `/70`, AND IT WAS RE-MEASURED RATHER THAN ASSUMED.
  * `/70` is the site floor because LIGHT MODE is the binding constraint — and
  * this surface has no light mode, so that reasoning does not transfer. Against
- * #07090C with #E8EAEC: full 16.68:1, `/70` 8.21:1, `/50` 4.60:1. The
+ * #07090C with #E8EAEC, re-measured 2026-08-22: full 16.53:1 (said 16.68),
+ * `/70` 8.17:1 (said 8.21), `/50` 4.63:1 (said 4.60). All three moved because
+ * all three descend from the same overstated base. The
  * arithmetic floor is `/50`. SHIP `/70` ANYWAY: one site-wide floor is worth
  * more than a correct-but-different second one, because the second floor is the
  * one a reviewer forgets exists.
@@ -582,7 +584,7 @@ export function RevealFooter() {
 
             It is also what carries the reveal in DARK MODE, where the occlusion
             edge measures 1.01:1 and is invisible: the strongest element in the
-            composition, a solid `text-hero-fg` monogram at 16.68:1, is the
+            composition, a solid `text-hero-fg` monogram at 16.53:1, is the
             first thing the strip contains.
 
             THE ALTERNATIVE REJECTED: the stamp as a letterhead at the TOP of

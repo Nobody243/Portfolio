@@ -374,13 +374,19 @@ re-rendered the whole bar to change three strings.
 > the pathname, so an open project overlay — pathname `/projects/<slug>`, Home
 > still mounted behind the dialog — keeps the palette it had.
 
-Measured contrast, all clearing AA for the 12px mono the bar is set in:
+Measured contrast, all clearing AA for the 12px mono the bar is set in.
+**Recomputed 2026-08-22** — the `fg` column was rounded in the optimistic
+direction in all three rows and is now exact, with the composite hex given so
+it is reproducible rather than trusted:
 
 | | fg (at 72%) | accent |
 |---|---|---|
-| over hero | ~8.6:1 | 8.00:1 |
-| past hero, dark | ~9:1 | 7.95:1 |
-| past hero, light | ~8:1 | 5.34:1 |
+| over hero | **8.65:1** (#A9ABAD) | 8.01:1 |
+| past hero, dark | **8.83:1** (#ADADAE) — was written “~9:1” | 7.95:1 |
+| past hero, light | **7.17:1** (#565655) — was written “~8:1” | 5.34:1 |
+
+7.17:1 is light mode’s binding case and it still clears AAA with 2.17 to spare.
+No pixel changed; the record did.
 
 *Solves:* contrast against the background. *Does not solve:* anything.
 
