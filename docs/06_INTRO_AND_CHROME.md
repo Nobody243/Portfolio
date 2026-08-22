@@ -468,13 +468,21 @@ address is clicked inside it.
 
 **A separate defect surfaced in the same sweep and is NOT fixed.** At 375×667
 and 360×640, at maximum scroll on both `/` and `/work`, the reveal footer's
-content scrolls under an unscrimmed bar and the MS mark lands directly on it:
-**1.28:1 against the plate's 34×3px `accent-hero` rule and 1:1 against the
-"Contact" heading's own glyphs, across 53px of scroll, identical in both
-themes.** That is the OVERLAP problem, not the palette one — the scrim is
-deliberately off over dark plates — and it is unchanged by this fix (53px before
-and after). It needs a layout answer (clearance at the plate's top, or a scrim
-that survives over the plate at narrow widths), not a threshold.
+content scrolls under an unscrimmed bar and the MS mark lands directly on it.
+Classified row by row at 375×667 light on `/work`: **19px of scroll where the
+mark sits on the plate's 34×3px `accent-hero` rule (1.28:1) and 34px where it
+sits on the "Contact" heading's own #E8EAEC glyphs (1:1)** — 53px in total,
+identical in both themes, because it is a geometry problem and not a palette
+one. The bar's palette is CORRECT throughout: `data-over-hero` is set, the mark
+is #E8EAEC, and #E8EAEC on the plate itself is 16.53:1. What it is landing on is
+content.
+
+That is the OVERLAP problem — the scrim is deliberately off over dark plates —
+and it is **unchanged by this fix: 53px before and 53px after.** It needs a
+layout answer (clearance at the plate's top below `md`, or a scrim that survives
+over the plate at narrow widths), not a threshold. It is also the second thing in
+this section that a resting three-stop sweep could not have found: it IS a
+resting state, but only at maximum scroll at two viewports.
 
 *What its removal costs:* the quieter reading experience past the hero. *What it
 does not cost:* legibility — Step 3 was always the step that covered the hard
