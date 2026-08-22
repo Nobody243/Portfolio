@@ -624,6 +624,68 @@ page.
 > no new colour are introduced — it is `EASE.reveal` with `DURATION.reveal`, fired by a mount instead
 > of by an intersection or a scroll position.
 
+> **"Fully quiet", stated as three checkable properties — completed 2026-08-22.** The amendment above
+> defined quiet negatively (no scrub, no footer, no driver of its own) and left one clause that was
+> not true when it was written: *"nothing on the page ever moves again except the particle field."*
+> The exception was doing real work. The field drifted, and it drifted **forever** — `vx`/`vy` are
+> seeded once in `ParticleGrid.build()` and the clamp REFLECTS them rather than damping, deliberately,
+> so the canvas had no resting state and structurally could not reach one. `/about` was the fully
+> quiet page with a full-viewport canvas repainting sixty times a second behind it.
+>
+> That exception is now closed, and the definition is positive rather than negative. `/about` has
+> **exactly three motion properties, and no fourth:**
+>
+> 1. **One motion author on arrival — the entrance.** Four `Reveal` units at 0 / 0.10 / 0.20 / 0.30s,
+>    settling at 1.00s. The route fade was the second author and was removed in `0ee6371`
+>    (`docs/03_FRONTEND_SPEC.md`, route-transition section). The canvas's drift was the third and is
+>    removed here. One author, not three.
+> 2. **An interaction that responds when touched, and only then.** The cursor void, its displacement
+>    kernel, its ragged link break and its eased return home are all **kept unchanged**. Touching the
+>    field tears it open; leaving eases it shut over ~1.05s and it stops. This is deliberately not
+>    dimmed and must not be — it is the page's one interaction, and About is meant to be quiet, not
+>    dead.
+> 3. **No idle animation at all.** Measured at 1440×900 with the pointer off the field: **301 canvas
+>    frames in 5 seconds before, 0 after.** After a pointer sweep the settle runs 57 frames / 942ms
+>    and then stops hard — 0 frames in the following 2 seconds. A theme flip while idle costs exactly
+>    one frame; a resize exactly one. On a phone, where the pointer interaction is width-gated off
+>    anyway, the whole visit costs **one frame** (377 before). The resting image is byte-identical to
+>    the mount image in both themes.
+>
+> **The cost this removes, since it is the argument.** At 1440×900 the field is 153 nodes, so the
+> O(n²) link pass ran **11,628 pair tests per frame** (~698,000/s) and the canvas re-rastered
+> **5.18M device pixels** at DPR 2 sixty times a second (~311 MPx/s) — on a page that holds 65 words
+> and cannot scroll. Nothing on the page could ever go idle, because a frame always differed from the
+> last one by the drift. Two honest qualifications so this is not overclaimed: rAF is suspended in a
+> background tab, so it was never a phone-in-your-pocket drain; and it is not a large cost in
+> absolute terms. It is a cost with **no counterpart in what the visitor receives.**
+>
+> **What is given up, priced.** Mean drift speed was 0.075 × E[hypot(u,v)] = 0.057 px/frame ≈
+> **3.4 px/s**, against a mean node spacing of ~92px — 1/27th of a gap per second, invisible as node
+> travel. What was visible was the link pass: ~400 hairlines all slowly changing weight at once, read
+> as a very slow shimmer at the edge of vision. That shimmer is the entire loss, and it has never been
+> mentioned by anyone as a feature.
+>
+> **The design argument runs the same direction as the performance one, which is unusual enough to
+> state.** A slowly drifting constellation mesh is *the* canonical generic-portfolio artifact — it is
+> the particles.js screenshot. "Particles gently floating" is the tell; "a mesh that is completely
+> still until you touch it, then tears open raggedly and heals" is not something a template does.
+> Stillness is what makes the tear read as **caused**. Removing the drift makes this field read as
+> less generic, not more — and the reflexive worry, that static reads as unfinished, is the worry that
+> ships generic work.
+>
+> **It is not a new visual, and that is why the risk was low.** A fully static render of this exact
+> canvas already shipped, in both themes, to every `prefers-reduced-motion: reduce` visitor: drift was
+> skipped and the rAF was never scheduled, so nodes sat exactly on `homeX`/`homeY`. That is
+> bit-identical to the new resting frame. This extends a shipped visual to everyone **plus** an
+> interaction reduced-motion visitors do not get.
+>
+> **The mechanism, so nobody "restores" the drift as a lost feature.** `ParticleGrid` takes a third
+> prop, `ambient?: "drift" | "settled"`, defaulting to `"drift"`; `/about` passes `"settled"`.
+> **The hero is untouched** — Tier 1 is where the spectacle budget is spent, and the hero is a section
+> a visitor scrolls past rather than a terminal page they sit on. It keeps its drift, its sphere and
+> its continuous loop, verified by byte-identical canvas digests at 1440×900 and 375×667 in both
+> themes, and by an unchanged 301-frames-per-5s idle count on Home.
+
 ---
 
 ## 7. Mobile Behaviour

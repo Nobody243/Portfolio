@@ -718,6 +718,24 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 > a degraded Home. A mobile-only parallax is still a breach under this wording, which is the test of
 > whether the rewrite is honest.
 
+> **One behaviour was slipping under this rule, and it was closed 2026-08-22.** Every *timed*
+> behaviour named above is a **transient with an end state** — fired by a trigger, finished. The
+> `/about` particle field's ambient drift was not. It was an unbounded autonomous loop with no end
+> state, the only one outside the hero, and it passed inspection because "driven by elapsed time" is
+> technically true of it. `ParticleGrid` now takes `ambient?: "drift" | "settled"` and `/about` passes
+> `"settled"`, which converts it into exactly the category this rule sanctions: a timed transient
+> fired by an input, with a defined end state — the same class as the MS mark's hover part and the
+> copy-email label swap. Measured: 301 canvas frames per 5 idle seconds before, **0** after; the
+> pointer-driven settle runs 57 frames / 942ms and stops. The hero keeps `"drift"` and is byte-
+> identical. Full reasoning and the cost figures live in `docs/07_SITE_RESTRUCTURE.md` §6.
+>
+> **The breakpoint clause was live during this change and is worth recording as a worked example.**
+> The obvious implementation — `width < 768 ? static : animated`, since the pointer interaction is
+> already gated off below `INTERACTIVE_MIN_WIDTH` — would have been a behaviour existing only below a
+> breakpoint, i.e. a breach. The shipped rule is the same everywhere ("stop when nothing is moving");
+> below 768px the field simply *happens* to always be settled, so a phone draws one frame for the
+> whole visit as a **consequence** of the general rule rather than as a special case for it.
+
 **The reveal footer's curtain (Rule S-6) takes the same 768px floor, and for the same reason.**
 Below it the footer is a plain in-flow `<footer>` — one responsive class,
 `relative z-0 md:sticky md:bottom-0`, same DOM either side. The curtain adopting this floor rather
@@ -837,11 +855,19 @@ running three at once on arrival — the four-unit entrance, the route fade, and
 continuously — on the one route whose whole brief (`docs/07_SITE_RESTRUCTURE.md` §6) is that it is
 the fully quiet page. The fade is the least essential of the three.
 
+> *And the third author was closed too, later the same day.* The canvas no longer "draws
+> continuously" — it takes `ambient="settled"`, paints one frame and parks until the pointer touches
+> it. So the count this argument turned on went three → two → **one**: the entrance is now the only
+> thing authoring motion on arrival. That does not reopen the fade; it removes the last reason
+> anyone might have argued for keeping it. See `docs/07` §6.
+
 *What it costs, stated rather than implied away:* the hard cut the old argument predicted is **real
 and is not solved**. On a client navigation to `/about` the particle canvas now appears in a single
 frame, because the entrance excludes it. That is the accepted price of one restrained author instead
 of three. If it is ever judged unacceptable, the fix is to bring the canvas into the entrance — not
-to bring the route fade back.
+to bring the route fade back. **The settle change does not affect this either way**, and it was
+checked: a still canvas and a drifting one both appear in exactly one frame on a client navigation.
+The cut was never about what the canvas did afterwards.
 
 *Mechanism:* `PageStack` takes a REQUIRED `fade` prop with no default, the same shape as its
 `className` and as `Projects`' `motion`. `/` and `/work` pass `fade`; `/about` passes
