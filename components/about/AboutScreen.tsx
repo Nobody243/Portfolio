@@ -156,9 +156,14 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * below `lg`, so below `lg` the page is three units at 0 / 0.10 / 0.20 and
  * still monotonic.
  *
- * THE PARTICLE CANVAS DOES NOT PARTICIPATE. It is already drawing when the
+ * THE PARTICLE CANVAS DOES NOT PARTICIPATE. It is already drawn when the
  * entrance runs and it is background; fading it would make the page's arrival
  * read as a curtain rather than as content settling.
+ *
+ * "DRAWN", NOT "DRAWING", SINCE 2026-08-22. The canvas takes
+ * `ambient="settled"`, so it paints its one mount frame and then parks — there
+ * is no loop behind this entrance to be out of step with it. The substance of
+ * the paragraph is unchanged; the tense was load-bearing enough to fix.
  *
  * REDUCED MOTION NEEDS NO SECOND CODE PATH. `MotionProvider`'s
  * `reducedMotion="user"` drops transform and keeps opacity, so the page
@@ -343,7 +348,7 @@ export function AboutScreen() {
             painted a full-viewport Tier 1 accent on a Tier 2 page in both
             themes, and nothing at this call site said so.
             `sphere={false}` keeps the command sphere on Home. */}
-        <ParticleGrid field={QUIET_FIELD} sphere={false} />
+        <ParticleGrid field={QUIET_FIELD} sphere={false} ambient="settled" />
 
         <div className="relative flex h-full items-center pt-xl sm:pt-2xl">
           {/* THE SPINE, NOW ALSO THE ROW. `lg:flex` turns the same container

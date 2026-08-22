@@ -94,11 +94,34 @@
  * way to get compounding offsets — two mousemoves in one frame apply the delta
  * twice — and it is also unbounded work on a hostile input device.
  *
- * UNDER REDUCED MOTION THE TICK IS NOT SCHEDULED AT ALL. Not slowed — stopped.
- * This file used to clear and redraw an identical frame forever on that path,
- * which was already waste and became real cost once the sphere added ninety
- * `fillText` calls and a sort to it. One frame is drawn after each build, and
- * one more once the webfont resolves. Nothing else runs.
+ * THE TICK IS SCHEDULED ONLY WHILE SOMETHING IS STILL MOVING, and that is ONE
+ * rule now rather than a reduced-motion special case standing beside a loop
+ * that otherwise ran forever. At the END of every frame — after the node loop,
+ * because restlessness is not knowable before it — the tick asks whether the
+ * next frame could differ from the one just drawn: is the ambient drift on, is
+ * there a sphere turning under its own timeline, is the pointer driving the
+ * field, is any node still lerping home. Another frame is queued only if the
+ * answer is yes. Otherwise the loop parks itself — `raf = 0`, `lastFrame = 0`
+ * — and nothing runs at all until `wake()` is called by a build, a resize, a
+ * theme flip, a resolved webfont or a pointer event.
+ *
+ * UNDER REDUCED MOTION THE TICK IS STILL NOT SCHEDULED AT ALL. Not slowed —
+ * stopped. That has not changed; what changed is that it is no longer its own
+ * code path. `!reducedMotion` gates the WHOLE predicate, so that path draws
+ * one frame per build and declines to queue a second, which is exactly the
+ * behaviour a parallel `drawOnce()` branch used to produce from five scattered
+ * `if (reducedMotion)` sites. Two paths that had to agree became one path and
+ * a value in a boolean. `!reducedMotion` must keep gating the whole test and
+ * must never become one more disjunct: the hero has a sphere under reduced
+ * motion too, and a predicate that OR'd `sphere !== null` in would start a loop
+ * there that is currently, correctly, never scheduled.
+ *
+ * `/about` REACHES THE SAME PARKED STATE WITHOUT THE PREFERENCE. It passes
+ * `ambient="settled"` and no sphere, so the field is still until the cursor
+ * touches it, tears open, eases shut over ~1.05s and stops — and because the
+ * drift is off, `node.x === node.homeX + node.ox` exactly, so the settle
+ * terminates in the same image the mount frame drew. See
+ * `ParticleGridProps.ambient`.
  */
 
 import { useEffect, useRef } from "react";
@@ -301,7 +324,11 @@ export const HERO_FIELD: ParticleFieldTuning = {
  * reading as dust. See `linkFalloff` for the other half of that.
  *
  * CURSOR DISPLACEMENT IS NOT DIMMED and must not be — it is the field's one
- * interaction, and About is meant to be quiet, not dead.
+ * interaction, and About is meant to be quiet, not dead. It now carries that
+ * whole claim ON ITS OWN. About passes `ambient="settled"`, so once the four
+ * entrance units finish at 1.00s the tear is the only motion left anywhere on
+ * the page. Dimming it would not make the field quieter; it would make it a
+ * still image with a canvas element's cost.
  */
 export const QUIET_FIELD: ParticleFieldTuning = {
   areaPerNode: 8_500,
@@ -331,8 +358,28 @@ const LINK_RADIUS = 120;
 
 /** How fast a node eases toward its target offset. Brief: ~0.12. */
 const LERP = 0.12;
-/** Ambient wander is bounded to this radius around home, CSS px. */
+/** Ambient wander is bounded to this radius around home, CSS px. Read only on
+ *  the `ambient: "drift"` path, which today is `HERO_FIELD`'s. */
 const DRIFT_CLAMP = 15;
+
+/**
+ * A node whose remaining displacement is under this, on both axes, counts as
+ * home — CSS px.
+ *
+ * IT IS A STOPPING THRESHOLD, NOT A TUNING KNOB. `LERP` is an exponential ease
+ * and never reaches zero, so a settling field needs a floor at which the loop
+ * is allowed to park. 0.05px is sub-pixel at DPR 1 and at the capped DPR 2, so
+ * the frame at which the tick stops is not a frame the visitor can see: the
+ * node's rounded device pixel has already been its final one for several
+ * frames by then.
+ *
+ * It also sets how long the settle runs, which is a number the verification
+ * checks against: from a full 145px `VOID_RADIUS` offset, `0.88^n = 0.05/145`
+ * gives n ≈ 62 frames, or ~1.05s at 60Hz. Lower it and the tail gets longer for
+ * no visible gain; raise it far enough and the node visibly snaps the last
+ * fraction of a pixel.
+ */
+const SETTLE_EPSILON = 0.05;
 
 /** Node radius range, CSS px. */
 const RADIUS_MIN = 1;
@@ -605,6 +652,38 @@ type ParticleGridProps = {
    * had to correct several times: "is the sphere here" is not an intensity.
    */
   sphere?: boolean;
+  /**
+   * Whether the nodes wander when nothing is touching them.
+   *
+   * `"drift"` (the default, and the hero's) is the shipped behaviour: every
+   * node is seeded a `vx`/`vy` in `build()` and wanders forever inside a
+   * `DRIFT_CLAMP` ball around its home. The clamp REFLECTS rather than damps,
+   * deliberately, so the field has no resting state and structurally cannot
+   * reach one — which means the tick can never stop.
+   *
+   * `"settled"` removes that and only that. The cursor void, the displacement
+   * kernel, the ragged link break and the eased return home are all unchanged;
+   * what goes is the idle shimmer, and with it the loop. `/about` passes it
+   * because `docs/07_SITE_RESTRUCTURE.md` §6 makes that page the one fully
+   * quiet page, and a full-viewport canvas repainting sixty times a second
+   * behind 65 words that cannot scroll was the last thing contradicting it.
+   * The hero keeps `"drift"`: Tier 1 is where the spectacle budget is spent,
+   * and the hero is a section a visitor scrolls past rather than a terminal
+   * page they sit on.
+   *
+   * A THIRD PROP, FOR THE REASON `sphere` IS THE SECOND. This is not a field on
+   * `ParticleFieldTuning` — that object is density and ink, "one perceptual
+   * decision", and "does the field wander" is not an intensity any more than
+   * "is the sphere here" was. Same naming lie, same answer.
+   *
+   * NOR IS IT INFERRED FROM `sphere === false`. The two happen to agree on both
+   * of today's call sites and are unrelated properties; coupling them because
+   * one page sets both would be that same lie in a shape that is harder to see.
+   *
+   * A TWO-VALUE UNION RATHER THAN A BOOLEAN, so the call site reads as what it
+   * is. `ambient="settled"` says something; `drift={false}` says it backwards.
+   */
+  ambient?: "drift" | "settled";
 };
 
 /**
@@ -617,12 +696,13 @@ type ParticleGridProps = {
  * canvas quieter. Neither prop is measured from the DOM and neither changes
  * after mount.
  *
- * BOTH DEFAULT TO THE HERO'S BEHAVIOUR, so Home's call site stays a bare
- * `<ParticleGrid />` and this change is invisible there.
+ * ALL THREE DEFAULT TO THE HERO'S BEHAVIOUR, so Home's call site stays a bare
+ * `<ParticleGrid />` and every one of these changes is invisible there.
  */
 export function ParticleGrid({
   field = HERO_FIELD,
   sphere: withSphere = true,
+  ambient = "drift",
 }: ParticleGridProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reducedMotion = useReducedMotion();
@@ -850,23 +930,39 @@ export function ParticleGrid({
       return { x: ux * mag, y: uy * mag, mag };
     };
 
+    /**
+     * CAN THE POINTER MOVE THIS FIELD AT ALL? Read by the tick, to decide
+     * whether a live pointer opens a void, AND by both pointer listeners, to
+     * decide whether an event is worth waking a parked loop for.
+     *
+     * ONE DEFINITION WITH TWO READERS, and that is the whole reason it exists
+     * as a function. The tick's test used to be written inline; once the
+     * listeners also had to ask the question, a second inline copy would have
+     * been two spellings of one rule, and the failure mode is silent — the
+     * listener would wake a frame that the tick then declines to act on,
+     * repainting an identical image once per `pointermove`. Measured before
+     * this existed: a 16-step touch drag at 375px drew 17 frames instead of 1,
+     * and a desktop sweep under reduced motion drew 21 instead of 0. Neither
+     * changed a pixel.
+     *
+     * `width` IS READ LIVE, NOT CAPTURED. It is reassigned by `build()`, so a
+     * resize across `INTERACTIVE_MIN_WIDTH` flips this without a rebind.
+     */
+    const canInteract = () =>
+      !reducedMotion && width >= INTERACTIVE_MIN_WIDTH;
+
     const frame = (now: number) => {
-      // SCHEDULED ONLY WHEN THERE IS SOMETHING TO ANIMATE. Under reduced motion
-      // nothing in this frame can differ from the last one — the field does not
-      // drift, the sphere does not rotate and the cursor drives neither — so
-      // the loop is not queued at all. It used to redraw an identical frame
-      // every ~16ms forever, which the sphere would have turned into ninety
-      // wasted `fillText` calls a frame for the one visitor who asked for less.
-      if (!reducedMotion) raf = requestAnimationFrame(frame);
+      // THE NEXT FRAME IS SCHEDULED AT THE BOTTOM OF THIS ONE, not here. It
+      // used to be queued on the first line, before any work, which was fine
+      // while the only question was `reducedMotion` — a value known before the
+      // frame ran. "Is anything still moving" is not: it depends on the node
+      // loop below having run. See the `restless` block after it.
       ctx.clearRect(0, 0, width, height);
 
       const dt = lastFrame === 0 ? 0 : now - lastFrame;
       lastFrame = now;
 
-      const interactive =
-        !reducedMotion &&
-        width >= INTERACTIVE_MIN_WIDTH &&
-        pointer.current.active;
+      const interactive = canInteract() && pointer.current.active;
 
       /* --- the sphere's geometry, before the mesh needs its void --------- */
       let sphereOrder: readonly number[] = [];
@@ -894,7 +990,10 @@ export function ParticleGrid({
 
       for (const node of nodes) {
         /* --- ambient drift, bounded ------------------------------------- */
-        if (!reducedMotion) {
+        // `ambient === "settled"` leaves `dx`/`dy` at 0 for the life of the
+        // node, so `node.x = node.homeX + node.ox` below still holds exactly —
+        // nothing else in this loop needs to know the drift is off.
+        if (!reducedMotion && ambient === "drift") {
           node.dx += node.vx;
           node.dy += node.vy;
           const drift = Math.hypot(node.dx, node.dy);
@@ -932,8 +1031,78 @@ export function ParticleGrid({
         node.ox += (best.x - node.ox) * LERP;
         node.oy += (best.y - node.oy) * LERP;
 
+        // THE LAST SUB-PIXEL OF THE RETURN IS SNAPPED, and only when nothing is
+        // pulling. `LERP` is exponential and never reaches zero, so a field
+        // allowed to park keeps whatever residual offset it held at the frame
+        // the loop stopped — up to `SETTLE_EPSILON` per axis, frozen there for
+        // as long as the visitor reads the page.
+        //
+        // IT IS NOT A COSMETIC TIDY-UP. Without it the resting image is NOT the
+        // mount image: measured at 1440x900 DPR 2, 2,090 of 15,552,000 channel
+        // bytes differed, max delta 4/255 and 92% of them 1/255 — invisible,
+        // but it is antialiasing coverage on a node edge that has no business
+        // depending on where a pointer happened to leave. The snap makes
+        // `node.x === node.homeX` hold exactly at rest, which is what makes the
+        // settled frame a deterministic picture rather than one of many.
+        //
+        // THE TEST MATCHES `restless`'s BELOW, deliberately: this zeroes on
+        // exactly the frames that scan would have called settled, so the last
+        // frame drawn is the parked one and no extra frame is scheduled to
+        // apply the snap.
+        if (
+          best.mag === 0 &&
+          Math.abs(node.ox) <= SETTLE_EPSILON &&
+          Math.abs(node.oy) <= SETTLE_EPSILON
+        ) {
+          node.ox = 0;
+          node.oy = 0;
+        }
+
         node.x = node.homeX + node.dx + node.ox;
         node.y = node.homeY + node.dy + node.oy;
+      }
+
+      /* --- schedule, or park -------------------------------------------
+         IS ANYTHING STILL MOVING? Only knowable here, after the node loop.
+
+         THIS BLOCK MUST STAY ABOVE THE `inkRead` GUARD BELOW. That guard
+         returns early on a stylesheet that has not applied yet; below it, a
+         failed read would park the loop permanently and the canvas could never
+         self-heal on the next successful one — which the guard's own comment
+         explicitly requires it to do.
+
+         `!reducedMotion` GATES THE WHOLE TEST and must never be demoted to one
+         more disjunct: `sphere !== null` is true on the hero under reduced
+         motion, so OR-ing it in would start a loop there that is currently,
+         correctly, never scheduled at all. */
+      const restless =
+        !reducedMotion &&
+        // Cheapest first, and the ordering matters: the hero satisfies the
+        // first disjunct, so it never pays for the node scan.
+        (ambient === "drift" ||
+          // The sphere turns on its own timeline whether or not anything is
+          // touching it.
+          sphere !== null ||
+          interactive ||
+          // Still easing home. `LERP` is exponential and never reaches zero, so
+          // this is a sub-pixel floor rather than an equality test.
+          nodes.some(
+            (n) =>
+              Math.abs(n.ox) > SETTLE_EPSILON || Math.abs(n.oy) > SETTLE_EPSILON,
+          ));
+
+      if (restless) {
+        raf = requestAnimationFrame(frame);
+      } else {
+        raf = 0;
+        // A PARKED LOOP MAKES `lastFrame` STALE, and `dt` feeds
+        // `stepCommandSphere`. Waking after an idle minute would hand it a
+        // 60,000ms step. It cannot bite today — the only caller that parks is
+        // `/about`, where `sphere` is null — but it is a live trap for whoever
+        // next combines `ambient="settled"` with a sphere, and clearing it here
+        // makes the first frame after a wake behave exactly like the first
+        // frame after mount.
+        lastFrame = 0;
       }
 
       // NOTHING BELOW PAINTS UNTIL THE INK HAS BEEN READ ONCE. The geometry
@@ -1009,27 +1178,68 @@ export function ParticleGrid({
       // share an origin, so comparing them is safe and no second clock is
       // introduced.
       pointer.current.lastMove = performance.now();
+      // GATED ON THE SAME PREDICATE THE TICK USES. Below
+      // `INTERACTIVE_MIN_WIDTH`, and under reduced motion, this pointer cannot
+      // move a single node, so waking a parked loop for it would repaint a
+      // byte-identical frame at pointer rate. Measured without this guard: a
+      // 16-step drag at 375x667 drew 17 frames instead of 1, and a desktop
+      // sweep under reduced motion drew 21 instead of 0.
+      if (canInteract()) wake();
     };
     const onPointerLeave = () => {
       // The void closes because `active` goes false, so the nodes lerp home
       // through the same path they lerped out along. Nothing snaps.
       pointer.current.active = false;
+      // AND THIS `wake()` IS THE WHOLE REASON THE SHAPE IS A STOPPABLE LOOP
+      // RATHER THAN "DRAW ON POINTERMOVE". `pointerleave` fires ONCE. A version
+      // that painted a frame in the handler would leave the field permanently
+      // torn open in whatever shape the pointer abandoned it, with the nodes
+      // 12% of the way home — `LERP` is one frame's worth of easing, not a
+      // transition. The void has to be ANIMATED shut along the path it opened
+      // along, which is what the comment above is protecting, and that needs
+      // the ~62 frames `SETTLE_EPSILON` allows.
+      //
+      // Same gate as `onPointerMove`, and it is safe for the identical reason:
+      // if the pointer could not interact, it left nothing displaced to close.
+      // The one case where the field IS displaced while `canInteract()` is
+      // false is a resize that crossed the breakpoint mid-tear, and `onResize`
+      // has already woken the loop to settle it.
+      if (canInteract()) wake();
     };
     /**
-     * One frame, drawn synchronously. The reduced-motion path's ENTIRE render
-     * loop: there is no rAF to carry a rebuild onto the next tick, so a resize
-     * has to repaint itself.
+     * RESTART THE TICK IF IT HAS PARKED. The single entry point into the loop:
+     * mount, resize, theme flip, resolved webfont and both pointer events all
+     * go through this one function, and it replaces the `drawOnce()` helper and
+     * the five scattered `if (reducedMotion)` branches that used to sit beside
+     * those call sites as a parallel render path.
+     *
+     * IT SCHEDULES UNCONDITIONALLY, AND THAT IS NOT A REGRESSION FOR REDUCED
+     * MOTION. It queues one frame; `restless` then declines to queue a second.
+     * One drawn frame per event is exactly what `drawOnce()` produced, arrived
+     * at through the same code the animated path runs rather than through a
+     * second one that had to agree with it.
+     *
+     * `raf === 0` IS A SAFE "PARKED" SENTINEL: `requestAnimationFrame` is
+     * specified to return a non-zero id, so no live handle can be mistaken for
+     * an absent one. When the loop is already running this is a no-op, which is
+     * why the hero — whose loop never parks — gets nothing new from any of the
+     * call sites below.
+     *
+     * IT DRAWS ON THE NEXT FRAME RATHER THAN SYNCHRONOUSLY, unlike the
+     * `drawOnce()` it replaces. That is deliberate on the pointer path: rAF
+     * coalesces, and `pointermove` fires at pointer rate, which exceeds 60Hz on
+     * a 120Hz display or a high-poll mouse. The same argument the header makes
+     * for the transform math applies unchanged to the draw.
      */
-    const drawOnce = () => {
-      if (disposed) return;
-      frame(performance.now());
+    const wake = () => {
+      if (raf === 0 && !disposed) raf = requestAnimationFrame(frame);
     };
 
     const onResize = () => {
       window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
         build();
-        if (reducedMotion) drawOnce();
+        wake();
       }, RESIZE_DEBOUNCE_MS);
     };
 
@@ -1057,10 +1267,18 @@ export function ParticleGrid({
      * and About run the identical code path. The observer fires only on a
      * theme flip, so the cost of carrying it on a surface whose ink happens to
      * be theme-exempt is nil — and gating it is how the two paths drift apart.
+     *
+     * THE `wake()` USED TO BE `if (reducedMotion) drawOnce()`, AND ITS SCOPE
+     * JUST WIDENED. The sentence above — "the animated path picks the new
+     * channels up on the very next rAF for free" — assumed there is always a
+     * next rAF. Under `ambient="settled"` there is not: `/about` idles with the
+     * loop parked, so without this the field would keep painting the previous
+     * theme's ink until something else happened to wake it. It is one frame,
+     * and it repaints in the new colour.
      */
     const themeObserver = new MutationObserver(() => {
       readInk();
-      if (reducedMotion) drawOnce();
+      wake();
     });
     themeObserver.observe(document.documentElement, {
       attributes: true,
@@ -1068,18 +1286,19 @@ export function ParticleGrid({
     });
 
     build();
-    if (reducedMotion) {
-      drawOnce();
-      // The animated path self-heals a late webfont — it redraws sixty times a
-      // second and picks the real family up the moment it resolves. The static
-      // path draws once and never again, so if that one frame lands before the
-      // font does, the sphere is set in a system mono forever. `AssetLoader`
-      // awaits `fonts.ready` before the hero is revealed, but its 8s stall
-      // hand-off can put the hero on screen without it.
-      if (document.fonts?.ready) void document.fonts.ready.then(drawOnce);
-    } else {
-      raf = requestAnimationFrame(frame);
-    }
+    wake();
+    // A CONTINUOUS LOOP SELF-HEALS A LATE WEBFONT — it redraws sixty times a
+    // second and picks the real family up the moment it resolves. A loop that
+    // parks does not, so if its one frame lands before the font does, the
+    // sphere is set in a system mono forever. `AssetLoader` awaits
+    // `fonts.ready` before the hero is revealed, but its 8s stall hand-off can
+    // put the hero on screen without it.
+    //
+    // NO LONGER GATED ON `reducedMotion`, because that is no longer the only
+    // way this loop can park — `ambient="settled"` is the other, and the two
+    // now share one repaint path instead of one of them carrying a private fix.
+    // It costs the hero nothing: `wake()` is a no-op while a frame is queued.
+    if (document.fonts?.ready) void document.fonts.ready.then(wake);
 
     // `pointermove` rather than `mousemove`: one event for mouse and pen, and
     // a touch drag reports as a pointer too — harmless here because the
@@ -1097,10 +1316,11 @@ export function ParticleGrid({
       window.removeEventListener("resize", onResize);
       themeObserver.disconnect();
     };
-    // `field` and `withSphere` are module constants at every call site, so
-    // naming them here re-runs nothing — it just stops the two from silently
-    // going stale if a future caller ever does swap presets.
-  }, [reducedMotion, field, withSphere]);
+    // `field`, `withSphere` and `ambient` are constants at every call site — a
+    // module preset and two literals — so naming them here re-runs nothing. It
+    // just stops them from silently going stale if a future caller ever does
+    // swap one.
+  }, [reducedMotion, field, withSphere, ambient]);
 
   return (
     // `pointer-events-none` is load-bearing: the pointer listener is on the
