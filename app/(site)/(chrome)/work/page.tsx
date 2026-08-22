@@ -24,8 +24,14 @@ import { projects } from "@/content/projects";
  * their card → overlay morph can be tested at all.
  *
  * A SERVER COMPONENT WITH NO PROPS AND NO STATE. Every section below is already
- * a server component with its own client boundaries (`Reveal`, `ProjectCard`),
- * so nothing here needs a directive.
+ * a server component with its own client boundaries, so nothing here needs a
+ * directive. Those boundaries are `IntroEntrance` (which renders `Reveal`) and
+ * `ProjectCard` in `Projects`, `Reveal` in `Experience`, and
+ * `CopyEmailButton` / `MonogramMark` in `RevealFooter`. This named
+ * `Reveal` as the Projects one until 2026-08-22; the reveal branch became
+ * `IntroEntrance` when the Intro started playing over this route, so the units
+ * above the fold are re-keyed at the hand-off instead of animating behind the
+ * plate. `PageStack` below is a client boundary too, and always was.
  *
  * NO PINNING AND NO SCRUBBING, EVER. `docs/07` §5 closes that question by name:
  * scroll-scrubbed animation is Home only. About and Work are normal scroll.

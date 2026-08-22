@@ -80,11 +80,41 @@ export const DURATION = {
 /** Delay between siblings in a staggered sequence, in seconds. */
 export const STAGGER = {
   /**
-   * Hero headline lines. ONE CONSUMER: the hero's two tagline units
+   * The site's one stagger cadence. FIVE LIVE CONSUMERS, and the clause that
+   * used to head this block — "ONE CONSUMER: the hero's two tagline units
    * (`HeroHeadline.tsx:119`, `:124`). No Tier 2 or Tier 3 section consumes it,
-   * and none should without reading the invariant below.
+   * and none should" — was false on both counts, and its two line numbers had
+   * drifted off the calls they named, which is why this list carries none:
    *
-   * IT HAD TWO. The second was the Contact close beat's three blocks, and this
+   *   `HeroHeadline.tsx`   Tier 1, the two tagline units, `index * line`
+   *   `AboutScreen.tsx`    Tier 2, entrance units 2-4, `line` / `*2` / `*3`
+   *   `IntroEntrance.tsx`  the off-Home entrance onset, `* 3`
+   *
+   * `grep -rn "STAGGER.line" app components lib` is the check, and it is the
+   * only one that stays true. `/about`'s three PREDATE the branch that moved
+   * the Intro; they were never covered by "no Tier 2 or Tier 3 section
+   * consumes it".
+   *
+   * WHAT THIS CONSTANT ACTUALLY PROTECTS IS SEQUENCING, NOT AMPLITUDE — and
+   * the two are easy to conflate because a Tier 1 constant appearing in a
+   * Tier 2/3 file LOOKS like an energy-curve violation. It is not one. The
+   * invariant below is about DELAY ORDER: monotonic delays are safe, index
+   * cascades are not, wherever units have independent triggers. Nothing here
+   * governs distance, duration or curve, all three of which stay with the
+   * component doing the moving (`Reveal`: 13px, 0.70s, `EASE.reveal`).
+   *
+   * SO A FLAT ONSET BUILT FROM THIS VALUE DOES NOT MAKE `/work` A TIER 1
+   * RENDER SITE. `IntroEntrance` multiplies it by 3 and applies the SAME
+   * number to every unit — no index, no cascade, no per-unit increment — which
+   * is a translation of the whole group in time, not a stagger at all. It
+   * cannot render anything out of order because there is no order to get
+   * wrong. Contrast `--field-ink`'s case in `app/globals.css`, which IS an
+   * amplitude/tier question: a COLOUR carried to a new tier repaints that
+   * tier. A DELAY carried to a new tier delays it. Only one of those is
+   * visible as energy.
+   *
+   * THE HERO HAD IT ALONE ONCE, AND FOR A WHILE IT HAD TWO. The second was the
+   * Contact close beat's three blocks, and this
    * block used to say so and then build a worked example on it (see the
    * invariant below). That sequence — three `Reveal`s at monotonic delays
    * 0 / 0.10 / 0.20 — was RETIRED AT EVERY WIDTH when Contact became the

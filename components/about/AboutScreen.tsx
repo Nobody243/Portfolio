@@ -134,10 +134,14 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * "ON MOUNT, HARD LOAD AND CLIENT NAVIGATION ALIKE" IS NOW TRUE OF THE CLIENT
  * NAVIGATION ONLY, AND THE FOUR CALL SITES BELOW SAY `IntroEntrance` RATHER
  * THAN `Reveal` BECAUSE OF IT. Since the Intro's gate moved to the `(chrome)`
- * layout, a hard load of this route plays a 3.17s sequence over it — so "on
- * mount" means all four units finishing at 1.00s behind a fully opaque plate,
- * with the page revealed already assembled. `components/intro/IntroEntrance.tsx`
- * re-triggers them at the Intro's hand-off + 0.20s instead. (It was
+ * layout, a hard load of this route plays a **2.765s** sequence over it — so
+ * "on mount" means all four units finishing at 1.00s behind a fully opaque
+ * plate, with the page revealed already assembled. (2.765s, not the 3.17s this
+ * paragraph used to say: 3.165s is HOME's seven-phase total, and off Home
+ * phase 7 is the plate's 0.55s `autoAlpha` dissolve rather than a 0.95s zoom.
+ * `Intro.tsx`'s `INTRO_TOTAL_S` computes the Home figure; `docs/07` §5 carries
+ * the off-Home one.) `components/intro/IntroEntrance.tsx`
+ * re-triggers them at the Intro's hand-off + 0.30s instead. (It was
  * `components/about/AboutEntrance.tsx` until `/work`'s Projects units needed
  * the identical mechanism; it moved to `components/intro/`, and nothing about
  * this page's four call sites changed but the name.) It is a wrapper
@@ -147,8 +151,24 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * byte-identical, which `ScrubReveal`'s header requires.
  *
  * FOUR UNITS AT 0 / 0.10 / 0.20 / 0.30, in document order: the mark's row,
- * the paragraph, the action row, the portrait. Last unit fully settled at
- * 0.30 + 0.70 = 1.00s, which is exactly `Reveal`'s stated budget.
+ * the paragraph, the action row, the portrait.
+ *
+ * WHEN THE LAST UNIT SETTLES DEPENDS ON HOW YOU GOT HERE, AND THIS USED TO
+ * STATE ONLY THE CHEAPEST CASE ("0.30 + 0.70 = 1.00s, which is exactly
+ * `Reveal`'s stated budget"):
+ *
+ *   client navigation  0.30 + 0.70              = 1.00s   — no Intro, no onset
+ *   hard load          0.30 + 0.30 + 0.70       = 1.30s   — + `INTRO_ONSET_S`,
+ *                                                            measured 1150ms
+ *                                                            to visually
+ *                                                            settled
+ *
+ * The hard-load figure is 30% past `Reveal`'s ~1.0s budget and that overrun is
+ * accepted, not overlooked: `IntroEntrance.tsx` declares it as a stated cost of
+ * the onset, next to the arithmetic that sets the onset. It was 1.20s while the
+ * onset was 0.20s. A unit that settles late but VISIBLY beats one that settles
+ * on budget behind an opaque plate, which is the whole reason this page's four
+ * call sites say `IntroEntrance`.
  *
  * AN INDEX-SHAPED CASCADE IS LEGAL HERE AND ALMOST NOWHERE ELSE. `STAGGER.line`
  * forbids it "wherever units have independent triggers and a reader may arrive

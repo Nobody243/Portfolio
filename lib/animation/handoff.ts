@@ -66,10 +66,24 @@
 export const HANDOFF_S = 0.45;
 
 /**
- * The navbar's entrance element, addressed by attribute because the Intro and
- * the navbar are SIBLINGS — `Navbar` renders before `<main>`, and the Intro is
- * mounted several levels inside it by `Hero` → `IntroGate`. There is no shared
- * React ancestor between them that is not the page itself.
+ * The navbar's entrance element, addressed by attribute rather than by a ref
+ * handed down a tree.
+ *
+ * THE PREMISE THAT USED TO BE HERE IS FALSE SINCE 2026-08-22, AND THE
+ * CONCLUSION IS UNAFFECTED. It read: the two are SIBLINGS, "`Navbar` renders
+ * before `<main>`, and the Intro is mounted several levels inside it by
+ * `Hero` → `IntroGate`. There is no shared React ancestor between them that is
+ * not the page itself." The gate moved out of `Hero` and into the `(chrome)`
+ * layout: `IntroProvider.tsx` now renders `{children}` (which is `<Navbar />`
+ * plus the page) and `<IntroGate>` as DIRECT siblings, so a shared ancestor
+ * does exist — `IntroProvider`, mounted by `app/(site)/(chrome)/layout.tsx`.
+ * Passing a ref down from there is therefore mechanically possible now, where
+ * before it was not.
+ *
+ * IT IS STILL AN ATTRIBUTE, because the reason below never depended on the
+ * tree shape — only on what a GSAP timeline needs. Do not "simplify" this into
+ * a ref on the strength of the ancestor now existing; read the next paragraph
+ * first.
  *
  * WHY AN ATTRIBUTE AND NOT A CALLBACK OR A CONTEXT. The requirement is one
  * timeline with two tweens, not two calls that happen to be adjacent: anything

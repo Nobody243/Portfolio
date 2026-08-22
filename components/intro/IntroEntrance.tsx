@@ -48,7 +48,7 @@
  * is what has to start late. That is why the two seams are arranged in opposite
  * orders.
  *
- * ────────────────────────────────────────────────────────────────────────────
+ * ─────────────────────────────────────────────────────────────────────────
  * IT WAS `STAGGER.line * 2` (0.20s) UNTIL 2026-08-22, AND THE NUMBER THAT
  * JUSTIFIED IT WAS COMPUTED ON THE WRONG CURVE.
  *
@@ -111,7 +111,7 @@
  *     `arriving` latches. MEASURED **316ms** in-view-to-visible, against 216ms
  *     before. See the scroll-path note further down for why it is the price of
  *     not reading the DOM during render.
- * ────────────────────────────────────────────────────────────────────────────
+ * ─────────────────────────────────────────────────────────────────────────
  *
  * THE ONSET IS FLAT, WITH NO PER-UNIT STAGGER ADDED HERE, ON EITHER ROUTE.
  * `/about`'s 0 / 0.10 / 0.20 / 0.30 comes from its own call sites and predates
@@ -177,8 +177,9 @@
  * were never part of the entrance, and reveal 0.30s later than they do today
  * when scrolled into view — 1.00s from entering the viewport to settled, which
  * is exactly the ~1.0s budget `Reveal`'s header states rather than inside it.
- * MEASURED in-view to opacity>0, hard load: **316ms** at 1440x900 unit 5 and 316ms at 375x667 unit 2 (both were 216-217ms at the
- * 0.20s onset), against 33ms on a CLIENT NAVIGATION, where there is no
+ * MEASURED in-view to opacity>0, hard load: **316ms** at 375x667 unit 2 and
+ * 317ms at 1440x900 unit 5 (both were 216-217ms at the 0.20s onset), against
+ * 33ms on a CLIENT NAVIGATION, where there is no
  * hand-off, `waitedForHandoff` is false, and the scroll path is byte-identical
  * to before this file existed. That 0.30s is the price of not reading the DOM
  * during render, and it is the reason a stagger must not be added through this

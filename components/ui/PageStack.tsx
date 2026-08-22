@@ -54,17 +54,32 @@
  *     rather than beside it. Reason 3 above is structurally impossible here.
  *   - It animates `opacity` and nothing else. Opacity creates a stacking
  *     context but NEVER a containing block, so `position: fixed` descendants
- *     (the Intro's `fixed inset-0 z-50` plate, and anything added later) are
- *     not re-parented. `transform` and `filter` would re-parent them, which is
- *     the second reason `y` is locked out below.
+ *     are not re-parented. `transform` and `filter` would re-parent them,
+ *     which is the second reason `y` is locked out below.
+ *
+ *     THE EXAMPLE THAT USED TO BE IN THAT SENTENCE IS NO LONGER ONE. It named
+ *     "the Intro's `fixed inset-0 z-50` plate" as the descendant at risk. The
+ *     plate is not a descendant of this wrapper, or of `<main>`, or of the
+ *     page at all any more: the gate is mounted by
+ *     `app/(site)/(chrome)/layout.tsx` as a sibling of `{children}`, so no
+ *     property written here can re-parent it. `docs/03_FRONTEND_SPEC.md`
+ *     already carries this correction; the code is what was stale, which is
+ *     the wrong way round for this project. The RULE is unchanged and still
+ *     binds — it governs any `position: fixed` element added INSIDE this
+ *     wrapper later, and there is no longer a live example to point at.
  * ─────────────────────────────────────────────────────────────────────────
  *
- * OPACITY ONLY. NO `y`, NO `scale`, NO `blur`. The first reason is above. The
- * second is measured rather than stylistic: Next preserves scroll on
- * back/forward, so a translate on a page stack sitting at a restored scroll
- * position would lift the stack off the viewport bottom and expose a strip of
- * that same #07090C plate for the duration of the move. Opacity cannot move
- * anything, so it cannot uncover anything.
+ * OPACITY ONLY. NO `y`, NO `scale`, NO `blur`. TWO REASONS, AND THE FIRST ONE
+ * LOST ITS EXAMPLE ON 2026-08-22 — DO NOT UNLOCK `y` ON THE STRENGTH OF THAT.
+ * The first reason is the containing-block rule above, which still binds any
+ * fixed element added inside this wrapper but no longer has the Intro's plate
+ * as a live instance. The second is independent, measured rather than
+ * stylistic, and untouched by the move: Next preserves scroll on back/forward,
+ * so a translate on a page stack sitting at a restored scroll position would
+ * lift the stack off the viewport bottom and expose a strip of the reveal
+ * footer's #07090C plate for the duration of the move. Opacity cannot move
+ * anything, so it cannot uncover anything. `docs/03_FRONTEND_SPEC.md` states
+ * this same two-legged version.
  *
  * `DURATION.ui` + `EASE.ui`, AND NO FOURTH CURVE. This is deliberately the
  * exact pair the navbar's active-route indicator already runs on
@@ -135,8 +150,12 @@ import { useIntroHandoff } from "@/components/intro/IntroContext";
 import { DURATION, EASE } from "@/lib/animation/easing";
 
 /**
- * Once per page load, at module scope — see the header, and `IntroGate.tsx`'s
- * `played` for the same idiom with the same reasoning written out in full.
+ * Once per page load, at module scope — see the header, and
+ * `components/intro/IntroSession.tsx` for the same idiom with the same
+ * reasoning written out in full. (This said `IntroGate.tsx`'s `played`. That
+ * flag was deleted when the gate moved to the `(chrome)` layout and its three
+ * successors moved into `IntroSession`; the header at the top of this file was
+ * updated for it and this occurrence was missed.)
  *
  * Written in an EFFECT rather than during render, so React's double-invoked
  * render in development stays idempotent and the server never sees it flip.
