@@ -39,14 +39,79 @@
  * is at the CALL SITE. Each call site swaps `<Reveal>` for `<IntroEntrance>`
  * and changes nothing else.
  *
- * ONSET IS `onHandoff` + 0.20s, WHICH IS `STAGGER.line * 2` — an existing
+ * ONSET IS `onHandoff` + 0.30s, WHICH IS `STAGGER.line * 3` — an existing
  * constant, not a new number. The delay is not decoration: the plate's dissolve
- * is 0.55s and `EASE.reveal` is 97.6% done by 56% of its duration, so an
- * entrance fired ON the hand-off would be 97.6% finished at the frame the plate
- * crosses 50% opacity — the secret-animation bug reproduced exactly. Home's
- * incoming half is long and back-loaded so its plate can start late; off Home
- * the incoming half is short and front-loaded, so the ENTRANCE is what has to
- * start late. That is why the two seams are arranged in opposite orders.
+ * is 0.55s, and an entrance fired ON the hand-off is 98.7% finished at the
+ * frame the plate crosses 50% opacity — the secret-animation bug reproduced
+ * exactly. Home's incoming half is long and back-loaded so its plate can start
+ * late; off Home the incoming half is short and front-loaded, so the ENTRANCE
+ * is what has to start late. That is why the two seams are arranged in opposite
+ * orders.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * IT WAS `STAGGER.line * 2` (0.20s) UNTIL 2026-08-22, AND THE NUMBER THAT
+ * JUSTIFIED IT WAS COMPUTED ON THE WRONG CURVE.
+ *
+ * The plate's dissolve is `power2.in`. GSAP's `Power2` is CUBIC, not quadratic
+ * — Power0 is Linear, Power1 is Quad, Power2 is Cubic. The seam design
+ * (`.claude/handoff/intro-non-home-seam-design.md` §B.5) derived the plate-50%
+ * frame by solving `p² = 0.5` and got 389ms. The real frame solves `p³ = 0.5`:
+ * `p = 0.7937`, so on a 0.55s tween the plate is half gone at **0.4365s** —
+ * 47ms later than the design believed, and a 47ms error at the steepest part of
+ * `EASE.reveal` is not small.
+ *
+ * Recomputed against the real `EASE.reveal` = `cubic-bezier(0.22, 1, 0.36, 1)`,
+ * as the fraction of the 0.70s `y` leg completed at t = 0.4365s:
+ *
+ *   onset 0.00s (naive)          98.7% done   — the bug
+ *   onset 0.20s (what shipped)   87.1% done   — still the bug
+ *   onset 0.30s = `line * 3`     66.3% done
+ *   onset 0.316s                 61.2% done   — the design's stated target
+ *   onset 0.382s                 32.3% done
+ *
+ * MEASURED on a production build, read off the rendered `y` matrix at the first
+ * frame the plate is at or below opacity 0.5 (`a4.mjs`, session scratchpad),
+ * 1440x900 and 375x667, dark and light:
+ *
+ *              at plate-50%, BEFORE   at plate-50%, AFTER
+ *   `/work`         84.0% done             63.0% / 59.2% done
+ *   `/about` u0     84.2% done             59.2% done
+ *   `/about` u1     59.5% done              9.6% done
+ *
+ * The measured figures sit slightly BELOW the arithmetic (59-63% against
+ * 66.3%) because the re-key remount costs a frame or two between the hand-off
+ * and the entrance's first tick — the machinery errs towards more of the move
+ * being visible, not less. The BEFORE column is the number `Intro.tsx` uses to
+ * reject a 0.75s dissolve, measured on the 0.55s one it kept.
+ *
+ * 87.1% IS THE NUMBER THIS SEQUENCE USES TO REJECT AN ALTERNATIVE.
+ * `Intro.tsx`'s `OFF_HOME_DISSOLVE_S` refuses a 0.75s dissolve on the grounds
+ * that it would leave the entrance most of the way done at plate-50%. The 0.20s
+ * onset landed in that same band on the dissolve it kept. `STAGGER.line * 3` is
+ * the nearest existing constant to the 0.316s target and needs no stagger, no
+ * re-key deferral and no expiry mechanism — one multiplier on a constant that
+ * is already imported here.
+ *
+ * A STAGGER WAS THE DESIGN'S NAMED LEVER AND IS STILL REFUSED, for the reason
+ * spelled out below: this component's `delay` is the SAME delay the scroll path
+ * uses, so a stagger passed here follows every released unit for the rest of the
+ * page's life.
+ *
+ * THE COSTS ARE REAL AND ARE STATED HERE RATHER THAN DISCOVERED LATER:
+ *   • `/about`'s unit 4 (the portrait, `delay: STAGGER.line * 3`) now settles at
+ *     0.30 + 0.30 + 0.70 = **1.30s** after the hand-off, 30% past the ~1.0s
+ *     budget `Reveal`'s header states. It was 1.20s at the old onset and 1.00s
+ *     before the Intro reached this route at all. MEASURED hand-off to visually
+ *     settled (|y| < 0.05px): **1150ms**, against 1050ms before — the measured
+ *     figure runs under the nominal one because `EASE.reveal` is inside a
+ *     twentieth of a pixel well before its duration is up. Accepted: a unit
+ *     that settles late but VISIBLY beats one that settles on budget behind a
+ *     plate.
+ *   • `/work`'s below-the-fold scroll penalty grows from 0.20s to 0.30s, because
+ *     `arriving` latches. MEASURED **316ms** in-view-to-visible, against 216ms
+ *     before. See the scroll-path note further down for why it is the price of
+ *     not reading the DOM during render.
+ * ────────────────────────────────────────────────────────────────────────────
  *
  * THE ONSET IS FLAT, WITH NO PER-UNIT STAGGER ADDED HERE, ON EITHER ROUTE.
  * `/about`'s 0 / 0.10 / 0.20 / 0.30 comes from its own call sites and predates
@@ -109,13 +174,16 @@
  * `arriving` latches true and never goes back, so a unit released by the
  * hand-off keeps `INTRO_ONSET_S` on its `delay` for the rest of the page's
  * life. On a hard load of `/work` at 375x667, cards 2-5 are below the fold,
- * were never part of the entrance, and reveal 0.20s later than they do today
- * when scrolled into view — 0.90s from entering the viewport to settled,
- * against the ~1.0s budget `Reveal`'s header states. On a CLIENT NAVIGATION to
- * `/work` there is no hand-off, `waitedForHandoff` is false, and the scroll
- * path is byte-identical to before this file existed. That 0.20s is the price
- * of not reading the DOM during render, and it is the reason a stagger must not
- * be added through this prop without a mechanism that expires it.
+ * were never part of the entrance, and reveal 0.30s later than they do today
+ * when scrolled into view — 1.00s from entering the viewport to settled, which
+ * is exactly the ~1.0s budget `Reveal`'s header states rather than inside it.
+ * MEASURED in-view to opacity>0, hard load: **316ms** at 1440x900 unit 5 and 316ms at 375x667 unit 2 (both were 216-217ms at the
+ * 0.20s onset), against 33ms on a CLIENT NAVIGATION, where there is no
+ * hand-off, `waitedForHandoff` is false, and the scroll path is byte-identical
+ * to before this file existed. That 0.30s is the price of not reading the DOM
+ * during render, and it is the reason a stagger must not be added through this
+ * prop without a mechanism that expires it: a stagger would push the last
+ * below-fold card PAST the budget, on every scroll, forever.
  *
  * NO PATHNAME CHECK, AND NO DOM PREDICATE EITHER. The sanctioned predicate for
  * "is this the route with a hero stage" is a DOM read (`Intro.tsx` uses it to
@@ -135,7 +203,7 @@
  * gating would give that visitor a dark plate followed by a page assembling
  * over another second. The units fire on mount and finish behind the plate —
  * the one case on this site where "animates in secret" is the right answer.
- * The 0.20s onset is gated off with it: it exists to keep a 0.70s move in front
+ * The 0.30s onset is gated off with it: it exists to keep a 0.70s move in front
  * of a 0.55s dissolve, and under the preference neither is running.
  */
 
@@ -146,9 +214,9 @@ import { Reveal } from "@/components/ui/Reveal";
 import { STAGGER } from "@/lib/animation/easing";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
-/** `onHandoff` + this. `STAGGER.line * 2`, not a new constant — see the header
- *  for the arithmetic that picked it. */
-const INTRO_ONSET_S = STAGGER.line * 2;
+/** `onHandoff` + this. `STAGGER.line * 3`, not a new constant — see the header
+ *  for the arithmetic that picked it, and for why `* 2` was wrong. */
+const INTRO_ONSET_S = STAGGER.line * 3;
 
 type IntroEntranceProps = {
   children: ReactNode;

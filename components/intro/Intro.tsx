@@ -171,19 +171,42 @@ const PLATE_DISSOLVE_RATIO = 0.66;
  * leaving. It also buys back the one thing this seam cannot remove — in light
  * mode the ground travels L* 2.41 -> 98.99 across ~93% of the viewport, and no
  * mechanic deletes that ramp. On a 0.55s dissolve `GSAP_EASE.ui` is halfway
- * through the lightness change at 193ms; `power2.in` is halfway at 389ms, 2.0x
- * longer, and it delivers 25% rather than 68% of the ramp in the first 275ms.
+ * through the lightness change at 193ms; `power2.in` is halfway at **437ms**,
+ * **2.27x** longer, and it delivers **12.5%** rather than 77.6% of the ramp in
+ * the first 275ms.
+ *
+ * THOSE TWO `power2.in` FIGURES READ 389ms AND 25% UNTIL 2026-08-22, AND THE
+ * ERROR WAS THE CURVE, NOT THE ARITHMETIC. GSAP's `Power2` is CUBIC — Power0
+ * Linear, Power1 Quad, Power2 Cubic — and both numbers were computed as if it
+ * were quadratic (√0.5 rather than ∛0.5; 0.5² rather than 0.5³). The
+ * `GSAP_EASE.ui` column is a real bezier and was evaluated correctly at 193ms;
+ * its 275ms figure was 68% and is 77.6%. Every correction points the SAME
+ * WAY — `power2.in` is gentler than this paragraph claimed, not harsher — so
+ * the choice of curve is unaffected. What IS affected is anything that keys off
+ * the plate-50% frame, which is the whole seam. See below, and
+ * `components/intro/IntroEntrance.tsx`.
  *
  * DO NOT APPLY THIS CURVE TO HOME. Home's dissolve has no lightness ramp to
  * shape — `bg-hero-surface` onto `bg-hero-surface`, 1.00:1 in both themes — and
  * `PLATE_DISSOLVE_RATIO` above is tuned against a camera.
  *
  * WHY 0.55s AND NOT LONGER, since longer is gentler: the destination's entrance
- * is fired at the hand-off + 0.20s and its opacity leg is 0.35s, so a longer
+ * is fired at the hand-off + 0.30s and its `y` leg is 0.70s, so a longer
  * outgoing half puts the incoming one back behind an opaque plate — the
- * "animates in secret" failure this whole arrangement exists to repair. At
- * 0.75s the entrance would be 85% done at the frame the plate is half gone.
- * 0.55s is the balance point and the tension is real rather than a preference.
+ * "animates in secret" failure this whole arrangement exists to repair.
+ *
+ * THE ARITHMETIC, ON THE RIGHT CURVE. `power2.in` is CUBIC (GSAP's Power2 is
+ * Cubic; Power1 is the quadratic), so this plate is half gone at
+ * `∛0.5 × 0.55` = **0.4365s**, not at the 389ms an earlier version of this
+ * paragraph and the seam design both quoted from solving `p² = 0.5`. At 0.55s
+ * the entrance is 66.3% done at that frame; at 0.75s it would be 92.9% done —
+ * squarely back in the secret-animation band. 0.55s is the balance point and
+ * the tension is real rather than a preference.
+ *
+ * That correction is also why the onset above reads 0.30s and not the 0.20s
+ * that shipped first: at 0.20s the entrance measured 87.1% at plate-50%, which
+ * is this paragraph's own rejection criterion, met by the configuration it
+ * kept. `components/intro/IntroEntrance.tsx` carries the full table.
  */
 const OFF_HOME_DISSOLVE_S = 0.55;
 
