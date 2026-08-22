@@ -431,6 +431,51 @@ The boundary is now `header.getBoundingClientRect().bottom`, read through a
 function so both ScrollTrigger `start`s re-resolve it on refresh and a resize
 across 640 or 768 carries. The constant has no readers left and is deleted.
 
+**That fix narrowed the band and did not close it — closed 2026-08-22, second
+pass.** The bar's bottom is not where its ink is. The ink row sits `padding-top`
+down from the top of the bar — 13px below 640, 21px at and above it — so the
+moment the plate's static top crossed the bar's *bottom* the palette flipped
+while every glyph was still on `bg-base`. **Measured before: 37px of scroll at
+1280×800 light, `/` and `/work` alike, at 1.18:1 on the MS mark; 1px at
+1024×600.** Both are resting states, not transients.
+
+The plate boundary is now the bar's **ink top** (`Navbar.tsx`'s `inkTop()` —
+header rect plus the row's computed `padding-top`, which is immune to the
+Intro's entrance transform in the way a child's rect is not). The hero palette
+is taken only once the plate covers all of the ink; until then the **scrimmed**
+light palette holds, and that palette is legible over both grounds — an 80%
+`--color-base` scrim over #07090C composites to #CCCBCA, where `--nav-fg` is
+11.37:1 and `--nav-fg-dim` 5.70:1.
+
+**The hero boundary stays at the bar's bottom, deliberately.** It errs the safe
+way: it drops the hero palette while the ink is still on the hero, and the scrim
+covers that. Moving it to the ink's bottom edge would make the hero palette
+persist as the ink started to leave the hero, which is the failure this whole
+section is about.
+
+*Measured after*, 1px scroll steps through the last 140px of `/` and `/work`, at
+1440×900, 1280×800, 1024×600, 768×1024, 639×800, 375×667 and 360×640, both
+themes, ground taken off a screenshot with the bar's contents hidden so the
+scrim is still part of it: **0px of palette band at every one of the 28
+combinations**, against 499px before. Worst remaining sample against a flat
+ground is 3.37:1 on the indicator (3:1 non-text floor), at 1280×800 light inside
+the straddle window.
+
+**What it costs is one bounded case, recorded in `app/globals.css` beside the
+scrim rule:** `CopyEmailButton`'s "Copied" renders `--nav-accent` as text at
+3.41:1 on that #CCCBCA composite, for at most 38px of scroll and only if the
+address is clicked inside it.
+
+**A separate defect surfaced in the same sweep and is NOT fixed.** At 375×667
+and 360×640, at maximum scroll on both `/` and `/work`, the reveal footer's
+content scrolls under an unscrimmed bar and the MS mark lands directly on it:
+**1.28:1 against the plate's 34×3px `accent-hero` rule and 1:1 against the
+"Contact" heading's own glyphs, across 53px of scroll, identical in both
+themes.** That is the OVERLAP problem, not the palette one — the scrim is
+deliberately off over dark plates — and it is unchanged by this fix (53px before
+and after). It needs a layout answer (clearance at the plate's top, or a scrim
+that survives over the plate at narrow widths), not a threshold.
+
 *What its removal costs:* the quieter reading experience past the hero. *What it
 does not cost:* legibility — Step 3 was always the step that covered the hard
 case, and it still does, alone.

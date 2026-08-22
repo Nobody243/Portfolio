@@ -801,16 +801,31 @@ html[data-nav-open] {
    line or a focus ring — all of which sit on the 3:1 non-text floor and clear
    it.
 
-   THE THIRD ROW IS UNREACHABLE TODAY, AND THIS SELECTOR IS WHY. The only solid
-   dark surfaces on the site are the hero and the reveal footer's plate, and
-   `Navbar.tsx` sets `data-over-hero` over BOTH — which takes the hero palette
-   and, by this selector, removes the scrim entirely. There is no third solid
-   surface and no route that scrolls one under an unscrimmed bar.
+   THE THIRD ROW WAS UNREACHABLE UNTIL 2026-08-22 AND IS NOW REACHABLE IN ONE
+   BOUNDED CASE. It used to be unreachable because `Navbar.tsx` set
+   `data-over-hero` the instant the plate's top crossed the bar's BOTTOM, so no
+   scrimmed bar ever overlapped a dark plate. That threshold was the L9 bug: it
+   flipped the palette while every glyph in the bar was still on `bg-base`, a
+   37px band of scroll at 1280x800 measured at 1.18:1. The boundary is now the
+   bar's INK top, so during that band the bar stays scrimmed and the ink is
+   legible over both grounds — 11.37:1 for `--nav-fg` and 5.70:1 for
+   `--nav-fg-dim` on the #CCCBCA composite, measured 3.37:1 for the indicator
+   against its 3:1 non-text floor.
 
-   So: a future solid or heavily-inked surface that scrolls under the bar
-   WITHOUT setting `data-over-hero` re-opens the 3.48:1 case. Give it the
-   attribute (which is the shape the rest of the file already assumes), or
-   raise the tint — do not widen this selector.
+   WHAT THAT COSTS IS EXACTLY THE THIRD ROW, and it is one element in one
+   window: `CopyEmailButton`'s "Copied" confirmation renders `--nav-accent` as
+   TEXT at 3.41:1 while the bar straddles the plate's top edge — at most 38px of
+   scroll at `md` and up, and only if the visitor clicks the address inside it.
+   It is strictly better than what that band did before (the whole bar at
+   1.18:1) and it is recorded rather than traded away silently. RAISING THE TINT
+   IS THE SANCTIONED FIX IF IT IS EVER JUDGED UNACCEPTABLE — 92% clears 4.5:1 —
+   but 92% is very close to an opaque bar and that is a design change, not a
+   contrast tweak.
+
+   Otherwise unchanged: a future solid or heavily-inked surface that scrolls
+   under the bar WITHOUT setting `data-over-hero` re-opens the same case. Give
+   it the attribute (which is the shape the rest of the file already assumes),
+   or raise the tint — do not widen this selector.
    ───────────────────────────────────────────────────────────────────────── */
 [data-nav-root]:not([data-over-hero]) {
   background-color: color-mix(in oklab, var(--color-base) 80%, transparent);

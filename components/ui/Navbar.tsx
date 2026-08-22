@@ -462,9 +462,51 @@ export function Navbar() {
        laid out for. A FUNCTION rather than a captured number: the height is 48
        / 64 / 59 across the `sm` and `md` breakpoints, and this effect keys on
        `pathname`, so a captured value would go stale on the first resize that
-       crosses one. All three readers call it, so they cannot drift apart —
-       which is the property the old shared constant existed to give, kept. */
+       crosses one. ALL FOUR READERS call it — the hero trigger's `start` and
+       its initial comparison, plus `inkTop()` below — so they cannot drift
+       apart, which is the property the old shared constant existed to give,
+       kept. (This said "all three" until 2026-08-22 and there were four then
+       too; the whole point of the sentence is that readers cannot drift, so an
+       off-by-one in it is the exact failure it warns about.) */
     const barEdge = () => el.getBoundingClientRect().bottom;
+
+    /* WHERE THE BAR'S INK STARTS, which is a different line from where the BAR
+       starts, and the difference is the whole of the fix below.
+
+       THE BUG IT CLOSES. The plate trigger used to flip the palette the instant
+       the plate's static top crossed `barEdge()` — the bar's BOTTOM. At that
+       moment not one pixel of ink is over the plate: the ink row sits 21px down
+       in a 59px bar, so the bar takes the hero palette (and loses its scrim)
+       while every glyph in it is still on `bg-base`. In light mode that is
+       #E8EAEC on #FDFCFA. The band is `barEdge - inkTop` px of scroll wide —
+       38px at >=768, 43px at 640-767, 35px below 640 — and it is a RESTING
+       state, not a transient, at any viewport where the plate is between
+       `viewportH - barEdge` and `viewportH` tall.
+
+       This was reported as "strictly better than the 70px constant it
+       replaced", which it was, and that is not the bar. The band is now zero:
+       the hero palette is taken only when the plate covers ALL of the ink, and
+       until then the scrimmed light palette holds — which is legible over BOTH
+       grounds, because an 80% `--color-base` scrim over #07090C composites to
+       #CCCBCA and `--nav-fg` reads 11.37:1 on it.
+
+       COMPUTED FROM PADDING, NOT FROM A CHILD'S RECT, and that is required
+       rather than tidy. The row inside `<header>` is the Intro's entrance
+       target: it is translated a full bar-height above the viewport while the
+       Intro plays, so its `getBoundingClientRect()` is meaningless then. A
+       computed `padding-top` is immune to descendant transforms, exactly as
+       `barEdge()`'s use of the fixed header's own rect is.
+
+       IT IS DELIBERATELY THE TOP AND NOT A BAND. The bottom edge of the ink
+       would have to account for the active-route indicator, which hangs 6px
+       BELOW the centre cluster on a 2px line and only exists at `md`. Nothing
+       hangs above the row, so the top is exact at every breakpoint with no
+       constant to keep in sync. */
+    const inkTop = () => {
+      const row = el.firstElementChild;
+      const pad = row ? parseFloat(getComputedStyle(row).paddingTop) : 0;
+      return el.getBoundingClientRect().top + (Number.isFinite(pad) ? pad : 0);
+    };
 
     /* TWO GROUNDS, ONE ATTRIBUTE. Kept in a plain object rather than in state
        for the reason the whole effect exists: writing the attribute from a ref
@@ -574,17 +616,20 @@ export function Navbar() {
 
     const plateTop = document.getElementById(REVEAL_FOOTER_SENTINEL_ID);
     if (plateTop) {
-      ground.plate = plateTop.getBoundingClientRect().top < barEdge();
+      ground.plate = plateTop.getBoundingClientRect().top <= inkTop();
 
       // `onEnterBack` IS NOT REDUNDANT WITH `onEnter`. The sentinel is zero
       // height, so ScrollTrigger's default `end` ("bottom top") lands only
-      // `barEdge` pixels past `start`; scrolling down through both and back up
+      // `inkTop` pixels past `start`; scrolling down through both and back up
       // re-enters through the END, which fires `onEnterBack` and never
       // `onEnter`. Without it the bar would stay on the light palette for the
       // last stretch of every scroll-up off the plate.
+      //
+      // THAT WINDOW GOT SHORTER WITH THE `inkTop()` MOVE — 21px rather than 59
+      // at `md` and up — which makes this branch MORE load-bearing, not less.
       const trigger = ScrollTrigger.create({
         trigger: plateTop,
-        start: () => `top top+=${barEdge()}`,
+        start: () => `top top+=${inkTop()}`,
         onEnter: () => {
           ground.plate = true;
           apply();
