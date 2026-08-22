@@ -174,7 +174,7 @@ import {
   ThemeToggle,
 } from "@/components/ui/ThemeToggle";
 import { NAV_HEIGHT_PX } from "@/components/ui/msMarkGeometry";
-import { HERO_SECTION_ID } from "@/components/hero/heroContent";
+import { getHeroStage } from "@/components/hero/heroStage";
 import { REVEAL_FOOTER_SENTINEL_ID } from "@/components/sections/contactContent";
 import { NAV_ENTRANCE_ATTR } from "@/lib/animation/handoff";
 import { ScrollTrigger } from "@/lib/animation/gsap";
@@ -586,7 +586,9 @@ export function Navbar() {
 
     /* ScrollTrigger rather than bare IntersectionObservers: it is already
        bound to Lenis site-wide, and one scroll authority beats two. */
-    const hero = document.getElementById(HERO_SECTION_ID);
+    // The same read, now shared with `Intro.tsx` so the two cannot answer this
+    // question differently. See `components/hero/heroStage.ts`.
+    const hero = getHeroStage();
     if (hero) {
       // SET THE STATE ONCE, UP FRONT, from where the page actually is. The
       // triggers only fire on CROSSING a boundary, so without this a
