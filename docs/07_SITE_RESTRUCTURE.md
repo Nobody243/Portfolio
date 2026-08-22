@@ -571,8 +571,33 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
 accents with no new palette; the same monospace touches for small labels; and the finished **static**
 MS mark placed on the page — static only, no animation. About stays the quiet page.
 
+> **"Static only, no animation" governs THE MARK, and it still holds — narrowed rather than
+> reversed, 2026-08-22.** The mark does not draw on, does not morph, does not part its letters on
+> hover (that gesture is navbar-only), and does not animate again after the page has arrived. What it
+> now does is fade and rise 13px on load, exactly as the paragraph beside it does. The sentence was
+> written to stop the Intro's *choreography* reappearing on About, not to exempt one element from the
+> page's arrival — an unmoving mark above three units that assemble would read as a bug, not as
+> restraint. Recorded narrowly so the next reader does not have to re-litigate it, and so nobody
+> "restores" the rule by removing the mark from the entrance.
+
 **Neither scroll-scrub nor the reveal-footer applies to About.** It is deliberately the one fully quiet
 page.
+
+> **What "fully quiet" means, stated precisely — amended 2026-08-22.** It was written against
+> **scroll-driven** motion and that half is absolute: no scrub, no pinning, no reveal footer, no
+> curtain, nothing below the fold, and the page still cannot scroll. What it does NOT mean is that
+> the page must be complete in frame 1. `/about` now runs the site's standard `Reveal` once, on load,
+> across four units — the mark's row, the paragraph, the action row, the portrait — at
+> `STAGGER.line` multiples of 0 / 0.10 / 0.20 / 0.30s, settling at 1.00s, after which nothing on the
+> page ever moves again except the particle field.
+>
+> The premise being replaced is that *quiet means static*. It does not: quiet is a claim about
+> amplitude and about what drives the motion. A page that assembles in zero frames while every other
+> route on the site fades in is not quieter than its neighbours, it is **discontinuous** with them,
+> and that reads as unfinished rather than as calm. The defensible and checkable version:
+> **`/about` is quiet because it has no motion driver of its own.** No new curve, no new duration and
+> no new colour are introduced — it is `EASE.reveal` with `DURATION.reveal`, fired by a mount instead
+> of by an intersection or a scroll position.
 
 ---
 

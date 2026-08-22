@@ -15,7 +15,9 @@ import {
 import { ParticleGrid, QUIET_FIELD } from "@/components/hero/ParticleGrid";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import { MonogramMark } from "@/components/ui/MonogramMark";
+import { Reveal } from "@/components/ui/Reveal";
 import { contact } from "@/content/contact";
+import { STAGGER } from "@/lib/animation/easing";
 
 /**
  * The portrait's `sizes`, SHARED VERBATIM BY BOTH `<Image>` ELEMENTS BELOW,
@@ -78,10 +80,30 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  *      maths need a scrolling page and this page has none.
  *   3. NO SCROLL-SCRUB, NO PINNING. §5 closes that question by name: scrubbed
  *      animation is Home only.
- *   4. NO `Reveal`, and therefore NO CLIENT BOUNDARY except the two that earn
- *      one — the canvas and the CV control. There is nothing to reveal on a
- *      page with no scroll, and a fade on load would be motion for its own sake
- *      on the page whose whole brief is quiet.
+ *   4. NO DRIVER OF ITS OWN. Rewritten 2026-08-22; it read "NO `Reveal`, and
+ *      therefore NO CLIENT BOUNDARY except the two that earn one — the canvas
+ *      and the CV control. There is nothing to reveal on a page with no
+ *      scroll, and a fade on load would be motion for its own sake on the page
+ *      whose whole brief is quiet." THE PAGE NOW RUNS ONE `Reveal` PER UNIT ON
+ *      LOAD, so that sentence is kept above rather than deleted, because its
+ *      premise is the thing that changed and not the conclusion's wording.
+ *
+ *      The premise was that QUIET MEANS STATIC. It does not — quiet is a claim
+ *      about amplitude and about what drives the motion. A page that is
+ *      complete in frame 1 while every other route on the site assembles is
+ *      not quieter than its neighbours, it is DISCONTINUOUS with them, and a
+ *      page that behaves unlike the rest of the site reads as unfinished
+ *      rather than as calm. The replacement claim is narrower and checkable:
+ *      `/about` is quiet because it has NO DRIVER OF ITS OWN — no scroll, no
+ *      scrub, no reveal footer, no hover motion, no loop beyond the shared
+ *      particle field. It runs the site's standard entrance ONCE, on load, and
+ *      then nothing on this page ever moves again.
+ *
+ *      Absences 1, 2 and 3 are untouched by that, and so is the client-boundary
+ *      count's REASONING even though the count itself moved: `Reveal` is a
+ *      client component, so the page now has three kinds of client leaf
+ *      (canvas, CV control, reveals) and `AboutScreen` itself is still a
+ *      server component rendering server-rendered children into them.
  *
  * ALSO ABSENT: the command sphere. §6 pins it to Home. `sphere={false}` below
  * is that rule, written where it can be checked.
@@ -90,9 +112,89 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * THE PORTRAIT ARRIVED HERE FROM TRAJECTORY on 2026-08-22, at Saad's request
  * and per `.claude/handoff/about-design.md` §9. It filled the third column of
  * Home's Trajectory section between `95ae847` and that move; `/about` is the
- * page it was always about. It brings NO motion with it — it is not wrapped in
- * `Reveal`, it does not scrub, and it does not fade in. Absence 4 above still
- * holds with a photograph on the page.
+ * page it was always about. This paragraph used to end "It brings NO motion
+ * with it — it is not wrapped in `Reveal`, it does not scrub, and it does not
+ * fade in." The middle clause is now false and the outer two are still true:
+ * it takes part in the page's one-shot entrance like every other unit, it
+ * still does not scrub, and it still has no hover, no filter and no
+ * placeholder. See absence 4.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE ENTRANCE — FOUR UNITS, ONE SHOT, THEN STILLNESS.
+ *
+ * `Reveal`, used UNCHANGED, with the `delay` prop it already has. Not a new
+ * component and not a new prop: `Reveal` is `whileInView` at `amount: 0.1`,
+ * and on a page that is exactly one screen every unit is already in view, so
+ * the first observer tick fires all of them on mount — hard load and client
+ * navigation alike. That satisfies the site's motion rule by construction:
+ * same driver (elapsed time), same curve (`EASE.reveal`), same numbers
+ * (`y: 13 -> 0` over `DURATION.reveal`, `opacity: 0 -> 1` over half of it), a
+ * new TRIGGER. 13px and not 21px — 21 is scrub-only.
+ *
+ * FOUR UNITS AT 0 / 0.10 / 0.20 / 0.30, in document order: the mark's row,
+ * the paragraph, the action row, the portrait. Last unit fully settled at
+ * 0.30 + 0.70 = 1.00s, which is exactly `Reveal`'s stated budget.
+ *
+ * AN INDEX-SHAPED CASCADE IS LEGAL HERE AND ALMOST NOWHERE ELSE. `STAGGER.line`
+ * forbids it "wherever units have independent triggers and a reader may arrive
+ * at one deliberately", because the delay is then measured from the wrong
+ * origin. `/about` cannot scroll, has no anchors into it, and every unit
+ * always enters on the same tick — the exact condition that docstring names as
+ * safe. The delays are written out as multiples rather than derived from a map
+ * index so they are auditable at the call site, and they increase
+ * monotonically, which is the actual invariant.
+ *
+ * THE ACTION ROW IS ONE UNIT, NOT THREE. Three buttons arriving one after
+ * another is the clearest generic-portfolio tell available on this page, and
+ * it would put the last control's arrival past 0.4s for no informational gain.
+ * One `Reveal` around the row.
+ *
+ * THE MOBILE PORTRAIT IS NOT A FIFTH UNIT. Below 1024px it lives inside the
+ * mark's row, so it arrives with the mark at delay 0 — which is correct, since
+ * the pair is one identity block and splitting it would be the page's only
+ * intra-unit stagger. The fourth unit is the DESKTOP portrait, `display: none`
+ * below `lg`, so below `lg` the page is three units at 0 / 0.10 / 0.20 and
+ * still monotonic.
+ *
+ * THE PARTICLE CANVAS DOES NOT PARTICIPATE. It is already drawing when the
+ * entrance runs and it is background; fading it would make the page's arrival
+ * read as a curtain rather than as content settling.
+ *
+ * REDUCED MOTION NEEDS NO SECOND CODE PATH. `MotionProvider`'s
+ * `reducedMotion="user"` drops transform and keeps opacity, so the page
+ * becomes four fades at 0 / 100 / 200 / 300ms with zero travel. THE STAGGER IS
+ * DELIBERATELY KEPT: it is what every other `Reveal` on the site does under
+ * the preference, and giving this one page a private rule would be the
+ * inconsistency rather than the fix.
+ *
+ * THE NO-JS NET IS `Reveal`'s OWN. Framer writes `initial` into the server
+ * HTML, so `opacity: 0` genuinely ships; `app/layout.tsx`'s
+ * `[data-reveal]{opacity:1!important;transform:none!important}` inside
+ * `<noscript>` undoes it, and `Reveal` sets that attribute. Nothing extra is
+ * needed here — but nothing may remove it either.
+ *
+ * THE 13px START POSITION AGAINST THE CLIP BUDGET — measured, and one case
+ * does not clear it. Each unit begins 13px BELOW its resting place, so the
+ * bottom-most unit needs 13px of resting bottom slack to stay inside the box
+ * that absence 1 will not let scroll. MEASURED at the action row's maximum
+ * bottom edge during the entrance:
+ *
+ *     1440x900   0px over        375x667   0px over  (5.64px to spare)
+ *     1280x800   0px over        640x800   0px over
+ *     1024x600   0px over        768x1024  0px over
+ *     360x640    7.86px OVER — the two secondaries lose their bottom edge
+ *                for ~80ms, at opacity <= 0.7, then settle correctly
+ *
+ * 375x667 is the narrow case this page has always been budgeted against and
+ * it clears. 360x640 has only 5.14px of resting slack — it was 4.25px before
+ * the portrait landed, so this is not a regression the portrait introduced —
+ * and a 13px travel cannot fit in it. THE STANDING FALLBACK, if that 80ms is
+ * ever judged unacceptable, is to drop the `y` leg for the action row alone
+ * and keep its opacity. It is NOT implemented here because `Reveal` must stay
+ * byte-identical (`ScrubReveal`'s header records why: it owns motion on
+ * `/work`, `/about`, every detail page and Home's Stack) and a per-unit
+ * transform opt-out is a new prop on it. NEVER fix this by inventing a
+ * smaller travel number, and never by relaxing `overflow-hidden`.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * RULE S-2 GENUINELY DOES NOT APPLY HERE, and a reviewer sweeping the site for
@@ -268,7 +370,13 @@ export function AboutScreen() {
                 for the second column and `lg:block` puts this element back in
                 exactly the block context it had before the row existed.
               */}
-              <div className="flex items-center gap-md lg:block">
+              {/* UNIT 1 of the entrance, delay 0. `Reveal` renders the row's
+                  own `<div>` rather than adding one around it — its
+                  `className` is passed straight to the `motion.div`, so the
+                  flex row and the revealed box are the same element and the
+                  resting layout is unchanged. Verified: geometry at rest is
+                  identical to the pre-entrance build at every viewport. */}
+              <Reveal className="flex items-center gap-md lg:block">
                 <MonogramMark
                   variant="nav"
                   label={ABOUT_PAGE_MARK_LABEL}
@@ -310,7 +418,7 @@ export function AboutScreen() {
                   priority
                   className="aspect-square w-[112px] shrink-0 object-cover sm:w-[144px] lg:hidden"
                 />
-              </div>
+              </Reveal>
 
               {/*
                 THE HEADROOM IS NOT OPTIONAL. 65 words at `text-body` (16px,
@@ -327,9 +435,19 @@ export function AboutScreen() {
                 paragraph by dropping to `text-caption` is the exact failure
                 this reserve exists to prevent.
               */}
-              <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px]">
-                {ABOUT_PAGE_PARAGRAPH}
-              </p>
+              {/* UNIT 2, delay `STAGGER.line`. The `<p>` keeps its own
+                  `mt-md` / `sm:mt-lg` rather than moving them onto the
+                  `Reveal`: the wrapper has no border, padding or inline
+                  content, so the paragraph's top margin collapses through it
+                  exactly as it did when the `<p>` was a direct child, and a
+                  `transform` does not establish a block formatting context
+                  that would stop it. Measured: the paragraph's top is
+                  unchanged to the hundredth of a pixel. */}
+              <Reveal delay={STAGGER.line}>
+                <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px]">
+                  {ABOUT_PAGE_PARAGRAPH}
+                </p>
+              </Reveal>
 
               {/*
                 THE ACTION ROW — one primary, two secondary, in that order.
@@ -371,7 +489,10 @@ export function AboutScreen() {
                 one of them is rendered by a different component and takes no
                 `className`.
               */}
-              <div className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center">
+              <Reveal
+                delay={STAGGER.line * 2}
+                className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center"
+              >
                 <CvAction />
                 {/* THE 2-UP PAIR. `grid-cols-2` rather than two `flex-1`
                     children, so the halves are equal by construction and
@@ -419,7 +540,7 @@ export function AboutScreen() {
                     </ExternalLink>
                   ) : null}
                 </div>
-              </div>
+              </Reveal>
             </div>
 
             {/*
@@ -477,14 +598,34 @@ export function AboutScreen() {
               quiet page, and a blur-up placeholder is a filter that resolves,
               which is motion. `priority` is the right answer to the pop a
               blur-up would paper over.
+
+              UNIT 4 of the entrance, delay `STAGGER.line * 3`. THE FLEX
+              CLASSES LIVE ON THE `Reveal`, NOT ON THE `<img>`, because the
+              revealed box is what the flex row now lays out; the image fills
+              it with `w-full` and keeps `aspect-square` so the wrapper's
+              height still equals its width. `lg:min-w-[213px]` therefore does
+              double duty on a `<div>` rather than on a replaced element, and
+              it is still what overrides `min-width: auto`.
+
+              IT IS INCLUDED IN THE ENTRANCE RATHER THAN LEFT STATIC. Leaving
+              it still while the column beside it rises would make the text's
+              motion read as a loading artefact at `lg`+, and it is the last
+              unit in document order, which is where the monotonic rule puts
+              it. It is not a fifth unit for phones — see the mobile portrait
+              above, which arrives with the mark at delay 0.
             */}
-            <Image
-              src={portrait}
-              alt={ABOUT_PAGE_PORTRAIT_ALT}
-              sizes={PORTRAIT_SIZES}
-              priority
-              className="hidden aspect-square object-cover lg:block lg:min-w-[213px] lg:max-w-[384px] lg:flex-1"
-            />
+            <Reveal
+              delay={STAGGER.line * 3}
+              className="hidden lg:block lg:min-w-[213px] lg:max-w-[384px] lg:flex-1"
+            >
+              <Image
+                src={portrait}
+                alt={ABOUT_PAGE_PORTRAIT_ALT}
+                sizes={PORTRAIT_SIZES}
+                priority
+                className="aspect-square w-full object-cover"
+              />
+            </Reveal>
           </div>
         </div>
       </div>
