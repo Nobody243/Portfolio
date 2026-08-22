@@ -75,6 +75,27 @@ export const ABOUT_PAGE_PARAGRAPH =
  */
 export const ABOUT_PAGE_MARK_LABEL = "Muhammad Saad";
 
+/**
+ * The portrait's alt text.
+ *
+ * IT IS A SEPARATE CONSTANT FROM `ABOUT_PAGE_MARK_LABEL` even though the two
+ * strings are identical today. They label different things — one names a
+ * monogram, the other names a photograph of a person — and a single constant
+ * shared between them would silently propagate any future edit to one into the
+ * other.
+ *
+ * THE PHOTOGRAPH IS OF SAAD AND THE ALT SAYS SO, PLAINLY. No "portrait of", no
+ * "photo of": a screen reader already announces the element as an image, so
+ * naming the medium in the alt is the redundancy WCAG's own technique H37
+ * warns about. The image carries no information beyond identity, so identity
+ * is the whole of its text alternative.
+ *
+ * IT IS NOT EMPTY. `alt=""` would be right for a decorative flourish, and this
+ * is not one: on a page whose only other identifier is a two-letter monogram,
+ * the photo is one of exactly two things saying whose page this is.
+ */
+export const ABOUT_PAGE_PORTRAIT_ALT = "Muhammad Saad";
+
 /* --- The action row ------------------------------------------------------
    FIXED ARITY, NOT A COLLECTION, exactly as `components/ui/navContent.ts`
    draws the same distinction. There are three controls: one primary and two

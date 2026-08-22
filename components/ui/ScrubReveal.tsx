@@ -20,8 +20,12 @@
  * shared prop would let a change here alter all five silently.
  *
  * WHERE IT IS USED — `docs/03_FRONTEND_SPEC.md`, "Scroll-scrub — Home only":
- *   Home -> Trajectory   5 units (h2, portrait, 3 beats)   imports this directly
- *   Home -> Projects     4 units (h2, 3 cards)             via `motion="scrub"`
+ *   Home -> Trajectory   4 units (h2, 3 beats)   imports this directly
+ *   Home -> Projects     4 units (h2, 3 cards)   via `motion="scrub"`
+ * Eight scrub units on Home, and it was NINE until 2026-08-22: Trajectory's
+ * portrait was a fifth unit there until it moved to `/about`, which is a
+ * page with no scrub at all. If a count anywhere still says nine or five,
+ * it predates that move.
  * and nowhere else. Home -> Stack stays on `Reveal` deliberately: it is Tier 3,
  * and the discrete-versus-continuous difference between it and its two
  * neighbours IS the tier boundary made visible. If that ever reads as broken,

@@ -217,29 +217,34 @@
   --spacing-4xl: 233px;
 
   /* --- BREAKPOINTS -------------------------------------------------------
-     One custom breakpoint, added for one consumer: the About portrait, which
-     needs ~464px of third column and does not get it until about here. See
-     the file header of components/sections/About.tsx.
+     THERE ARE NO CUSTOM BREAKPOINTS. The site runs on Tailwind's defaults.
 
-     85rem IS 1360px, AND THE UNIT IS THE WHOLE POINT — do not "clarify" this
-     to `1360px`. Tailwind orders breakpoint media queries by comparing their
-     declared values, and its own defaults are rem (`lg` is `64rem`, `xl`
-     `80rem`, `2xl` `96rem`). A px value cannot be ordered against those, so a
-     px breakpoint is emitted BEFORE the rem ones no matter how large it is —
-     `@media (min-width:1360px)` lands ahead of `@media (min-width:64rem)` in
-     the stylesheet, and at equal specificity `lg:` then wins everywhere above
-     1360px.
+     There was exactly one — `--breakpoint-photo: 85rem` (1360px) — added for
+     a single consumer: the portrait that used to fill Trajectory's third
+     column, which needed ~464px and did not get it until about there. That
+     portrait moved to `/about` on 2026-08-22, where it rides plain `lg`
+     because that page has no 144px label rail and therefore ~302px of room at
+     1024px. The breakpoint lost its only consumer and went with it — a
+     registered breakpoint with nothing using it is dead surface that reads as
+     available.
 
-     Both spellings were written and measured here. With `1360px`, the About
-     measure silently collapsed from 544px to 489px above the breakpoint: the
-     beat kept `lg`'s three-track template and spent a 55px gap on a dead
-     `1fr`, because `photo:grid-cols-*` was being overridden by the very rule
-     it exists to replace. `next build` was green, no warning fired, and the
-     page looked entirely plausible. In rem it sorts between `xl` and `2xl`,
-     where it belongs. This is the `globals.css`-is-truth rule in CLAUDE.md
-     paying for itself; verify against the built CSS, not against intent.
+     THE LESSON IT COST STAYS, and it is Rule S-5 in
+     `docs/03_FRONTEND_SPEC.md`: ANY custom breakpoint added here is declared
+     in `rem`, NEVER in `px`. Tailwind orders breakpoint media queries by
+     comparing their declared values, and its own defaults are rem (`lg` is
+     `64rem`, `xl` `80rem`, `2xl` `96rem`). A px value cannot be ordered
+     against those, so a px breakpoint is emitted BEFORE the rem ones no matter
+     how large it is — `@media (min-width:1360px)` lands ahead of
+     `@media (min-width:64rem)` in the stylesheet, and at equal specificity
+     `lg:` then wins everywhere above it.
+
+     Both spellings were written and measured. With `1360px`, Trajectory's
+     prose measure silently collapsed from 544px to 489px above the breakpoint
+     while `tsc`, `eslint` and `next build` all stayed green and the page
+     looked entirely plausible; it was caught only by reading computed
+     `grid-template-columns` in a browser. Verify against the built CSS, not
+     against intent.
   --------------------------------------------------------------------- */
-  --breakpoint-photo: 85rem;
 }
 
 /* ---------------------------------------------------------------------------

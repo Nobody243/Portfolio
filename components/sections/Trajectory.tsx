@@ -1,6 +1,3 @@
-import Image from "next/image";
-
-import portrait from "@/public/images/about/portrait.jpg";
 import { ScrubReveal } from "@/components/ui/ScrubReveal";
 import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
 
@@ -23,10 +20,11 @@ import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
  * DELIBERATELY A SERVER COMPONENT. `ScrubReveal` is the only client boundary
  * here, which keeps the copy out of the client bundle's critical path.
  *
- * ITS FIVE UNITS SCRUB, THEY DO NOT REVEAL — the <h2>, the portrait and each of
- * the three beats. `docs/03_FRONTEND_SPEC.md`, "Scroll-scrub — Home only",
- * scopes the scrub to this section and to Home's three featured project cards,
- * and to nothing else on the site.
+ * ITS FOUR UNITS SCRUB, THEY DO NOT REVEAL — the <h2> and each of the three
+ * beats. It was five until the portrait moved to `/about`.
+ * `docs/03_FRONTEND_SPEC.md`, "Scroll-scrub — Home only", scopes the scrub to
+ * this section and to Home's three featured project cards, and to nothing else
+ * on the site.
  *
  * IT IMPORTS `ScrubReveal` DIRECTLY AND TAKES NO PROP TO CHOOSE, because this
  * section renders on Home and only on Home — there is no second caller to
@@ -50,41 +48,37 @@ import { ABOUT_BEATS, ABOUT_HEADING } from "@/components/sections/aboutContent";
  * doing its job, not a gap waiting to be filled. Do not centre the column and
  * do not widen the measure to "use the space".
  *
- * THE RAIL. At >=1024px each beat is a three-column grid: a 144px rail holding
- * only the mono label, the prose, and an empty third column. Below 1024px the
- * rail collapses and the label stacks above its paragraph — attempting the rail
- * at 640px would leave a ~42-character measure, and a cramped measure is worse
- * than a stacked label.
+ * THE RAIL. At >=1024px each beat is a two-column grid: a 144px rail holding
+ * only the mono label, and the prose. Below 1024px the rail collapses and the
+ * label stacks above its paragraph — attempting the rail at 640px would leave
+ * a ~42-character measure, and a cramped measure is worse than a stacked
+ * label.
  *
- * THE THIRD COLUMN IS THE PHOTO SLOT, and it is now FILLED. It shipped empty
- * with the cost of filling it written down; this is what paying that cost came
- * to, kept here because every line of it is still load-bearing.
- *   - It is `1fr`, so it takes whatever the fixed tracks leave over: about
- *     48px at exactly 1024px, and only a usable ~464px at 1360px. The photo
- *     therefore rides its own `photo:` breakpoint (1360px, registered in globals.css) — NOT `lg`, which
- *     would put a portrait in a 48px column.
- *   - It must span the beat-1 and beat-2 rows, so the per-beat grids MERGED
- *     into one three-row grid on the container. Each beat is now `col-span-2`
- *     carrying a TWO-track inner grid, and the outer and inner templates are
- *     arithmetically identical — 144 + 55 + 544 = 743px either way — so the
- *     rail does not shift when the merge kicks in at 1360px. The two
- *     templates must move together, exactly like the 34rem pair below.
- *   - `display: contents` on the beats is the obvious way to flatten them into
- *     the parent grid and it is WRONG here: the beat wrapper is animated with a
- *     transform, and a transform does not apply to a `display: contents` box, so
- *     every beat would silently stop moving. That was as true of the reveal this
- *     section used to run as it is of the scrub it runs now. That is why this is
- *     col-span-2 plus an inner grid and not the shorter thing.
- *   - Below 1360px the photo is not in this column at all. It is the first
- *     child of the beats container, which places it between the <h2> and beat
- *     1 in plain source order — no `order` utility, and no second <Image> to
- *     keep in sync.
- *   - 4:5 AT EVERY WIDTH, one crop. The note here used to specify 3:2
- *     landscape below the breakpoint; that was written before there was a real
- *     image to test it against. The real one is a standing portrait with the
- *     head near the top of the frame, and a 3:2 crop of it cuts the hair and
- *     both hands. The source is SQUARE, so 4:5 crops width only and the whole
- *     head-to-hands range survives at every size.
+ * THERE IS NO THIRD COLUMN AND NO PHOTO SLOT. A portrait filled one between
+ * `95ae847` and this commit; it now lives on `/about`
+ * (`components/about/AboutScreen.tsx`), which is the page it was always about —
+ * Saad's call, recorded in `.claude/handoff/about-design.md` §9. What that
+ * leaves behind is deliberate, and every line of it is a thing not to undo:
+ *   - The template is TWO tracks, the 144px rail and the 34rem measure. The
+ *     width to their right is unpainted on purpose. That is the COMPOSITION
+ *     note above still doing its job, not a slot waiting for a replacement
+ *     image.
+ *   - The per-beat grids are per-beat again. They had merged into one
+ *     three-row grid on the container purely so the photo could span the
+ *     beat-1 and beat-2 rows; with no photo there is nothing to span, so the
+ *     merge, the `col-span-2` and the duplicated inner template went with it.
+ *   - `--breakpoint-photo` was registered in `globals.css` for that column and
+ *     for nothing else, so it was deleted in the same commit. `/about` does
+ *     NOT adopt it: that page has no 144px rail, so it has ~302px of room at
+ *     1024px where this section had 48px, and the portrait rides plain `lg`
+ *     there.
+ *   - IF A PHOTO IS EVER WANTED HERE AGAIN it costs all of the above in
+ *     reverse: a custom breakpoint (declared in `rem` — Rule S-5,
+ *     `docs/03_FRONTEND_SPEC.md`), a container-level grid merge, and a fifth
+ *     scrub unit. And `display: contents` is still the WRONG shortcut for that
+ *     merge: the beat wrapper is animated with a transform, and a transform
+ *     does not apply to a `display: contents` box, so every beat would
+ *     silently stop moving.
  *
  * NO ACCENT COLOUR ANYWHERE IN THIS SECTION. That is a decision, not an
  * oversight: the labels are `fg` at 70%, not `accent-working`. Teal on the
@@ -121,43 +115,7 @@ export function Trajectory() {
           title. Equal gaps would make "Trajectory" read as a fourth peer item
           rather than as the thing the beats argue for.
         */}
-        <div className="mt-xl space-y-lg lg:mt-2xl lg:space-y-xl photo:grid photo:grid-cols-[var(--spacing-3xl)_minmax(0,34rem)_1fr] photo:gap-x-xl photo:gap-y-xl photo:space-y-0">
-          {/*
-            FIRST CHILD ON PURPOSE, and the `space-y-0` above is why it can be.
-            In flow this lands the photo between the <h2> and beat 1, which IS
-            the sub-1360px placement; at 1360px the explicit column/row start
-            below lifts it into the slot and the flow position stops mattering.
-            `space-y-*` is sibling margin, so it must be zeroed when the
-            container turns into a grid or it fights `gap-y`.
-          */}
-          <ScrubReveal className="photo:col-start-3 photo:row-span-2 photo:row-start-1 photo:self-start">
-            {/*
-              NO RADIUS, no border, no shadow. Not an omission — there is not a
-              single `rounded-*` anywhere in this codebase, and a soft-cornered
-              photo would be the one exception announcing itself.
-
-              `sizes` is measured, not guessed, and reads bottom-up:
-                <362px    the 320px cap is unreachable, so 100vw - 42px (px-md)
-                >=362px   the cap binds -> a flat 320px
-                >=1360px  in-slot: 100vw - 178 (px-2xl) - 144 (rail) - 544
-                          (measure) - 110 (two gap-x-xl) = 100vw - 976
-                >=1440px  the container stops growing at max-w-[1440px], so the
-                          slot pins at 464px
-              Quality is left at the default 75 and deliberately not raised to
-              the 85 next.config.ts also allows: 85 exists for the project
-              covers, which are UI screenshots where sharp text on flat fields
-              is the worst case for a lossy encoder. This is a soft-edged
-              photograph, the exact opposite case.
-            */}
-            <Image
-              src={portrait}
-              alt="Muhammad Saad"
-              sizes="(min-width: 1440px) 464px, (min-width: 1360px) calc(100vw - 976px), (min-width: 362px) 320px, calc(100vw - 42px)"
-              placeholder="blur"
-              className="aspect-[4/5] w-full max-w-[320px] object-cover object-[55%_center] photo:max-w-none"
-            />
-          </ScrubReveal>
-
+        <div className="mt-xl space-y-lg lg:mt-2xl lg:space-y-xl">
           {ABOUT_BEATS.map((beat) => (
             <ScrubReveal
               key={beat.label}
@@ -181,11 +139,12 @@ export function Trajectory() {
               // `index * STAGGER.line` — an index cascade is rejected by name
               // in the design brief and would make the backwards-ordering
               // worse, not better.
-              // The `min-[1360px]` pair is the merge described in the file
-              // header: drop the now-redundant `1fr` (the container owns it)
-              // and span the two tracks this beat actually uses. Same total
-              // width, same rail, one grid instead of three.
-              className="lg:grid lg:grid-cols-[var(--spacing-3xl)_minmax(0,34rem)_1fr] lg:gap-x-xl photo:col-span-2 photo:grid-cols-[var(--spacing-3xl)_minmax(0,34rem)]"
+              //
+              // TWO TRACKS, NOT THREE. The trailing `1fr` that used to sit
+              // here existed only to reserve the photo column; with the
+              // portrait on `/about` there is nothing to reserve, and the
+              // space to the right of the measure is simply unpainted.
+              className="lg:grid lg:grid-cols-[var(--spacing-3xl)_minmax(0,34rem)] lg:gap-x-xl"
             >
               {/*
                 An <h3>, but explicitly NOT heading-sized: it is a mono caption
