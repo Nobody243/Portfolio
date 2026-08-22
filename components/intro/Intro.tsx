@@ -77,6 +77,7 @@ import {
   INTRO_GLYPHS,
   NAME_SCALE,
   SLIDE_X,
+  type IntroGlyph,
   type MarkLetter,
 } from "@/components/ui/msMarkGeometry";
 import { GSAP_EASE, gsap } from "@/lib/animation/gsap";
@@ -307,24 +308,72 @@ export function Intro({
         scale: NAME_SCALE,
         opacity: 0,
       });
+      /*
+        THE TWELVE GLYPH GROUPS GO BACK TO AN IDENTITY MATRIX, and this line is
+        the whole of Item 1's bug.
+
+        `reset()` cleared the plate, the stage, the wrapper and the nav, and the
+        lines below clear the `<svg>` and the host — but the glyph groups got
+        only `display` and `opacity`, and `tl.kill()` does not revert. So on any
+        SECOND run of this effect (React StrictMode's double-invoke, Fast
+        Refresh, a `playToken` replay, an OS reduced-motion flip) `namePose`
+        handed `svgOrigin` to an element that already carried a scaled matrix.
+        GSAP then inverse-transforms the origin into local space and stores a
+        smoothOrigin compensation, which cancel EXACTLY at the current scale —
+        so the opening name still looked perfect — and diverge the instant a
+        scale changes. Measured on the StrictMode run at 1440×900: glyph 7 (the
+        `d` of "Muhammad") cached `xOrigin` 10224.11 and `xOffset` −6939.49
+        against a correct `markX` of 1816.69 and `xOffset` 0, and phase 2 threw
+        it 704px to the right — off a 720px plate. Cold production run, same
+        frame: `xOrigin` 1816.69, `xOffset` 0.
+
+        `clearProps: "transform"` also removes the SVG `transform` attribute and
+        re-parses the cache as identity, so it is `data-svg-origin`-safe. The
+        wrapper above does NOT need it: its pose's fixed point IS its own
+        origin (`ANCHOR_X`, with no `x` term), so re-originating it is a no-op.
+      */
+      gsap.set(glyphEls, { clearProps: "transform" });
       if (nav) gsap.set(nav, { yPercent: 0 });
     };
 
     /** Put a glyph at its position in the OPENING NAME.
      *
-     *  Both ends of phase 3 are expressed against the same origin — the glyph's
-     *  own pen origin on the baseline, in the settled mark's space — so the
-     *  slide is a pure `x` tween with no correction term and no origin change
-     *  mid-flight. `svgOrigin` and not `transformOrigin`: the former is in the
-     *  SVG's user coordinate system, which is the space every number in the
-     *  geometry module is stated in. */
-    const namePose = (el: Element, markX: number, x: number) =>
+     *  `svgOrigin` and not `transformOrigin`: the former is in the SVG's user
+     *  coordinate system, which is the space every number in the geometry
+     *  module is stated in. Set ONCE, here, and never changed afterwards —
+     *  re-originating an already-transformed element is precisely the mechanism
+     *  `reset()` above now guards against.
+     *
+     *  TWO ORIGINS, ONE PER ROLE, and the split is load-bearing:
+     *
+     *    - THE TWO CAPITALS KEEP THEIR PEN ORIGIN. Both ends of phase 3 are
+     *      expressed against it — `SLIDE_X` is a pen-origin x — so the slide
+     *      stays a pure `x` tween with no correction term. (A pure `x` tween is
+     *      origin-independent anyway, which is exactly why M and S were the two
+     *      glyphs the origin bug could not touch.)
+     *    - THE TEN NON-INITIALS ARE ORIGINATED ON THEIR ADVANCE CENTRE, still
+     *      on `BASELINE`, so phase 2's shrink is symmetric in x and sinks onto
+     *      the one horizontal all ten share. This comment read "the glyph's own
+     *      pen origin" for both until 2026-08-22; that was its bottom-LEFT, and
+     *      it measured as 9–13px of leftward and 7–11px of downward drift per
+     *      glyph on a cold run.
+     *
+     *  THE `x` TERM CARRIES A COMPENSATION and it is not optional. GSAP renders
+     *  `σ·p + ox·(1 − σ) + x`, so moving `ox` off `markX` displaces the posed
+     *  glyph by `(ox − markX)·(1 − NAME_SCALE)` — for a `d` that is ~112 viewBox
+     *  units, i.e. the opening name would be dealt out sideways in frame 1.
+     *  Subtracting it back keeps the rendered name layout byte-identical and
+     *  leaves the origin free to do only the job it was moved for. It is zero
+     *  for the capitals by construction. */
+    const namePose = (el: Element, g: IntroGlyph) => {
+      const originX = g.letter ? g.markX : g.markX + g.advanceX / 2;
       gsap.set(el, {
-        svgOrigin: `${markX} ${BASELINE}`,
+        svgOrigin: `${originX} ${BASELINE}`,
         scale: NAME_SCALE,
-        x: x - markX,
+        x: g.nameX - g.markX - (originX - g.markX) * (1 - NAME_SCALE),
         y: 0,
       });
+    };
 
     const finish = () => onCompleteRef.current?.();
     const handoff = () => onHandoffRef.current?.();
@@ -390,21 +439,30 @@ export function Intro({
          invisible.
       --------------------------------------------------------------- */
       gsap.set(glyphEls, { display: "" });
-      INTRO_GLYPHS.forEach((g, i) => namePose(glyphEls[i], g.markX, g.nameX));
+      INTRO_GLYPHS.forEach((g, i) => namePose(glyphEls[i], g));
       gsap.set(glyphEls, { opacity: 1 });
 
       // 1. HOLD. A gap, not a tween: nothing animates before 0.300.
 
-      /* 2. DROP. The ten non-initials shrink toward their own baseline origin
-            and fade, staggered left to right in document order.
+      /* 2. DROP. The ten non-initials shrink onto the shared baseline and
+            fade, staggered left to right in document order.
 
-            THE ORIGIN IS THE PEN ORIGIN, NOT THE GLYPH'S BOX CENTRE, which is
-            the one visible difference from the DOM original — a `<span>`
-            scaled about its middle, this scales about its bottom-left. The
-            drift is a few pixels and it happens under a `power2.in` fade that
-            is already past half-transparent by the time the shrink is
-            noticeable. Correcting it would mean per-glyph ink bounds and a
-            compensating translation on a group that is disappearing. */
+            THEY FADE SYMMETRICALLY IN PLACE. They do NOT converge on anything,
+            and that is the concept rather than a shortcut: a monogram is the
+            initials that SURVIVED, so the ten are discarded, not carried in.
+            Giving them a destination would sweep ten letterforms through the
+            mark's 64-unit letter gap, which is the overlapping mess `docs/07`
+            §3 already reverted, and would fill the centre that phase 3's slide
+            needs empty in order to read as closing up.
+
+            THE ORIGIN IS THE ADVANCE CENTRE ON `BASELINE`, set in `namePose`.
+            This said "THE ORIGIN IS THE PEN ORIGIN, NOT THE GLYPH'S BOX
+            CENTRE… the drift is a few pixels… correcting it would mean
+            per-glyph ink bounds and a compensating translation on a group that
+            is disappearing." The drift was real and measured (9–13px left,
+            7–11px down at 1440×900), the correction needed no ink bounds — the
+            font's own advance was already there — and the compensating
+            translation is one term in a pose that was being written anyway. */
       const dropEls = glyphEls.filter((_, i) => INTRO_GLYPHS[i].letter === null);
       tl.to(
         dropEls,

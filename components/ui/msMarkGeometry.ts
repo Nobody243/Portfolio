@@ -309,8 +309,16 @@ export const NAV_HEIGHT_PX = 17;
    THE CAPITAL M OF "Muhammad" BECOMES THE MARK'S M; THE CAPITAL S OF "Saad"
    BECOMES THE MARK'S S. One-to-one, twice. The other TEN inked glyphs — the
    space carries advance width and no ink, so it is not one of them — SHRINK
-   TOWARD THEIR OWN PEN ORIGIN AND FADE, staggered left to right, leaving the
-   two initials standing. A monogram is the initials that survived.
+   ONTO THE SHARED BASELINE AND FADE, staggered left to right, leaving the two
+   initials standing. A monogram is the initials that survived.
+
+   THEY SHRANK TOWARD THEIR OWN PEN ORIGIN — their bottom-LEFT — until
+   2026-08-22, and the sentence above said so. Measured on a cold production
+   run, that drifted each glyph 9–13px left and 7–11px down while it faded,
+   which is ten independent diagonal slips rather than one gesture. `advanceX`
+   below exists to replace it: the drop is now originated on each glyph's
+   advance centre, on `BASELINE`, so all ten sink toward the SAME horizontal.
+   The baseline is also the one line the name and the mark literally share.
 
    THIS HEADER DESCRIBED A DIFFERENT MECHANIC UNTIL 2026-08-22. It said the ten
    "translate toward their own word's capital and fade, so each word visibly
@@ -369,6 +377,19 @@ export type IntroGlyph = {
   readonly markX: number;
   /** x of the same origin in the opening name layout. */
   readonly nameX: number;
+  /**
+   * This glyph's ADVANCE WIDTH in the settled mark's space — `ha × K`, the
+   * same units `markX` is in, taken from the font's own advance like every
+   * other number in this module rather than from a hand-written table.
+   *
+   * It exists for exactly one consumer: `Intro.tsx`'s phase 2, which shrinks
+   * each non-initial about `markX + advanceX / 2` on `BASELINE` instead of
+   * about its pen origin. Advance centre and not INK centre (`(xMin + xMax)/2`)
+   * deliberately — advance is what sets the glyph's own slot in the run, so
+   * two adjacent letters shrink about points that are evenly spaced rather
+   * than about points that jitter with each letterform's side bearings.
+   */
+  readonly advanceX: number;
 };
 
 /**
@@ -473,6 +494,7 @@ function buildIntroGlyphs(): readonly IntroGlyph[] {
       d: placePath(glyph.d, markX, BASELINE, K),
       markX,
       nameX,
+      advanceX: advance(ch) * K,
     });
   });
 

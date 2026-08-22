@@ -117,6 +117,20 @@ coordinate system, which is what deletes the `TextMetrics` baseline probe, the
 three mirrored mark constants and the measured FLIP that the DOM version needed.
 DOM text would put all three back.
 
+**Phase 2 is a subtraction, and it fades SYMMETRICALLY IN PLACE.** The ten do
+not converge on the anchor, on their word's capital, or on each other. A
+monogram is the initials that survived, so the ten are discarded rather than
+carried in — and sweeping them into the mark's 64-unit letter gap would rebuild
+the overlapping mess `docs/07` §3 reverted and would fill the centre that phase
+3 needs empty in order to read as *closing up*. Mechanically that means each
+non-initial shrinks about `markX + advanceX / 2` on `BASELINE` (its advance
+centre, on the one horizontal all ten share), not about its pen origin. It was
+the pen origin — the glyph's bottom-left — until 2026-08-22, which measured as
+9–13px of leftward and 7–11px of downward drift per glyph at 1440×900: ten
+independent diagonal slips instead of one gesture. Durations, stagger, ease and
+`DROP_SCALE` are unchanged by that correction; if the sink ever needs reducing,
+`DROP_SCALE` is the only sanctioned lever.
+
 **Phase 3 is arithmetic where the original was a measured FLIP.** The DOM Intro
 collapsed the non-initial `<span>`s to `display: none`, let the flex row reflow,
 and read the survivors' new rects back out. There is no layout inside an SVG to
