@@ -554,8 +554,88 @@ const SPHERE_MIN_ALPHA = 0.25;
  * Bucketing rather than `ctx.setTransform`: a transform would also scale the
  * letter-spacing and the shadow blur, and it would make the minimum-size rule
  * above impossible to reason about.
+ *
+ * "SIX PARSES A FRAME" RESTED ON THE BUCKET BEING MONOTONE ALONG THE DRAW
+ * ORDER, and `SPHERE_BUCKET_HYSTERESIS` below breaks that monotonicity: two
+ * adjacent fragments can now hold different buckets on the same side of a
+ * boundary depending on which way each last crossed it, so the font can be
+ * reassigned more than once per bucket.
+ *
+ * THAT COST WAS MEASURED RATHER THAN ARGUED, AND IT IS NOT NOTHING — it
+ * roughly doubles. Counting `ctx.font` assignments per frame on a production
+ * build, hysteresis off then on: 4.00 -> 8.35 at 1440x900 idle, 4.00 -> 7.01
+ * at 1440x900 under a continuous 0.5Hz cursor sweep, 3.00 -> 5.28 at 375x812,
+ * 3.00 -> 5.19 at 320x568.
+ *
+ * IT IS STILL WELL INSIDE THE BUDGET THIS CONSTANT EXISTS TO DEFEND, which is
+ * what makes doubling acceptable rather than alarming. The number that matters
+ * is the ceiling: one parse per DRAWN fragment, which is 36 at 1440 and 22 at
+ * 375. 8.35 against 36 is the same order of saving the original "six against
+ * ninety" bought. If a future change pushes this past roughly half the drawn
+ * count, the trade has stopped being worth it — measure it, do not assume it.
  */
 const SPHERE_SCALE_BUCKETS = 6;
+
+/**
+ * Bucket hysteresis, as a fraction of one bucket's width.
+ *
+ * WITHOUT IT A LABEL SWITCHES THE INSTANT IT RECROSSES A BOUNDARY, and the
+ * switch is not subtle: one bucket is ~8% of the type size, so a 24-character
+ * label changes width by ~3.3px at each end in a single frame. `Math.round` on
+ * a continuously varying depth has no memory, so a label sitting near a
+ * boundary while the depth wobbles pops back and forth.
+ *
+ * IDLE ROTATION DOES NOT PRODUCE THAT WOBBLE, AND SAYING SO IS THE POINT OF
+ * THIS PARAGRAPH. Measured over 20s of idle rotation at 1440x900: 19.25 bucket
+ * switches per 5s and ZERO of them reversed within 20 frames. Idle, each
+ * label's depth moves smoothly in one direction at 6 deg/s, so a boundary is
+ * crossed once and the crossing is a real depth change rather than dither. The
+ * condition that produces dither is the CURSOR: the tilt swings +-18 deg about
+ * Y at whatever rate the hand moves, several times the idle rate AND reversing.
+ * Under a 0.5Hz pointer sweep the same 20s measured 65.5 switches per 5s with
+ * 3.25 of them reversals. That is what this constant is for. Anyone re-deriving
+ * it from an idle capture will measure nothing and conclude it is dead code.
+ *
+ * 0.18 — inside the 15-20% the review asked for and not at either edge. A
+ * label that switched at a boundary must travel 18% of a bucket back PAST that
+ * boundary before it switches again, so a wobble smaller than that is absorbed
+ * entirely. Raising it much further starts to visibly delay honest depth
+ * changes at the far pole, where the buckets are narrowest in `t`.
+ */
+const SPHERE_BUCKET_HYSTERESIS = 0.18;
+
+/**
+ * How long the clip guard takes to fade a fragment out, ms.
+ *
+ * THE GUARD USED TO BE A HARD `continue`, so a rim label crossing the viewport
+ * edge vanished between one frame and the next at full alpha.
+ *
+ * IT ALSO ALMOST NEVER FIRED, WHICH IS WHY THIS IS 175ms AND NOT A BIGGER
+ * CHANGE. The clip test is purely static geometry — a sphere's silhouette is
+ * invariant under rotation, so neither the spin nor the cursor tilt can move a
+ * fragment outside the projected disc, and whether a rim label hangs off the
+ * viewport depends only on the viewport size. Enumerated across every width
+ * from 320 to 2560: at 1440x900 the disc spans x 777.6-1209.6 against a widest
+ * label of ~103px half-width, so the guard CANNOT fire there, and measurement
+ * agrees — 0 cuts in 20s, with a flat 90 labels drawn every frame. It fires on
+ * compact viewports only, and rarely: 0.17 cuts per 5s at 320x568 before the
+ * render floor existed.
+ *
+ * THE RENDER FLOOR MADE IT MATTER MORE, and that is the reason to fix it now
+ * rather than to leave it. Dropping everything under 9px removed exactly the
+ * small rim labels that used to fit, so what is left at the rim is bigger: the
+ * same measurement at 375x812 went from 0 cuts per 5s to 1.17.
+ *
+ * TIME-BASED, NOT DISTANCE-BASED. A ramp over the last N pixels of travel would
+ * be simpler and needs no state, but its duration would then depend on how fast
+ * the label happens to be crossing, which is a different number at every
+ * viewport size. 175ms is 175ms.
+ *
+ * LINEAR RATHER THAN EASED, deliberately: an exponential ease never reaches
+ * zero, so "the fade is done" would need a threshold, and the whole point of
+ * the constant is that the duration is exactly what it says.
+ */
+const SPHERE_CLIP_FADE_MS = 175;
 
 /**
  * The near band's tint, as rgb channels.
@@ -596,6 +676,47 @@ const SPHERE_POINTER_IDLE_MS = 2_500;
 const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
 
 /**
+ * PER-FRAGMENT DRAW STATE — the two things the draw pass has to remember
+ * between frames, and the only two.
+ *
+ * IT LIVES HERE AND NOT ON `ProjectedFragment`, WHICH WOULD HAVE BEEN THE
+ * SHORTER EDIT. `lib/hero/commandSphere.ts` is geometry only; the note on
+ * `SPHERE_SCALE_MIN` there says exporting the scale endpoints was preferred
+ * over exporting a bucketing function precisely so that a rendering concern
+ * would not end up in a module whose whole point is not having any. Which
+ * bucket a fragment was last DRAWN in, and how far a fade toward the viewport
+ * edge has got, are both rendering concerns of the most literal kind.
+ *
+ * TYPED ARRAYS, ALLOCATED ONCE PER SPHERE BUILD, for the reason the geometry
+ * module states in its header: this runs inside the same rAF tick as an O(n²)
+ * link pass, and a per-frame allocation here shows up as GC sawtooth across the
+ * whole hero rather than as one slow function.
+ *
+ * BOTH USE -1 AS "NOT YET SET", AND THAT SENTINEL IS LOAD-BEARING FOR REDUCED
+ * MOTION. That path draws exactly one frame and never draws another. A fade
+ * initialised to 0 would render nothing at all on it; a fade initialised to 1
+ * would render a fragment the guard means to hide. -1 means "adopt the target
+ * immediately, do not animate toward it", so the first frame — the only frame
+ * a reduced-motion visitor sees — is the correct still image.
+ */
+type SphereDrawState = {
+  /** The bucket each fragment was last drawn in. -1 = never drawn. */
+  bucket: Int8Array;
+  /** Clip-guard opacity, 0..1. -1 = never evaluated. */
+  clipFade: Float32Array;
+};
+
+function createSphereDrawState(count: number): SphereDrawState {
+  const state = {
+    bucket: new Int8Array(count),
+    clipFade: new Float32Array(count),
+  };
+  state.bucket.fill(-1);
+  state.clipFade.fill(-1);
+  return state;
+}
+
+/**
  * The sphere's entire draw pass. Deliberately ONE function and deliberately NOT
  * interleaved with the mesh loop below — the two effects share a frame, which
  * is a performance decision, and nothing about it requires them to share code.
@@ -618,6 +739,8 @@ function drawCommandSphere(
   ctx: CanvasRenderingContext2D,
   sphere: CommandSphere,
   order: readonly number[],
+  state: SphereDrawState,
+  dtMs: number,
   accent: string,
   fontStack: string,
   compact: boolean,
@@ -643,9 +766,23 @@ function drawCommandSphere(
   ctx.fillStyle = `rgb(${accent})`;
 
   for (let i = 0; i < order.length; i++) {
-    const f = sphere.projected[order[i]];
+    const index = order[i];
+    const f = sphere.projected[index];
 
-    const step = Math.round(((f.scale - SPHERE_SCALE_MIN) / span) * steps);
+    // THE BUCKET, WITH HYSTERESIS. `q` is the unquantised bucket position;
+    // `Math.round(q)` is what this used to be and is still what a fragment gets
+    // the first time it is drawn. After that the fragment KEEPS its previous
+    // bucket until `q` leaves that bucket's nominal half-width by
+    // `SPHERE_BUCKET_HYSTERESIS`, so a label that switched at a boundary has to
+    // travel 18% of a bucket back past that boundary to switch again.
+    const q = ((f.scale - SPHERE_SCALE_MIN) / span) * steps;
+    const held = state.bucket[index];
+    const step =
+      held < 0 || Math.abs(q - held) > 0.5 + SPHERE_BUCKET_HYSTERESIS
+        ? Math.round(q)
+        : held;
+    state.bucket[index] = step;
+
     // The BUCKETED size, because that is what actually renders. Both the render
     // floor and the clip guard below test against this rather than against the
     // unquantised scale, which would drop a fragment that was about to be drawn
@@ -657,14 +794,23 @@ function drawCommandSphere(
     // was then skipped — the one call in this loop that `SPHERE_SCALE_BUCKETS`
     // identifies as the expensive one.
     //
-    // BOTH CUTS ARE A PREFIX OF `order`, WHICH IS WHY THIS IS SAFE HERE. The
-    // order is far-to-near and both `alpha` and `scale` are monotone along it,
-    // so everything dropped is dropped at the START of the loop, before
-    // `bucket`, `tinted` or `glowing` has been set to anything. A dropped
-    // fragment is `near: false, glow: false` by construction, which is the
-    // state those two locals already hold, so skipping it cannot desync them.
+    // THE ALPHA CUT IS EXACTLY A PREFIX OF `order`; THE SIZE CUT IS NEARLY ONE.
+    // The order is far-to-near, and `alpha` is a monotone function of depth
+    // that nothing quantises, so the alpha cut drops a clean prefix. `px` is
+    // now bucketed WITH HYSTERESIS, so two adjacent fragments straddling the
+    // 9px boundary can be dropped out of order by one bucket depending on which
+    // way each of them last crossed it.
+    //
+    // THAT DOES NOT MATTER HERE, AND THE REASON IS WORTH STATING RATHER THAN
+    // REDERIVING. What the prefix property protects is `tinted` and `glowing`,
+    // which are set on first change and must not be skipped past. The size cut
+    // only ever fires below t = 0.52 (compact) or t = 0.19 (desktop), and both
+    // are far below `NEAR_TINT_T` 0.75 and `GLOW_T` 0.6 — so every fragment it
+    // can drop is `near: false, glow: false`, which is the state those two
+    // locals already hold. Skipping one cannot desync them.
+    //
     // `continue` and not `break`: this loop's CHEAPNESS is allowed to depend on
-    // that monotonicity, its CORRECTNESS is not.
+    // monotonicity, its CORRECTNESS is not.
     if (f.alpha < SPHERE_MIN_ALPHA || px < SPHERE_MIN_FONT_PX) continue;
 
     if (step !== bucket) {
@@ -697,9 +843,39 @@ function drawCommandSphere(
     // runs slightly WIDE on purpose, so a marginal fragment is dropped rather
     // than clipped. Cheap and one-directional.
     const halfWidth = f.text.length * px * SPHERE_ADVANCE_ESTIMATE * 0.5;
-    if (f.x - halfWidth < 0 || f.x + halfWidth > viewportWidth) continue;
+    const clipped = f.x - halfWidth < 0 || f.x + halfWidth > viewportWidth;
 
-    ctx.globalAlpha = f.alpha;
+    // IT FADES NOW INSTEAD OF VANISHING. `continue` on the line above used to
+    // be the whole guard, so a rim label crossing the viewport edge disappeared
+    // between one frame and the next at full alpha.
+    //
+    // A LINEAR RAMP DRIVEN BY REAL `dtMs`, so the duration is the same on any
+    // display — the same correction the rest of this file just took. `-1` means
+    // the fragment has not been evaluated yet and adopts its target outright,
+    // which is what keeps the single reduced-motion frame correct: there is no
+    // frame before it to have faded from.
+    const prev = state.clipFade[index];
+    const target = clipped ? 0 : 1;
+    let fade: number;
+    if (prev < 0 || dtMs <= 0) {
+      fade = prev < 0 ? target : prev;
+    } else {
+      const stepAmount = dtMs / SPHERE_CLIP_FADE_MS;
+      fade =
+        target > prev
+          ? Math.min(target, prev + stepAmount)
+          : Math.max(target, prev - stepAmount);
+    }
+    state.clipFade[index] = fade;
+    if (fade <= 0) continue;
+    // A fragment the RENDER FLOOR dropped never reaches this block, so its fade
+    // freezes rather than continuing. That is harmless in the only way it can
+    // happen: the floor fires deep in the far hemisphere and the guard fires at
+    // the rim, so a fragment leaving via the floor is at fade 1 and re-enters at
+    // fade 1. A fragment that managed to be mid-fade at the moment it crossed
+    // the floor resumes from where it stopped and completes within 175ms.
+
+    ctx.globalAlpha = f.alpha * fade;
     ctx.fillText(f.text, f.x, f.y);
   }
 
@@ -838,6 +1014,10 @@ export function ParticleGrid({
     /** The sphere. Rebuilt only when its fragment count changes; otherwise the
      *  same object is re-placed, so a resize never resets its rotation. */
     let sphere: CommandSphere | null = null;
+    /** Index-parallel to `sphere.fragments`, and allocated and discarded with
+     *  it — a stale array against a rebuilt sphere would carry one fragment's
+     *  bucket and fade onto a different fragment. */
+    let sphereDraw: SphereDrawState | null = null;
     let compact = false;
     /** rAF timestamp of the previous tick, for real elapsed `dt`. */
     let lastFrame = 0;
@@ -973,6 +1153,7 @@ export function ParticleGrid({
       // it.
       if (!withSphere) {
         sphere = null;
+        sphereDraw = null;
       } else {
         const fragments = compact ? SPHERE_COUNT_COMPACT : SPHERE_COUNT;
         if (!sphere || sphere.fragments.length !== fragments) {
@@ -981,6 +1162,12 @@ export function ParticleGrid({
             fragments,
             HERO_COMMAND_FEATURED,
           );
+          // REALLOCATED WITH THE SPHERE AND ONLY WITH IT. A plain resize
+          // re-places the same sphere and must keep both arrays, or every
+          // fragment would re-adopt its bucket and fade from scratch on each
+          // debounced rebuild — which is a visible flash of the whole rim at
+          // the end of a window drag.
+          sphereDraw = createSphereDrawState(fragments);
         }
         // Fed the canvas's OWN untransformed CSS size, never a rect measured
         // off anything inside the hero's stage wrapper. That wrapper carries a
@@ -1336,7 +1523,7 @@ export function ParticleGrid({
       }
 
       /* --- the sphere, LAST, so it composites in front of the mesh ------- */
-      if (sphere) {
+      if (sphere && sphereDraw) {
         // `ink` is `--accent-hero` here and only here: the sphere is built only
         // when `withSphere`, which is the hero's call site, whose preset names
         // that property in both of its identical theme halves.
@@ -1344,6 +1531,8 @@ export function ParticleGrid({
           ctx,
           sphere,
           sphereOrder,
+          sphereDraw,
+          dt,
           ink,
           fontStack,
           compact,
