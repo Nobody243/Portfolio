@@ -29,9 +29,19 @@
  * is not licence to entangle them.
  *
  * THE PALETTE IS THE SAME VARIABLE, NOT A MATCHED ONE. `--accent-hero` is
- * parsed to channels once per rebuild into `accent`, and the sphere reads that
- * same local. Two `getPropertyValue` calls can disagree after a theme change;
- * one cannot.
+ * parsed to channels into `accent`, and the sphere reads that same local. Two
+ * `getPropertyValue` calls can disagree after a theme change; one cannot.
+ *
+ * IT USED TO SAY "once per rebuild", AND THAT WAS THE BUG. `readAccent` ran
+ * only inside `build()`, and `build()` runs on mount and on a debounced
+ * `resize` — neither of which fires when the theme flips. The effect's deps
+ * (`reducedMotion`, `field`, `withSphere`) cannot observe a theme change
+ * either. That was harmless for exactly one reason: `--accent-hero` is
+ * deliberately not overridden in `html.light` (`app/globals.css`, ACCENT
+ * POLICY), so there was never a second value to re-read. The moment any field
+ * takes a theme-dependent ink, the canvas keeps painting the previous theme's
+ * colour until something triggers a resize — silently, with a green build. The
+ * `MutationObserver` below closes that, ahead of the ink that needs it.
  *
  * DISPLACEMENT, NOT BRIGHTENING. Nothing in this file lights a particle up
  * near the pointer, and nothing should be added that does. The cursor shoves
@@ -528,9 +538,10 @@ export function ParticleGrid({
     /** rAF timestamp of the previous tick, for real elapsed `dt`. */
     let lastFrame = 0;
 
-    /** Read once per rebuild — cheap, and it lets a themed accent flow through
-     *  without this file hardcoding a hex. THE SPHERE READS THIS SAME LOCAL;
-     *  a second `getPropertyValue` could disagree with it after a theme flip. */
+    /** Read on every rebuild AND on every theme flip — cheap, and it lets a
+     *  themed accent flow through without this file hardcoding a hex. THE
+     *  SPHERE READS THIS SAME LOCAL; a second `getPropertyValue` could
+     *  disagree with it after a theme flip. */
     let accent = "0, 229, 255";
     const readAccent = () => {
       const raw = getComputedStyle(document.documentElement)
@@ -835,6 +846,40 @@ export function ParticleGrid({
       }, RESIZE_DEBOUNCE_MS);
     };
 
+    /**
+     * THE THEME FLIP, WHICH NOTHING ELSE HERE CAN SEE.
+     *
+     * `lib/theme.ts`'s `applyTheme` is the single writer of the class on
+     * <html> — the pre-paint script, the toggle, and the cross-tab `storage`
+     * listener all go through it — so observing that one attribute catches
+     * every way the theme can change, with no new shared API and no change to
+     * a module the root layout imports. A bespoke `themechange` event was the
+     * alternative and was refused for exactly that: it would add a second
+     * source of truth alongside a class that is already documented as the
+     * only one.
+     *
+     * IT RE-READS THE PALETTE, NOT THE FIELD. Calling `build()` here would
+     * reseed every node's random home position, so toggling the theme would
+     * visibly scramble the mesh — a layout change to announce a colour change.
+     * The animated path picks the new channels up on the very next rAF for
+     * free, because `frame()` reads `accent` fresh every tick; only the
+     * reduced-motion path, which draws once and never again, has to be told to
+     * repaint.
+     *
+     * ADDED UNCONDITIONALLY, not gated on `field` or `withSphere`, so the hero
+     * and About run the identical code path. The observer fires only on a
+     * theme flip, so the cost of carrying it on a surface whose ink happens to
+     * be theme-exempt is nil — and gating it is how the two paths drift apart.
+     */
+    const themeObserver = new MutationObserver(() => {
+      readAccent();
+      if (reducedMotion) drawOnce();
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
     build();
     if (reducedMotion) {
       drawOnce();
@@ -863,6 +908,7 @@ export function ParticleGrid({
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerleave", onPointerLeave);
       window.removeEventListener("resize", onResize);
+      themeObserver.disconnect();
     };
     // `field` and `withSphere` are module constants at every call site, so
     // naming them here re-runs nothing — it just stops the two from silently
