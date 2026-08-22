@@ -675,24 +675,51 @@ export function ParticleGrid({
      * THERE IS NO LITERAL FALLBACK COLOUR ANY MORE. It used to initialise to
      * `"0, 229, 255"` — the hero cyan, spelled out here as a second source of
      * truth for a value `app/globals.css` owns, and on a code path `/about`
-     * also runs. A failed read now leaves the last good value in place and
-     * `inkRead` false, and the ink-consuming passes below are skipped until a
-     * read succeeds. The only way that state can persist is a stylesheet that
-     * never applied, in which case an unpainted canvas is the correct degraded
-     * result rather than a Tier 1 accent appearing somewhere by default.
+     * also runs. Before any successful read `inkRead` is false and the
+     * ink-consuming passes below are skipped, so a stylesheet that never
+     * applied gives an unpainted canvas rather than a Tier 1 accent appearing
+     * somewhere by default.
+     *
+     * A FAILED READ IS ATOMIC: NOTHING MOVES. `paint`, `ink` and `inkRead` are
+     * written together, after the guard, or not at all — so the field always
+     * draws one theme's ink with that same theme's alphas and falloff.
+     *
+     * THIS BLOCK USED TO DESCRIBE BEHAVIOUR THE CODE DID NOT HAVE, in two ways
+     * that only became reachable when the `MutationObserver` started calling
+     * this outside `build()`:
+     *
+     *   1. `paint = field[readAppliedTheme()]` ran BEFORE the `hex.length`
+     *      guard. A failed read therefore adopted the NEW theme's `nodeAlpha`,
+     *      `linkPeakAlpha` and `linkFalloff` while keeping the OLD theme's ink
+     *      channels — the one combination neither theme was ever tuned for.
+     *   2. It claimed a failed read leaves "`inkRead` false". `inkRead` is only
+     *      ever assigned `true`, so after one success it can never go back.
+     *
+     * (2) IS NOW THE INTENDED SEMANTICS RATHER THAN A BUG, and it is a one-way
+     * latch on purpose. Once a read has succeeded, a later failure means a
+     * theme flip whose custom property did not resolve; the last good pair is a
+     * complete, coherent field for the other theme, and drawing it is strictly
+     * better than blanking the canvas mid-session. The never-painted case is
+     * the one worth degrading to nothing, and it is the one the latch still
+     * covers.
      */
     let ink = "";
     let inkRead = false;
     let paint: FieldInk = field.dark;
     const readInk = () => {
-      paint = field[readAppliedTheme()];
+      // LOCAL, NOT `paint`. This is the whole of fix (1) above: the candidate
+      // theme is not published until its ink has been parsed.
+      const next = field[readAppliedTheme()];
       const raw = getComputedStyle(document.documentElement)
-        .getPropertyValue(paint.ink)
+        .getPropertyValue(next.ink)
         .trim();
       // #00e5ff -> "0, 229, 255". Canvas needs channels for rgba().
       const hex = raw.replace("#", "");
       if (hex.length !== 6) return;
       const n = parseInt(hex, 16);
+      // The three writes are together and last, so there is no interleaving to
+      // reason about. Do not hoist any of them above the guard.
+      paint = next;
       ink = `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
       inkRead = true;
     };
