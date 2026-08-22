@@ -574,15 +574,28 @@ export function stepCommandSphere(
  * DELIBERATE EXCEPTION RATHER THAN THIS PARAGRAPH GOING STALE.
  * `ParticleGrid.tsx`'s `SPHERE_MIN_ALPHA` drops any fragment under 0.25 alpha,
  * which the ramp above reaches at t = 0.382 — behind the silhouette, so 38% of
- * the set. The paragraph's claim is still true as written: those fragments DO
- * pop, over roughly one frame, and nothing here pretends otherwise. It was
- * accepted because the alternative was measured and was worse — at 90
- * fragments, 74.9% of every label drawn overlapped another one and 38.6% of
- * them were painted below 0.25 alpha, i.e. the thing the ramp was producing in
+ * the set. It was accepted because the alternative was measured and was worse:
+ * at 90 fragments, 74.9% of every label drawn overlapped another one and 38.6%
+ * of them were painted below 0.25 alpha, i.e. what the ramp was producing in
  * the far half was not depth, it was a haze of illegible strings that the near
  * face had to be read through.
  *
- * "SMALL AND DIM IS THE CORRECT TREATMENT" IS THEREFORE NARROWED, NOT REVERSED:
+ * THE "POP" HALF OF THE WARNING NO LONGER APPLIES, AND THAT IS A CORRECTION TO
+ * WHAT THIS PARAGRAPH SAID A COMMIT AGO. It read: "The paragraph's claim is
+ * still true as written: those fragments DO pop, over roughly one frame, and
+ * nothing here pretends otherwise." That was accurate when it was written and
+ * is not any more. The cull was measured — 3.75 fragments per 5s at 1440 idle
+ * leaving in a single frame, from a baseline of 0 — and the renderer now fades
+ * them out over 175ms through `SPHERE_FADE_MS`, the same ramp its clip guard
+ * uses. So the far half is still culled, and the culling no longer pops.
+ *
+ * WHICH LEAVES THE WARNING ABOVE INTACT AND WORTH KEEPING. It is the reason the
+ * cull had to be paid for with a fade rather than shipped bare, and it is still
+ * the reason not to add one HERE: the geometry has no business knowing what is
+ * legible, and it has no `dt`, no per-fragment draw state and no way to fade
+ * anything.
+ *
+ * "SMALL AND DIM IS THE CORRECT TREATMENT" IS NARROWED, NOT REVERSED:
  * it is correct down to the point where a fragment stops being readable text,
  * and past that point there is nothing left for it to be the correct treatment
  * OF. The ramp is unchanged and still owns the whole far half's appearance; the

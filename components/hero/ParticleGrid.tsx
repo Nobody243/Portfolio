@@ -506,10 +506,45 @@ const SPHERE_LETTER_SPACING = "0.04em";
 const SPHERE_ADVANCE_ESTIMATE = 0.66;
 
 /**
- * THE RENDER FLOOR. A fragment below EITHER of these is DROPPED — not shrunk,
- * not dimmed. Unreadable mono is noise, not depth, and the premise of the whole
+ * THE RENDER FLOOR. A fragment below EITHER of these is DROPPED, and it stays
+ * dropped — it is not shrunk to fit and it is not left on screen at a lower
+ * alpha. Unreadable mono is noise, not depth, and the premise of the whole
  * effect is that these are legible commands rather than decoration that happens
  * to be letter-shaped.
+ *
+ * IT DROPS OVER 175ms RATHER THAN IN ONE FRAME, AND THAT IS NOT A SOFTENING OF
+ * THE RULE. Removing the standing haze and popping the labels out were two
+ * separate things, and only the first was ever the goal: the floors landed as
+ * hard cuts and introduced a pop of 3.75 labels per 5s at 1440 where there had
+ * been none, which is an artifact of the fix rather than a property of it. The
+ * exit now runs through the same `SPHERE_FADE_MS` ramp and the same
+ * `state.fade` slot as the clip guard, because all three gates are one
+ * question. A fragment mid-exit is also PINNED to the lowest legible bucket
+ * (see `floorStep`), so it fades at a readable size instead of shrinking into
+ * the mush on its way out.
+ *
+ * THE NUMBER THAT DECIDES WHETHER THAT IS HONEST is the share of drawn labels
+ * still under 0.25 alpha. A standing layer is what was measured and deleted; a
+ * bounded 175ms transit is not the same thing, but only measurement can settle
+ * it. Over 20s per condition:
+ *
+ *     no floors at all        38.6%     the haze this whole thing removed
+ *     floors as hard cuts      0%       and 3.75 pops per 5s at 1440
+ *     floors faded (now)       0.7%     1440 idle
+ *                              0.6%     375 idle
+ *                              2.7%     1440 under a continuous cursor sweep
+ *
+ * The cursor figure is the adversarial one and is the one to watch: the tilt
+ * drags fragments across the boundary several times faster than the idle spin,
+ * so more of them are in transit at once. At 2.7% it is still fourteen times
+ * below the standing haze, and every one of those fragments is on its way out
+ * rather than parked.
+ *
+ * THAT IS THE TRIPWIRE, AND IT IS A MEASUREMENT RATHER THAN A JUDGEMENT CALL.
+ * If a future edit pushes this into double digits at any viewport, the haze has
+ * come back and the fade — or `SPHERE_FADE_MS`, or the count — is wrong. The
+ * companion figure is the sub-9px share, which must stay at 0%: it is held
+ * there by the `floorStep` pin and not by luck.
  *
  * IT USED TO BE 7px DESKTOP / 6px COMPACT, CHOSEN SO IT WOULD NEVER FIRE. The
  * comment here said so outright — "at the shipped values it never fires — the
@@ -538,7 +573,10 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * THE ALPHA FLOOR IS A PARTIAL BACK-HEMISPHERE CULL, AND `projectCommandSphere`
  * WARNS AGAINST EXACTLY THAT. The warning is not wrong and has not been
  * deleted; it now carries this exception recorded against it. Read it there
- * before raising 0.25 any further.
+ * before raising 0.25 any further. Its specific objection — that culling makes
+ * fragments POP at the silhouette — is the thing the fade above answers, and
+ * that half of the exception has been withdrawn there rather than left
+ * standing.
  */
 const SPHERE_MIN_FONT_PX = 9;
 const SPHERE_MIN_ALPHA = 0.25;
@@ -605,10 +643,32 @@ const SPHERE_SCALE_BUCKETS = 6;
 const SPHERE_BUCKET_HYSTERESIS = 0.18;
 
 /**
- * How long the clip guard takes to fade a fragment out, ms.
+ * How long a fragment takes to fade out, or back in, ms.
+ *
+ * ONE FADE FOR EVERY WAY A FRAGMENT CAN STOP BEING DRAWN, AND THAT IS THE
+ * POINT OF THE CONSTANT RATHER THAN AN ECONOMY. There are three gates — the
+ * alpha floor, the font-size floor and the clip guard — and every one of them
+ * means "this fragment should no longer be on screen". Giving the clip guard a
+ * fade and leaving the two floors popping would have been one boundary easing
+ * out beside two others snapping, in the same frame, on the same sphere. The
+ * gates compose into a single `hidden` boolean and share one ramp and one
+ * `state.fade` slot; there is deliberately no second duration to keep in sync.
  *
  * THE GUARD USED TO BE A HARD `continue`, so a rim label crossing the viewport
- * edge vanished between one frame and the next at full alpha.
+ * edge vanished between one frame and the next at full alpha. So did a label
+ * crossing either floor: adding those floors removed a measured haze but
+ * created a pop of its own — 3.75 labels per 5s at 1440 idle, 15.25 per 5s
+ * under a cursor sweep, 2.75 per 5s at 375, all from a baseline of exactly 0,
+ * because before the floors nothing was ever dropped at all. That pop and the
+ * clip guard's are the same artifact and now take the same exit.
+ *
+ * A BOUNDED EXIT IS NOT THE HAZE COMING BACK, and that distinction is the whole
+ * justification for fading a floor whose entire purpose is to delete dim text.
+ * What was measured and removed was a STANDING population: 38.6% of every label
+ * drawn, on every frame, below 0.25 alpha, contributing nothing but grey. What
+ * this re-admits is a few fragments in transit for 175ms each — at the measured
+ * crossing rates, well under one fragment on screen at any instant. The test is
+ * the sub-0.25-alpha percentage and it is recorded on `SPHERE_MIN_ALPHA`.
  *
  * IT ALSO ALMOST NEVER FIRED, WHICH IS WHY THIS IS 175ms AND NOT A BIGGER
  * CHANGE. The clip test is purely static geometry — a sphere's silhouette is
@@ -629,13 +689,15 @@ const SPHERE_BUCKET_HYSTERESIS = 0.18;
  * TIME-BASED, NOT DISTANCE-BASED. A ramp over the last N pixels of travel would
  * be simpler and needs no state, but its duration would then depend on how fast
  * the label happens to be crossing, which is a different number at every
- * viewport size. 175ms is 175ms.
+ * viewport size — and it would not carry to the two floors at all, which are
+ * crossed in DEPTH rather than in screen space. 175ms is 175ms, on all three
+ * gates and at every viewport.
  *
  * LINEAR RATHER THAN EASED, deliberately: an exponential ease never reaches
  * zero, so "the fade is done" would need a threshold, and the whole point of
  * the constant is that the duration is exactly what it says.
  */
-const SPHERE_CLIP_FADE_MS = 175;
+const SPHERE_FADE_MS = 175;
 
 /**
  * The near band's tint, as rgb channels.
@@ -695,24 +757,32 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
  * BOTH USE -1 AS "NOT YET SET", AND THAT SENTINEL IS LOAD-BEARING FOR REDUCED
  * MOTION. That path draws exactly one frame and never draws another. A fade
  * initialised to 0 would render nothing at all on it; a fade initialised to 1
- * would render a fragment the guard means to hide. -1 means "adopt the target
+ * would render a fragment a gate means to hide. -1 means "adopt the target
  * immediately, do not animate toward it", so the first frame — the only frame
- * a reduced-motion visitor sees — is the correct still image.
+ * a reduced-motion visitor sees — is the correct still image. It matters more
+ * now than when only the clip guard faded: the alpha floor hides ~38% of the
+ * set, so a wrong sentinel would be wrong about a third of the sphere rather
+ * than about a couple of rim labels. Verified rather than assumed — 36 / 22 /
+ * 22 labels at 1440 / 375 / 320 under reduced motion, four of four featured
+ * commands visible at each.
  */
 type SphereDrawState = {
-  /** The bucket each fragment was last drawn in. -1 = never drawn. */
+  /** The GEOMETRIC bucket each fragment was last assigned, for the hysteresis.
+   *  -1 = never assigned. Deliberately the UNCLAMPED one: a fragment pinned to
+   *  the legibility floor while it fades has to resume from where its depth
+   *  actually is, not from the floor it was held at. */
   bucket: Int8Array;
-  /** Clip-guard opacity, 0..1. -1 = never evaluated. */
-  clipFade: Float32Array;
+  /** Visibility, 0..1, across all three gates. -1 = never evaluated. */
+  fade: Float32Array;
 };
 
 function createSphereDrawState(count: number): SphereDrawState {
   const state = {
     bucket: new Int8Array(count),
-    clipFade: new Float32Array(count),
+    fade: new Float32Array(count),
   };
   state.bucket.fill(-1);
-  state.clipFade.fill(-1);
+  state.fade.fill(-1);
   return state;
 }
 
@@ -750,6 +820,34 @@ function drawCommandSphere(
   const span = SPHERE_SCALE_MAX - SPHERE_SCALE_MIN;
   const steps = SPHERE_SCALE_BUCKETS - 1;
 
+  // THE SMALLEST BUCKET THAT STILL CLEARS THE FONT FLOOR. At most six
+  // iterations, once per frame, never per fragment.
+  //
+  // IT EXISTS SO THAT A FADING FRAGMENT FADES AT A LEGIBLE SIZE. The font floor
+  // is a claim about what a human can read; a fragment left to keep shrinking
+  // while it faded would spend its whole 175ms exit being exactly the illegible
+  // mush the floor was added to delete, and it would put the sub-9px share —
+  // one of the two numbers this whole change is judged on — back above zero.
+  //
+  // PINNED TO THE LOWEST LEGAL BUCKET, NOT TO `SPHERE_MIN_FONT_PX` ITSELF. The
+  // floor is 9px and the buckets near it are 8.492 and 9.328 at the compact
+  // base; pinning to 9 would introduce a seventh font size that exists only
+  // during fades, and would visibly step the glyph down at the moment the fade
+  // starts. Pinning to the bucket means the fragment simply stops shrinking and
+  // then fades, and adds no new `ctx.font` value at all.
+  //
+  // The `< steps` guard bounds the loop if a future `basePx` were ever smaller
+  // than the floor — in which case nothing is legible and everything fades out.
+  // Degenerate, but bounded, and visibly wrong rather than silently wrong.
+  let floorStep = 0;
+  while (
+    floorStep < steps &&
+    basePx * (SPHERE_SCALE_MIN + (floorStep / steps) * span) <
+      SPHERE_MIN_FONT_PX
+  ) {
+    floorStep++;
+  }
+
   const prevAlpha = ctx.globalAlpha;
   ctx.textAlign = "center";
   // `middle`, so a fragment's anchor is the optical centre of its line rather
@@ -783,53 +881,15 @@ function drawCommandSphere(
         : held;
     state.bucket[index] = step;
 
-    // The BUCKETED size, because that is what actually renders. Both the render
-    // floor and the clip guard below test against this rather than against the
-    // unquantised scale, which would drop a fragment that was about to be drawn
-    // a bucket larger.
-    const px = basePx * (SPHERE_SCALE_MIN + (step / steps) * span);
+    // THE DRAWN BUCKET, PINNED UP TO THE LEGIBILITY FLOOR. `step` stays the
+    // geometric answer and is what the hysteresis remembers; `drawStep` is what
+    // is painted. The two differ only while a fragment is fading out below the
+    // font floor — see `floorStep` above for why the pin is to a bucket rather
+    // than to the floor value itself.
+    const legible = step >= floorStep;
+    const drawStep = legible ? step : floorStep;
+    const px = basePx * (SPHERE_SCALE_MIN + (drawStep / steps) * span);
 
-    // THE RENDER FLOOR, TESTED BEFORE `ctx.font` IS ASSIGNED. The size half of
-    // it used to sit after, which parsed a font shorthand for a fragment that
-    // was then skipped — the one call in this loop that `SPHERE_SCALE_BUCKETS`
-    // identifies as the expensive one.
-    //
-    // THE ALPHA CUT IS EXACTLY A PREFIX OF `order`; THE SIZE CUT IS NEARLY ONE.
-    // The order is far-to-near, and `alpha` is a monotone function of depth
-    // that nothing quantises, so the alpha cut drops a clean prefix. `px` is
-    // now bucketed WITH HYSTERESIS, so two adjacent fragments straddling the
-    // 9px boundary can be dropped out of order by one bucket depending on which
-    // way each of them last crossed it.
-    //
-    // THAT DOES NOT MATTER HERE, AND THE REASON IS WORTH STATING RATHER THAN
-    // REDERIVING. What the prefix property protects is `tinted` and `glowing`,
-    // which are set on first change and must not be skipped past. The size cut
-    // only ever fires below t = 0.52 (compact) or t = 0.19 (desktop), and both
-    // are far below `NEAR_TINT_T` 0.75 and `GLOW_T` 0.6 — so every fragment it
-    // can drop is `near: false, glow: false`, which is the state those two
-    // locals already hold. Skipping one cannot desync them.
-    //
-    // `continue` and not `break`: this loop's CHEAPNESS is allowed to depend on
-    // monotonicity, its CORRECTNESS is not.
-    if (f.alpha < SPHERE_MIN_ALPHA || px < SPHERE_MIN_FONT_PX) continue;
-
-    if (step !== bucket) {
-      bucket = step;
-      ctx.font = `${px}px ${fontStack}`;
-    }
-
-    if (f.near !== tinted) {
-      tinted = f.near;
-      ctx.fillStyle = tinted ? `rgb(${SPHERE_NEAR_TINT})` : `rgb(${accent})`;
-    }
-    // Skipped entirely on compact viewports: `shadowBlur` is the one call here
-    // that a mid-range phone cannot absorb, and it is the cue that reads least
-    // at a 223px sphere.
-    if (!compact && f.glow !== glowing) {
-      glowing = f.glow;
-      ctx.shadowColor = glowing ? `rgba(${accent}, ${SPHERE_GLOW_ALPHA})` : "";
-      ctx.shadowBlur = glowing ? SPHERE_GLOW_BLUR : 0;
-    }
 
     // HORIZONTAL CLIP GUARD. `textAlign` is `center`, so a rim fragment extends
     // half its width past its anchor — and on a narrow viewport the rim IS the
@@ -845,35 +905,72 @@ function drawCommandSphere(
     const halfWidth = f.text.length * px * SPHERE_ADVANCE_ESTIMATE * 0.5;
     const clipped = f.x - halfWidth < 0 || f.x + halfWidth > viewportWidth;
 
-    // IT FADES NOW INSTEAD OF VANISHING. `continue` on the line above used to
-    // be the whole guard, so a rim label crossing the viewport edge disappeared
-    // between one frame and the next at full alpha.
-    //
+    // THE THREE GATES, AS ONE ANSWER. Font floor, alpha floor, clip guard —
+    // each of them means "this fragment should not be on screen", so they
+    // compose with `||` and share one ramp. Every one of them used to be its
+    // own hard `continue`, and the two floors were added in the commit before
+    // this one, which is where their pop came from.
+    const hidden = !legible || f.alpha < SPHERE_MIN_ALPHA || clipped;
+
     // A LINEAR RAMP DRIVEN BY REAL `dtMs`, so the duration is the same on any
-    // display — the same correction the rest of this file just took. `-1` means
-    // the fragment has not been evaluated yet and adopts its target outright,
-    // which is what keeps the single reduced-motion frame correct: there is no
-    // frame before it to have faded from.
-    const prev = state.clipFade[index];
-    const target = clipped ? 0 : 1;
+    // display — the same correction the rest of this file took. `-1` means the
+    // fragment has not been evaluated yet and adopts its target outright, which
+    // is what keeps the single reduced-motion frame correct: there is no frame
+    // before it to have faded from. `dtMs <= 0` holds the previous value rather
+    // than advancing, which is the first frame after a mount or after a wake.
+    const prev = state.fade[index];
+    const target = hidden ? 0 : 1;
     let fade: number;
     if (prev < 0 || dtMs <= 0) {
       fade = prev < 0 ? target : prev;
     } else {
-      const stepAmount = dtMs / SPHERE_CLIP_FADE_MS;
+      const amount = dtMs / SPHERE_FADE_MS;
       fade =
         target > prev
-          ? Math.min(target, prev + stepAmount)
-          : Math.max(target, prev - stepAmount);
+          ? Math.min(target, prev + amount)
+          : Math.max(target, prev - amount);
     }
-    state.clipFade[index] = fade;
+    state.fade[index] = fade;
+
+    // THE EARLY-OUT IS STILL ABOVE `ctx.font`, WHICH IS WHY THE GATES MOVED
+    // DOWN HERE RATHER THAN THE FADE MOVING UP. A fragment that has finished
+    // fading out costs one comparison and nothing else — no font parse, no fill
+    // style, no shadow — so the ~38% of the set that is hidden at any moment is
+    // exactly as cheap as it was when the floor was a hard `continue`. Only
+    // fragments actually in transit pay for any of this.
     if (fade <= 0) continue;
-    // A fragment the RENDER FLOOR dropped never reaches this block, so its fade
-    // freezes rather than continuing. That is harmless in the only way it can
-    // happen: the floor fires deep in the far hemisphere and the guard fires at
-    // the rim, so a fragment leaving via the floor is at fade 1 and re-enters at
-    // fade 1. A fragment that managed to be mid-fade at the moment it crossed
-    // the floor resumes from where it stopped and completes within 175ms.
+
+    // THE PREFIX PROPERTY IS GONE, AND IT DID NOT MATTER. `order` is far-to-near
+    // and both `alpha` and `scale` are monotone along it, so while the gates
+    // were hard cuts everything they dropped formed a clean prefix of this loop
+    // — which is what kept `tinted` and `glowing` from being skipped past.
+    // Fading breaks that: a fragment mid-exit is drawn out among fragments that
+    // are not.
+    //
+    // It is safe for a reason worth stating rather than re-deriving. Those two
+    // locals are corrected by every drawn fragment — `f.near !== tinted` flips
+    // whenever they disagree — so they are self-healing per fragment and can
+    // only cost an extra assignment, never desync. And there is no extra cost to
+    // pay: every fragment any gate can hide sits below `GLOW_T` 0.6 and
+    // `NEAR_TINT_T` 0.75, so it is `near: false, glow: false`, which is the
+    // state those locals already hold.
+    if (drawStep !== bucket) {
+      bucket = drawStep;
+      ctx.font = `${px}px ${fontStack}`;
+    }
+
+    if (f.near !== tinted) {
+      tinted = f.near;
+      ctx.fillStyle = tinted ? `rgb(${SPHERE_NEAR_TINT})` : `rgb(${accent})`;
+    }
+    // Skipped entirely on compact viewports: `shadowBlur` is the one call here
+    // that a mid-range phone cannot absorb, and it is the cue that reads least
+    // at a 223px sphere.
+    if (!compact && f.glow !== glowing) {
+      glowing = f.glow;
+      ctx.shadowColor = glowing ? `rgba(${accent}, ${SPHERE_GLOW_ALPHA})` : "";
+      ctx.shadowBlur = glowing ? SPHERE_GLOW_BLUR : 0;
+    }
 
     ctx.globalAlpha = f.alpha * fade;
     ctx.fillText(f.text, f.x, f.y);
