@@ -139,6 +139,7 @@ import {
   MenuIcon,
 } from "@/components/ui/NavIcons";
 import {
+  isActiveRoute,
   NAV_EMAIL,
   NAV_HOME_LABEL,
   NAV_ITEMS,
@@ -222,24 +223,6 @@ const inPageTarget = (href: string, pathname: string): string | null =>
   pathname === HOME_ROUTE && href.startsWith(`${HOME_ROUTE}#`)
     ? href.slice(2)
     : null;
-
-/**
- * Is this centre item the page the visitor is currently on?
- *
- * EXACT EQUALITY, NOT A PREFIX MATCH. The three destinations are `/about`, `/`
- * and `/work`, none of which is a parent of another, so a prefix rule would buy
- * nothing today and would quietly make `/` match everything.
- *
- * A HASH HREF IS NEVER ACTIVE, and that guard is not hypothetical. `About` was
- * `/#trajectory` until Phase 4 and `navContent.ts` keeps the machinery for the
- * next anchor that appears here. `"/#trajectory"` is not `"/"`, so it would not
- * match — but the centre icon's `/` WOULD still match on Home at the same time,
- * and two links carrying `aria-current="page"` is a wrong announcement plus an
- * indicator that measures whichever one `querySelector` reaches first. Stating
- * "a jump within a page is not a route" here closes that off before it happens.
- */
-const isActiveRoute = (href: string, pathname: string): boolean =>
-  !href.includes("#") && href === pathname;
 
 /**
  * A modified click is the visitor asking the browser for a new tab or window,

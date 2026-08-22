@@ -105,6 +105,36 @@ export const NAV_COPY_ANNOUNCEMENT = "Email address copied to clipboard";
  */
 export const NAV_COPY_FALLBACK = "Press Ctrl/⌘+C";
 
+/**
+ * Is this href the page the visitor is currently on?
+ *
+ * IT LIVES IN THE COPY MODULE BECAUSE IT HAS TWO CONSUMERS AND THEY MUST NOT
+ * DISAGREE. `Navbar.tsx` uses it to place `aria-current="page"` — which is also
+ * what the sliding indicator queries the DOM for — and `NavMobileMenu.tsx` uses
+ * it to mark the same page below `md`. A second local copy of this predicate
+ * would be a bar and a menu that can drift into naming different current pages,
+ * which is a worse bug than either having none.
+ *
+ * It breaks none of this file's three hard rules: it is pure string comparison,
+ * imports nothing, and touches no React and no styling. The header calls this
+ * file "copy and link selection", and selecting which link is current is that.
+ *
+ * EXACT EQUALITY, NOT A PREFIX MATCH. The three destinations are `/about`, `/`
+ * and `/work`, none of which is a parent of another, so a prefix rule would buy
+ * nothing today and would quietly make `/` match everything.
+ *
+ * A HASH HREF IS NEVER ACTIVE, and that guard is not hypothetical. `About` was
+ * `/#trajectory` until Phase 4 and the machinery for the next anchor that
+ * appears here is still in place, documented above. `"/#trajectory"` is not
+ * `"/"`, so it would not match — but the centre icon's `/` WOULD still match on
+ * Home at the same time, and two links carrying `aria-current="page"` is a
+ * wrong announcement plus an indicator that measures whichever one
+ * `querySelector` reaches first. Stating "a jump within a page is not a route"
+ * here closes that off before it happens.
+ */
+export const isActiveRoute = (href: string, pathname: string): boolean =>
+  !href.includes("#") && href === pathname;
+
 export const NAV_MENU_OPEN_LABEL = "Open menu";
 export const NAV_MENU_CLOSE_LABEL = "Close menu";
 

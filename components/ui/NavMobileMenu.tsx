@@ -43,10 +43,12 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { CopyEmailButton } from "@/components/ui/CopyEmailButton";
 import { LinkedInIcon, MenuIcon } from "@/components/ui/NavIcons";
 import {
+  isActiveRoute,
   NAV_EMAIL,
   NAV_ITEMS,
   NAV_LINKEDIN,
@@ -102,6 +104,7 @@ export function NavMobileMenu({
   onNavigate,
 }: NavMobileMenuProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const pathname = usePathname();
 
   /**
    * Release the document. Written as its own function because it is called from
@@ -204,6 +207,19 @@ export function NavMobileMenu({
             <Link
               key={item.href}
               href={item.href}
+              /* THE SAME ANNOUNCEMENT THE DESKTOP BAR MAKES. Above `md` the
+                 sliding indicator is the visual half of this and
+                 `aria-current` the spoken half; below `md` the cluster is
+                 `display: none` and this menu is the only navigation there is,
+                 so without this a screen-reader user loses the current-page
+                 signal at exactly the breakpoint where they have least context.
+                 The predicate is imported rather than re-derived so the two can
+                 never name different pages — see `navContent.ts`.
+
+                 THERE IS NO HOME ENTRY IN THIS MENU, so on `/` nothing here is
+                 current, and that is correct rather than a gap: the menu lists
+                 destinations away from where you are. */
+              aria-current={isActiveRoute(item.href, pathname) ? "page" : undefined}
               onClick={(event) => choose(item.href, event)}
               className="cursor-pointer text-left text-h3 text-fg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-working"
             >
