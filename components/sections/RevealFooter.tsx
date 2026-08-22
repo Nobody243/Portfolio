@@ -27,7 +27,7 @@ import { contact } from "@/content/contact";
  * `docs/07_SITE_RESTRUCTURE.md` §5 asks for a footer that "sits fixed beneath
  * the page at a lower z-index" so "the last section's content wipes up off it".
  * That describes the EFFECT. `sticky` delivers the identical effect and solves,
- * for free, the two problems §5 itself flags. Rule S-5 in
+ * for free, the two problems §5 itself flags. Rule S-6 in
  * `docs/03_FRONTEND_SPEC.md` is the tracked version of what follows.
  *
  * Three declarations do the whole job — `relative z-0 md:sticky md:bottom-0` on

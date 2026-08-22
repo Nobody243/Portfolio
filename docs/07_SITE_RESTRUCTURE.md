@@ -492,7 +492,7 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
 > Do not add one "to be safe": with no geometry change to refresh against it recomputes all nine
 > triggers and can visibly re-snap a scrubbed section if it lands mid-scroll. Someone reading only
 > this paragraph would have added it in good faith, which is why the flag is corrected rather than
-> just satisfied. **Rule S-5 in `docs/03_FRONTEND_SPEC.md` is the full, binding statement.**
+> just satisfied. **Rule S-6 in `docs/03_FRONTEND_SPEC.md` is the full, binding statement.**
 >
 > **"Build this last" still stands**, for a different reason than the one originally given: the page
 > stack's background and z-index touch both routes.

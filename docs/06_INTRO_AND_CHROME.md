@@ -425,7 +425,7 @@ height and pulls 1280×800 into the same case (+46px measured).
 The test is a **zero-height sentinel at the plate's static top**, not an
 intersection test against the plate: the plate is `md:sticky` and reports its
 PINNED rect from first paint, so a naive test would flip the bar dark on every
-page at every scroll position. See `docs/03_FRONTEND_SPEC.md` Rule S-5.
+page at every scroll position. See `docs/03_FRONTEND_SPEC.md` Rule S-6.
 
 **This is the open decision on the list below, and its alternative has narrowed.**
 It used to be: if Saad would rather keep the bar transparent everywhere, drop

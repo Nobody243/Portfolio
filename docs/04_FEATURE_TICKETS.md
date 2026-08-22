@@ -54,7 +54,7 @@ launch, **S** = should-have, **N** = nice-to-have.
 > | Shipped work | Commit | Where its criteria actually live |
 > |---|---|---|
 > | The navbar's sliding active-route indicator, and the removal of hide-on-scroll | `3b3fab6` | `docs/07` §1.1 — a binding parameter table — plus `docs/06` §6 step 2 and §6.1. Design brief: `.claude/handoff/navbar-indicator-design.md`. |
-> | The reveal footer (curtain), which absorbed Ticket 10 | `23d890d` | `docs/07` §5's reveal-footer block and Rule S-5 in `docs/03`. Design brief: `.claude/handoff/reveal-footer-design.md`. |
+> | The reveal footer (curtain), which absorbed Ticket 10 | `23d890d` | `docs/07` §5's reveal-footer block and Rule S-6 in `docs/03`. Design brief: `.claude/handoff/reveal-footer-design.md`. |
 > | The portrait moving off Trajectory onto `/about` | `2cfdb34` | `docs/07` §6. Design brief: `.claude/handoff/about-design.md`. |
 >
 > Two things follow, and both are for whoever picks up the next piece of work:

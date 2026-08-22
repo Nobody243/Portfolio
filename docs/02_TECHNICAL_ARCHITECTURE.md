@@ -75,7 +75,7 @@ this DOM shape, and getting it wrong fails silently rather than loudly:
   the first painted frame, and `<main>` is the only thing occluding it. Inheriting the page
   background does **not** work: a background on `html`/`body` propagates to the canvas, which
   paints below every positioned descendant. Without both classes the dark plate shows through every
-  section at every scroll position. `docs/03_FRONTEND_SPEC.md`'s **Rule S-5** is the binding
+  section at every scroll position. `docs/03_FRONTEND_SPEC.md`'s **Rule S-6** is the binding
   statement, including the ban on `overflow`/`transform`/`filter` anywhere between `<body>` and the
   footer, and the requirement that Lenis stays in `root` mode.
 - **The `<footer>` must stay a direct child of `<body>`,** for two independent reasons: it is the

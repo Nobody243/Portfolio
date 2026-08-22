@@ -68,7 +68,7 @@ export default function WorkPage() {
     // exactly why it is written down in both files.
     <>
       {/*
-        THE PAGE STACK. `bg-base` and `relative z-10` are Rule S-5's two
+        THE PAGE STACK. `bg-base` and `relative z-10` are Rule S-6's two
         mandatory classes and are byte-identical to Home's — the reveal footer
         below is pinned behind this element from the first painted frame, and
         this background is the only thing occluding it. Home's call site carries

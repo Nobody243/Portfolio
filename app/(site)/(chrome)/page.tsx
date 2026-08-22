@@ -30,7 +30,7 @@ export default function Page() {
       {/*
         THE PAGE STACK, AND THE TWO CLASSES THAT KEEP THE CURTAIN HIDDEN.
 
-        `bg-base` AND `relative z-10` ARE BOTH LOAD-BEARING. Rule S-5 in
+        `bg-base` AND `relative z-10` ARE BOTH LOAD-BEARING. Rule S-6 in
         `docs/03_FRONTEND_SPEC.md` states them; this is the enforcement point.
 
         `<RevealFooter />` below is `md:sticky md:bottom-0`, so from the first
@@ -54,7 +54,7 @@ export default function Page() {
         short page under a pinned footer and it is the one that adds phantom
         scroll: it grows `document.scrollHeight`, which every
         `end: "bottom bottom"` on the page resolves against. Sticky needs no
-        such help — see Rule S-5's short-page cases.
+        such help — see Rule S-6's short-page cases.
       */}
       <main className="relative z-10 bg-base">
         <Hero />

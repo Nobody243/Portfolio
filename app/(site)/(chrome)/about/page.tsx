@@ -32,7 +32,7 @@ import { AboutScreen } from "@/components/about/AboutScreen";
  * bar's click-to-copy email and LinkedIn icon.
  *
  * NO PAGE-STACK CLASSES ON `<main>` EITHER, and that is not an omission. Rule
- * S-5's `bg-base relative z-10` exists to OCCLUDE the pinned plate; there is no
+ * S-6's `bg-base relative z-10` exists to OCCLUDE the pinned plate; there is no
  * plate on this route, so there is nothing to occlude. Adding them here would
  * be cargo cult. Adding a reveal footer here without them would not be.
  */
