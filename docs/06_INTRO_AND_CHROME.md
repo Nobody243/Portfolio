@@ -406,10 +406,30 @@ job. `setHidden`, its ScrollTrigger, `HIDE_AFTER`, `REVEAL_AFTER`, the
 `data-hidden` attribute and `<header>`'s `transition-transform` all went with
 it. **The bar is permanently visible.**
 
-`ALWAYS_VISIBLE_ABOVE` (140) **survives**, and not for this reason — the
+~~`ALWAYS_VISIBLE_ABOVE` (140) **survives**, and not for this reason — the
 `data-over-hero` calculation reads `ALWAYS_VISIBLE_ABOVE / 2` as the boundary
 the hero's bottom edge crosses. Deleting it with the rest would have broken the
-palette swap.
+palette swap.~~
+
+**IT IS GONE TOO, 2026-08-22, AND KEEPING IT WAS A SHIPPED BUG.** The sentence
+above is right that the palette swap borrowed the number and would have broken
+without it. What neither it nor the constant's own docblock priced is that 70px
+was never the bar's bottom edge. The bar is **48px below 640, 64px from 640 to
+767, and 59px at 768 and up** — three heights, measured, and already written
+down in `app/(site)/(chrome)/work/page.tsx` for a different reason.
+
+The 22px gap between the real 48px edge and the assumed 70px one is reachable
+and it is a **resting state, not a transient**: at 639×800, `/` and `/work` at
+maximum scroll, the reveal footer's static top lands at 50.7px — below the bar,
+above the threshold — so the bar takes the hero palette while sitting on
+`bg-base`. In light mode that is #E8EAEC on #FDFCFA: **1.18:1 for the MS mark,
+1.12:1 for the menu button. The bar is invisible.** In dark mode the same state
+measures 16.41:1 against the 16.53:1 it would have had on the plate, which is
+why it shipped.
+
+The boundary is now `header.getBoundingClientRect().bottom`, read through a
+function so both ScrollTrigger `start`s re-resolve it on refresh and a resize
+across 640 or 768 carries. The constant has no readers left and is deleted.
 
 *What its removal costs:* the quieter reading experience past the hero. *What it
 does not cost:* legibility — Step 3 was always the step that covered the hard

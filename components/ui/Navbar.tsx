@@ -175,31 +175,50 @@ import { EASE } from "@/lib/animation/easing";
 import { useSectionScroll } from "@/lib/hooks/useSectionScroll";
 
 /**
- * 140px — and the name is now larger than the job.
+ * THE BAR'S BOTTOM EDGE IS NOW MEASURED, NOT APPROXIMATED. There is no constant
+ * here any more, and the constant that used to be is worth recording because
+ * deleting it fixed a shipped, visible bug.
  *
- * It was hide-on-scroll's "never hide above this" threshold. That behaviour is
- * gone (see the header comment), and the ONE remaining reader is the `overHero`
- * palette effect below, which uses `ALWAYS_VISIBLE_ABOVE / 2` = 70px as the
- * boundary the hero's bottom edge has to cross. It appears there TWICE — once
- * in the up-front check, once in the ScrollTrigger's `start` — and the whole
- * value of keeping it a named constant is that those two cannot drift apart.
+ * It was `ALWAYS_VISIBLE_ABOVE = 140`, hide-on-scroll's "never hide above this"
+ * threshold. That behaviour was deleted; the number survived because the
+ * `overHero` palette effect below had borrowed `ALWAYS_VISIBLE_ABOVE / 2` = 70
+ * as "the bar's bottom edge". Its own docblock said plainly that 70 ≠ 59 and
+ * declined to rename it for that reason — correctly — and then left the
+ * approximation in place, which is the part that cost.
  *
- * DELETING IT WITH THE HIDING WOULD HAVE BROKEN THE PALETTE SWAP, which is a
- * different feature that happened to borrow the number.
+ * THE BAR IS NOT 59px. IT IS THREE HEIGHTS, measured on the shipped build:
  *
- * IT HAS THREE READERS NOW, NOT TWO: the up-front check, the hero trigger's
- * `start`, and the reveal-footer sentinel's `start`. The effect binds it to a
- * local `barEdge` once, so all three are the same number by construction.
+ *     < 640    48px   `py-sm` 13×2 + a 22px right cluster (the menu button)
+ *     640–767  64px   `sm:py-md` 21×2 + the same 22px cluster
+ *     >= 768   59px   `sm:py-md` 21×2 + a 17px cluster (the menu button is
+ *                     gone at `md`; the text controls are a 17px line box)
  *
- * RENAMING IT IS FINE, BUT ONLY TOGETHER WITH DERIVING IT. 70px is meant to
- * stand in for the bar's bottom edge, and the bar MEASURES 59px at `sm` and up.
- * That number is `py-md` × 2 = 42 plus SEVENTEEN, not plus the 19px centre
- * icon: the centre cluster is `position: absolute` and therefore out of flow,
- * so the row's height comes from the tallest IN-FLOW child, which is the 17px
- * MS mark. 70 ≠ 59, so a name like `NAV_BOTTOM_EDGE` would assert an identity
- * the code cannot back.
+ * The centre cluster never contributes: it is `position: absolute` and out of
+ * flow, so the row's height is the tallest IN-FLOW child. The old docblock had
+ * this right for `>= 768` and generalised it to "at `sm` and up", which is
+ * wrong by 5px across the whole 640–767 band.
+ *
+ * WHAT THE 22px GAP BETWEEN 48 AND 70 ACTUALLY DID, measured light mode,
+ * 639×800, `/work` and `/` at MAXIMUM SCROLL — a resting state, not a
+ * transient: the reveal footer's static top lands at 50.7px, which is BELOW the
+ * 48px bar and ABOVE the 70px threshold. So the bar took the hero palette —
+ * #E8EAEC ink — while sitting on #FDFCFA. Measured contrast 1.18:1 for the MS
+ * mark and 1.12:1 for the menu button. The bar was invisible.
+ *
+ * INVISIBLE IN DARK MODE, WHICH IS WHY IT SHIPPED: the same state puts #E8EAEC
+ * on #0A0A0B at 16.41:1 against the 16.53:1 it would have had on the plate. A
+ * 0.12 difference nobody can see. That is the third defect on this project
+ * computed in dark mode only.
+ *
+ * `getBoundingClientRect().bottom` ON THE HEADER IS EXACT AND SELF-MAINTAINING.
+ * The header is `fixed inset-x-0 top-0`, so its bottom edge IS the bar's bottom
+ * edge in viewport coordinates. Descendant transforms do not affect it —
+ * verified, including the entrance animation on `[data-nav-entrance]`, which is
+ * a child and cannot change the parent's border box. Both ScrollTrigger
+ * `start`s below are FUNCTIONS so the value is re-resolved on every refresh,
+ * which is what carries a resize across the 640 and 768 breakpoints where the
+ * height genuinely changes.
  */
-const ALWAYS_VISIBLE_ABOVE = 140;
 
 /* -------------------------------------------------------------------------
    The active-route indicator's numbers.
@@ -362,11 +381,13 @@ export function Navbar() {
     const el = headerRef.current;
     if (!el) return;
 
-    /* The bar's bottom edge, near enough. `ALWAYS_VISIBLE_ABOVE`'s own docblock
-       explains why 70 stands in for a bar that measures 59px, and why its
-       readers must not drift apart. There are three of them now, so they are
-       bound to one local rather than written out three times. */
-    const barEdge = ALWAYS_VISIBLE_ABOVE / 2;
+    /* The bar's bottom edge, exactly, at whatever width the bar is currently
+       laid out for. A FUNCTION rather than a captured number: the height is 48
+       / 64 / 59 across the `sm` and `md` breakpoints, and this effect keys on
+       `pathname`, so a captured value would go stale on the first resize that
+       crosses one. All three readers call it, so they cannot drift apart —
+       which is the property the old shared constant existed to give, kept. */
+    const barEdge = () => el.getBoundingClientRect().bottom;
 
     /* TWO GROUNDS, ONE ATTRIBUTE. Kept in a plain object rather than in state
        for the reason the whole effect exists: writing the attribute from a ref
@@ -397,14 +418,14 @@ export function Navbar() {
       // overlay opened from the gallery, say — would sit on the wrong palette
       // until the visitor happened to scroll back up and down again. Each
       // comparison mirrors its own `start` exactly.
-      ground.hero = hero.getBoundingClientRect().bottom > barEdge;
+      ground.hero = hero.getBoundingClientRect().bottom > barEdge();
 
       // The boundary is the hero's BOTTOM reaching the bar's bottom edge, not
       // the viewport top — otherwise the palette would swap while the bar is
       // still physically over the last strip of hero surface.
       const trigger = ScrollTrigger.create({
         trigger: hero,
-        start: `bottom top+=${barEdge}`,
+        start: () => `bottom top+=${barEdge()}`,
         onEnter: () => {
           ground.hero = false;
           apply();
@@ -419,7 +440,7 @@ export function Navbar() {
 
     const plateTop = document.getElementById(REVEAL_FOOTER_SENTINEL_ID);
     if (plateTop) {
-      ground.plate = plateTop.getBoundingClientRect().top < barEdge;
+      ground.plate = plateTop.getBoundingClientRect().top < barEdge();
 
       // `onEnterBack` IS NOT REDUNDANT WITH `onEnter`. The sentinel is zero
       // height, so ScrollTrigger's default `end` ("bottom top") lands only
@@ -429,7 +450,7 @@ export function Navbar() {
       // last stretch of every scroll-up off the plate.
       const trigger = ScrollTrigger.create({
         trigger: plateTop,
-        start: `top top+=${barEdge}`,
+        start: () => `top top+=${barEdge()}`,
         onEnter: () => {
           ground.plate = true;
           apply();
