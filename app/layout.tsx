@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { IntroSessionMarker } from "@/components/intro/IntroSession";
 import { LenisProvider } from "@/components/ui/LenisProvider";
 import { MotionProvider } from "@/components/ui/MotionProvider";
 import { OG_IMAGE } from "@/lib/metadata";
@@ -264,6 +265,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="flex min-h-full flex-col">
+        {/*
+          THE DOCUMENT-ENTRY MARKER. Renders null, holds no state, one effect,
+          no cleanup — see `components/intro/IntroSession.tsx` for the whole
+          rule and for why it cannot live anywhere else.
+
+          IT IS HERE, IN THE ROOT LAYOUT, BECAUSE IT HAS TO FIRE ON ROUTES THAT
+          NEVER SHOW AN INTRO. The flag it writes means "a route has already
+          committed in this document", and that is only true if something mounts
+          on every one of them — `/projects/<slug>`, `not-found` and `error`
+          included. Those three are exactly the routes that make it useful: a
+          document that entered through a shared project link must NOT then play
+          the Intro when the visitor clicks through to `/work`, and this is the
+          only thing that knows the difference.
+
+          It emits no DOM, so `<body>`'s flex children are unchanged.
+        */}
+        <IntroSessionMarker />
         <MotionProvider>
           <LenisProvider>{children}</LenisProvider>
         </MotionProvider>
