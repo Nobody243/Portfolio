@@ -66,7 +66,8 @@ import { useEffect, useRef, useState } from "react";
 import { HERO_SECTION_ID } from "@/components/hero/heroContent";
 import { HeroHeadline } from "@/components/hero/HeroHeadline";
 import { ParticleGrid } from "@/components/hero/ParticleGrid";
-import { IntroGate } from "@/components/intro/IntroGate";
+import { useIntroHandoff } from "@/components/intro/IntroContext";
+import { IntroProvider } from "@/components/intro/IntroProvider";
 import { ScrollTrigger, gsap } from "@/lib/animation/gsap";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
@@ -135,14 +136,43 @@ const ARRIVAL_S = 1.6;
  */
 const ARRIVAL_SCALE = 1.12;
 
+/**
+ * THIS WRAPPER IS A STAGING STEP AND IS NOT WHERE THE PROVIDER BELONGS.
+ *
+ * The gate's mount condition is still "the Home page is rendering", which is
+ * the bug: a document that loads on `/about` or `/work` plays no Intro, and the
+ * first client navigation to `/` plays one — on a client navigation, which
+ * `docs/07_SITE_RESTRUCTURE.md` §3 forbids. The NEXT commit moves
+ * `<IntroProvider>` to `app/(site)/(chrome)/layout.tsx` and this wrapper
+ * disappears entirely.
+ *
+ * It exists for one commit so that the state refactor below — two `useState`s
+ * and two callbacks becoming one context read — can be verified as
+ * behaviour-neutral BEFORE the route scope changes underneath it. A component
+ * cannot consume a context it renders itself, which is the only reason `Hero`
+ * is briefly two components.
+ */
 export function Hero() {
+  return (
+    <IntroProvider>
+      <HeroSection />
+    </IntroProvider>
+  );
+}
+
+function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
-  const [introDone, setIntroDone] = useState(false);
-  /** Flipped when the Intro's EXPANSION starts, not when the Intro finishes. */
-  const [arriving, setArriving] = useState(false);
+  /*
+    A PURE CONSUMER NOW. `arriving` and `introDone` used to be local state fed
+    by `IntroGate`'s two callbacks, which only worked while this component was
+    the thing that mounted the gate. Nothing else about the arrival changed:
+    same tween, same `ARRIVAL_S`, same `ARRIVAL_SCALE`, same `50% 50%` origin,
+    same `revealed` prop.
+  */
+  const { arriving, introDone } = useIntroHandoff();
   const [inView, setInView] = useState(true);
   const [tabVisible, setTabVisible] = useState(true);
 
@@ -279,20 +309,16 @@ export function Hero() {
         />
       </div>
 
-      {/* Layer 4 — the entry gate: real loader, then the Intro. Fixed and above
-          everything, rendered last so it wins the paint order even before
-          z-index is consulted.
+      {/* LAYER 4 IS NOT IN HERE ANY MORE. The entry gate — real loader, then the
+          Intro — used to be the last child of this section, and its two
+          callbacks were this component's two `useState` setters. It is now
+          rendered by `IntroProvider` above and reaches this file through
+          `useIntroHandoff()`.
 
-          `onHandoff` fires as the EXPANSION STARTS and `onDone` when the plate
-          is gone; the gap between them is the overlap the expansion above
-          depends on. Collapsing them into one callback would make the hand-off
-          a cut again. */}
-      {!introDone ? (
-        <IntroGate
-          onHandoff={() => setArriving(true)}
-          onDone={() => setIntroDone(true)}
-        />
-      ) : null}
+          The gap between `arriving` and `introDone` is unchanged and is still
+          the overlap the expansion above depends on: `arriving` flips as the
+          zoom-in STARTS, `introDone` when the plate is gone. Collapsing them
+          into one value would make the hand-off a cut again. */}
     </section>
   );
 }
