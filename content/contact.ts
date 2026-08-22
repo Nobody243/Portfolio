@@ -6,11 +6,16 @@
  * ./types.ts. The heading and the closing line are copy and live in
  * components/sections/contactContent.ts.
  *
+ * THE CONSUMER IS `components/sections/RevealFooter.tsx`. Every reference in
+ * this file used to name `Contact.tsx`, which was absorbed into the reveal
+ * footer in Phase 5 and no longer exists — the links, the array-order
+ * contract and the no-`.length` property all moved with it intact.
+ *
  * ARRAY ORDER IS DISPLAY ORDER. There is no sort, no filter and no reverse in
  * the consumer — reading this array top to bottom tells you what the page
  * renders. Email is first because it is the action the section exists for.
  *
- * TWO ENTRIES IS NOT A SPECIAL CASE, AND NEITHER IS THREE. `Contact.tsx` reads
+ * TWO ENTRIES IS NOT A SPECIAL CASE, AND NEITHER IS THREE. The consumer reads
  * no `.length` at all: the list is a flex column that becomes a wrapping row at
  * ≥640px, so n = 1, n = 2 and n = 4 are one code path with no layout that
  * balances only at a particular count. Adding a link is an edit to this file
@@ -43,8 +48,17 @@
  *     produce a plausible-looking dead link. Logged as a Ticket 13 check.
  *
  * No Twitter/X, Instagram, Dribbble or Behance: docs/04 Ticket 10 says real
- * links only. No CV link either — there is no resume PDF yet, and that is
- * Ticket 15.
+ * links only.
+ *
+ * NO CV LINK HERE, AND THE REASON CHANGED. This paragraph used to end "No CV
+ * link either — there is no resume PDF yet, and that is Ticket 15." Ticket 15
+ * shipped: `public/resume/Muhammad_Saad_CV.pdf` is committed and `/about`
+ * renders a "View CV" control for it (`components/about/aboutPageContent.ts`).
+ * The CV stays out of THIS array anyway, on different grounds — these entries
+ * are addressable identities the visitor can reach Saad at, all rendered by
+ * one loop as label + value + href, and a PDF preview is a document with its
+ * own modal-or-new-tab behaviour. Adding it here would make the loop branch on
+ * a fourth `kind`, which is the special-casing the paragraph above rejects.
  */
 
 import type { ContactLink } from "./types";
@@ -52,10 +66,17 @@ import type { ContactLink } from "./types";
 export const contact: readonly ContactLink[] = [
   {
     label: "Email",
-    // The visible string is the address itself, deliberately. If the mailto:
+    // The visible string is the address itself, deliberately: if the mailto:
     // opens nothing on the visitor's machine, the worst case is that they
-    // select sixteen characters that are already on screen — which is why the
-    // section ships no copy-to-clipboard button.
+    // select sixteen characters that are already on screen.
+    //
+    // THAT SENTENCE USED TO END "— which is why the section ships no
+    // copy-to-clipboard button." It ships one. `RevealFooter.tsx` renders
+    // `CopyEmailButton` for `kind: "email"`, and the navbar renders a second
+    // copy control from the same entry. The visible-address property above is
+    // still exactly why the button is SAFE to add — it degrades to selectable
+    // text pre-hydration and with the Clipboard API unavailable — but it is no
+    // longer an argument against the control, and it must not be read as one.
     value: "saad@saaddev.top",
     href: "mailto:saad@saaddev.top",
     kind: "email",

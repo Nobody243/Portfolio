@@ -623,9 +623,15 @@ export function Navbar() {
         */}
         <div
           // THE ENTRANCE LAYER. The Intro's timeline slides this down from
-          // above the viewport as the hero expands — one timeline, two tweens,
-          // same start, same duration, because `docs/07` §1 and §3 step 6 both
-          // ask for one beat rather than two adjacent ones.
+          // above the viewport as the hero arrives — one timeline, two tweens,
+          // SAME START, because `docs/07` §1 and §3 step 6 both ask for one
+          // beat rather than two adjacent ones.
+          //
+          // NOT the same duration, and this comment said "same start, same
+          // duration" until 2026-08-22. The bar slides in 0.45s (`HANDOFF_S`)
+          // while the hero settles over 1.6s (`ARRIVAL_S`), deliberately: the
+          // incoming half of a handoff has to outlast the outgoing one or the
+          // seam reads as a cut. Both files say so; this one had not caught up.
           //
           // IT IS THIS ELEMENT AND NOT `<header>`, AND THE ORIGINAL REASON IS
           // NOW VOID. It was that the header's `transform` was already taken:

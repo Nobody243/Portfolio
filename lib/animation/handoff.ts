@@ -1,17 +1,30 @@
 /**
  * THE SEAM between the Intro and the page it opens into.
  *
- * Three components have to agree about one beat: `Intro.tsx` ends its
- * contraction on a single dot at dead viewport centre, `Hero.tsx` expands out
- * of that pixel, and `Navbar.tsx` slides down from above the viewport. `docs/07`
- * §3 step 6 and §1 both require the last two to be SIMULTANEOUS — "one beat" —
- * and `.claude/handoff/intro-timing-design.md` §5 pins that to a shared start
- * time and a shared duration.
+ * Three components have to agree about one beat: `Intro.tsx` drives a camera
+ * that accelerates THROUGH the mark's anchor pixel at dead viewport centre,
+ * `Hero.tsx` settles in behind it out of that same pixel, and `Navbar.tsx`
+ * slides down from above the viewport. `docs/07` §3 step 6 and §1 both require
+ * the last two to be SIMULTANEOUS — "one beat".
  *
- * A shared duration expressed as two constants in two files is a shared
- * duration until someone retunes one of them, at which point the seam becomes a
- * stagger nobody meant. It lives here instead, with the DOM contract it travels
- * with.
+ * SIMULTANEITY HERE MEANS ONE START INSTANT, NOT ONE DURATION. See
+ * `HANDOFF_S`'s note below and `Hero.tsx`'s `ARRIVAL_S`, which state the same
+ * fact from their two sides.
+ *
+ * THIS BLOCK USED TO DESCRIBE A DIFFERENT INTRO, and it is worth knowing which
+ * one: it said the Intro "ends its contraction on a single dot" and that
+ * `Hero.tsx` "expands out of that pixel", then cited
+ * `.claude/handoff/intro-timing-design.md` §5 as pinning the beat to "a shared
+ * start time AND a shared duration". That was the merge-to-a-point Intro,
+ * built, found broken and reverted in `1145a00`; the shared-duration half was
+ * then reversed by `7b3b5d2` in `HANDOFF_S`'s own note twenty lines below,
+ * leaving this header arguing against the constant it introduces. The anchor
+ * pixel `(296, 288)` survived both rewrites and is still the one thing the two
+ * sides share geometrically.
+ *
+ * The slide's duration still lives here rather than in `Intro.tsx` because it
+ * travels with the DOM contract below: whoever moves the attribute has to see
+ * the timing that depends on it.
  *
  * WHY NOT `lib/animation/easing.ts`. That module is the site's motion
  * VOCABULARY — curves and cadences reused across tiers, deliberately
@@ -38,9 +51,17 @@
  * Do not re-share them. A bar taking 1.6s to descend is a different bug from
  * the one this module was written to prevent.
  *
- * 0.45s is `EXPAND_S` from the timing brief's §7 table. Setup (A+B+C) is 1.40s
+ * 0.45s is `EXPAND_S` from the timing brief's §7 table, and it is the only
+ * number in that table this file still stands behind.
+ *
+ * THE SENTENCE THAT FOLLOWED IT IS RETIRED. It read: "Setup (A+B+C) is 1.40s
  * and the handoff (D+E) is 0.95s, which holds the old `ZOOM_IN_S`'s weight to
- * the millisecond while the total falls from ~3.24s to 2.35s.
+ * the millisecond while the total falls from ~3.24s to 2.35s." Those are the
+ * FIVE-PHASE merge timings, and that sequence was reverted in `1145a00`. The
+ * shipped Intro is SEVEN phases totalling **3.165s** — `INTRO_TOTAL_S` in
+ * `components/intro/Intro.tsx`, which computes it from its own phase constants
+ * rather than restating it. Do not reason about the seam from the numbers that
+ * used to be here.
  */
 export const HANDOFF_S = 0.45;
 
@@ -53,14 +74,23 @@ export const HANDOFF_S = 0.45;
  * WHY AN ATTRIBUTE AND NOT A CALLBACK OR A CONTEXT. The requirement is one
  * timeline with two tweens, not two calls that happen to be adjacent: anything
  * that hands the navbar a signal and lets it start its own animation
- * reintroduces exactly the drift the shared duration above exists to prevent.
+ * reintroduces exactly the drift this single-timeline arrangement prevents.
  * A GSAP timeline can only tween an element it has, so it has to be able to
  * find one.
  *
- * IT IS ON THE BAR'S INNER CONTAINER, NOT ON `<header>`. The header's own
- * `transform` is written directly by the hide-on-scroll handler on every scroll
- * frame; a second author on the same property would fight it the first time
- * anyone scrolled during the entrance. Two elements, two transforms, no
- * arbitration needed.
+ * IT IS ON THE BAR'S INNER CONTAINER, NOT ON `<header>`, AND THE ORIGINAL
+ * REASON IS VOID. It was that the header's `transform` was already taken —
+ * hide-on-scroll wrote it on every scroll frame, so a second author on the same
+ * property would have fought it the first time anyone scrolled during the
+ * entrance. **Hide-on-scroll was deleted in `3b3fab6`** (the bar gained an
+ * active-route indicator, which a retracting bar hides exactly when it is
+ * useful), so `<header>`'s `transform` is free.
+ *
+ * IT STAYS ON THE INNER CONTAINER ANYWAY: moving a working entrance onto a
+ * different element is risk with no gain, `<header>` is `fixed` and
+ * `pointer-events-none` and this layer is neither, and the Intro's timeline
+ * finds it by this attribute. `Navbar.tsx`'s own comment on the same element
+ * already recorded the reason as void; this file kept asserting it as live, so
+ * the two files stated opposite things about the same property.
  */
 export const NAV_ENTRANCE_ATTR = "data-nav-entrance";

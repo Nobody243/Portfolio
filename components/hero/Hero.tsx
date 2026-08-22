@@ -27,8 +27,11 @@
  *     else — see its header for the full list of what is and is not gated.
  *   - There is no camera in the scene. The only camera move on this surface is
  *     the EXPANSION below, and it is not the hero's own: it is the second half
- *     of the Intro's handoff, continued on this side of the seam. The Intro
- *     contracts its mark to a point and this opens out of that point.
+ *     of the Intro's handoff, continued on this side of the seam. The Intro's
+ *     camera accelerates THROUGH the mark's anchor pixel and this settles in
+ *     behind it, out of that same pixel. (It read "the Intro contracts its mark
+ *     to a point and this opens out of that point" — the merge-to-a-point
+ *     sequence, reverted in `1145a00`.)
  *
  * THE VOID IS STILL MEASURED, NOT AGREED — and this component no longer has any
  * part in it. The invariant used to be enforced here: `SaadGlass` measured its
@@ -41,13 +44,21 @@
  * prop — its return would mean something is measuring the sphere from outside
  * the only place that knows where it is.
  *
- * THERE IS NO THEME TOGGLE HERE ANY MORE. It used to be this surface's single
- * instance, anchored to the top-right inset of the shared container — which is
- * now the exact rectangle the fixed navbar occupies. The two cannot both have
- * it. `docs/06_INTRO_AND_CHROME.md` §5 records the placement decision and its
- * consequence in full; the short version is that the navbar spec removes the
- * toggle from the desktop chrome deliberately, and it survives in the mobile
- * menu and on every Tier 3 surface.
+ * THERE IS NO THEME TOGGLE IN THIS FILE, BUT THERE IS ONE OVER IT. It used to
+ * be this surface's single instance, anchored to the top-right inset of the
+ * shared container — which is the exact rectangle the fixed navbar now
+ * occupies, and the two cannot both have it. It moved INTO the bar
+ * (`Navbar.tsx`, `THEME_TOGGLE_IN_NAV`, `hidden md:block`), with
+ * `NavMobileMenu` carrying it below `md`.
+ *
+ * THE SECOND HALF OF THIS PARAGRAPH WAS BACKWARDS UNTIL 2026-08-22. It said
+ * "the navbar spec removes the toggle from the desktop chrome deliberately,
+ * and it survives in the mobile menu and on every Tier 3 surface" — which was
+ * the pre-Phase-0 decision, reversed by `docs/07` §1 and recorded in
+ * `docs/06_INTRO_AND_CHROME.md` §5. The reversal's cause was concrete: with
+ * the bar holding this rectangle but not the control, a desktop visitor on `/`
+ * had no way to switch themes at all. Read §5 before moving it again; both
+ * placements have been shipped and only one of them has a stated cost.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -91,9 +102,9 @@ const ARRIVAL_S = 1.6;
 /**
  * IT EXPANDS FROM A POINT, AND THE POINT IS DEFINED RATHER THAN IMPLIED.
  *
- * The Intro contracts its mark to `(296, 288)` in the mark's viewBox and
- * positions that coordinate — not the mark's bounding box — at dead viewport
- * centre. The hero section is `h-dvh`, sits at the top of the document, and the
+ * The Intro pins `(296, 288)` in the mark's viewBox — not the mark's bounding
+ * box — to dead viewport centre, and makes it the camera's transform origin
+ * (`50% 90%`), so it is the one pixel that does not move while the zoom runs. The hero section is `h-dvh`, sits at the top of the document, and the
  * page is at scroll 0 for the whole sequence, so the section's own centre IS
  * that pixel and a `50% 50%` origin lands on it exactly. THAT IDENTITY IS WHY
  * THERE IS NO COORDINATE HERE TO KEEP IN SYNC — but it is also the thing that
@@ -163,12 +174,23 @@ export function Hero() {
   /* -----------------------------------------------------------------------
      THE EXPANSION — the hero's half of the hand-off.
 
-     The Intro does not fade out and reveal a static hero. Its mark contracts to
-     a single dot at dead centre, holds there for 60ms, and the site opens out
-     of that dot: this runs from the same instant, for the same duration, as the
-     navbar's slide, and the plate finishes dissolving before either of them is
-     done. Two components that cannot see each other, one beat, held together by
-     one shared constant and one shared origin.
+     The Intro does not fade out and reveal a static hero. Its camera commits
+     and then accelerates through the mark's anchor pixel at dead centre, and
+     the site settles in behind it out of that same pixel: this runs from the
+     SAME INSTANT as the navbar's slide — not for the same duration — and the
+     plate finishes dissolving before the arrival is done. Two components that
+     cannot see each other, one beat, held together by one shared origin and
+     one shared start.
+
+     THIS PARAGRAPH DESCRIBED THE REVERTED INTRO UNTIL 2026-08-22. It said the
+     mark "contracts to a single dot at dead centre, holds there for 60ms", and
+     that this runs "for the same duration as the navbar's slide ... held
+     together by one shared constant". The merge-to-a-point sequence and its
+     60ms hold were reverted in `1145a00`; `ARRIVAL_S`'s own docblock seventy
+     lines above already said the opposite in capitals, including that the value
+     is NOT imported from `handoff.ts`. One file, two contradictory accounts of
+     the same beat — which is exactly the trap `ARRIVAL_S` was rewritten to
+     close.
 
      UNDER REDUCED MOTION THIS DOES NOT RUN AT ALL. `IntroGate` still fires the
      hand-off on that path, deliberately, so a consumer never has to ask "did

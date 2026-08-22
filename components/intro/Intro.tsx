@@ -138,8 +138,14 @@ const ZOOM_IN_SCALE = 17;
  */
 const PLATE_DISSOLVE_RATIO = 0.66;
 
-/** Both halves of the handoff. Shared with `Hero.tsx` and `Navbar.tsx` through
- *  one constant, because "simultaneous" written twice is not. */
+/** The navbar's slide, from `lib/animation/handoff.ts` so that the timing and
+ *  the DOM contract it depends on stay in one place.
+ *
+ *  IT IS THE NAVBAR'S DURATION ONLY. This read "Both halves of the handoff.
+ *  Shared with `Hero.tsx` and `Navbar.tsx` through one constant" — `Hero.tsx`
+ *  stopped importing it when the zoom-in was restored, because the incoming
+ *  half has to OUTLAST the outgoing one (its `ARRIVAL_S` is 1.6s against this
+ *  0.45s). What the three components share is the START INSTANT. */
 const HANDOFF_DURATION_S = HANDOFF_S;
 
 /* Reduced motion: a different, shorter thing — not this sequence slowed down.
@@ -507,10 +513,13 @@ export function Intro({
       tZoomIn,
     );
 
-    /* The navbar rides the same instant and the same shared duration, in THIS
-       timeline, because "simultaneous" arranged as two adjacent calls is
-       simultaneous until one of them is retuned. `Hero.tsx` starts its own
-       arrival off `onHandoff` above, on the same constant. */
+    /* The navbar rides the same instant, in THIS timeline, because
+       "simultaneous" arranged as two adjacent calls is simultaneous until one
+       of them is retuned. `Hero.tsx` starts its own arrival off `onHandoff`
+       above — on the same instant but NOT on the same constant: it runs 1.6s
+       so the hero is still settling when the camera leaves. This comment
+       claimed "the same shared duration" and "on the same constant" until
+       2026-08-22; both were true only of the reverted merge sequence. */
     if (nav) {
       gsap.set(nav, { yPercent: -100 });
       tl.to(

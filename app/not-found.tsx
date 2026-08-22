@@ -80,18 +80,37 @@ const HEADING = "Page not found";
 const BODY = "That URL doesn't match anything on this site.";
 
 /**
- * `All work` is IMPORTED, not retyped. `projectDetailContent.ts` records that
- * its destination `/#work` is derived from `PROJECTS_HEADING` and that
- * renaming "Work" is a multi-file commit; importing the label means this page
- * cannot become the file that gets missed. The module is pure strings with no
- * "use client" and no dependencies, so the import costs nothing.
+ * `All work` is IMPORTED, not retyped. Importing the label means this page
+ * cannot become the file that gets missed when it changes. The module is pure
+ * strings with no "use client" and no dependencies, so the import costs
+ * nothing.
  *
  * `Home` is local because no constant for it exists anywhere on the site —
- * there is no site nav, and this is the first surface that has ever needed to
- * name `/`.
+ * this is the only surface that has ever needed to name `/` in prose. (The
+ * navbar names it as an icon, not a word.)
  */
 const HOME_LINK_LABEL = "Home";
-const WORK_HREF = "/#work";
+
+/**
+ * `/work` — the archive route, NOT `/#work` on Home.
+ *
+ * THE TWIN OF `BACK_HREF` in `app/(site)/projects/[slug]/page.tsx`, and it
+ * must stay the twin: both are the "All work" affordance and both must land on
+ * the page that holds all five projects. Since Phase 3, `/#work` is Home's
+ * FEATURED THREE — CCN and SNA are archive-only — so a link labelled "All
+ * work" pointing there sends the visitor to a gallery that provably does not
+ * contain two of them.
+ *
+ * This constant read `/#work` until 2026-08-22, and the comment above it
+ * justified the wrong value: it said the destination "is derived from
+ * `PROJECTS_HEADING`" in `projectsContent.ts` and that renaming "Work" is a
+ * multi-file commit. That was true of the one-page site. The href is a ROUTE
+ * now, not an id, so renaming the heading no longer touches it at all — the
+ * label is still imported, but for the reason stated above rather than that
+ * one. The detail page had already been corrected; this file was the copy that
+ * got missed, which is precisely what that comment claimed to prevent.
+ */
+const WORK_HREF = "/work";
 const HOME_HREF = "/";
 
 /** Rule S-1's spine, byte-identical to `app/(site)/projects/[slug]/page.tsx`,

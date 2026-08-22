@@ -39,10 +39,18 @@
  * and the destination name carries the meaning without one. The site ships no
  * icon set, and a bare "←" read aloud is noise.
  *
- * CHANGING THIS IS NOT A LOCAL EDIT. Its destination is `/#work`, an id
- * derived from `PROJECTS_HEADING` in `projectsContent.ts` — that file records
- * that renaming "Work" is a three-file commit, and this page is the third
- * file.
+ * CHANGING THIS IS NOT A LOCAL EDIT. Two files render this label and both must
+ * point at the archive: `app/(site)/projects/[slug]/page.tsx` (`BACK_HREF`)
+ * and `app/not-found.tsx` (`WORK_HREF`). Both are `/work`.
+ *
+ * THIS PARAGRAPH USED TO READ: *"Its destination is `/#work`, an id derived
+ * from `PROJECTS_HEADING` in `projectsContent.ts` — that file records that
+ * renaming 'Work' is a three-file commit, and this page is the third file."*
+ * True of the one-page site, wrong since Phase 3: `/#work` is now Home's
+ * FEATURED THREE, so an "All work" link pointing there omits CCN and SNA. The
+ * destination is a route rather than a heading-derived id, so renaming the
+ * heading no longer touches this label's href at all. Corrected 2026-08-22,
+ * together with `not-found.tsx`, which was still carrying `/#work`.
  */
 export const BACK_LINK_LABEL = "All work";
 
