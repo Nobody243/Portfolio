@@ -168,6 +168,31 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > `aria-hidden` does not exempt anything here: it hides an element from screen readers, while 1.4.3
 > exists for low-vision users looking straight at it.
 
+> ### The whole-site theme sweep — measured 2026-08-22, both themes, all four route shapes
+>
+> The claim this section makes — *"components should NOT need `dark:` variants: every token flips"* —
+> is now a measured result rather than an intention. Run against `/`, `/about`, `/work` and
+> `/projects/folio`, at 1440×900, each page scrolled top to bottom so every `Reveal` and scrub unit
+> had settled, in both themes.
+>
+> | Check | Method | Result |
+> |---|---|---|
+> | Every visible text node clears its floor | own-text elements only, colour composited over the first opaque ancestor background, size-aware floor (3:1 at ≥24px or ≥18.66px bold, else 4.5:1) | **348 measured, 0 below floor** |
+> | Nothing is styled in one theme only | full `getComputedStyle` capture of `color`, `background-color`, all four border colours, plus `fill`/`stroke` on SVG nodes; the dark and light captures diffed element-for-element | **1340 property-instances compared, 24 flagged, all 24 explained** |
+> | Hex literals outside comments | comment-stripped AST-ish scan of `app/` and `components/` | **0** |
+> | `dark:` variants | same scan | **2**, both `ThemeToggle`'s label spans — the one sanctioned pair |
+> | Sub-`/70` text opacities | same scan | **1**, `HeroHeadline`'s reduced-motion chevron (an icon, 3:1 floor) |
+>
+> **The 24 flags are all `fill: rgb(0, 0, 0)` on `<svg>` and `<g>` WRAPPER nodes** — the CSS initial
+> value, on elements that paint nothing. Their `<path>` children carry the real paint and do flip.
+> Recorded rather than silently filtered, because "identical in both themes" is the right test and a
+> future reader will hit the same 24 and need to know they were looked at.
+>
+> **`--color-tint-cool` still has no DOM consumer**, in either theme, on any route — `bg-tint-warm` is
+> the only tint rendered (one element, 544×292 on Skills, `#0b120e` dark / `#f8fbf8` light, correct in
+> both). `docs/04` already resolves this: it gets judged when it first gets a consumer. It is a pair
+> defined once, not dead surface to prune.
+
 > ### `accent-hero` has exactly ONE DOM consumer site-wide — and count RENDER SITES, not code paths. Ticket 10.
 >
 > **This heading counted code paths, and counting code paths is exactly what let a Tier 1 accent onto

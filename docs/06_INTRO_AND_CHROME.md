@@ -491,6 +491,57 @@ palette for free and is never a fixed hex on a ground that flips. Measured at
 1440: `#14b8a6` over the hero in both themes, `#14b8a6` / `#0f766e` past it in
 dark / light.
 
+Two things about it that were **not** free and had to be fixed on 2026-08-22:
+its `background-color` was in neither `transition-property` list, so it snapped
+where every sibling cross-faded (invisible in dark, an L\* 67.41 → 44.50 jump in
+light); and under reduced motion the variant now **narrows** that list to
+`background-color` rather than emptying it, because a colour change is not
+motion on this site and every other item in the row cross-fades ungated.
+
+---
+
+## 6.2 The palette, swept — 2026-08-22
+
+Recorded so the next pass does not re-derive it, and because the sweep found a
+defect that reading the source did not (see §6's `ALWAYS_VISIBLE_ABOVE` note).
+
+**Method, and it matters.** Contrast is computed against the **actual rendered
+ground pixel**, read back from a screenshot, not against the token the ground is
+supposed to be. The bar is scrimmed (`color-mix` at 80%) and
+`backdrop-filter: blur(10px)`, so the declaration is not what the compositor
+produces, and the one real failure below was invisible to any check that trusted
+the token. Element colours come from `getComputedStyle`; `color-mix(in oklab, …)`
+computes to `oklab(L a b / α)` and is converted to sRGB before compositing.
+
+**Coverage.** 11 elements × 3 routes × up to 3 scroll positions (top / mid /
+max) × 6 viewports (375×667, 639×800, 768×1024, 1024×600, 1440×900,
+2560×1440) × 2 themes = **924 states, 616 of them with a measurable ratio**
+(the rest are `display: none` — see the gate column).
+
+| Element | Floor | min | max | Gate |
+|---|---|---|---|---|
+| MS mark | 3 (graphic) | 16.16 | 17.81 | always |
+| Location label | 4.5 | 6.93 | 8.83 | `sm:inline` |
+| ABOUT | 4.5 | 6.22 | 8.87 | `md:flex` cluster |
+| WORK | 4.5 | 6.98 | 8.83 | `md:flex` cluster |
+| Centre home icon | 3 | 6.98 | 8.87 | `md:flex` cluster |
+| Active indicator | 3 (graphic) | 5.10 | 8.01 | `md:flex` cluster |
+| Copy-email address | 4.5 | 7.17 | 8.83 | `md:block` |
+| “Copied” confirmation | 4.5 | 5.28 | 8.01 | `md:block` |
+| LinkedIn icon | 3 | 7.17 | 8.87 | `md:block` |
+| Theme toggle | 4.5 | 7.08 | 8.83 | `md:block` |
+| Menu button | 3 | 7.15 | 8.83 | `md:hidden` |
+
+**616 / 616 pass.** The binding case is the “Copied” confirmation at 5.28:1 —
+the only element in the bar rendering `--nav-accent` as *text*, and the one
+`app/globals.css` records as depending on the scrim guard.
+
+**Exactly one theme toggle is visible at every width**, verified as a count
+rather than by reading the two class gates: the bar's toggle is measurable in 56
+of 84 states and absent in the 28 below `md`; the menu button is the exact
+complement, 28 and 56. The mobile menu's own toggle sits inside a closed
+`<dialog>`, which is `display: none`.
+
 ---
 
 ## 7. Open items
