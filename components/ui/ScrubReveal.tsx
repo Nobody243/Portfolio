@@ -100,6 +100,14 @@ const SCRUB_TRAVEL_PX = 21;
  * `EASE.reveal` via `GSAP_EASE.reveal` — ARE imported, so this is the only
  * value that can drift. If `Reveal` ever changes it, change it here in the same
  * commit; there is nothing in the type system that will remind you.
+ *
+ * `Reveal` GREW ONE PROP ON 2026-08-22 AND THIS VALUE DID NOT MOVE. `fadeOnly`
+ * suppresses `Reveal`'s `y` leg for one call site (`/about`'s action row, on a
+ * page that clips instead of scrolling). It adds no curve, no duration and no
+ * distance, and `TRAVEL_PX` is still 13 — so the "byte-identical" constraint
+ * this docstring cites is spent in the only way that would not affect it, and
+ * the duplication above is still pinned to the same number. Checked at the
+ * time; re-check if a second prop is ever added.
  */
 const TIMED_TRAVEL_PX = 13;
 

@@ -182,19 +182,32 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  *     1440x900   0px over        375x667   0px over  (5.64px to spare)
  *     1280x800   0px over        640x800   0px over
  *     1024x600   0px over        768x1024  0px over
+ *     390x844    0px over        414x896   0px over
+ *     2560x1440  0px over
  *     360x640    7.86px OVER — the two secondaries lose their bottom edge
  *                for ~80ms, at opacity <= 0.7, then settle correctly
  *
- * 375x667 is the narrow case this page has always been budgeted against and
- * it clears. 360x640 has only 5.14px of resting slack — it was 4.25px before
- * the portrait landed, so this is not a regression the portrait introduced —
- * and a 13px travel cannot fit in it. THE STANDING FALLBACK, if that 80ms is
- * ever judged unacceptable, is to drop the `y` leg for the action row alone
- * and keep its opacity. It is NOT implemented here because `Reveal` must stay
- * byte-identical (`ScrubReveal`'s header records why: it owns motion on
- * `/work`, `/about`, every detail page and Home's Stack) and a per-unit
- * transform opt-out is a new prop on it. NEVER fix this by inventing a
- * smaller travel number, and never by relaxing `overflow-hidden`.
+ * THE STANDING FALLBACK IS NOW SHIPPED, 2026-08-22: the action row alone
+ * passes `fadeOnly` and drops its `y` leg. The paragraph above is kept intact
+ * because its measurement is still the reason, and because it named the exact
+ * fix that was taken — but its last three sentences are now out of date and
+ * are corrected here rather than deleted:
+ *
+ *   - "It is NOT implemented here because `Reveal` must stay byte-identical."
+ *     That constraint was Ticket 6b's, recorded in `ScrubReveal`'s header, and
+ *     what it protects is `TRAVEL_PX` not drifting from `TIMED_TRAVEL_PX`.
+ *     `fadeOnly` leaves `TRAVEL_PX` at 13 and adds no curve, no duration and no
+ *     distance, so the duplication reasoning is untouched. The prohibition was
+ *     lifted deliberately, not worked around.
+ *   - "NEVER fix this by inventing a smaller travel number, and never by
+ *     relaxing `overflow-hidden`." BOTH STILL STAND, and they are the reason
+ *     the prop is a boolean rather than a number.
+ *
+ * Re-measured after the change at all ten viewports, both themes: zero units
+ * over the bottom edge anywhere, 360x640 included. The other three units keep
+ * their 13px travel; only this row fades. 360x640 has 5.14px of resting slack
+ * — it was 4.25px before the portrait landed, so the clip was never a
+ * regression the portrait introduced.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * RULE S-2 GENUINELY DOES NOT APPLY HERE, and a reviewer sweeping the site for
@@ -489,8 +502,21 @@ export function AboutScreen() {
                 one of them is rendered by a different component and takes no
                 `className`.
               */}
+              {/* `fadeOnly` — THE ONE CALL SITE ON THE SITE, and the clip
+                  budget below is its whole justification. This row is the
+                  bottom-most unit on a page that may not scroll, and at
+                  360x640 it has 5.14px of resting slack against `Reveal`'s
+                  13px start offset. Without this it sits 7.86px past the
+                  viewport's bottom edge for ~80ms and is silently clipped.
+                  UNCONDITIONAL, NOT GATED AT A WIDTH: a media query here
+                  would make the row a fourth motion behaviour that exists
+                  only below some breakpoint, which is the "third behaviour"
+                  the motion rules forbid. One row fades where three units
+                  travel; that is a smaller inconsistency than one row being
+                  clipped on the narrowest phone. */}
               <Reveal
                 delay={STAGGER.line * 2}
+                fadeOnly
                 className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center"
               >
                 <CvAction />

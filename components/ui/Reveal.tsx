@@ -9,6 +9,33 @@
  * something this cannot express, that is a designer request with reasoning,
  * not a new prop added during implementation.
  *
+ * IT GREW EXACTLY ONE, ON 2026-08-22, AND THE RULE ABOVE IS WHY IT TOOK THIS
+ * LONG. `fadeOnly` suppresses the `y` leg and nothing else. It adds no ease, no
+ * duration, no distance and no variant: the fade is the same fade, on the same
+ * curve, for the same time. What it removes is 13px of travel — so the widest
+ * thing it can express is a subset of what this component already did.
+ *
+ * It exists because `/about` is `h-dvh overflow-hidden` and one measured
+ * viewport cannot afford the travel. At 360x640 the action row's resting
+ * bottom slack is 5.14px against a 13px start offset, so the row sits 7.86px
+ * PAST the viewport's bottom edge for ~80ms and is silently clipped. Measured,
+ * both themes, at ten viewports: 360x640 is the only one that fails; 375x667
+ * clears by 5.64px. `AboutScreen.tsx` has carried this as a known defect with a
+ * named standing fallback — "drop the `y` leg for the action row alone and keep
+ * its opacity" — and named this prop as the reason it was not taken.
+ *
+ * THE TWO ALTERNATIVES ARE BOTH FORBIDDEN AND STILL ARE: a smaller travel
+ * number for one call site (which is the seven-eases failure this rule guards
+ * against, in distance rather than in curve), and relaxing `overflow-hidden`
+ * (which would let the one deliberately unscrollable page scroll).
+ *
+ * DEFAULTS TO TODAY'S BEHAVIOUR, so every existing call site is unchanged
+ * without being edited. `TRAVEL_PX` is untouched at 13, which is what
+ * `ScrubReveal`'s `TIMED_TRAVEL_PX` duplicate is pinned to. If a third call
+ * site ever wants this, ask why its container cannot afford 13px before
+ * granting it — the answer here was "because the page may not scroll", and
+ * that is a property of exactly one route.
+ *
  * NEVER USED IN THE HERO. Tier 1 has its own curve, its own gating and its own
  * phase machine; reaching for this there would flatten the energy curve the
  * whole site is built around.
@@ -88,17 +115,41 @@ type RevealProps = {
    */
   delay?: number;
   className?: string;
+  /**
+   * Drop the `y` leg; fade only. Defaults to `false`, i.e. to the travel every
+   * other call site gets.
+   *
+   * ONE CONSUMER, AND IT IS A CONTAINER CONSTRAINT, NOT A TASTE ONE:
+   * `/about`'s action row, on a page that is `h-dvh overflow-hidden` and
+   * therefore clips instead of scrolling. See the header for the measurement
+   * and for the two alternatives that are still forbidden.
+   *
+   * It is a boolean rather than a travel distance ON PURPOSE. A number would
+   * let a call site invent a fourth, fifth and sixth slide distance, which is
+   * the header's rule broken in a different unit. On/off can only ever produce
+   * two behaviours, both of which are already the site's.
+   */
+  fadeOnly?: boolean;
 };
 
-export function Reveal({ children, delay = 0, className }: RevealProps) {
+export function Reveal({
+  children,
+  delay = 0,
+  className,
+  fadeOnly = false,
+}: RevealProps) {
   return (
     <motion.div
       // Consumed by the no-JS net in app/layout.tsx. Do not rename without
       // changing that selector in the same commit.
       data-reveal
       className={className}
-      initial={{ opacity: 0, y: TRAVEL_PX }}
-      whileInView={{ opacity: 1, y: 0 }}
+      // `y` is OMITTED under `fadeOnly`, not set to 0. Framer animates the keys
+      // present in the variant; a `y: 0 -> 0` pair would still write a
+      // `transform` onto the element for the duration, and this page's whole
+      // point is that it is still the moment the entrance ends.
+      initial={fadeOnly ? { opacity: 0 } : { opacity: 0, y: TRAVEL_PX }}
+      whileInView={fadeOnly ? { opacity: 1 } : { opacity: 1, y: 0 }}
       // `once` is mandatory, not a preference: a reveal that re-hides and
       // replays on scroll-up is a scroll-toy, and it makes re-reading the
       // section actively hostile.
@@ -113,6 +164,11 @@ export function Reveal({ children, delay = 0, className }: RevealProps) {
         //
         // Expressed as a division rather than as 0.35 so it cannot drift if
         // DURATION.reveal is ever retuned.
+        //
+        // The `y` entry stays declared under `fadeOnly` and is simply inert:
+        // a transition for a property no variant animates costs nothing, and
+        // branching it too would mean two shapes of this object to keep in
+        // step for no behavioural difference.
         opacity: { duration: DURATION.reveal / 2, ease: EASE.reveal, delay },
         y: { duration: DURATION.reveal, ease: EASE.reveal, delay },
       }}
