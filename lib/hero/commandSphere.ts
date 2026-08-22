@@ -565,10 +565,30 @@ export function stepCommandSphere(
  * `sphere.order` sorted far-to-near — a painter's pass, because billboarded
  * flat text never intersects and so never needs a depth buffer.
  *
- * NO BACK-HEMISPHERE CULL, and no mirrored back-hemisphere text. Culling makes
- * fragments pop at the silhouette; mirroring reads as broken rather than as
- * transparency. Small and dim is the correct treatment for the far half, and
+ * NO BACK-HEMISPHERE CULL HERE, and no mirrored back-hemisphere text. Culling
+ * makes fragments pop at the silhouette; mirroring reads as broken rather than
+ * as transparency. Small and dim is the correct treatment for the far half, and
  * the alpha ramp above is what delivers it.
+ *
+ * THE RENDERER NOW CULLS PART OF THE FAR HALF ANYWAY, AND THAT IS A KNOWN,
+ * DELIBERATE EXCEPTION RATHER THAN THIS PARAGRAPH GOING STALE.
+ * `ParticleGrid.tsx`'s `SPHERE_MIN_ALPHA` drops any fragment under 0.25 alpha,
+ * which the ramp above reaches at t = 0.382 — behind the silhouette, so 38% of
+ * the set. The paragraph's claim is still true as written: those fragments DO
+ * pop, over roughly one frame, and nothing here pretends otherwise. It was
+ * accepted because the alternative was measured and was worse — at 90
+ * fragments, 74.9% of every label drawn overlapped another one and 38.6% of
+ * them were painted below 0.25 alpha, i.e. the thing the ramp was producing in
+ * the far half was not depth, it was a haze of illegible strings that the near
+ * face had to be read through.
+ *
+ * "SMALL AND DIM IS THE CORRECT TREATMENT" IS THEREFORE NARROWED, NOT REVERSED:
+ * it is correct down to the point where a fragment stops being readable text,
+ * and past that point there is nothing left for it to be the correct treatment
+ * OF. The ramp is unchanged and still owns the whole far half's appearance; the
+ * renderer just stops painting the tail of it. Do not implement a cull in this
+ * file — the geometry has no business knowing what is legible, and a second
+ * cull that had to agree with the renderer's is how the two would drift.
  *
  * The returned order is also what makes the draw pass cheap: `t` is monotonic
  * along it, so the scale bucket, the tint stop and the glow flag each change at

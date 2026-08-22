@@ -447,16 +447,37 @@ const RESIZE_DEBOUNCE_MS = 150;
  * Fragment counts.
  *
  * DELIBERATELY SPARSER THAN THE FIELD. At the 1440px radius this is roughly one
- * fragment per 6,500px² of projected area against the mesh's `AREA_PER_NODE` of
+ * fragment per 10,000px² of projected area against the mesh's `areaPerNode` of
  * 5,200, so the sphere never reads as denser than the atmosphere it floats in
- * front of. The compact count is not a performance concession — a ~223px sphere
+ * front of. The compact count is not a performance concession — a ~232px sphere
  * cannot legibly hold ninety command strings at any readable size.
  *
- * `heroContent.ts` currently ships 95 fragments and the sphere draws 90 of
- * them, sampled by stride. Raising this to 95 is a one-word edit if all of them
- * should appear.
+ * IT WAS 90, AND 90 WAS TOO MANY BY A WIDE MARGIN — a legibility defect, not a
+ * taste call, and it was measured before it was changed. On a 432px-diameter
+ * sphere at 1440x900, hooking every `fillText` for five seconds of idle
+ * rotation gave 61.7 pairs of OVERLAPPING labels per frame, with 74.9% of
+ * everything drawn colliding with at least one neighbour. The premise of the
+ * whole effect is that these are legible commands; three quarters of them were
+ * sitting on top of another one.
+ *
+ * 58, AND THE NUMBER CAME OFF THE OVERLAP CURVE RATHER THAN OFF FEEL. Below 58
+ * the curve has already flattened — 58 gives 11.0 overlapping pairs a frame and
+ * 55 gives 10.3 — while each step down costs another real command out of a set
+ * whose register mix is the point of it (see the note in `heroContent.ts` on
+ * why the `git`, `docker` and `curl` lines are in there). Most of the reduction
+ * is done by the render floor below, not by this number.
+ *
+ * THE SAMPLER GUARANTEES THE FEATURED FOUR SURVIVE ANY VALUE HERE, structurally
+ * rather than arithmetically — `sample()` in `lib/hero/commandSphere.ts`
+ * reserves them before it strides. Verified at 58: all four present, 34 of the
+ * previous 90 dropped, none of them featured, two entries newly included that
+ * the 90-sample had strided past. The last time this count changed without that
+ * guarantee the stride silently dropped `docker ps -a`.
+ *
+ * `heroContent.ts` currently ships 95 fragments and the sphere draws 58 of
+ * them, sampled by stride.
  */
-const SPHERE_COUNT = 90;
+const SPHERE_COUNT = 58;
 const SPHERE_COUNT_COMPACT = 44;
 
 /**
@@ -485,16 +506,42 @@ const SPHERE_LETTER_SPACING = "0.04em";
 const SPHERE_ADVANCE_ESTIMATE = 0.66;
 
 /**
- * A fragment rendering below this size is DROPPED, not shrunk. Unreadable 6px
- * mono is noise, not depth, and the premise of the whole effect is that these
- * are legible commands rather than decoration that happens to be letter-shaped.
+ * THE RENDER FLOOR. A fragment below EITHER of these is DROPPED — not shrunk,
+ * not dimmed. Unreadable mono is noise, not depth, and the premise of the whole
+ * effect is that these are legible commands rather than decoration that happens
+ * to be letter-shaped.
  *
- * At the shipped values it never fires — the far pole lands at 13 x 0.62 =
- * 8.1px desktop and 11 x 0.62 = 6.8px compact. It is the guard that keeps a
- * future retune of the depth ramp from quietly producing a haze.
+ * IT USED TO BE 7px DESKTOP / 6px COMPACT, CHOSEN SO IT WOULD NEVER FIRE. The
+ * comment here said so outright — "at the shipped values it never fires — the
+ * far pole lands at 13 x 0.62 = 8.1px desktop and 11 x 0.62 = 6.8px compact"
+ * — and described itself as a guard against some future retune. That is
+ * precisely why it was not doing the job the effect needed. Measured over 20s
+ * of idle rotation: 38.6% of every label drawn was under 0.25 alpha and 9.8%
+ * was under 9px at 1440, rising to 50.7% under 9px at 375. Half the compact
+ * sphere was mush.
+ *
+ * ONE FONT FLOOR FOR BOTH BREAKPOINTS NOW, NOT A PAIR. 9px is a claim about
+ * what a human can read, and a phone is not the place that gets to be laxer
+ * about it. The pair existed only because the two base sizes differ and the
+ * guard was designed never to fire; once it is meant to fire, two numbers that
+ * have to agree is the shape this repo has repeatedly had to unpick. It costs
+ * the compact sphere roughly half its drawn labels — 44 built, ~22 painted —
+ * and that is the correction rather than a side effect of it: at 375 the
+ * compact sphere measured 78.6% of labels colliding, the worst of any viewport.
+ *
+ * ALPHA IS THE OTHER HALF, AND NEITHER FLOOR SUBSUMES THE OTHER. At the 13px
+ * desktop base the 9px floor only cuts below t = 0.19, which the alpha floor
+ * has already removed, so alpha binds; at the 11px compact base the font floor
+ * cuts below t = 0.52 and is the stricter of the two. Both breakpoints need
+ * both numbers.
+ *
+ * THE ALPHA FLOOR IS A PARTIAL BACK-HEMISPHERE CULL, AND `projectCommandSphere`
+ * WARNS AGAINST EXACTLY THAT. The warning is not wrong and has not been
+ * deleted; it now carries this exception recorded against it. Read it there
+ * before raising 0.25 any further.
  */
-const SPHERE_MIN_FONT_PX = 7;
-const SPHERE_MIN_FONT_PX_COMPACT = 6;
+const SPHERE_MIN_FONT_PX = 9;
+const SPHERE_MIN_ALPHA = 0.25;
 
 /**
  * How many discrete type sizes the depth ramp is quantised to.
@@ -502,7 +549,7 @@ const SPHERE_MIN_FONT_PX_COMPACT = 6;
  * `ctx.font` assignment is a font-shorthand PARSE, not a field write, and it is
  * the most expensive thing in the draw loop after the glow. Six steps across a
  * 0.62–1.00 range is a ≤1px difference between neighbouring buckets at 13px —
- * invisible — in exchange for six parses a frame instead of ninety.
+ * invisible — in exchange for six parses a frame instead of one per fragment.
  *
  * Bucketing rather than `ctx.setTransform`: a transform would also scale the
  * letter-spacing and the shadow blur, and it would make the minimum-size rule
@@ -558,13 +605,13 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
  *
  * THE ORDER'S MONOTONICITY IS WHAT MAKES THIS CHEAP. `t` only increases along
  * it, so the scale bucket, the colour stop and the glow flag each change at
- * most a handful of times across ninety fragments instead of once per fragment.
+ * most a handful of times across the whole set instead of once per fragment.
  * That turns the three expensive pieces of context state — the font parse, the
  * fill style and `shadowBlur` — into a near-constant number of assignments.
  *
  * ALPHA GOES THROUGH `globalAlpha`, NOT THROUGH THE FILL STRING. Per-fragment
- * `rgba(...)` would allocate ninety strings a frame for a value that a context
- * field already carries, and it would defeat the two-stop colour scheme by
+ * `rgba(...)` would allocate one string per fragment per frame for a value that
+ * a context field already carries, and it would defeat the two-stop colour scheme by
  * making every fragment its own style.
  */
 function drawCommandSphere(
@@ -577,7 +624,6 @@ function drawCommandSphere(
   viewportWidth: number,
 ): void {
   const basePx = compact ? SPHERE_FONT_PX_COMPACT : SPHERE_FONT_PX;
-  const minPx = compact ? SPHERE_MIN_FONT_PX_COMPACT : SPHERE_MIN_FONT_PX;
   const span = SPHERE_SCALE_MAX - SPHERE_SCALE_MIN;
   const steps = SPHERE_SCALE_BUCKETS - 1;
 
@@ -600,15 +646,31 @@ function drawCommandSphere(
     const f = sphere.projected[order[i]];
 
     const step = Math.round(((f.scale - SPHERE_SCALE_MIN) / span) * steps);
+    // The BUCKETED size, because that is what actually renders. Both the render
+    // floor and the clip guard below test against this rather than against the
+    // unquantised scale, which would drop a fragment that was about to be drawn
+    // a bucket larger.
+    const px = basePx * (SPHERE_SCALE_MIN + (step / steps) * span);
+
+    // THE RENDER FLOOR, TESTED BEFORE `ctx.font` IS ASSIGNED. The size half of
+    // it used to sit after, which parsed a font shorthand for a fragment that
+    // was then skipped — the one call in this loop that `SPHERE_SCALE_BUCKETS`
+    // identifies as the expensive one.
+    //
+    // BOTH CUTS ARE A PREFIX OF `order`, WHICH IS WHY THIS IS SAFE HERE. The
+    // order is far-to-near and both `alpha` and `scale` are monotone along it,
+    // so everything dropped is dropped at the START of the loop, before
+    // `bucket`, `tinted` or `glowing` has been set to anything. A dropped
+    // fragment is `near: false, glow: false` by construction, which is the
+    // state those two locals already hold, so skipping it cannot desync them.
+    // `continue` and not `break`: this loop's CHEAPNESS is allowed to depend on
+    // that monotonicity, its CORRECTNESS is not.
+    if (f.alpha < SPHERE_MIN_ALPHA || px < SPHERE_MIN_FONT_PX) continue;
+
     if (step !== bucket) {
       bucket = step;
-      const px = basePx * (SPHERE_SCALE_MIN + (step / steps) * span);
       ctx.font = `${px}px ${fontStack}`;
     }
-    // Measured against the BUCKETED size, because that is what actually
-    // renders. Testing the unquantised scale would drop a fragment that was
-    // about to be drawn a bucket larger.
-    if (basePx * (SPHERE_SCALE_MIN + (bucket / steps) * span) < minPx) continue;
 
     if (f.near !== tinted) {
       tinted = f.near;
@@ -634,7 +696,6 @@ function drawCommandSphere(
     // knowable — 0.6em plus the letter-spacing already set above. The estimate
     // runs slightly WIDE on purpose, so a marginal fragment is dropped rather
     // than clipped. Cheap and one-directional.
-    const px = basePx * (SPHERE_SCALE_MIN + (bucket / steps) * span);
     const halfWidth = f.text.length * px * SPHERE_ADVANCE_ESTIMATE * 0.5;
     if (f.x - halfWidth < 0 || f.x + halfWidth > viewportWidth) continue;
 
@@ -908,8 +969,8 @@ export function ParticleGrid({
       // skipped at draw time. `sphere` stays null, so the void anchor it feeds
       // the mesh is null too and About's field has no permanent tear in it —
       // which is the point: there is no subject there to tear a hole behind.
-      // The 90 fragments, the per-frame sort and the 90 `fillText` calls all go
-      // with it.
+      // The fragments, the per-frame sort and every `fillText` call all go with
+      // it.
       if (!withSphere) {
         sphere = null;
       } else {
