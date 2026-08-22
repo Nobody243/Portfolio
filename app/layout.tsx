@@ -60,7 +60,13 @@ export const metadata: Metadata = {
   //
   // `default` IS BYTE-IDENTICAL to the plain string this field held before,
   // and must stay that way: it is what every page without its own title still
-  // renders, including the one-pager at `/`. Only the shape changed.
+  // renders. Only the shape changed. Verified 2026-08-22: `/about`, `/work`,
+  // `/projects/[slug]` and `not-found` all declare their own `title`, so `/` is
+  // the one route this string reaches (plus `app/error.tsx`, which cannot
+  // export metadata at all).
+  //
+  // This said "including the one-pager at `/`". The site has been three routes
+  // since the restructure; `/` is Home, not the whole site.
   //
   // `template` exists so a page can return the bare thing it is about —
   // `title: project.title` on /projects/[slug] — and get "FOLIO — Saad"

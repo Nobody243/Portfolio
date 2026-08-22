@@ -80,8 +80,11 @@ export function HeroHeadline({
             visible rendering WAS the 3D logotype and two typographic treatments
             of one word in a viewport is the thing to avoid. The logotype is
             gone, and the reason is now the Intro: it delivers the full name at
-            full size and contracts it into the navbar's mark, so the identity
-            is stated as a move rather than as a heading. In the fallback
+            full size and reduces it to the MS mark — the same mark the navbar
+            carries afterwards — so the identity is stated as a move rather than
+            as a heading. ("contracts it INTO THE NAVBAR'S mark" overstated it:
+            the reduction happens on the Intro's own plate, and the navbar's
+            mark arrives separately as the bar slides in.) In the fallback
             arrangement there is no such move to lean on, so it becomes visible.
           */}
           <h1

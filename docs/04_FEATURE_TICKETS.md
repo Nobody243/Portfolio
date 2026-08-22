@@ -80,6 +80,11 @@ launch, **S** = should-have, **N** = nice-to-have.
 > 2. **`app/not-found.tsx`'s container comment claims byte-identity with "`Contact` and the five
 >    shipped sections".** `Contact` was deleted in `23d890d`. The class string is still correct; the
 >    thing it names as its reference no longer exists.
+>
+> **BOTH FIXED 2026-08-22.** `WORK_HREF` is `/work`, matching the detail page's `BACK_HREF`, and the
+> comment that justified `/#work` is corrected in `not-found.tsx` and in `projectDetailContent.ts`.
+> The container comments in `not-found.tsx` AND `app/error.tsx` — the second copy, not listed above —
+> now name the reveal footer's inner panel instead of the deleted `Contact`.
 
 ---
 
@@ -736,5 +741,7 @@ Without it, a light-mode visitor who hits an error has no way back to light mode
 > A second, cosmetic staleness in the same file: its container comment claims byte-identity with
 > "`Contact` and the five shipped sections". **`Contact` was deleted in `23d890d`.** The class string
 > is still correct; its stated reference no longer exists.
+>
+> **Both fixed 2026-08-22** — see the resolution note at the top of this file.
 
 ---

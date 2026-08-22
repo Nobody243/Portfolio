@@ -278,32 +278,65 @@ export const LETTER_LEFT: Readonly<Record<MarkLetter, number>> = {
  */
 export const MIN_HEIGHT_PX = 17;
 
-/** The navbar's instance. Do not reduce it — see `MIN_HEIGHT_PX`. */
+/**
+ * The navbar's instance. Do not reduce it — see `MIN_HEIGHT_PX`.
+ *
+ * WHICH OF THESE TWO IS "THE OWNER" — asked and answered 2026-08-22, because
+ * `docs/07` §2.1 calls `MIN_HEIGHT_PX` the owner while `NAV_HEIGHT_PX` is what
+ * every call site actually imports, so one of them looks dead from a grep.
+ *
+ * THEY OWN DIFFERENT THINGS AND BOTH STAY. `MIN_HEIGHT_PX` owns the DERIVED
+ * FLOOR — the S's 44-unit gap, 14.5px arithmetic, 17px shipped — and the block
+ * above is its documentation; it binds the navbar, `/about`, the reveal-footer
+ * stamp and any future favicon. `NAV_HEIGHT_PX` owns ONE INSTANCE'S CHOSEN
+ * SIZE, which today happens to sit exactly on the floor. Collapsing them into
+ * one constant would assert that the bar must always render at the minimum,
+ * which is not a decision anyone made.
+ *
+ * NOTHING MECHANICALLY ENFORCES `NAV_HEIGHT_PX >= MIN_HEIGHT_PX`. That is the
+ * real cost of keeping both, it is stated here rather than left to be
+ * discovered, and it is why `MIN_HEIGHT_PX` having no importer is not evidence
+ * that it is dead surface.
+ */
 export const NAV_HEIGHT_PX = 17;
 
 /* -------------------------------------------------------------------------
-   The Intro's name — the merge's SOURCE half.
+   The Intro's name — the SOURCE half of the name-to-mark reduction.
 
    "Muhammad Saad" is twelve letters plus a space and the mark is two letters.
    There is NO twelve-to-two anything here.
 
    THE CAPITAL M OF "Muhammad" BECOMES THE MARK'S M; THE CAPITAL S OF "Saad"
    BECOMES THE MARK'S S. One-to-one, twice. The other TEN inked glyphs — the
-   space carries advance width and no ink, so it is not one of them — translate
-   toward their own word's capital and fade, so each word visibly COLLAPSES INTO
-   ITS OWN INITIAL. That is not a shortcut, it is the concept made literal: a
-   monogram is the initials that survived.
+   space carries advance width and no ink, so it is not one of them — SHRINK
+   TOWARD THEIR OWN PEN ORIGIN AND FADE, staggered left to right, leaving the
+   two initials standing. A monogram is the initials that survived.
+
+   THIS HEADER DESCRIBED A DIFFERENT MECHANIC UNTIL 2026-08-22. It said the ten
+   "translate toward their own word's capital and fade, so each word visibly
+   COLLAPSES INTO ITS OWN INITIAL". The shipped DROP tween (`Intro.tsx`, phase
+   2) writes only `opacity` and `scale` — there is no translation toward a
+   capital and no per-word collapse. The letters go where they stand.
 
    THE NAME IS RENDERED FROM OUTLINES, NOT DOM `<text>`, and the reason has
-   CHANGED with the faceted rebuild. It used to be that fill and stroke do not
-   interpolate, so a morph forbade a paint-mode swap. There is no morph now. The
-   reason it still holds: the name and the mark are then in ONE coordinate
-   system, so each capital's travel is `x: 0, scale: 1` — the identity transform
-   — and it lands on the faceted letter EXACTLY, at the same baseline and the
-   same cap height, with no DOM-to-SVG alignment probe anywhere. That exactness
-   is what makes the crossfade at the meeting point invisible instead of a
-   double image. A `TextMetrics` baseline probe was deleted from this project
-   once already; this is what replaced it.
+   CHANGED TWICE. It used to be that fill and stroke do not interpolate, so a
+   morph forbade a paint-mode swap; there is no morph now. It then became "each
+   capital's travel is `x: 0, scale: 1` — the identity transform — and it lands
+   on the faceted letter EXACTLY". `docs/07` §3.1 explicitly retires that
+   sentence: it was the reverted merge's mechanic. Phase 3 SLIDES the two
+   survivors to a computed `SLIDE_X`; their travel is not the identity.
+
+   WHAT ONE COORDINATE SYSTEM BUYS TODAY, per §3.1, is two things, and they are
+   worth more than the one they replaced:
+     - The slide is ARITHMETIC rather than a measured FLIP. There is no layout
+       inside an SVG to reflow, so `SLIDE_X` computes the pair set solid on the
+       font's own advances, re-centred in the box, from the same font metrics.
+     - The crossfade is a SWAP IN PLACE. The parked pair is advance-centred on
+       `VB_W / 2` = `ANCHOR_X`, which is where the settled mark's ink is
+       centred, and both render at `NAME_SCALE`. Same cap height, same centre,
+       no correction term — and so no DOM-to-SVG alignment probe. A
+       `TextMetrics` baseline probe was deleted from this project once already;
+       this is what replaced it.
 
    EVERYTHING IS FILLED, name and mark alike. The old "nothing is ever filled"
    rule was a morph constraint and is void.

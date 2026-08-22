@@ -27,8 +27,10 @@
  * a fixed control crosses three surface contexts on `/` (`bg-hero-surface`,
  * `bg-base`, `bg-hero-surface` again), so it would need a plate of its own —
  * and giving it `bg-hero-surface` would make the pinned plate appear three
- * times, when `Contact.tsx` records that it appearing EXACTLY TWICE, at the two
- * spectacle beats, is what makes it read as a system. Independently: at 360px
+ * times, when the reveal footer records that it appearing EXACTLY TWICE, at the
+ * two spectacle beats, is what makes it read as a system (the record was
+ * written in `Contact.tsx` and moved into `RevealFooter.tsx` with it in Phase
+ * 5). Independently: at 360px
  * body text runs the full width inside `px-md`, so an opaque fixed chip in the
  * top-right occludes paragraph text as the page scrolls, on every route.
  *
@@ -241,8 +243,12 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
        * With JS off the init script never runs, <html> keeps `class="dark"`,
        * and the site is dark and completely correct — but this button is
        * server-rendered markup, so it would render and do nothing: a DEAD
-       * CONTROL, the exact failure `Contact.tsx` rejected a copy-to-clipboard
-       * button over. `display: none` also takes it out of the tab order and the
+       * CONTROL, the exact failure the old `Contact.tsx` rejected a
+       * copy-to-clipboard button over. (That objection has since been ANSWERED
+       * rather than overruled — see `CopyEmailButton.tsx`'s progressive-
+       * enhancement `href` — and the reveal footer ships the button. The
+       * dead-control hazard it names is still real, which is why this
+       * `display: none` stays.) `display: none` also takes it out of the tab order and the
        * accessibility tree, so keyboard focus never lands on something inert.
        */
       data-theme-toggle

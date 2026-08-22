@@ -6,9 +6,10 @@
  * nothing about the shape and everything about how a given instance is dressed.
  *
  *   - `variant="nav"` — the SETTLED mark and nothing else. Two filled letters
- *     in `currentColor`. The navbar renders it at 17px and the About page will
- *     render the same thing at 72px; those are not two variants, they are one
- *     variant and a `size`.
+ *     in `currentColor`. The navbar renders it at 17px and `/about` renders the
+ *     same thing at 56px below 640 and 72px above (`AboutScreen.tsx`); those are
+ *     not two variants, they are one variant and a `size`. (Written as "the
+ *     About page WILL render" before `/about` shipped.)
  *   - `variant="intro"` — the same two letters, invisible at first, PLUS the
  *     full name "Muhammad Saad" as filled glyph outlines in the same coordinate
  *     system. `Intro.tsx` owns the timeline; this owns the DOM it runs on.
@@ -22,9 +23,13 @@
  * WHY THE INTRO STATE LIVES HERE AND NOT IN `Intro.tsx`. `docs/07` §2 asks for
  * every appearance of the mark — mid-sequence, settled in the navbar,
  * static on About — to be literally one artifact, and calls a second SVG a
- * build smell to raise rather than route around. The name is the merge's source
- * half and the mark is its target half, so the component that renders the
- * target renders the source too. What `Intro.tsx` owns is time.
+ * build smell to raise rather than route around. The name is the SOURCE of the
+ * name-to-mark reduction and the mark is its target, so the component that
+ * renders the target renders the source too. What `Intro.tsx` owns is time.
+ *
+ * "the merge's source half" is avoided deliberately: "the merge" names the
+ * FIVE-PHASE sequence that was built and reverted in `1145a00`, and the phrase
+ * now points a reader at a sequence that is not in the file.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * NOTHING HERE IS STROKED. That is the faceted rebuild's whole point and it is

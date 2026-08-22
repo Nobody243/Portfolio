@@ -114,7 +114,8 @@ const WORK_HREF = "/work";
 const HOME_HREF = "/";
 
 /** Rule S-1's spine, byte-identical to `app/(site)/projects/[slug]/page.tsx`,
- *  `Contact` and the five shipped sections: 21 / 55 / 89px inside a 1440px
+ *  the reveal footer's inner panel and every shipped section: 21 / 55 / 89px
+ *  inside a 1440px
  *  centred container. NOTHING HERE IS CENTRED. A centred hero-style block is
  *  the obvious move on an error page and it would be the site's first centred
  *  content column, which Rule S-1 forbids outright. */

@@ -117,8 +117,8 @@ export function ProjectDetailFrame({
         THE TOP ROW CARRIES TWO THINGS: the exit affordance on the spine, and
         this surface's single theme toggle at the mirrored right inset.
         `justify-between` is safe here specifically because n is FIXED AT TWO —
-        `Contact.tsx` bans it for a list whose length can change, which this is
-        not. At 360px both are 12px mono inside a 318px content box; they
+        the reveal footer's link row (the old `Contact.tsx`) bans it for a list
+        whose length can change, which this is not. At 360px both are 12px mono inside a 318px content box; they
         cannot collide.
 
         IMPORTING A CLIENT COMPONENT DOES NOT MAKE THIS A CLIENT COMPONENT.

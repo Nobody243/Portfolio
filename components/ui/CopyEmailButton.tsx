@@ -57,8 +57,8 @@
  *      call sites are unchanged.
  *
  * THE PROGRESSIVE-ENHANCEMENT `href`, WHICH RETIRES A REAL OBJECTION.
- * `Contact.tsx` refused a copy control on the ground that it "would be INERT
- * UNTIL HYDRATION… (or forever, with JS blocked)". That objection was correct
+ * The old `Contact.tsx` refused a copy control on the ground that it "would be
+ * INERT UNTIL HYDRATION… (or forever, with JS blocked)". That objection was correct
  * and is answered rather than overruled: with `href` supplied, this renders a
  * plain `<a href="mailto:…">` on the server and swaps to the `<button>` once
  * hydrated. WITH JS BLOCKED THE VISITOR GETS A WORKING MAILTO, NEVER A DEAD

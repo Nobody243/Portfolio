@@ -202,8 +202,10 @@ type ScrubRevealProps = {
 };
 
 /**
- * ONE INSTANCE PER UNIT — one heading, one beat, one card, one portrait — each
- * owning its own trigger. NEVER one wrapping a whole section, and never
+ * ONE INSTANCE PER UNIT — one heading, one beat, one card — each owning its
+ * own trigger. (The list ended "one portrait" until 2026-08-22; this file's own
+ * header records that the portrait moved to `/about`, where the scrub does not
+ * run, so it was a fifth unit here and is not one now.) NEVER one wrapping a whole section, and never
  * `staggerChildren`: a section-length window would put the `end` anchor far
  * past `bottom bottom` and break the "shorter than the viewport" invariant
  * outright, and `Projects.tsx` already documents what a group trigger does to

@@ -11,9 +11,11 @@
  *
  * IT IS NOW THE ONLY PLACE THE NAME EXISTS IN THE HERO'S OWN DOM, and that is
  * deliberate rather than an oversight left by deleting the SAAD wordmark. The
- * Intro delivers "Muhammad Saad" at full size and contracts it into the
- * navbar's MS mark, so the name arrives as a move rather than as a static
- * headline, and the mark is what carries it afterwards. A second visible
+ * Intro delivers "Muhammad Saad" at full size and reduces it to the MS mark, so
+ * the name arrives as a move rather than as a static headline, and the mark the
+ * navbar carries is what holds it afterwards. (This read "contracts it into the
+ * navbar's MS mark". The reduction happens on the Intro's own plate; the
+ * navbar's instance slides in separately.) A second visible
  * wordmark in the hero would restate what the Intro just spent 1.6 seconds
  * saying.
  */

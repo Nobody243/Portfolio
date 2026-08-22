@@ -37,5 +37,26 @@ export const OG_IMAGE = {
   url: "/og-hero.png",
   width: 2400,
   height: 1260,
-  alt: 'The site\'s hero: the name SAAD as extruded 3D type lit by a cyan rim, over a dark particle field, above the line "Engineer building toward cybersecurity & cloud."',
+  /*
+   * THE ALT DESCRIBED AN IMAGE THAT NO LONGER EXISTS. It read: "the name SAAD
+   * as extruded 3D type lit by a cyan rim, over a dark particle field, above
+   * the line ...". The SAAD wordmark and the whole R3F scene were deleted in
+   * the hero rebuild — `components/hero/heroContent.ts` records that the
+   * wordmark went and the command sphere replaced it — so the alt text was
+   * describing the previous hero to every screen reader and every scraper.
+   *
+   * FLAGGED AND NOT SILENTLY RESOLVED: `public/og-hero.png` ITSELF IS STILL THE
+   * OLD CAPTURE. Regenerating it is a screenshot of the live site and a design
+   * asset, which is Saad's call, not an implementer's — the block above says
+   * outright to regenerate by rescreenshotting and never by editing. The alt
+   * below therefore describes THE HERO AS IT SHIPS, which is what a reader of
+   * the page would find, and it will match the file once the capture is
+   * retaken. Retake it before treating the preview card as correct.
+   *
+   * ITS WORDING IS NOT INVENTED. It restates `HERO_SPHERE_DESCRIPTION` in
+   * `components/hero/heroContent.ts`, which is the sphere's own `sr-only` line
+   * and carries a written rule against turning it into a capability claim.
+   * Keep the two in step, and keep both descriptive.
+   */
+  alt: 'The site\'s hero: a slowly rotating sphere of terminal commands from cloud, networking and security tooling, over a dark particle mesh, with the line "Engineer building toward cybersecurity & cloud."',
 } as const;

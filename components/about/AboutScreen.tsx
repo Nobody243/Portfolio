@@ -80,8 +80,8 @@ import { contact } from "@/content/contact";
  */
 export function AboutScreen() {
   /* BY LABEL, NEVER BY INDEX. `content/contact.ts` states that its array order
-     is display order for the Contact section and is free to change; an index
-     here would one day render GitHub's URL under LinkedIn's label. Not by
+     is display order for the reveal footer's link row and is free to change; an
+     index here would one day render GitHub's URL under LinkedIn's label. Not by
      `kind` either — both are `"web"`, so that discriminant cannot tell them
      apart. `navContent.ts` makes the same call for the same reason.
 

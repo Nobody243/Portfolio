@@ -182,6 +182,21 @@ const T_MORPH = T_SLIDE + SLIDE_S * MORPH_OVERLAP; // 0.995
 /** The mark is formed and still. Phases 5–7 hang off this. */
 const T_SETTLED = T_MORPH + MORPH_S; // 1.395
 
+/**
+ * The sequence's full length, DERIVED rather than typed — 3.165s.
+ *
+ * NOTHING IMPORTS IT, and that is deliberate rather than an oversight waiting
+ * to be tidied: the Intro is gated on `onDone`, not on a timer, so no consumer
+ * should ever be scheduling against this number. What it is for is being
+ * CORRECT AND CITEABLE — `docs/06` §2 and `docs/07` §3 both quote the total, and
+ * `lib/animation/handoff.ts` points here after carrying the reverted merge's
+ * ~2.35s for a while. Because it is computed from the phase constants directly
+ * above it, retuning any phase updates it for free and a doc that disagrees
+ * with it is provably the thing that is wrong.
+ *
+ * If a consumer ever does appear, read this paragraph first: wanting the total
+ * is usually wanting `onDone`.
+ */
 export const INTRO_TOTAL_S =
   T_SETTLED + ZOOM_OUT_S + BREATH_S + ZOOM_IN_S; // 3.165
 

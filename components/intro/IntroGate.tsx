@@ -10,9 +10,11 @@
  *   2. The moment it reports ready, `Intro` mounts and plays its scripted
  *      sequence. It is never fighting an in-flight download, because there is
  *      no longer one to fight.
- *   3. `Intro`'s expansion fires `onHandoff`, the hero opens out of the
- *      contraction point, the navbar slides in on the same beat, and `onDone`
- *      retires the gate.
+ *   3. `Intro`'s zoom-in fires `onHandoff`, the hero settles in behind the
+ *      camera out of the mark's anchor pixel, the navbar slides in on the same
+ *      INSTANT (not for the same duration), and `onDone` retires the gate.
+ *      This step said "`Intro`'s expansion ... the hero opens out of the
+ *      contraction point" — the reverted merge-to-a-point sequence.
  *
  * The Intro must never be gated on a timer, and the Loader must never be
  * padded to look intentional. Keeping them as two components with one

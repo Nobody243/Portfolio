@@ -43,8 +43,8 @@ import { Navbar } from "@/components/ui/Navbar";
  * the `(site)` layout's header warns.
  *
  * THE BAR RENDERS BEFORE `{children}` and as a sibling of the page's `<main>`,
- * for that same landmark reason — the same trap `Contact`'s `<footer>` avoids
- * by staying outside `<main>`.
+ * for that same landmark reason — the same trap `RevealFooter`'s `<footer>`
+ * avoids by staying outside `<main>`.
  *
  * NO "use client". `Navbar` carries its own directive; this file must stay a
  * server component or every page under it crosses the client boundary.

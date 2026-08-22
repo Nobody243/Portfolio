@@ -373,7 +373,15 @@ they are tuned. This is the shape, not the tuning.
    transition**, not a step that happens before one: the plate never cuts, it dissolves over the back
    two-thirds of the move while the hero arrives underneath.
    - **Simultaneously with the start of step 7**, the navbar slides down (§1) and `Hero` begins its
-     arrival. One beat, one shared duration (`HANDOFF_S` in `lib/animation/handoff.ts`).
+     arrival. **One beat means ONE START INSTANT, not one duration** — the bar slides in 0.45s
+     (`HANDOFF_S` in `lib/animation/handoff.ts`) while the hero settles over 1.6s (`ARRIVAL_S` in
+     `Hero.tsx`), because the incoming half of a handoff has to outlast the outgoing one or the seam
+     reads as a cut.
+     > **This line said "one beat, one shared duration (`HANDOFF_S`)" until 2026-08-22.** That was
+     > true of the reverted merge, where the hero bloomed out of a dot in the same 0.45s. When the
+     > zoom-in was restored, `Hero.tsx` stopped importing `HANDOFF_S` and said so in capitals; four
+     > code comments and this spec line kept asserting the shared duration. A reader acting on this
+     > line alone would re-share them and silently reintroduce the early-settle bug.
 
 **Timing.** Total **3.17s**, measured plate-mount to plate-unmount. The `~2.2–2.6s` budget this
 section used to set belonged to the reverted merge and does not apply: the zoom-out and the breath are
@@ -595,7 +603,12 @@ plus scroll-jacking failure mode.
 Verified against the repo, not assumed. **These are not objections to the spec; they are things the
 spec does not yet say, and someone has to decide them.**
 
-### 9.1 There are no `/about` or `/work` routes. This is a restructure, not a feature.
+### 9.1 ~~There are no `/about` or `/work` routes~~ — RESOLVED. Both ship.
+
+> **Marked resolved 2026-08-22, in the style of §9.2 and §9.3.** `/work` shipped in Phase 2 and
+> `/about` in Phase 4; the navbar's entries are route links, not section anchors. **Everything below
+> is preserved as the pre-planning snapshot it was recorded as** — it is written in the present
+> tense about 2026-08-21 and must be read that way, not as a description of the site.
 
 `find app -name page.tsx` returns exactly three: `app/(site)/page.tsx`, `app/(site)/projects/[slug]/page.tsx`,
 and the modal intercept. **About and Work do not exist as pages.** Home currently renders `Hero`,

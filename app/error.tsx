@@ -80,8 +80,8 @@ const HOME_LINK_LABEL = "Home";
 const HOME_HREF = "/";
 
 /** Rule S-1's spine, byte-identical to `app/not-found.tsx`,
- *  `app/(site)/projects/[slug]/page.tsx`, `Contact` and the five shipped
- *  sections. Left-anchored; nothing on this site is ever a centred content
+ *  `app/(site)/projects/[slug]/page.tsx`, the reveal footer's inner panel and
+ *  every shipped section. Left-anchored; nothing on this site is ever a centred content
  *  column, least of all the page a visitor sees at its least forgiving moment.
  */
 const CONTAINER = "mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl";

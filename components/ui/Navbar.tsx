@@ -40,8 +40,10 @@
  *
  *   1. COLOUR. The bar crosses three different grounds: the hero, which is
  *      `bg-hero-surface` and PINNED DARK in both themes; the mid-page sections
- *      on `bg-base`, which FLIPS (#0A0A0B dark, #FDFCFA light); and the Contact
- *      plate, dark again. One fixed colour cannot serve all of them — light
+ *      on `bg-base`, which FLIPS (#0A0A0B dark, #FDFCFA light); and the reveal
+ *      footer's plate, dark again. (Called "the Contact plate" here until
+ *      2026-08-22; `globals.css`'s copy of this paragraph already said reveal
+ *      footer.) One fixed colour cannot serve all of them — light
  *      text vanishes on #FDFCFA and dark text vanishes on the hero. So the bar
  *      swaps its palette when it leaves the hero, which is the "adaptive colour
  *      based on what is scrolling behind it" option the spec lists.
@@ -223,8 +225,12 @@ const HOME_ROUTE = "/";
 /**
  * An in-page target, or `null` if following the link is the right thing to do.
  *
- * `NAV_ITEMS` holds full hrefs — `/#trajectory` and `/work` — so every entry
- * works from every page the bar appears on. But an anchor into Home, clicked
+ * `NAV_ITEMS` holds full hrefs — today `/about` and `/work`, BOTH REAL ROUTES
+ * — so every entry works from every page the bar appears on. This comment said
+ * "`/#trajectory` and `/work`"; ABOUT became a route in Phase 4, so no nav item
+ * is an anchor any more and the interception below never fires today. IT STAYS:
+ * any future `/#…` entry needs it, and a dormant branch is cheaper than
+ * rediscovering why the offset matters. But an anchor into Home, clicked
  * WHILE ON HOME, must not be handed to the router: Next would scroll natively,
  * losing both Lenis and `NAV_SCROLL_OFFSET`, and the heading would land
  * underneath the bar that just took you to it. So that one case is intercepted
@@ -665,8 +671,12 @@ export function Navbar() {
               thing for a keyboard user to tab past for no gain. This is the
               site's identity, so it is labelled rather than hidden.
 
-              The hover gesture — the two letters part slightly and close again
-              — is the Intro's own contraction played as a two-frame quotation.
+              The hover gesture — the two letters part and close again — quotes
+              the Intro's phase-3 SLIDE, played in reverse: the Intro closes M
+              and S up into a solid pair, and the hover opens that pair back out
+              and lets it re-close. (This read "the Intro's own contraction
+              played as a two-frame quotation"; the Intro has no contraction
+              move — that was the sequence reverted in `1145a00`.)
               It is the reason `MonogramMark` splits M and S into separate
               elements. `group-hover` reaches them through the `data-ms-letter`
               hooks the mark exposes.

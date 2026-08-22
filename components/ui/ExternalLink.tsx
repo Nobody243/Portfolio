@@ -40,8 +40,9 @@
  * NOT for internal navigation. `next/link` owns in-app routes; this is for
  * links that leave the site, which is the only case that needs `target`/`rel`
  * at all. A `mailto:` does NOT open a new tab, so it must NOT come through
- * here — see `Contact.tsx`, which renders a plain `<a>` with the same class
- * constant so the two look identical and only the semantics differ.
+ * here — see `RevealFooter.tsx` (the old `Contact.tsx`), which renders a plain
+ * `<a>` with the same class constant so the two look identical and only the
+ * semantics differ.
  */
 
 import type { ReactNode } from "react";

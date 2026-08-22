@@ -142,13 +142,14 @@ export const NAV_MENU_CLOSE_LABEL = "Close menu";
  * Look-ups into the real contact data, by label.
  *
  * BY LABEL AND NOT BY INDEX, because `content/contact.ts` states that array
- * order is display order for the Contact section and is free to change; an
- * index would silently start rendering GitHub as the email address. Not by
+ * order is display order for the reveal footer's link row and is free to
+ * change; an index would silently start rendering GitHub as the email
+ * address. Not by
  * `kind` either — GitHub and LinkedIn are both `"web"`, so that discriminant
  * cannot tell them apart.
  *
  * BOTH MAY BE `undefined`, and every consumer must handle it by rendering
- * NOTHING. That is the same rule the Contact section follows: an absent link is
+ * NOTHING. That is the same rule the reveal footer follows: an absent link is
  * an absent entry, never `href: "#"`, never a disabled-looking item. If Saad
  * ever removes the LinkedIn entry, the navbar loses an icon and stays correct.
  */
