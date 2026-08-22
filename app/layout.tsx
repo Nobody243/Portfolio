@@ -186,10 +186,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {/*
-          NO-JS NET — TWO RULES, TWO ATTRIBUTES, ONE PLACE.
+          NO-JS NET — TWO RULES, THREE ATTRIBUTES, ONE PLACE.
 
-          Rule 1, [data-reveal] — for every <Reveal> on the site, present and
-          future.
+          IT SAID "TWO ATTRIBUTES" UNTIL 2026-08-22 and the count was right at
+          the time; [data-page-stack] joined Rule 1 when the route transition
+          shipped. Rule 1 is one rule about one failure mode, and a second
+          component with the same failure mode belongs in it rather than in a
+          Rule 3.
+
+          Rule 1, [data-reveal] and [data-page-stack] — for every <Reveal> on
+          the site, present and future, and for the <PageStack> that every
+          route's <main> now renders.
 
           Framer Motion writes `initial` styles into the SERVER-RENDERED markup
           — that is how it avoids a flash of unstyled content — so
@@ -209,10 +216,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           and the accessibility tree, so keyboard focus cannot land on
           something inert.
 
+          ONE HONEST CAVEAT ON [data-page-stack], because a net whose reason is
+          wrong reads as verified forever. PageStack's FIRST appearance never
+          animates — that is its module-scope guard, and it is what keeps the
+          Intro from fading underneath itself — so `initial` is `false` on every
+          prerendered route and, today, NO hidden state actually ships for this
+          attribute. Verified by loading all three routes with scripting
+          disabled. It is listed anyway because the guard is one line: loosen it
+          and every route becomes a blank page for a no-JS visitor, silently.
+
           Each rule is keyed to a data attribute its component sets on its root
-          (`data-reveal` on Reveal, `data-theme-toggle` on ThemeToggle). RENAME
-          EITHER ATTRIBUTE AND THIS SELECTOR MUST CHANGE IN THE SAME COMMIT.
-          Both rules cost nothing at runtime.
+          (`data-reveal` on Reveal, `data-page-stack` on PageStack,
+          `data-theme-toggle` on ThemeToggle). RENAME ANY OF THEM AND THIS
+          SELECTOR MUST CHANGE IN THE SAME COMMIT. All three cost nothing at
+          runtime.
 
           Caveat, stated rather than glossed: <noscript> applies only when
           scripting is DISABLED. If JS is enabled but fails to load or throws,
@@ -232,7 +249,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           // Verified present, verbatim, in the built HTML — not assumed.
           dangerouslySetInnerHTML={{
             __html:
-              "<style>[data-reveal]{opacity:1!important;transform:none!important}[data-theme-toggle]{display:none!important}</style>",
+              "<style>[data-reveal],[data-page-stack]{opacity:1!important;transform:none!important}[data-theme-toggle]{display:none!important}</style>",
           }}
         />
       </head>

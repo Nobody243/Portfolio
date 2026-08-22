@@ -4,6 +4,7 @@ import { Projects } from "@/components/sections/Projects";
 import { Experience } from "@/components/sections/Experience";
 import { CurrentlyLearning } from "@/components/sections/CurrentlyLearning";
 import { RevealFooter } from "@/components/sections/RevealFooter";
+import { PageStack } from "@/components/ui/PageStack";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
 import { projects } from "@/content/projects";
 
@@ -75,8 +76,14 @@ export default function WorkPage() {
         the full reasoning, including why inheriting the body background does
         NOT work (it propagates to the canvas, which paints below positioned
         descendants).
+
+        `PageStack` renders the `<main>` this used to write out literally, and
+        renders it identically; it adds the route transition's fade on a child,
+        never on `<main>` itself, because `<main>`'s background IS the occluder.
+        The class string stays here rather than moving into the component for
+        the same reason it is spelled out on Home.
       */}
-      <main className="relative z-10 bg-base">
+      <PageStack className="relative z-10 bg-base">
         {/*
           THE PAGE OUTLINE STARTED AT `<h2>`. Four sections each render one,
           and nothing above them named the document - an outline with no root.
@@ -119,7 +126,7 @@ export default function WorkPage() {
             reach the HTML. That is why this placement costs nothing today and
             is still correct the moment the first entry lands. */}
         <CurrentlyLearning />
-      </main>
+      </PageStack>
       {/* THE SAME COMPONENT HOME RENDERS, not a copy. Phase 5 absorbed the old
           `Contact` section into this shared reveal footer, which is exactly
           what this file's earlier comment predicted; the curtain is scoped to

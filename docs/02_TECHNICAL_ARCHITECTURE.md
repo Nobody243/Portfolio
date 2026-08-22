@@ -118,7 +118,9 @@ this DOM shape, and getting it wrong fails silently rather than loudly:
 <body class="flex min-h-full flex-col">      app/layout.tsx
   <header data-nav-root>            z-40      the (chrome) layout's Navbar
   <main class="relative z-10 bg-base">        the page stack — OPAQUE, ABOVE
-    … all sections …
+    <div data-page-stack>                     PageStack's fade layer, INSIDE
+      … all sections …
+    </div>
   </main>
   <div id="reveal-footer-top">                zero-height sentinel, in flow
   <footer class="relative z-0 md:sticky md:bottom-0 bg-hero-surface">
@@ -142,6 +144,30 @@ this DOM shape, and getting it wrong fails silently rather than loudly:
 - **`/about` has neither the footer nor the page-stack classes, deliberately.** There is no plate
   to occlude there, and it is the one route with zero `contentinfo` landmarks
   (`docs/07_SITE_RESTRUCTURE.md` §5–6).
+- **`<main>` is rendered by `components/ui/PageStack.tsx` on `/` and `/work`, and the route
+  transition fades that component's INNER div — never `<main>` itself.** Added 2026-08-22 with the
+  Home ↔ About ↔ Work transition. Three things about it are load-bearing and one of them was found
+  by measurement rather than by reading:
+
+  1. **There is no `template.tsx` and there must not be one.** A `motion.div` wrapping
+     `{children}` in `app/(site)/(chrome)/template.tsx` is the obvious mechanism and it breaks the
+     shape above outright — `<footer>` stops being a direct child of `<body>`, which this section
+     already records as failing silently — while also animating exactly the properties Rule S-6 bans
+     between `<body>` and the footer.
+  2. **Even a wrapper around `<main>` alone is wrong.** `opacity < 1` creates a stacking context,
+     so `<main>`'s `z-10` would become local to the wrapper, and the wrapper at `z-index: auto`
+     then paints before the footer's `z-0` in DOM order. The plate shows through the whole page.
+  3. **And `<main>` itself must not be the animated element, which is the part that is easy to get
+     wrong twice.** `<main>`'s own `bg-base` is the only thing occluding the plate, so fading
+     `<main>` fades the occluder. MEASURED at 1440×900, scroll 0: the plate spans y=107.2 to y=900
+     on both `/` and `/work`, and at `<main>` opacity 0.5 in light mode the entire viewport goes
+     dark with the footer's "Contact" heading legible through the project cards. Putting the fade on
+     a child keeps `<main>` fully opaque and paints the fade inside its existing `z-10` stacking
+     context, which is above the footer rather than beside it.
+
+  `/about` renders `PageStack` too, with an empty class string — it has no plate to occlude, so
+  Rule S-6's two classes stay off it exactly as the bullet above says. `className` is a REQUIRED
+  prop with no default so that stays a call-site decision.
 
 ## Content shape (plain English — this replaces a database schema)
 

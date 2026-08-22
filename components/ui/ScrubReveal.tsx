@@ -176,10 +176,18 @@ const TIMED_START = "top bottom-=5%";
  * same width the gallery becomes a gallery.
  *
  * Below it, Home behaves EXACTLY like `/work` and `/about`. There is no
- * mobile-specific animation anywhere on this site: there are two behaviours in
- * total — the site's reveal, and Home's desktop scrub — and a phone gets the
- * former, which is the site's normal motion language rather than a degraded
- * Home.
+ * mobile-specific animation anywhere on this site, and a phone gets the site's
+ * normal motion language rather than a degraded Home.
+ *
+ * THIS SAID "there are two behaviours in total — the site's reveal, and Home's
+ * desktop scrub" until 2026-08-22. The count was already false when it was
+ * written — the Intro's timeline, the navbar's indicator, the card -> cover
+ * morph and the MS mark's hover part were never counted against it — and the
+ * route transition and `/about`'s entrance made it falser. `docs/03` now states
+ * what the count was a proxy for, and it is stricter rather than looser: TWO
+ * MOTION DRIVERS SITE-WIDE, elapsed time and scroll position, and no behaviour
+ * specific to a breakpoint. Scroll position drives exactly one thing, and this
+ * file is it.
  */
 const SCRUB_QUERY = "(min-width: 768px) and (prefers-reduced-motion: no-preference)";
 const TIMED_QUERY = "(max-width: 767px) and (prefers-reduced-motion: no-preference)";

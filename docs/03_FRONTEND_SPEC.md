@@ -597,13 +597,29 @@ bug.
 state except for up to 21px of vertical position. Nothing about the animation touches legibility,
 contrast, size, sharpness or colour. Fully visible implies fully arrived, by construction.
 
-**Below 768px there is no scrub.** Home uses the same reveals as every other page. Two behaviours
-site-wide — the site's reveal, and Home's desktop scrub — never a third mobile-specific one.
+**Below 768px there is no scrub.** Home uses the same reveals as every other page.
+
+> **This sentence used to end "Two behaviours site-wide — the site's reveal, and Home's desktop
+> scrub — never a third mobile-specific one." Corrected 2026-08-22, because the count was already
+> false when it was written.** The site also ships the Intro's seven-phase timeline, the navbar's
+> 240ms indicator slide, the card → cover `layoutId` morph, the copy-email label swap and the MS
+> mark's hover part, and nobody was counting those. The route transition and `/about`'s entrance
+> would have made it falser still. The count was a PROXY; this is the thing it was protecting, and
+> it is stricter rather than looser:
+>
+> **Two motion DRIVERS site-wide, and never a third: elapsed time, and scroll position.** Every
+> timed behaviour — the section reveal, the route transition, `/about`'s one-shot entrance — is the
+> same pair of curves fired by a different trigger (an intersection, a navigation, a mount). Scroll
+> POSITION drives exactly one thing on the whole site: Home's desktop `y`-only scrub. **And no
+> behaviour may be specific to a breakpoint** — a phone gets the site's normal motion language, not
+> a degraded Home. A mobile-only parallax is still a breach under this wording, which is the test of
+> whether the rewrite is honest.
 
 **The reveal footer's curtain (Rule S-6) takes the same 768px floor, and for the same reason.**
 Below it the footer is a plain in-flow `<footer>` — one responsive class,
 `relative z-0 md:sticky md:bottom-0`, same DOM either side. The curtain adopting this floor rather
-than inventing its own keeps the count at two. It also happens to be forced: the plate measures
+than inventing its own is the no-behaviour-per-breakpoint rule above, applied. It also happens to be
+forced: the plate measures
 ~790px against a 640px phone viewport, and a sticky-bottom element taller than its scrollport pins
 with its top cut off, so the "reveal" becomes a crawl over content that can never be seen whole.
 
@@ -661,6 +677,56 @@ next pass does not re-derive them:
   `TIMED_TRAVEL_PX` but sampled off the rendered matrix at 375×667 and 767×900. It still matches
   `Reveal`'s private `TRAVEL_PX`, which is the one value in `ScrubReveal.tsx` that can silently
   drift. At 768 the same units measure 21px, so the breakpoint resolves where it claims to.
+
+### Route transition — Home ↔ About ↔ Work
+
+Added 2026-08-22. Navigating between the three routes read as a default App Router swap: the
+indicator slid and the document changed between one frame and the next.
+
+| | |
+|---|---|
+| Property | `opacity`, `0 → 1`. Nothing else — no `y`, no `scale`, no `blur`, no `filter` |
+| Duration | `DURATION.ui` = **0.35s**. Measured 330–351ms to the frame at which opacity crosses 0.999, across 32 navigations |
+| Curve | `EASE.ui` — the pair the navbar's `INDICATOR_MS = 240` indicator already runs on |
+| Direction | **Enter only. No exit animation, and no `AnimatePresence`** |
+| First load | **No animation.** Module-scope boolean, `IntroGate`'s `played` idiom inverted |
+| Reduced motion | **Instant swap, not a shorter fade** |
+| Where | `components/ui/PageStack.tsx`, which renders every route's `<main>` |
+
+**240ms leading 350ms is the correct ordering and must not be "synced".** The chrome confirms the
+destination before the content resolves, which is what makes a click feel answered. `INDICATOR_MS`
+was derived independently from ~100px of travel; slowing it to 350 would make the line worse to fix
+nothing.
+
+**`y` is locked out for two reasons, and neither is taste.** A `transform` on a page-level element
+creates a containing block for every `position: fixed` descendant, which would silently re-parent
+the Intro's `fixed inset-0 z-50` plate. And Next preserves scroll on back/forward, so a translate at
+a restored scroll position would lift the stack off the viewport bottom and expose a strip of the
+reveal footer's plate. Opacity creates a stacking context but never a containing block, and it
+cannot uncover anything.
+
+**Reduced motion gets an instant swap, which deliberately diverges from `MotionProvider`'s
+`reducedMotion="user"` contract (drop transform, keep opacity). Do not "fix" it back.** That
+contract is about ELEMENTS entering a page the visitor can already read; this is the DOCUMENT, and a
+whole-page fade makes everything transiently unreadable — the one thing an accessibility fallback
+must not introduce. Measured: opacity is 1 on the first post-commit frame of all three navigations,
+transform `none` throughout.
+
+**Where the fade goes is a Rule S-6 constraint, not a preference — see `docs/02`'s page-stack
+section for the measurement.** `<main>` stays fully opaque because it is the only thing occluding
+the pinned plate; the fade rides an inner `[data-page-stack]` div, inside `<main>`'s existing `z-10`
+stacking context.
+
+**`/about` keeps BOTH the route fade and its four-unit entrance, and that is a measured decision
+rather than an oversight.** They cover disjoint things: the entrance deliberately excludes the
+particle canvas and the page ground, so dropping the route fade would hard-cut the canvas in while
+the content assembled — a change of driver at the exact moment this transition exists to remove one.
+Where they do overlap, on the four content units, the two opacity legs multiply. The preceding
+design note priced that at 0.25 against 0.5 at the midpoint and called it a deep double fade;
+MEASURED at ~165ms after commit it is **0.70 composited against 0.74 for the page alone** — four
+percentage points — because `EASE.reveal` is heavily front-loaded and is already at 0.94 by then
+while `EASE.ui` is at 0.74. Both legs complete by 350ms and both are transient, so no contrast floor
+binds. Do not "fix" it by delaying one leg behind the other.
 
 **Project detail, Skills, Experience, Currently Learning (Tier 3, minimal):**
 - Simple fade/slide reveals only, no 3D, no parallax

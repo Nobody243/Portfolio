@@ -3,6 +3,7 @@ import { Trajectory } from "@/components/sections/Trajectory";
 import { Skills } from "@/components/sections/Skills";
 import { Projects } from "@/components/sections/Projects";
 import { RevealFooter } from "@/components/sections/RevealFooter";
+import { PageStack } from "@/components/ui/PageStack";
 import { featuredProjects } from "@/content/projects";
 
 export default function Page() {
@@ -33,6 +34,19 @@ export default function Page() {
         `bg-base` AND `relative z-10` ARE BOTH LOAD-BEARING. Rule S-6 in
         `docs/03_FRONTEND_SPEC.md` states them; this is the enforcement point.
 
+        THIS WAS A LITERAL `<main>` UNTIL 2026-08-22, and everything below is
+        still true of it — `PageStack` renders the same element with the same
+        classes in the same position, so `<footer>` is still a direct child of
+        `<body>` and the occlusion below still works exactly as described. What
+        it adds is the route transition's fade, on a div INSIDE this element.
+        That placement is not stylistic: fading `<main>` itself would fade the
+        `bg-base` this comment is about, and the plate would composite straight
+        through the page. `components/ui/PageStack.tsx` carries the measurement.
+
+        THE `className` IS PASSED HERE AND HAS NO DEFAULT, deliberately — the
+        surface is this page's knowledge, and a default would let a future route
+        inherit Rule S-6's classes without knowing it depends on them.
+
         `<RevealFooter />` below is `md:sticky md:bottom-0`, so from the first
         painted frame its #07090C plate is pinned at the bottom of the viewport
         BEHIND this element, waiting. The only thing hiding it is this
@@ -56,7 +70,7 @@ export default function Page() {
         `end: "bottom bottom"` on the page resolves against. Sticky needs no
         such help — see Rule S-6's short-page cases.
       */}
-      <main className="relative z-10 bg-base">
+      <PageStack className="relative z-10 bg-base">
         <Hero />
         <Trajectory />
         <Skills />
@@ -92,7 +106,7 @@ export default function Page() {
             Home's curated narrative. Both components are unchanged and both
             moved in the same commit that created the page that renders them —
             removing them from here first would have made them unreachable. */}
-      </main>
+      </PageStack>
       {/* OUTSIDE `<main>`, deliberately — see the fragment comment above.
           Nothing comes after this: no copyright, no colophon. The plate's own
           bottom padding is the end of the document.
