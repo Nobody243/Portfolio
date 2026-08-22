@@ -137,11 +137,20 @@ const SCRUB_CATCH_UP_S = 0.4;
  *
  * IT SELF-SCALES, so nothing here is a viewport fraction and nothing needs
  * retuning per breakpoint: a 75px heading gets a 75px window, a 430px card gets
- * 430px, a 580px portrait gets 580px. The portrait therefore travels the same
- * 21px over 2.4x as much scroll as a beat and visibly moves slower than the
- * text beside it — the only depth cue in the feature, produced by geometry
- * rather than by a magic number, and it re-derives itself if the photo is ever
- * re-cropped.
+ * 430px. Two units of different heights travel the same 21px over different
+ * amounts of scroll, so the taller one visibly moves slower — a depth cue
+ * produced by geometry rather than by a magic number, and one that re-derives
+ * itself whenever a unit is resized.
+ *
+ * That effect is currently WEAK ON HOME, and knowing why matters more than the
+ * effect does. It was strongest between the Trajectory portrait (580px) and the
+ * beats beside it (240px) — a 2.4x ratio in the same viewport. The portrait
+ * moved to `/about` in `2cfdb34`, and the eight remaining units are much closer
+ * in height, so the parallax is now subtle. NOTHING IS BROKEN and there is
+ * nothing to tune: the mechanism is unchanged and re-asserts itself the moment
+ * two units of genuinely different heights sit side by side again. Do not
+ * "restore" it by hard-coding per-unit distances — that trades the property
+ * this paragraph is about for the magic numbers it exists to avoid.
  *
  * DO NOT LENGTHEN THE `end`. `bottom bottom+=anything`, `top 40%` and `+=100%`
  * each allow a fully-visible element to still be mid-scrub, which is exactly
