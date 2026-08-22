@@ -16,12 +16,23 @@ data. **That morph is gone.** The mark is filled faceted shapes now, `MorphSVGPl
 registered, and phase C is a convergence plus a crossfade.
 
 **What keeps the outlines is a different, still-live property:** they put the name and the mark in
-**one coordinate system**. `msMarkGeometry.ts` places each glyph at its position in the settled mark,
-so a capital's journey through phase C is a tween to the IDENTITY transform — it lands on its faceted
-letter exactly, same baseline, same cap height, same left edge. That exactness is what makes the
-crossfade read as one letterform settling into another rather than two misaligned images dissolving.
-DOM text would need a `TextMetrics` baseline probe to approximate it, and `Intro.tsx` deleted one of
-those already.
+**one coordinate system**, so both halves of every phase are stated in the same units and there is
+nothing to measure at runtime. Concretely: phase 3's slide is **arithmetic** — `SLIDE_X` computes the
+pair set solid on the font's own advances and re-centred in the box, from the same font metrics, with
+no layout to reflow and no rect to read back — and phase 4's crossfade is a **swap in place**, because
+the parked pair is advance-centred on `VB_W / 2` = `ANCHOR_X`, which is where the settled mark's ink is
+centred, and both render at `NAME_SCALE`. Same cap height, same centre, no correction term. DOM text
+would need a `TextMetrics` baseline probe to approximate that, and `Intro.tsx` deleted one of those
+already.
+
+> **CORRECTED 2026-08-22.** The paragraph above used to read: *"`msMarkGeometry.ts` places each glyph
+> at its position in the settled mark, so a capital's journey through phase C is a tween to the
+> IDENTITY transform — it lands on its faceted letter exactly, same baseline, same cap height, same
+> left edge."* **`docs/07` §3.1 explicitly retires that sentence** — it was the mechanic of the
+> five-phase merge, which was built, found broken and reverted in `1145a00`. The conclusion is
+> unchanged and the asset is unaffected; only the reason had gone stale, in the one file whose whole
+> job is to stop someone deleting this asset for the wrong reason. `msMarkGeometry.ts` carried the
+> same dead sentence and was corrected in the same sweep.
 
 Two consequences worth stating, because both are easy to get wrong later:
 
