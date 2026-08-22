@@ -5,6 +5,40 @@ launch, **S** = should-have, **N** = nice-to-have.
 
 ---
 
+> ## WHAT COUNTS AS VERIFICATION — binding on every ticket and every review pass. Added 2026-08-22.
+>
+> **A number that has not been re-measured against a running production build is UNCONFIRMED, and it
+> must be reported as unconfirmed. It may never be folded into a passing total.**
+>
+> This exists because it was broken in exactly that way. A review of the overnight pass hand-recomputed
+> about ten of some six hundred contrast figures, found the rest "internally consistent", and reported
+> the whole set as verified. Internal consistency is a property of a document. It cannot detect a value
+> that is consistent everywhere and wrong everywhere — which is what four separate defects on this
+> project turned out to be, every one of them found only by measuring against real pixels.
+>
+> Concretely, for any pass that claims a figure:
+>
+> 1. **`npm run build` then `npx next start`, and measure against that.** `npm run dev` is not a
+>    substitute and has already produced a false negative on this project: the Intro's origin bug fired
+>    on essentially every save in development under StrictMode and Fast Refresh, and almost never on a
+>    real visitor's hard load. Anything judged by watching the dev server needs re-checking.
+> 2. **Measure the rendered pixel, not the token.** The value a declaration computes to is not the value
+>    the compositor produces — scrims, `backdrop-filter`, alpha compositing and overlapping canvas
+>    draws all sit in between. Four of this project's contrast defects were invisible to any check that
+>    trusted the declared colour.
+> 3. **Both themes, always.** Five defects so far have been dark-mode-only blind spots: the values are
+>    two points apart in dark and inverted in light, so a figure computed once is a figure computed for
+>    the theme the author happened to be in.
+> 4. **State the coverage, and state what was NOT covered.** "616/616 pass" is a useful claim only
+>    beside the axes it swept. `docs/06_INTRO_AND_CHROME.md` §6.2.1 is the worked example: 924 states,
+>    all of them at rest, missing a 150ms mid-navigation failure and a 37px scroll band.
+>
+> **A review that cannot re-measure a figure should say so and leave it open.** An unverified number
+> reported as verified is worse than no number, because the next reviewer either trusts it or spends
+> the same effort discovering it was never checked.
+
+---
+
 > ## AMENDED 2026-08-22 — restructure status pass (the restructure plan's Phase 7)
 >
 > **`docs/07_SITE_RESTRUCTURE.md` is the governing spec now, and this file predates it.** The

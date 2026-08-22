@@ -587,6 +587,43 @@ of 84 states and absent in the 28 below `md`; the menu button is the exact
 complement, 28 and 56. The mobile menu's own toggle sits inside a closed
 `<dialog>`, which is `display: none`.
 
+### 6.2.1 The axis this matrix was missing — added 2026-08-22
+
+**Every state above is a page AT REST, and that is structurally why 924 passing
+states did not catch a 150ms contrast failure in the middle of a navigation.**
+Three / mid / max scroll are three still frames. The bar's palette, the scrim and
+the ground under all of it change during two events that this matrix never
+sampled, and BOTH turned out to contain failures the resting sweep could not see:
+
+- **1.01:1** on the location label at t=50ms of `/ → /about` in light, because
+  the ink cross-faded between two inverted palettes while the ground it answers
+  to snapped. Ten of thirty-two navigations were below AA.
+- **1.18:1** on the MS mark across 37px of scroll at 1280×800 in light, at the
+  seam where the reveal footer's plate meets the bar.
+
+**So the matrix now has a fourth axis, and a sweep that does not run it is not a
+sweep.** In addition to the resting states above:
+
+1. **During every route transition.** All six directed pairs plus back and
+   forward, both themes, at least two viewports, sampled at **0 / 50 / 100 / 200
+   / 350 / 600ms** after the commit frame, and including the mobile menu's Home
+   link. Ground off the composited pixels, ink paired to the SAME frame — see the
+   method note below, because two clocks will otherwise report failures that were
+   never on screen.
+2. **Across every scroll seam, one pixel of scroll at a time.** The hero/`bg-base`
+   edge and the plate/`bg-base` edge, through the whole crossing, not at three
+   sampled stops. A band 37px wide is invisible to a three-stop sweep and is a
+   RESTING state at the viewports where it lands at maximum scroll.
+
+**Method note that costs a re-run if it is skipped.** Ink read with
+`getComputedStyle` runs before paint; a CDP screencast frame is timestamped by
+the compositor. Within ~8ms of a route commit those two clocks disagree by a
+whole frame, and pairing by timestamp reports ink against pixels it was never on.
+Paint an in-page clock marker — a small element whose background colour encodes
+`performance.now()`, written in the same rAF callback that samples the ink — and
+pair by the value read out of the frame. Every figure in this section's 2026-08-22
+re-sweep was produced that way.
+
 ---
 
 ## 7. Open items
