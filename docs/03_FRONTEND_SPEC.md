@@ -547,9 +547,16 @@ bottom: 0` at `md` and up. `docs/07_SITE_RESTRUCTURE.md` §5 describes the effec
 the page"; `sticky` produces the identical effect and is what ships.
 
 - **Three declarations, no JavaScript.** `relative z-0 md:sticky md:bottom-0` on the `<footer>`,
-  and `relative z-10 bg-base` on the page stack (`<main>`) at every call site. No scroll listener,
-  no `ScrollTrigger`, no `ResizeObserver`, no measured height, no CSS variable, **no negative
-  margin**.
+  and `relative z-10` plus **an opaque background** on the page stack (`<main>`) at every call site.
+  No scroll listener, no `ScrollTrigger`, no `ResizeObserver`, no measured height, no CSS variable,
+  **no negative margin**.
+- **The opaque background is `bg-base` on `/work` and `bg-hero-surface` on `/`. Amended 2026-08-22;
+  this rule said `bg-base` at every call site until then.** What the rule needs is opacity, and both
+  are opaque. `/` differs because that surface is what the navbar sits on through an arriving route
+  transition — the sections above it paint their own backgrounds, so it is never otherwise visible —
+  and the hero palette the bar takes on `/` is correct for a dark ground and catastrophic on
+  `#FDFCFA`. `app/(site)/(chrome)/page.tsx` carries the measurement. **Do not "harmonise" the two
+  back together.**
 - **`document.scrollHeight` changes by exactly 0px, and that is the whole point.** A sticky element
   occupies its normal flow box in full — sticky is the one positioning scheme that does *not*
   remove an element from flow, and its offset is a paint-time shift rather than a layout change.
@@ -563,11 +570,13 @@ the page"; `sticky` produces the identical effect and is what ships.
   flag was written against the *negative-margin* technique, which this rule rejects, and has been
   amended there. (The one refresh that *is* needed is the post-webfont one, which
   `components/ui/ScrollTriggerSync.tsx` already owns.)
-- **`<main>` MUST carry `bg-base` explicitly. Inheriting it does not work, and the failure is
-  spectacular.** A background on `html`/`body` **propagates to the canvas**, which paints below
-  every positioned descendant including the footer — so with no opaque layer of its own, the
+- **`<main>` MUST carry its opaque background explicitly. Inheriting it does not work, and the
+  failure is spectacular.** A background on `html`/`body` **propagates to the canvas**, which paints
+  below every positioned descendant including the footer — so with no opaque layer of its own, the
   #07090C plate is visible through every section of the page at every scroll position. `z-10` is
-  what puts the stack above the footer's `z-0`.
+  what puts the stack above the footer's `z-0`. Re-verified 2026-08-22 with the stack pinned to
+  opacity 0, which is the worst frame of a route transition: the viewport is **99.99% the occluder's
+  own colour** on `/` and `/work` in both themes, the remainder being the navbar's own glyphs.
 - **Nothing between `<body>` and the footer may create a containing block or a clipping context.**
   No `overflow: hidden`/`clip`/`auto`, no `transform`, no `filter`, no `perspective`, no
   `will-change: transform`, no `contain: paint`. Each of those either kills the pin or cuts the
@@ -747,7 +756,7 @@ indicator slid and the document changed between one frame and the next.
 | Direction | **Enter only. No exit animation, and no `AnimatePresence`** |
 | First load | **No animation.** Module-scope boolean, `IntroGate`'s `played` idiom inverted |
 | Reduced motion | **Instant swap, not a shorter fade** |
-| Where | `components/ui/PageStack.tsx`, which renders every route's `<main>` |
+| Where | `components/ui/PageStack.tsx`. It renders THREE of the site's six `<main>` elements — `/`, `/work` and `/about` — and only the first two fade. `not-found.tsx`, `error.tsx` and `/projects/[slug]` (through `ProjectDetailFrame as="main"`) render their own and do not. That is fine; "every route's `<main>`" was not |
 
 **240ms leading 350ms is the correct ordering and must not be "synced".** The chrome confirms the
 destination before the content resolves, which is what makes a click feel answered. `INDICATOR_MS`

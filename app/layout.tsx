@@ -195,8 +195,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Rule 3.
 
           Rule 1, [data-reveal] and [data-page-stack] — for every <Reveal> on
-          the site, present and future, and for the <PageStack> that every
-          route's <main> now renders.
+          the site, present and future, and for <PageStack>.
+
+          IT SAID "the <PageStack> that every route's <main> now renders" AND
+          THAT WAS NEVER TRUE. PageStack renders three of the site's six <main>
+          elements — `/`, `/work` and `/about`. `not-found.tsx`, `error.tsx` and
+          `/projects/[slug]` (through `ProjectDetailFrame as="main"`) render
+          their own, and none of those three fades, so none of them can ship a
+          hidden [data-page-stack] for this net to uncover. The net is correct;
+          the sentence describing its reach was not. Since 2026-08-22 only `/`
+          and `/work` fade at all — `/about` passes `fade={false}` — so the
+          selector currently covers two live consumers and stays for the same
+          insurance reason PageStack's own header gives.
 
           Framer Motion writes `initial` styles into the SERVER-RENDERED markup
           — that is how it avoids a flash of unstyled content — so

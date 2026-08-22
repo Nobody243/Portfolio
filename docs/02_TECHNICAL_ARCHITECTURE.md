@@ -144,9 +144,14 @@ this DOM shape, and getting it wrong fails silently rather than loudly:
 - **`/about` has neither the footer nor the page-stack classes, deliberately.** There is no plate
   to occlude there, and it is the one route with zero `contentinfo` landmarks
   (`docs/07_SITE_RESTRUCTURE.md` §5–6).
-- **`<main>` is rendered by `components/ui/PageStack.tsx` on `/` and `/work`, and the route
-  transition fades that component's INNER div — never `<main>` itself.** Added 2026-08-22 with the
-  Home ↔ About ↔ Work transition. Three things about it are load-bearing and one of them was found
+- **`<main>` is rendered by `components/ui/PageStack.tsx` on `/`, `/work` AND `/about` — all three
+  routes in the `(chrome)` group — and where the route transition runs it fades that component's
+  INNER div, never `<main>` itself.** Added 2026-08-22 with the Home ↔ About ↔ Work transition.
+  (This bullet listed only `/` and `/work` and then added `/about` four bullets later, which read as
+  two different claims about the same component. It is one claim: three routes render it, and since
+  2026-08-22 only `/` and `/work` pass `fade` — see `docs/03_FRONTEND_SPEC.md` for why `/about` does
+  not. It is NOT every route: `not-found.tsx`, `error.tsx` and `/projects/[slug]` render their own
+  `<main>` and do not fade.) Three things about it are load-bearing and one of them was found
   by measurement rather than by reading:
 
   1. **There is no `template.tsx` and there must not be one.** A `motion.div` wrapping
@@ -165,9 +170,15 @@ this DOM shape, and getting it wrong fails silently rather than loudly:
      a child keeps `<main>` fully opaque and paints the fade inside its existing `z-10` stacking
      context, which is above the footer rather than beside it.
 
-  `/about` renders `PageStack` too, with an empty class string — it has no plate to occlude, so
-  Rule S-6's two classes stay off it exactly as the bullet above says. `className` is a REQUIRED
-  prop with no default so that stays a call-site decision.
+  `/about` passes an empty class string — it has no plate to occlude, so Rule S-6's two classes stay
+  off it exactly as the bullet above says — and `fade={false}`. Both are REQUIRED props with no
+  default, so both stay call-site decisions.
+
+  **Rule S-6's opaque background is not the same colour on every route.** `/work` passes `bg-base`;
+  `/` passes `bg-hero-surface`, because on `/` this element is what the navbar sits on for the first
+  ~150ms of an arriving route transition and the hero's palette is already correct for a dark
+  ground. `app/(site)/(chrome)/page.tsx` carries the measurement. What Rule S-6 requires is that the
+  background be OPAQUE, not that it be `bg-base`.
 
 ## Content shape (plain English — this replaces a database schema)
 
