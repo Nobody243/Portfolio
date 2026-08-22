@@ -610,6 +610,58 @@ with its top cut off, so the "reveal" becomes a crawl over content that can neve
 **Reduced motion: neither scrub nor parallax.** A 0.35s opacity fade with no Y, matching
 `MotionProvider`'s existing contract.
 
+**Audited end to end on 2026-08-22, and the audit shipped no code.** Home was scrolled from top to
+bottom at 2000px/s and at 400px/s at 1440×900, sampling every animation frame; the seams were
+measured at 375×667, 639×800, 768×1024, 1440×900 and 2560×1440 in both themes. The numbers, so the
+next pass does not re-derive them:
+
+- **Primitive census — eight scrub units on Home and no more.** Four in Trajectory (`<h2>` + three
+  beats, importing `ScrubReveal` directly) and four in Projects (`<h2>` + three cards, via
+  `motion="scrub"`). Stack contributes four `[data-reveal]` units and **zero** scrub units. `/work`
+  measured **eight `[data-reveal]` and zero scrub units** — `motion="reveal"` is doing its job.
+- **Every scrub window equals its own unit's height, to the pixel.** Measured
+  (height → resolved window, 1440×900): 74.8→75, 179.2→179, 230.3→230, 102.4→102, 74.8→75,
+  455.6→456, 455.6→456, 454.5→455. At 768×1024: 51.5→52, 209.0→209, 260.1→260, 132.2→132, 51.5→52,
+  421.1→421, 421.1→421, 395.5→396. `y` reads 21 at the window's open, ~10.5 at its midpoint and 0 at
+  its close on all sixteen — linear in scroll, which is `ease: "none"` confirmed by measurement
+  rather than by reading the call.
+- **One measured divergence from the anchors as this section states them, and it errs safe.** The
+  resolved window sits **21px later** than the natural geometry, because `gsap.from()` writes the
+  displaced start state in the layout effect and ScrollTrigger's first refresh measures the element
+  where it then is. Consequence: a unit reaches `y: 0` when its bottom edge is 21px *above* the
+  viewport bottom, not level with it. The window's *length* is unaffected, and the guarantee the
+  anchors exist to protect — that no unit is still mid-scrub while fully on screen — holds strictly,
+  with 21px to spare. Nothing to fix; recorded so it is not rediscovered as a bug.
+- **Seams: 178px at every `bg-base` seam, at every viewport, in both themes.** Measured as
+  `padding-bottom` of the section above plus `padding-top` of the section below, which is what the
+  seam is — the border boxes are flush, so the DOM gap between two sections is 0px everywhere and is
+  not the number to read. Home: `trajectory→stack` 89+89, `stack→work` 89+89. `/work`:
+  `work→experience` 89+89, `experience→contact` 89+89 below 640 and 89+144 above.
+  (`#in-progress` is absent from the DOM entirely — `CurrentlyLearning` returns `null` while
+  `content/currentlyLearning.ts` is empty — so `/work` has three seams, not four.)
+  **The two exceptions are `sm:`-scoped and therefore do not exist below 640px:** Trajectory's
+  hero-debt opening measures `pt` 89 below 640 and 144 above, and the reveal footer measures 89/89
+  below 640 and 144/144 above.
+- **There is no dead band at any seam, at either speed.** The design note that preceded this audit
+  predicted 178px of scroll at each seam in which nothing animates, covered *in perception* by
+  `SCRUB_CATCH_UP_S`. Measured, it is covered *in fact*: the set of units not at rest is never empty
+  between scrollY 0 and 4141 at 2000px/s, or 0 and 3701 at 400px/s. Units settle in strict document
+  order and their tails overlap — 343 / 596 / 876 / 1050 (Trajectory), 1336 / 1523 / 1896 / 2436
+  (Stack), 2670 / 3183 / 3183 / 3690 (Projects) at 400px/s. **Exactly one dead band exists on the
+  page** and it is the tail: 338px at 2000px/s, 778px at 400px/s, running to max scroll. That is
+  Projects' bottom padding plus the reveal footer, which is deliberately unanimated —
+  `RevealFooter.tsx` records that a reveal on a pinned, occluded plate animates in secret.
+- **A hard cut here means a change of DRIVER, not a missing curve.** There is exactly one on Home and
+  it is sanctioned: Stack, time-driven between two position-driven neighbours. There is no
+  per-section easing to be inconsistent — `ScrubReveal` scrubs with `ease: "none"` by definition and
+  both of its timed branches import `GSAP_EASE.reveal` / `DURATION.reveal`. Nothing was found to fix.
+- **Reduced motion, all eight units, at 1440×900 and 375×667:** computed `transform` is `none` at
+  every sampled frame and opacity animates from 0. No `y`, no scrub, at either width.
+- **Below 768px all eight fall to the timed branch, and its travel measures 13px** — not read from
+  `TIMED_TRAVEL_PX` but sampled off the rendered matrix at 375×667 and 767×900. It still matches
+  `Reveal`'s private `TRAVEL_PX`, which is the one value in `ScrubReveal.tsx` that can silently
+  drift. At 768 the same units measure 21px, so the breakpoint resolves where it claims to.
+
 **Project detail, Skills, Experience, Currently Learning (Tier 3, minimal):**
 - Simple fade/slide reveals only, no 3D, no parallax
 - Motion exists to support readability (guide the eye), never to compete with it
