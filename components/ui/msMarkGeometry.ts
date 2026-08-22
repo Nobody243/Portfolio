@@ -336,24 +336,6 @@ export type IntroGlyph = {
   readonly markX: number;
   /** x of the same origin in the opening name layout. */
   readonly nameX: number;
-  /** x of this glyph's word's capital, in mark space. */
-  readonly wordX: number;
-  /**
-   * x of this glyph's word's capital in the NAME layout — where a non-initial
-   * collapses to.
-   *
-   * It collapses onto where the capital STARTED, not onto where the capital is
-   * going. The two happen at once: the word closes up on itself at name scale
-   * while its initial simultaneously travels off and grows into the mark. A
-   * non-initial chasing a moving target would read as the word being dragged
-   * rather than as the word being reduced.
-   */
-  readonly wordNameX: number;
-  /** Index within the word, counted from the word's END. The fade is staggered
-   *  outward-in: the last letter of each word goes first. Inward-out leaves the
-   *  two capitals momentarily alone with a gap where the word was, which reads
-   *  as deletion rather than as reduction. */
-  readonly fadeOrder: number;
 };
 
 /**
@@ -397,7 +379,6 @@ function buildIntroGlyphs(): readonly IntroGlyph[] {
   const wordOf: number[] = [];
   const penInWord: number[] = [];
   const penInName: number[] = [];
-  const wordLengths: number[] = [];
   let word = -1;
   let wordPen = 0;
   let namePen = 0;
@@ -415,13 +396,11 @@ function buildIntroGlyphs(): readonly IntroGlyph[] {
     if (atWordStart) {
       word += 1;
       wordPen = 0;
-      wordLengths.push(0);
       atWordStart = false;
     }
     wordOf.push(word);
     penInWord.push(wordPen);
     penInName.push(namePen);
-    wordLengths[word] += 1;
     wordPen += advance(ch);
     namePen += advance(ch);
   }
@@ -435,10 +414,6 @@ function buildIntroGlyphs(): readonly IntroGlyph[] {
     const xMin = GLYPHS[capital]?.xMin ?? 0;
     return LETTER_ORIGIN[letter] - xMin * K;
   });
-
-  // Where each word's capital sits in the opening name layout — the point the
-  // rest of that word collapses onto.
-  const wordNameOrigin = wordOrigin.map((_, w) => INSET + penInName[wordOf.indexOf(w)] * nameScale);
 
   const out: IntroGlyph[] = [];
   let seenInWord = 0;
@@ -465,9 +440,6 @@ function buildIntroGlyphs(): readonly IntroGlyph[] {
       d: placePath(glyph.d, markX, BASELINE, K),
       markX,
       nameX,
-      wordX: wordOrigin[w],
-      wordNameX: wordNameOrigin[w],
-      fadeOrder: wordLengths[w] - seenInWord,
     });
   });
 
