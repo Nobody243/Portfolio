@@ -73,8 +73,15 @@ resolving what Home's indicator becomes.
 
 **`aria-current="page"` on the active link is REQUIRED, and it is the source of truth.** The line is
 decorative and `aria-hidden`; the code finds what to measure *by* that attribute, so the two cannot
-disagree. Known gap, flagged rather than fixed: `NavMobileMenu`'s links do not carry it, so below `md`
-there is no "you are here" announcement.
+disagree.
+
+> **THE GAP THIS PARAGRAPH USED TO FLAG IS CLOSED. Do not fix it again.** It read: *"Known gap,
+> flagged rather than fixed: `NavMobileMenu`'s links do not carry it, so below `md` there is no 'you
+> are here' announcement."* `e915298` added it — `NavMobileMenu.tsx:222` sets `aria-current` from the
+> same `isActiveRoute` predicate the desktop bar imports, so the two can never name different pages.
+> Below `md` the indicator cluster is `display: none` and this menu is the only navigation there is,
+> which is why it mattered. **There is deliberately no Home entry in that menu**, so on `/` nothing
+> in it is current; that is the menu listing destinations away from where you are, not a second gap.
 
 **The centre icon carries `px-xs`.** Its 19px box was below the 24px minimum target size, and a 19px
 line between a 40.81px one and a 32.64px one (measured at 1440) read as a stray tick. 8px a side takes

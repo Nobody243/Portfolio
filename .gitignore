@@ -48,7 +48,9 @@ next-env.d.ts
 # agent tooling / working state — NOT project source.
 # Agents read these off disk; they don't need to be in git history, and a public
 # repo shouldn't be mostly planning artifacts. The project's real planning docs
-# are the five files in /docs, which stay tracked on purpose.
+# are the SEVEN files in /docs, which stay tracked on purpose. (It said five
+# until 2026-08-22; `06_INTRO_AND_CHROME.md` and `07_SITE_RESTRUCTURE.md` were
+# added after this line was written. Count it, don't restate it.)
 # This also covers .claude/settings.local.json, which may hold machine-local config.
 .claude/
 HANDOFF_CONTEXT.md

@@ -79,12 +79,18 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > The arithmetic floor here is `/50`, not `/70`. **Ship `/70` anyway.** Two reasons: 0.10 of headroom
 > is the same thin margin that got `/60` on `bg-elevated` rejected as unsafe below; and one site-wide
 > floor is worth more than a correct-but-different second one, because **the second floor is the one a
-> reviewer forgets exists.** `Contact.tsx`'s link labels are `text-hero-fg/70`.
+> reviewer forgets exists.** The reveal footer's link labels are `text-hero-fg/70`
+> (`RevealFooter.tsx:460`, `:639`). *That sentence named `Contact.tsx`, which was absorbed into
+> `RevealFooter.tsx` in Phase 5 and no longer exists.*
 >
 > Two existing sub-`/70` values on this surface are NON-TEXT or transient and are not precedent for
 > text: `HeroHeadline`'s reduced-motion chevron at `text-hero-fg/55` is an **icon** on the 3:1 floor
-> (5.38:1), and `HeroLoader`'s percentage counter at `text-hero-fg/50` (4.60:1) clears AA but sits
+> (5.38:1), and the loader's percentage counter at `text-hero-fg/50` (4.60:1) clears AA but sits
 > below this rule — flagged, not changed, in Ticket 10; it belongs to whoever revisits the loader.
+> *That counter was `HeroLoader.tsx`; the component is `components/intro/AssetLoader.tsx:255` since
+> the Loader/Intro split (`docs/06` §1). The `/50` value is still live and still the flagged one —
+> it had drifted to `/45` (3.91:1, failing) during the split and was restored, so the flag has now
+> earned its keep once.*
 >
 > **The trap is that dark mode is the default and light mode is the binding constraint.** `/50` on
 > `bg-elevated` passes in dark and fails in light, so an opacity tuned by eye in the default theme
@@ -107,8 +113,19 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > usable from any file — the exact leak the guard prevents, renamed. Tailwind renders *nothing* for
 > an unknown utility rather than erroring, which is what makes the guard work.
 >
-> The hero reaches cyan through `lib/three/accentHero.ts` — a JS constant handed to a WebGL material,
-> not a DOM path. **The one licensed DOM path is an inline `style={{ backgroundColor:
+> The hero reaches cyan through `components/hero/ParticleGrid.tsx:537`, which reads
+> `getComputedStyle(document.documentElement).getPropertyValue("--accent-hero")` once per rebuild and
+> hands the parsed channels to a **Canvas2D** context — not a DOM path.
+>
+> > **This sentence used to send readers to `lib/three/accentHero.ts` — "a JS constant handed to a
+> > WebGL material".** There is no `lib/three/` directory and there never was; the hero has been
+> > Canvas2D plus SVG since the hero rebuild, and the R3F packages were uninstalled on 2026-08-22.
+> > **The rule itself — exactly two code paths reach cyan, one JS and one DOM — is unchanged and was
+> > re-verified.** Only the pointer was dead. Note the mechanism also changed shape: it is a *read of
+> > the custom property*, not a hardcoded constant, which is why a theme flip cannot desynchronise
+> > the canvas from the one DOM consumer below.
+>
+> **The one licensed DOM path is an inline `style={{ backgroundColor:
 > "var(--accent-hero)" }}` on a single 34×3px `aria-hidden` bar in
 > `components/sections/RevealFooter.tsx` (the file that absorbed `Contact.tsx` in Phase 5 — the bar
 > moved with it and did not multiply; verified 2026-08-22 at exactly 34×3px, `rgb(0, 229, 255)`).** `globals.css` names that mechanism itself ("Read it via
@@ -557,15 +574,36 @@ who have that OS setting enabled.
     cookie in the root layout is a dynamic API, so it would opt **every** route out of static
     prerendering. Key: `saad-portfolio-theme`. See `docs/02_TECHNICAL_ARCHITECTURE.md`.
 
-  **Two exported class constants, `className` required with no default** — `THEME_TOGGLE_ON_BASE`
-  (`accent-working`) and `THEME_TOGGLE_ON_HERO` (`hero-accent`), same pattern and same reasoning as
+  **THREE exported class constants, `className` required with no default** — `THEME_TOGGLE_ON_BASE`
+  (`accent-working`), `THEME_TOGGLE_ON_HERO` (`hero-accent`) and `THEME_TOGGLE_IN_NAV` (the bar's
+  `--nav-fg` / `--nav-fg-dim` / `--nav-accent` variables). Same pattern and same reasoning as
   `ExternalLink`'s pair: the surface a control sits on is the call site's knowledge, and a defaulted
   surface prop renders a legible-but-wrong colour on the pinned hero plate, visible only after a
-  toggle nobody performs while implementing. **Ticket 18 inherits both constants** — `error.tsx` and
-  `not-found.tsx` are `bg-base` and take `THEME_TOGGLE_ON_BASE`.
+  toggle nobody performs while implementing. `error.tsx` and `not-found.tsx` are `bg-base` and take
+  `THEME_TOGGLE_ON_BASE`.
 
-  **One in-flow instance per route, at the top**, never fixed or floating: a fixed control crosses
-  three surface contexts on `/`, and at 360px an opaque fixed chip occludes body text on every route.
+  > **This paragraph said "Two exported class constants", and the paragraph that followed it read:
+  > *"One in-flow instance per route, at the top, never fixed or floating: a fixed control crosses
+  > three surface contexts on `/`, and at 360px an opaque fixed chip occludes body text on every
+  > route."* Both were reversed in Phase 0 and this file did not catch up.** `THEME_TOGGLE_IN_NAV`
+  > shipped as a third constant (`ThemeToggle.tsx:170`), and the toggle now lives **inside the fixed
+  > navbar** on all three chrome routes (`Navbar.tsx:869`, `hidden md:block`), with
+  > `NavMobileMenu`'s `THEME_TOGGLE_ON_BASE` instance covering below `md`.
+  >
+  > **The old rule's reasoning was not wrong — the bar answers it.** A fixed control crossing three
+  > surfaces would need a plate of its own, and that plate would put the pinned hero surface on
+  > screen a third time when it is supposed to appear exactly twice. The bar needs no plate: it
+  > already owns a legibility-escalating palette measured against every ground it crosses, and the
+  > third constant rides those variables rather than naming a colour. **`docs/06` §5 is the full
+  > record of the reversal**, including the cost that forced it (a desktop visitor on `/` had no way
+  > to switch themes at all) and the 375 / 639 / 768 / 1440 / 2560 check that exactly one instance is
+  > ever visible. It was recorded there and not here, which is how a tracked design-system doc ended
+  > up stating a binding rule the site had already reversed.
+  >
+  > **`THEME_TOGGLE_ON_HERO` currently has no call site** — verified 2026-08-22, its only remaining
+  > mentions are in comments. Flagged, not deleted: it is the correct constant the moment anything
+  > in-flow lands on `bg-hero-surface` again, and deleting it would take its documented
+  > `hero-accent` / `accent-hero` anagram warning with it.
 
 ## Third-party integrations (kept intentionally minimal)
 

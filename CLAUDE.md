@@ -5,7 +5,13 @@ Full planning documents live in `docs/`. Read the relevant one before working on
 - `docs/01_PRD.md` — product requirements, audience, scope boundaries, success metrics
 - `docs/02_TECHNICAL_ARCHITECTURE.md` — stack reasoning, folder structure, content shapes, env/config notes
 - `docs/03_FRONTEND_SPEC.md` — color tokens, type scale, motion system, component styles
-- `docs/04_FEATURE_TICKETS.md` — the 16 build tickets, prioritized, with acceptance criteria
+- `docs/04_FEATURE_TICKETS.md` — the **18** build tickets, prioritized, with acceptance criteria.
+  (This line said 16 until 2026-08-22. Tickets 17 (`og:image`) and 18 (error / not-found pages)
+  were added later; `docs/04` itself already flagged the discrepancy against this file.)
+- `docs/05_GIT_SECURITY_CHECKLIST.md` — the pre-commit checklist. Binding on **every** commit,
+  not just the first. It was the only one of the seven docs missing from this list until
+  2026-08-22 — the same invisible-because-unlisted failure recorded against `docs/07` below,
+  and worse, because the omitted doc was the security one.
 - `docs/07_SITE_RESTRUCTURE.md` — **the governing spec for the three-page site.** Read it before any
   work on the navbar, the Intro, the MS mark, Home's structure, `/work`, `/about`, the scroll-scrub or
   the reveal footer — which is nearly everything. It reverses Rule S-1 for chrome, retires the
@@ -70,7 +76,11 @@ regardless of tier. "Minimal" ≠ "static" — it means visually quiet, not un-c
 
 ## Tech stack
 - Next.js (App Router)
-- React Three Fiber + drei (Three.js in React)
+- **No WebGL.** The hero is Canvas2D (`ParticleGrid`) plus SVG (the MS mark). This line read
+  "React Three Fiber + drei (Three.js in React)" until 2026-08-22; the R3F scene was replaced
+  during the hero rebuild and the four packages were uninstalled with zero importers. See
+  `docs/02`'s stack table for the full record — including the one file that still looks like
+  three.js debris and must not be deleted.
 - GSAP + ScrollTrigger (scroll-synced animation timelines — drives the tier energy curve)
 - Lenis (smooth scroll, used site-wide)
 - Framer Motion (component-level / shared-element transitions, e.g. project card → detail)
@@ -97,10 +107,31 @@ for contrast):**
 - No serif fonts anywhere (serif reads editorial/creative-agency, wrong signal for this direction)
 
 ## Site structure
-0. **Chrome** — a fixed, transparent navbar on `/` only (MS mark + location, ABOUT/[icon]/WORK,
-   copy-to-clipboard email + LinkedIn). NO theme toggle in it, deliberately. Entry is a real
-   asset Loader followed by the choreographed Intro, whose zoom-in *is* the transition into the
-   Hero. Both are specified in `docs/06_INTRO_AND_CHROME.md` — do not re-derive either.
+
+**THE SITE IS THREE PAGES, NOT ONE SCROLL.** `docs/07_SITE_RESTRUCTURE.md` is the governing spec and
+this summary is downstream of it. The numbered list below keeps its original numbering because the
+*content* and its tier assignments did not change — only which route each lands on:
+
+| Route | Sections, in order |
+|---|---|
+| `/` | Hero · Trajectory · Skills · Projects (**the featured three only**) · reveal footer |
+| `/work` | The full five-project archive · Experience · Currently Learning · reveal footer |
+| `/about` | One screen, does not scroll. No reveal footer, deliberately — see `docs/07` §5–6 |
+| `/projects/<slug>` | Tier 3 detail, plus an intercepted overlay at the same URL. **No navbar** |
+
+0. **Chrome** — a fixed, transparent navbar on `/`, `/work` and `/about` (MS mark + location,
+   ABOUT/[icon]/WORK, theme toggle, copy-to-clipboard email + LinkedIn). It is permanently visible
+   and carries an active-route indicator. Entry is a real asset Loader followed by the choreographed
+   Intro, whose zoom-in *is* the transition into the Hero. Both are specified in
+   `docs/06_INTRO_AND_CHROME.md` — do not re-derive either.
+
+   > **This bullet said "a fixed, transparent navbar on `/` only" and "NO theme toggle in it,
+   > deliberately". Both were reversed in Phase 0 (2026-08-21).** `docs/07` §1 put the bar on all
+   > three content routes — a one-page site's navbar is optional, a three-page site's is not — and
+   > `docs/06` §5 put the toggle back into it, because a desktop visitor on `/` otherwise had no way
+   > to switch themes without opening a project or narrowing the window. Hide-on-scroll was deleted
+   > separately on 2026-08-22, so the bar no longer retracts. None of these is an oversight to be
+   > re-fixed in the other direction.
 1. **Hero** (Tier 1) — name, one-line identity statement (not "full-stack developer" — something that
    signals the trajectory), big 3D moment, scroll cue.
 2. **About / Trajectory** (Tier 2) — dev foundation → systems coursework → deliberate pivot narrative.
@@ -119,7 +150,9 @@ for contrast):**
    "last updated" note. Built to be trivially edited as things change — this is the living part of the
    site.
 7. **Contact / Close** (small Tier 1 echo) — real links only (email, GitHub, LinkedIn — no placeholder
-   socials), a small polish uptick so the site doesn't trail off flat.
+   socials), a small polish uptick so the site doesn't trail off flat. **Shipped as
+   `components/sections/RevealFooter.tsx`**, a sticky curtain the page scrolls off, on `/` and
+   `/work`. The old `Contact.tsx` was absorbed into it in Phase 5 and no longer exists.
 
 ## Content architecture (critical)
 Projects, skills, and "currently learning" entries must be structured data (TS/JSON arrays), not
