@@ -31,8 +31,42 @@ export default function Page() {
       {/*
         THE PAGE STACK, AND THE TWO CLASSES THAT KEEP THE CURTAIN HIDDEN.
 
-        `bg-base` AND `relative z-10` ARE BOTH LOAD-BEARING. Rule S-6 in
-        `docs/03_FRONTEND_SPEC.md` states them; this is the enforcement point.
+        AN OPAQUE BACKGROUND AND `relative z-10` ARE BOTH LOAD-BEARING. Rule
+        S-6 in `docs/03_FRONTEND_SPEC.md` states them; this is the enforcement
+        point.
+
+        THE OPAQUE BACKGROUND IS `bg-hero-surface` ON THIS ROUTE AND `bg-base`
+        ON `/work`, AND THE DIFFERENCE IS A CONTRAST FIX, NOT A COLOUR CHOICE.
+        It read `bg-base` here until 2026-08-22 and NOTHING ON THIS PAGE EVER
+        SHOWS IT — every section below paints its own background edge to edge,
+        so this surface is only ever visible through the route transition's
+        fade, which is the whole reason it matters.
+
+        MEASURED, light mode, production build, navigating `/about -> /`:
+        `<main>` stays fully opaque (it must — see below) while
+        `[data-page-stack]` inside it ramps 0 -> 1 over 350ms. The hero's dark
+        surface is INSIDE that fade; the navbar is not. So the bar flipped to
+        its hero palette on arrival, correctly, and then sat on a #FDFCFA
+        ground for ~150ms while the hero faded up underneath it. Worst sample
+        1.85:1 at t=100ms at 375x667 and 2.55:1 at 1440x900, with `/work -> /`
+        at 1.98 and 1.21 — the same failure `Navbar.tsx`'s 639x800 case fixed,
+        re-created by a different mechanism. Dark mode never dropped below
+        10.3:1 at any sample, which is why it shipped.
+
+        `bg-hero-surface` makes the occluder the destination's OWN first-paint
+        ground: still opaque, still hiding the plate, and dark behind the bar
+        from the first frame — which is what the hero palette is already
+        correct for. It needs no timing coordination and no new state.
+
+        THE MID-PAGE CASE IS COVERED BY THE SCRIM, NOT BY LUCK. Arriving here
+        at a RESTORED scroll (browser back) puts the bar over `bg-base` with
+        the light palette while this dark surface is still showing through the
+        fade. That would be the mirror failure, except that
+        `[data-nav-root]:not([data-over-hero])` in `globals.css` lays an 80%
+        `--color-base` scrim under the bar in exactly that state, so the
+        effective ground is not #07090C but #CBCBCA. Measured at the commit
+        frame: MS mark 11.25:1 at 375x667, 11.36:1 at 1440x900. If that scrim
+        is ever removed or narrowed, THIS LINE HAS TO BECOME SCROLL-AWARE.
 
         THIS WAS A LITERAL `<main>` UNTIL 2026-08-22, and everything below is
         still true of it — `PageStack` renders the same element with the same
@@ -40,8 +74,9 @@ export default function Page() {
         `<body>` and the occlusion below still works exactly as described. What
         it adds is the route transition's fade, on a div INSIDE this element.
         That placement is not stylistic: fading `<main>` itself would fade the
-        `bg-base` this comment is about, and the plate would composite straight
-        through the page. `components/ui/PageStack.tsx` carries the measurement.
+        opaque background this comment is about, and the plate would composite
+        straight through the page. `components/ui/PageStack.tsx` carries the
+        measurement.
 
         THE `className` IS PASSED HERE AND HAS NO DEFAULT, deliberately — the
         surface is this page's knowledge, and a default would let a future route
@@ -70,7 +105,7 @@ export default function Page() {
         `end: "bottom bottom"` on the page resolves against. Sticky needs no
         such help — see Rule S-6's short-page cases.
       */}
-      <PageStack className="relative z-10 bg-base">
+      <PageStack className="relative z-10 bg-hero-surface">
         <Hero />
         <Trajectory />
         <Skills />

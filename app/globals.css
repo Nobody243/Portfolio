@@ -640,6 +640,66 @@ html[data-nav-open] {
 }
 
 /* ---------------------------------------------------------------------------
+   `[data-palette-instant]` — THE ONE FRAME IN WHICH THE SWAP ABOVE IS DISCRETE.
+
+   Every ink element in the bar carries `transition-colors duration-300`, so
+   flipping `data-over-hero` used to cross-fade the ink over 300ms. NOTHING ELSE
+   IN THE BAR CROSS-FADES: the scrim below has no transition and snaps in the
+   same frame, and on a route change the page under the bar changes at the
+   commit frame.
+
+   A CROSS-FADE BETWEEN TWO INVERTED PALETTES PASSES THROUGH 1:1 AT ITS
+   MIDPOINT, and no amount of re-timing fixes that — halfway between #E8EAEC and
+   #151515 the ink is mid-grey against a ground that is at one end or the other.
+   Measured on the shipped cross-fade, light mode, production build: ten of
+   thirty-two navigations fell below AA, worst 1.01:1 at t=50ms on `/ -> /about`
+   at 1440x900. Dark never dropped below 10.3:1, which is why it shipped.
+   `components/ui/Navbar.tsx`'s `apply()` carries the full table.
+
+   THE ATTRIBUTE IS ON THE ELEMENT FOR LESS THAN ONE FRAME. `Navbar.tsx` sets
+   it, writes `data-over-hero`, forces a style recalc with
+   `getBoundingClientRect()` and removes it again, all in one task. So the ink's
+   new colour is computed once, with no transition to generate, and the 300ms
+   curve is back in force for hover before anything can paint.
+
+   `transition-duration`, NOT `transition: none` AND NOT `!important`. Both of
+   those matter:
+     - Narrowing to `duration` leaves `transition-property` alone, so nothing
+       has to know which properties each element animates.
+     - Leaving `!important` off is what protects the active-route indicator,
+       whose duration is an INLINE style built from `INDICATOR_MS`. An inline
+       declaration outranks this rule, so the line keeps its 240ms slide and its
+       `background-color` cross-fade through a route change — the exact
+       behaviour `Navbar.tsx` fixed on 2026-08-22 and must not lose again.
+       ADDING `!important` HERE WOULD SILENTLY UNDO IT.
+
+   The selector is `[data-nav-root][data-palette-instant] *` — 0,2,0, which
+   beats Tailwind's `.duration-300` at 0,1,0 without needing any escalation.
+--------------------------------------------------------------------------- */
+[data-nav-root][data-palette-instant] * {
+  transition-duration: 0s;
+}
+
+/* THE INDICATOR IS THE ONE EXCEPTION, AND IT NEEDS A SECOND RULE RATHER THAN A
+   LOUDER FIRST ONE. Its duration is inline (built from `INDICATOR_MS`), so the
+   rule above cannot reach it — deliberately, because on a route change the line
+   must still SLIDE its 240ms. Only its colour has to be discrete: the
+   #14B8A6 -> #0F766E cross-fade passes through #13AE9E, measured 2.72:1 on
+   #FDFCFA, under the 3:1 non-text floor for ~100ms, while both endpoints clear
+   it comfortably (8.01:1 and 5.37:1).
+
+   NARROWING `transition-property` IS THE WHOLE TRICK. Dropping
+   `background-color` from the list for the length of the forced recalc lets the
+   colour land instantly and leaves `transform` and `width` untouched, so the
+   slide is not even slightly affected. The line's own `motion-reduce:` variant
+   is unaffected too — that variant narrows the list to `background-color`
+   ALONE, and for one recalc this narrows it to nothing, which is the same
+   discrete swap by a different route. */
+[data-nav-root][data-palette-instant] [data-nav-indicator] {
+  transition-property: transform, width;
+}
+
+/* ---------------------------------------------------------------------------
    `[data-hero-palette]` — THE SAME THREE VARIABLES, FOR ANY DARK PLATE THAT IS
    NOT THE NAVBAR.
 

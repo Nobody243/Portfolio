@@ -141,7 +141,13 @@
  */
 
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -220,6 +226,40 @@ import { useSectionScroll } from "@/lib/hooks/useSectionScroll";
  * which is what carries a resize across the 640 and 768 breakpoints where the
  * height genuinely changes.
  */
+
+/**
+ * `useLayoutEffect` on the client, `useEffect` on the server.
+ *
+ * THE THIRD COPY OF THIS IDIOM IN THE CODEBASE — `NavMobileMenu.tsx` and
+ * `ProjectOverlay.tsx` carry the other two, and both spell out the same reason
+ * at length: React logs a warning for a layout effect during SSR because the
+ * server cannot run one, and the ternary is the standard way to say "this is
+ * client-only work" without a `typeof window` check inside the effect body.
+ * It is duplicated rather than extracted because all three uses are chrome-
+ * local and a shared hook would be a fourth file for eleven characters; if a
+ * fourth site appears, extract it then.
+ *
+ * WHAT NEEDS IT HERE is the adaptive-palette effect, which must write
+ * `data-over-hero` in the SAME frame as the route's DOM swap. Its docblock has
+ * the measurements.
+ */
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/**
+ * Set for the duration of ONE forced style recalc, around the write that
+ * changes `data-over-hero`, so the bar's ink swaps palette in a single frame
+ * instead of cross-fading over 300ms. `apply()` inside the effect below has
+ * the measurements and the reasoning.
+ *
+ * IT IS SPELLED ONCE HERE AND MATCHED ONCE IN `app/globals.css`. There is no
+ * import between a `.tsx` and a stylesheet, so this pair can only be kept in
+ * step by hand — RENAME THIS AND THE SELECTOR MUST CHANGE IN THE SAME COMMIT.
+ * The failure mode is silent: the attribute goes on and off with no rule
+ * matching it, and the 300ms cross-fade and its sub-AA midpoint come back with
+ * nothing logged. `grep -rn "palette-instant"` finds both sites.
+ */
+const PALETTE_INSTANT_ATTR = "data-palette-instant";
 
 /* -------------------------------------------------------------------------
    The active-route indicator's numbers.
@@ -385,8 +425,36 @@ export function Navbar() {
      footer is `md:sticky` and reports its PINNED rect from first paint. The
      sentinel's ABSENCE is the route guard: `/about` renders no reveal footer,
      so no plate trigger is created there.
+
+     A LAYOUT EFFECT, NOT `useEffect`, AND THE REASON IS STRUCTURAL RATHER THAN
+     MEASURED — say so plainly, because the difference matters here.
+
+     React flushes passive effects on a scheduler task, so `useEffect` MAY run
+     before the next paint and may not. If it does not, the compositor shows one
+     frame of the new route under the OLD palette: on `/about -> /` in light
+     that is #151515 ink on the hero surface this page now paints from its first
+     frame, about 1.05:1 for ~16ms. The window is one frame wide and it is a
+     race, not a certainty.
+
+     IT WAS NOT OBSERVED. Sixteen light-mode navigations were re-measured with
+     the discrete swap in place and `useEffect` restored — every composited
+     frame paired with the ink that was actually on screen in it — and NOTHING
+     fell below floor; worst margin identical at 3.37:1 on the indicator against
+     its 3:1. So this is not a fix for a reproduced failure. It closes a race by
+     construction: a layout effect runs after React's DOM mutation and BEFORE
+     paint, so the attribute and the ground it describes are committed together
+     and no frame can carry one without the other.
+
+     THE EARLIER VERSION OF THIS COMMENT CLAIMED TWO MEASURED FAILURES HERE
+     (1.18:1 and 1.09:1) AND THEY WERE A MEASUREMENT ARTIFACT — the rig paired
+     ink read before paint with pixels timestamped by the compositor, two clocks
+     that disagree by a frame right at a commit. Recorded rather than quietly
+     deleted: the numbers were wrong, the change is still right.
+
+     The ScrollTrigger work below is safe to move with it: it only reads layout
+     (which is already up to date at this point) and registers callbacks.
   ----------------------------------------------------------------------- */
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = headerRef.current;
     if (!el) return;
 
@@ -408,9 +476,66 @@ export function Navbar() {
        exclusive, so a page that managed both would take the dark palette
        rather than flicker between two authors of one attribute. */
     const ground = { hero: false, plate: false };
+
+    /* THE PALETTE SWAP IS DISCRETE, AND THAT IS A FIX, NOT AN OVERSIGHT.
+
+       Every ink element in the bar carries `transition-colors duration-300`,
+       so until 2026-08-22 flipping this attribute CROSS-FADED the ink over
+       300ms. The ground it answers to does not cross-fade: the scrim
+       (`[data-nav-root]:not([data-over-hero])` in `globals.css`) has no
+       transition and snaps in the same frame, and on a route change the page
+       under the bar changes at the commit frame.
+
+       A CROSS-FADE BETWEEN TWO INVERTED PALETTES IS UNSAFE AT ITS MIDPOINT and
+       cannot be made safe by re-timing it. Halfway between #E8EAEC and #151515
+       the ink is mid-grey; on a ground that is either end of that range the
+       contrast passes through 1:1. MEASURED, light mode, production build, on
+       the shipped cross-fade — the worst sample of each navigation, ground
+       taken off the rendered pixels behind the bar:
+
+         1440x900  / -> /about       1.01:1  at t=0 and t=50  (location label)
+         1440x900  / -> /work        1.01:1  at t=0 and t=50
+         1440x900  /work -> /        1.21:1  at t=100ms   (the email control)
+         375x667   / -> /about       1.18:1  at t=0       (the MS mark)
+         375x667   /work -> /        1.98:1  at t=100ms
+         375x667   /about -> /       1.85:1  at t=100ms
+
+       Ten of thirty-two navigations failed AA, all of them in light mode —
+       dark never dropped below 10.3:1, because #0A0A0B and #07090C are two
+       points apart and the palette barely moves. That is the FIFTH
+       dark-mode-only miss on this project.
+
+       SO THE SWAP IS FORCED THROUGH WITH TRANSITIONS DISABLED. The attribute
+       below is read by ONE rule in `globals.css`; `getBoundingClientRect()`
+       between the two writes forces the style recalc to happen while it is
+       still set, so the new colour is the FIRST computed value the ink ever
+       has and no transition is generated. Removing the attribute afterwards
+       restores the 300ms curve for hover, which is the only thing left that
+       needs it — and which still works, because the colour has not changed
+       again by the time the next recalc runs.
+
+       THE INDICATOR IS NOT AFFECTED, BY CONSTRUCTION rather than by a
+       `:not()`: its duration is an INLINE style built from `INDICATOR_MS`, and
+       an inline declaration outranks the stylesheet rule. Its 240ms slide and
+       its `background-color` cross-fade both survive — verified by measuring
+       the step count across a route change, not by reading the cascade.
+
+       THE `changed` GUARD IS WHAT KEEPS THIS CHEAP. `apply()` is called from
+       both ScrollTriggers, from both `onEnterBack` paths and once on mount, so
+       without it a forced layout would run on calls that write nothing. */
+    let dark: boolean | null = null;
     const apply = () => {
-      if (ground.hero || ground.plate) el.setAttribute("data-over-hero", "");
+      const next = ground.hero || ground.plate;
+      if (next === dark) return;
+      dark = next;
+
+      el.setAttribute(PALETTE_INSTANT_ATTR, "");
+      if (next) el.setAttribute("data-over-hero", "");
       else el.removeAttribute("data-over-hero");
+      // Forces style + layout to be recomputed NOW, while the attribute above
+      // is still on the element. Do not "optimise" this line away.
+      el.getBoundingClientRect();
+      el.removeAttribute(PALETTE_INSTANT_ATTR);
     };
 
     /* Collected as closures rather than as trigger instances, so this file
@@ -901,6 +1026,31 @@ export function Navbar() {
             {indicator ? (
               <span
                 aria-hidden="true"
+                /* THE HOOK FOR THE ONE-FRAME PALETTE SWAP, and the only reason
+                   this element needs an attribute at all. `globals.css` uses it
+                   to drop `background-color` from the list below for the
+                   duration of `apply()`'s forced recalc, so the line's teal
+                   jumps with every other ink in the bar while its 240ms
+                   geometry slide is left completely alone.
+
+                   THIS IS NOT A REVERSAL OF THE 2026-08-22 FIX ABOVE. That fix
+                   put `background-color` INTO the list because the line snapped
+                   while every sibling cross-faded — an inconsistency. The
+                   siblings do not cross-fade on a palette change any more (see
+                   `PALETTE_INSTANT_ATTR`), so keeping the line's colour on a
+                   240ms curve would make it the odd one out in the other
+                   direction, and it is measurably worse than that: the
+                   #14B8A6 -> #0F766E cross-fade passes through #13AE9E, which
+                   is 2.72:1 on #FDFCFA and BELOW the 3:1 non-text floor for
+                   about 100ms. Both endpoints clear it (8.01:1 over the hero,
+                   5.37:1 past it); only the path between them does not.
+
+                   IT STILL CROSS-FADES ON A THEME TOGGLE, which is the other
+                   thing that moves this colour and the one the 2026-08-22 note
+                   is really about. That change comes from `--color-*` flipping,
+                   not from `data-over-hero`, so it never sees this attribute
+                   and `transition-[…,background-color]` still governs it. */
+                data-nav-indicator=""
                 className={
                   "absolute left-0 top-[calc(100%+6px)] h-[2px] bg-[var(--nav-accent)] " +
                   (indicator.animated
