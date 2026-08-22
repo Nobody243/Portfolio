@@ -245,9 +245,12 @@ It deliberately does **not** own the scroll lock (see §3).
 child touches it. Two components setting and clearing one attribute with
 overlapping lifetimes is how a document ends up permanently unscrollable, and it
 is also what keeps `Intro` safe to reuse elsewhere: a transition that is not
-covering the whole page has no business locking it.
+covering the whole page has no business locking it. **The lock now reaches
+`/about` and `/work` too** — a no-op on `/about`, which does not scroll, and not
+a no-op on `/work`, which is held at the scroll position it loaded at until the
+gate retires.
 
-The Intro plays **once per page load** — a **module-scope boolean**, not
+The Intro plays **once per page load** — an **in-memory module-scope flag**, not
 `sessionStorage`. **This reverses what this section used to say.** The old rule
 was "once per session, so a visitor reloading does not see it again";
 `docs/07_SITE_RESTRUCTURE.md` §3 fixes the trigger as *actual document load or
@@ -256,6 +259,33 @@ also requiring that a client-side navigation back to Home does not replay it.
 Those two are only compatible with an in-memory flag: a refresh instantiates a
 fresh module graph and the Intro plays; a client navigation reuses the same
 module and it does not. No storage key is written at all — verified.
+
+**REVISED 2026-08-22: it is THREE flags in `components/intro/IntroSession.tsx`,
+not one boolean in `IntroGate`, and the difference is the route scope.**
+`played` was written only by an Intro that actually RAN, and the only thing that
+could run one was Home — so a document entering on `/about` left it `false`, and
+the first click to HOME played the Intro **on a client navigation**, which §3 of
+`docs/07` forbids. Both halves of that were the same defect. The rule now is one
+predicate over three monotonic flags, each with one writer:
+
+```
+shouldPlayIntro()  ⟺  !introSettled && (!documentEntered || introStarted)
+```
+
+- `documentEntered` — written by `<IntroSessionMarker />` in **`app/layout.tsx`**,
+  so it fires on **every** route including the ones that never show an Intro. That
+  is what stops a document entered through a shared `/projects/<slug>` link from
+  playing the Intro when the visitor clicks through to `/work`.
+- `introStarted` — written by `IntroProvider` when it decides to play.
+- `introSettled` — written at **finish**, not at start, so an interrupted run is
+  resumed rather than skipped. That property is `played`'s, preserved verbatim.
+
+The read happens once per provider instance, in a lazy `useState` initialiser,
+and every write happens in an effect — React runs all renders in a commit before
+any effect in that commit, which is what makes the read safe. **A Suspense
+boundary, a `loading.tsx` or a `next/dynamic` import between `app/layout.tsx` and
+`app/(site)/(chrome)/layout.tsx` would split that commit and this has to be
+re-verified.** Zero of all three exist today.
 
 ---
 
@@ -290,6 +320,26 @@ all three were only ever about the detail routes:
 and mount `<Navbar />` in each page file** — three JSX lines, zero routing risk.
 Routing failures of this kind are silent, so test by clicking a card, never by
 typing the URL: a typed URL is a hard load, which by design never intercepts.
+
+**THAT FALLBACK IS FOR THE NAVBAR AND MUST NOT BE APPLIED TO THE ENTRY GATE.**
+Since 2026-08-22 this layout also mounts `<IntroProvider>`, which owns the
+Intro's state and renders `IntroGate` — see §3. A per-page mount would remount
+the gate on every `/` ↔ `/about` ↔ `/work` navigation and rely on a flag to
+suppress it every single time, i.e. it would make the exceptional path the common
+one. Layout mounting is what makes "never replays on a client navigation"
+**structural**: the layout persists across every navigation inside the group, so
+the provider does not remount and there is no guard clause to keep in sync. It is
+the same safeguard `PageStack.tsx` records for the navbar's entrance.
+
+**The gate's route scope is exactly this group, and that is the point of putting
+it here:** `/`, `/work` and `/about` play the Intro on a document load;
+`/projects/<slug>`, `not-found` and `error` sit outside the group and never do.
+Reason 2 above — Tier 3 is where recruiters evaluate substance — rules the detail
+routes out for the gate exactly as it rules them out for the bar, and a shared
+project link is the single most likely cold entry point on the site.
+
+`app/(site)/layout.tsx` is still wrong for it for its own stated reason as well:
+that file's header says it renders **no provider**, in those words.
 
 ---
 

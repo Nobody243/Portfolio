@@ -51,7 +51,10 @@ form is added, it posts to a lightweight serverless function or a third-party fo
   /globals.css
 /components
   /hero                      — Hero, HeroHeadline, ParticleGrid (Canvas2D), heroContent
-  /intro                     — AssetLoader, Intro, IntroGate. See docs/06
+  /intro                     — AssetLoader, Intro, IntroGate, and the three files that
+                               decide WHEN the gate mounts: IntroSession (the flags),
+                               IntroContext (the arriving/introDone wires) and
+                               IntroProvider (mounted by the (chrome) layout). See docs/06
   /about                     — AboutScreen, CvAction, and /about's content + button styles
   /sections                  — Trajectory, Skills, Experience, CurrentlyLearning, Projects,
                                ProjectCard, ProjectDetail(+Frame), ProjectOverlay, RevealFooter,
@@ -116,7 +119,7 @@ this DOM shape, and getting it wrong fails silently rather than loudly:
 
 ```
 <body class="flex min-h-full flex-col">      app/layout.tsx
-  <header data-nav-root>            z-40      the (chrome) layout's Navbar
+  <header data-nav-root>            z-[55]    the (chrome) layout's Navbar
   <main class="relative z-10 bg-base">        the page stack — OPAQUE, ABOVE
     <div data-page-stack>                     PageStack's fade layer, INSIDE
       … all sections …
@@ -124,8 +127,18 @@ this DOM shape, and getting it wrong fails silently rather than loudly:
   </main>
   <div id="reveal-footer-top">                zero-height sentinel, in flow
   <footer class="relative z-0 md:sticky md:bottom-0 bg-hero-surface">
+  [the entry gate, while it exists]  z-50 / z-[60]
 </body>
 ```
+
+**The header is `z-[55]`, and the number is defined by sitting between two others.** It was `z-40`
+until 2026-08-22, which was correct only by accident: the Intro's `fixed inset-0 z-50` plate used to
+be rendered by `Hero`, inside `<main class="relative z-10">`, and a positioned element with a
+z-index establishes a stacking context — so the plate's 50 never reached this stack and 40 outranked
+it. Moving the gate to the `(chrome)` layout made that z-50 body-level for the first time and would
+have inverted the order, putting the bar's entire slide-in behind an opaque plate. Required order,
+bottom to top: **`<main>` 10 < Intro plate 50 < header 55 < AssetLoader 60.** Renumber any of them
+and 55 has to move with it.
 
 - **`<main>`'s `bg-base` and `z-10` are load-bearing.** The footer is pinned behind the page from
   the first painted frame, and `<main>` is the only thing occluding it. Inheriting the page

@@ -264,6 +264,33 @@ asset-load speed. Not skipped by a "seen this session" flag. Client-side route n
 from About/Work does **not** replay it. Any existing logic tying Intro visibility to the Loader
 resolving, or to a visited flag, is **removed, not tuned**.
 
+> ### ROUTE SCOPE — added 2026-08-22, because "document load" was silent about WHICH document.
+>
+> **It plays on a document load of `/`, `/work` or `/about`.** Those are exactly the routes in
+> `app/(site)/(chrome)/`, which is where the gate is mounted — one layout above all three, so it
+> mounts once per document and cannot remount on a navigation between them.
+>
+> **It never plays on `/projects/<slug>`, `not-found` or `error`,** which sit outside that group.
+> Detail pages are Tier 3 (`docs/06` §4 reason 2) and a shared project link is the most likely cold
+> entry point a recruiter has; gating it behind 3.17s of spectacle is the opposite of what Tier 3
+> protects.
+>
+> **A document that ENTERS on `/projects/<slug>` never sees the Intro at all, including after
+> clicking through to `/work`.** That is a decision, not an oversight: the alternative — letting the
+> first `(chrome)` route reached in a document play it — contradicts "client-side navigation does not
+> replay it" as literally written. The flag that enforces it (`documentEntered`) is written from the
+> ROOT layout precisely so it fires on routes that never show an Intro.
+>
+> **Until this was written the trigger was enforced by where `IntroGate` happened to be mounted**, and
+> it was mounted inside `Hero`. So a hard load of `/about` played nothing and the first click to HOME
+> played the Intro **on a client navigation** — this section's own rule, broken by the mechanism meant
+> to keep it. Measured both ways before the fix. `docs/06` §3 has the replacement.
+>
+> **Off Home the sequence is shorter, and phase 7 is a different property.** There is no hero stage to
+> aim a camera at on `/work` or `/about`, so phase 7 keeps `power2.in` and moves it from `scale` to
+> the plate's `autoAlpha` over 0.55s: total 2.765s rather than Home's 3.165s. The destination's own
+> entrance is re-triggered at the hand-off + 0.20s so that it is not spent behind an opaque plate.
+
 > ### ✅ D7 RESOLVED 2026-08-21 — the Loader SURVIVES. Only the coupling goes.
 >
 > "Not gated on asset-load speed" above means **the Intro's timeline is not driven by progress**. It

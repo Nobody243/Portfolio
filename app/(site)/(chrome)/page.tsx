@@ -93,8 +93,26 @@ export default function Page() {
 
         `relative z-10` also makes this a stacking context, and that is
         contained: `HeroHeadline`'s `z-10` is scoped inside the hero, and the
-        Navbar (z-40), Intro (z-50) and AssetLoader (z-[60]) are all outside
-        `<main>` and stay above it. Rule S-4's project overlay is a modal
+        Navbar (z-[55]), Intro (z-50) and AssetLoader (z-[60]) are all outside
+        `<main>` and stay above it.
+
+        THAT SENTENCE WAS FALSE UNTIL 2026-08-22, AND IT IS THE MOVE THAT MADE
+        IT TRUE. It read "the Navbar (z-40), Intro (z-50) and AssetLoader
+        (z-[60]) are all outside `<main>`". The navbar was; the other two were
+        NOT — the gate was mounted by `Hero`, which is rendered inside this
+        element, so both plates were descendants of this stacking context and
+        their z-indices were local to it. MEASURED ancestry of the plate at
+        t=600ms: `section` -> the page-stack wrapper -> `main.relative.z-10` ->
+        `body`. The consequence was invisible and load-bearing: at z-40 the
+        header outranked a trapped z-50 plate, which is why the navbar's whole
+        entrance is legible over it.
+
+        `components/intro/IntroProvider.tsx` is mounted by
+        `app/(site)/(chrome)/layout.tsx` now, so both plates really are outside
+        `<main>` and their z-indices really are body-level — and the header was
+        raised to z-[55] IN THE SAME COMMIT to keep the paint order it had by
+        accident. `Navbar.tsx` carries the full measurement and the ordering
+        requirement. Rule S-4's project overlay is a modal
         `<dialog>` opened with `showModal()`, so it renders in the TOP LAYER and
         is above every z-index on the page — but ONLY because of `showModal()`.
         Opened without it, it would fall behind this stack.

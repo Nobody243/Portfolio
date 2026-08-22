@@ -818,7 +818,8 @@ indicator slid and the document changed between one frame and the next.
 | Duration | `DURATION.ui` = **0.35s**. Measured 330–351ms to the frame at which opacity crosses 0.999, across 32 navigations |
 | Curve | `EASE.ui` — the pair the navbar's `INDICATOR_MS = 240` indicator already runs on |
 | Direction | **Enter only. No exit animation, and no `AnimatePresence`** |
-| First load | **No animation.** Module-scope boolean, `IntroGate`'s `played` idiom inverted |
+| First load | **No animation.** Module-scope boolean, the same idiom the Intro's session flags use (`components/intro/IntroSession.tsx`), inverted. It said "`IntroGate`'s `played`" until 2026-08-22; that flag was deleted when the gate moved to the `(chrome)` layout |
+| While the Intro runs | **No animation either**, on any route. The guard also consumes `introDone`. `arrived` alone stopped being sufficient the moment a route other than `/` could play an Intro: hard-load `/about`, reach `/` by keyboard or Back before the sequence ends, and `/`'s stack would fade in under the running plate. Measured before the fix: page-stack opacity 0.000 under a >50%-opaque plate. After: 1.000 |
 | Reduced motion | **Instant swap, not a shorter fade** |
 | Where | `components/ui/PageStack.tsx`. It renders THREE of the site's six `<main>` elements — `/`, `/work` and `/about` — and only the first two fade. `not-found.tsx`, `error.tsx` and `/projects/[slug]` (through `ProjectDetailFrame as="main"`) render their own and do not. That is fine; "every route's `<main>`" was not |
 
@@ -827,12 +828,19 @@ destination before the content resolves, which is what makes a click feel answer
 was derived independently from ~100px of travel; slowing it to 350 would make the line worse to fix
 nothing.
 
-**`y` is locked out for two reasons, and neither is taste.** A `transform` on a page-level element
-creates a containing block for every `position: fixed` descendant, which would silently re-parent
-the Intro's `fixed inset-0 z-50` plate. And Next preserves scroll on back/forward, so a translate at
-a restored scroll position would lift the stack off the viewport bottom and expose a strip of the
-reveal footer's plate. Opacity creates a stacking context but never a containing block, and it
-cannot uncover anything.
+**`y` is locked out for two reasons, and one of them expired on 2026-08-22 — DO NOT UNLOCK IT ON THE
+STRENGTH OF THAT.** The first reason was that a `transform` on a page-level element creates a
+containing block for every `position: fixed` descendant, which would silently re-parent the Intro's
+`fixed inset-0 z-50` plate. That plate is no longer a descendant of `<main>` — the gate is mounted by
+`app/(site)/(chrome)/layout.tsx` now — so the re-parenting it describes can no longer happen, and
+anyone auditing this rule will find a void justification.
+
+**The rule stands on its second, independent leg:** Next preserves scroll on back/forward, so a
+translate at a restored scroll position would lift the stack off the viewport bottom and expose a
+strip of the reveal footer's `#07090C` plate. Opacity creates a stacking context but never a
+containing block, and it cannot uncover anything. The first reason also still binds anything that
+writes `transform` on an ancestor of a fixed element, which is why it is corrected here rather than
+deleted.
 
 **Reduced motion gets an instant swap, which deliberately diverges from `MotionProvider`'s
 `reducedMotion="user"` contract (drop transform, keep opacity). Do not "fix" it back.** That

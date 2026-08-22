@@ -587,6 +587,20 @@ html[data-overlay-open] {
    cannot strand the document. Neither child touches it — two owners of one
    attribute with overlapping lifetimes is how a page ends up permanently
    locked.
+
+   IT REACHES `/about` AND `/work` SINCE 2026-08-22, and it got SIMPLER rather
+   than more conditional in the process. The gate is mounted by
+   `app/(site)/(chrome)/layout.tsx` now instead of by `Hero`, so it plays on a
+   document load of any of the three content routes — and because the provider
+   decides whether to render it at all, the gate is only ever mounted when it is
+   going to play and sets this attribute unconditionally. On `/about` the lock
+   is close to a no-op (that page is `h-dvh overflow-hidden` and does not
+   scroll); on `/work` it is not, and holds the archive at the scroll position
+   the document loaded at until the gate retires. Moving the lock up to the
+   provider was rejected: the provider outlives the gate for the whole document,
+   so it would need its own clear-on-done path — a second lifetime to keep in
+   sync, on the one attribute whose failure mode is a permanently unscrollable
+   page.
 --------------------------------------------------------------------------- */
 html[data-intro-active] {
   overflow: clip;
