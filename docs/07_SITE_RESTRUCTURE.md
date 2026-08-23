@@ -733,6 +733,53 @@ Photo + the paragraph above, plus an action row:
 - **LinkedIn** — secondary/outline, smaller. Duplicating the navbar link is **intentional** — the navbar
   is an always-available ambient link, the About row is a recommended next step.
 
+**The composition was re-cut on 2026-08-23 to fill the measure rather than to stop short of it.**
+Saad's read was that the block sits anchored toward one side. It was a real observation and not a
+misread: at 1440 the row was 544 (measure) + 89 (gap) + 384 (portrait) = 1017px inside a 1262px
+content box, leaving **245.00px of trailing void — MEASURED, both themes, at 1440×900 and
+2560×1440** — with the *smallest* element on the void side. That is not the spine; it is a
+composition that stops 245px early.
+
+**Rule S-1 is held byte-identically. Nothing was centred and nothing needed to be.** Four numbers
+moved, all of them widths and one type step:
+
+| | `lg` (1024–1279) | `xl`+ (1280+) |
+|---|---|---|
+| Measure | `max-w-[34rem]` 544px — unchanged | **`xl:max-w-[40rem]` 640px** |
+| Paragraph | `text-body` 16 / 1.6 — unchanged | **`xl:text-h4` + `xl:leading-[1.35]`** |
+| Paragraph reserve | 7 lines, 179px — unchanged | **10 lines, `xl:min-h-[351px]`** |
+| Portrait cap | elastic, 247px at 1024 | **`lg:max-w-[448px]`** (was 384) |
+| Trailing void at 1440+ | — | **85px**, one spine unit, down from 245px |
+
+- **The type step is a consequence of the width, not a second request.** At 640px, `text-body` gives
+  ~80 characters per line — past the 75-char ceiling. A wider measure at 16px would be *worse*
+  typography than what shipped, so either both move or neither does.
+- **It is gated at `xl` and not at `lg` because of HEIGHT, expressed through a width.** 26px on a
+  544px measure wraps to 10 lines: an 11-line reserve of 386.1px and a 659.9px text column against
+  511px of available height at 1024×600 — **over by 148.9px**. Rule S-5 prefers no new breakpoint and
+  a height media query would be a new *class* of one; `xl` is an existing step and the site still
+  ships zero custom breakpoints.
+- **`lg:justify-center` was refused again, and the reason got sharper rather than weaker.** Under the
+  new geometry it costs a 42.5px indent off the spine rather than the ~122px refused before, and
+  42.5px is the worst of the three options: too small to read as centring, too large to read as
+  alignment. **If S-1 is ever broken here it must be broken visibly — fully centred, with `/about`
+  named as the exception in `docs/03` — or not at all.**
+- **`PORTRAIT_SIZES`' `lg` band moved with the cap**, 384px → 448px. 448 is not a `next/image`
+  bucket, so the selected derivative jumps one: w=384 → **w=640** at DPR-1 and w=828 → **w=1080** at
+  DPR-2. Re-verified rather than assumed — **exactly one image request** at 375 / 640 / 1024 / 1440 ×
+  DPR 1 and 2.
+- **The one-screen rule at `lg`+ is untouched and was re-measured, not argued.** `scrollHeight ===
+  innerHeight`, i.e. **0.00px of overflow, at 1024×600, 1280×720, 1280×800, 1366×768, 1440×900 and
+  2560×1440, in both themes — 12 of 12.** At `xl`+ the TEXT COLUMN governs the row height at every
+  width (556.8px, against a capped portrait's 448 + 68 = 516), which is why the portrait's size and
+  the flip board's presence are both free against the budget.
+- **One correction to the brief, recorded rather than smoothed over.** The 10-line reserve was
+  derived from a predicted 9 rendered lines. **Measured, it is 9 at 1280 but 10 at 1440 and 2560** —
+  so at 1440+ the reserve is fully consumed and carries **zero growth headroom**, which is not what a
+  reserve is for. The page still fits everywhere. If either content note in this section lands, this
+  is the number that moves first: 11 lines is 386.1px, a 591.9px text column, and 680.9px at
+  1280×720 — inside 720 with 39.1px of slack.
+
 **Visual uniformity, all four confirmed:** a dimmed version of the same particle-network background
 (not the command sphere, which stays Home-only); the same teal/cyan accent on hover, links and button
 accents with no new palette; the same monospace touches for small labels; and the finished **static**

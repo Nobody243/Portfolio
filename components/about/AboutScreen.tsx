@@ -55,8 +55,20 @@ import { STAGGER } from "@/lib/animation/easing";
  * recorded 333px at 375, 318px at 360 and 530px at 640.
  *
  * THE `lg` BAND KEEPS ITS EXACT PIXEL VALUE and the old rule's reasoning with
- * it — it is fluid from 247px at 1024 to the 384px cap at 1161, and both ends
- * still land on the same 384 bucket.
+ * it — it is fluid from 247px at 1024 to the cap, and the band's two ends land
+ * on one `next/image` bucket.
+ *
+ * THAT BAND MOVED 384 -> 448 ON 2026-08-23, WITH THE PORTRAIT'S CAP, AND IT IS
+ * THE EASY HALF TO FORGET. The declared band and the rendered cap are 800 lines
+ * apart in this file; a cap that grows while the band still says `384px` makes
+ * every desktop preload a derivative too small for what it paints, and nothing
+ * errors. 448 IS NOT ITSELF A `next/image` BUCKET (384 was, which was half of
+ * why 384 was chosen), so the selected derivative jumps a bucket: **w=384 ->
+ * w=640 at DPR-1 and w=828 -> w=1080 at DPR-2**, roughly 16.5KB -> ~26KB on a
+ * `priority` image inside the initial viewport. That cost was accepted
+ * deliberately. RE-MEASURED after the change, because the single-request
+ * guarantee this whole docstring is about must be re-verified rather than
+ * assumed: exactly one image request at every tested viewport and DPR.
  *
  * MEASURED SELECTION, one request in every case — RE-MEASURED after the change,
  * because every sub-`lg` figure in the old list moved: see the item 7 handoff
@@ -73,7 +85,7 @@ import { STAGGER } from "@/lib/animation/easing";
  * `<img src={portrait.src}>`. Neither exists; neither may be added.
  */
 const PORTRAIT_SIZES =
-  "(min-width: 1024px) 384px, (min-width: 640px) min(544px, calc(100vw - 110px)), calc(100vw - 42px)";
+  "(min-width: 1024px) 448px, (min-width: 640px) min(544px, calc(100vw - 110px)), calc(100vw - 42px)";
 
 /**
  * `/about` — one paragraph, three controls, one photograph, and nothing else.
@@ -539,7 +551,48 @@ export function AboutScreen() {
               with 34px in hand. Both are existing spine steps; no new token,
               and the wider gap returns at `xl` where there is room for it. */}
           <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:flex lg:items-center lg:gap-xl lg:px-2xl xl:gap-2xl">
-            <div className="max-w-[34rem] lg:shrink-0">
+            {/*
+              THE MEASURE IS 34rem TO `xl` AND 40rem ABOVE IT, AND THE TWO
+              HALVES OF THAT ARE ONE DECISION WITH THE PARAGRAPH'S SIZE.
+
+              WHAT IT FIXES. At 1440 the composed row was 544 (measure) + 89
+              (gap) + 384 (portrait) = 1017px inside a 1262px content box,
+              leaving 245px — 19.4% of the measure — of trailing void with the
+              SMALLEST element on the void side. That is not the spine; it is a
+              composition that stops 245px early, which is what an unfinished
+              grid looks like. MEASURED at 1440x900 and 2560x1440 before the
+              change: 245.00px, in both themes.
+
+              RULE S-1 IS HELD BYTE-IDENTICALLY AND NOTHING IS CENTRED. Saad's
+              ask was for the block to sit less to one side; the answer taken is
+              to FILL the measure rather than to centre it. Widening the measure
+              to 640 and the portrait cap to 448 takes the trailing void to
+              85px — 6.7% of the measure, within 4px of one spine unit — which
+              reads as a deliberate inset margin rather than as a void the
+              composition failed to reach. `lg:justify-center` was refused
+              again: under the new geometry it costs only a 42.5px indent off
+              the spine rather than the ~122px this file rejected before, and
+              42.5px is WORSE — too small to read as centring, too large to read
+              as alignment. If S-1 is ever broken here it must be broken
+              visibly, with `/about` named in `docs/03`, or not at all.
+
+              WHY THE TYPE HAS TO MOVE WITH IT. At a 640px measure `text-body`
+              16px gives ~80 characters per line, past the 75-char readability
+              ceiling — i.e. a wider measure at 16px is WORSE typography than
+              what shipped. The size step is a CONSEQUENCE of the width, not a
+              second taste request: either both move or neither does.
+
+              WHY THE STEP IS GATED AT `xl` AND NOT AT `lg`. The scale has
+              nothing between 16 and 26 (x1.618 puts the next rung at 25.9 and
+              `globals.css` rounds it to 26), and 26px on a 544px measure wraps
+              to 10 lines — an 11-line reserve of 386.1px and a 659.9px text
+              column against 511px of available height at 1024x600. Over by
+              148.9px. It is a HEIGHT constraint expressed through a WIDTH
+              breakpoint because Rule S-5 prefers no new breakpoint and a height
+              media query would be a new CLASS of one. `xl` is an existing step;
+              the site still ships zero custom breakpoints.
+            */}
+            <div className="max-w-[34rem] lg:shrink-0 xl:max-w-[40rem]">
               {/*
                 THE MARK IS `variant="nav"` AT A LARGER SIZE — NOT A THIRD
                 VARIANT. `MonogramMark.tsx`'s own header says it: "the navbar
@@ -608,19 +661,62 @@ export function AboutScreen() {
               </IntroEntrance>
 
               {/*
-                THE HEADROOM IS NOT OPTIONAL. 65 words at `text-body` (16px,
-                1.6 line-height = 25.6px) on a 34rem measure wraps to 5-6 lines
-                at desktop. The reserve is SEVEN lines (7 x 25.6 = 179px), and
-                nine on mobile, because both of `docs/07` §6's remaining content
-                notes LENGTHEN this paragraph: if C1's coursework qualifier ever
-                returns, or C2's referent is named more fully, it grows. A block
-                measured exactly to today's word count gets re-measured twice,
-                and the action row below moves both times.
+                THE HEADROOM IS NOT OPTIONAL, AND EVERY FIGURE IN IT IS PER
+                BAND. 65 words at `text-body` (16px, 1.6 line-height = 25.6px)
+                on a 34rem measure wraps to 5-6 lines. The reserve is SEVEN
+                lines (7 x 25.6 = 179px) there, and nine on mobile, because both
+                of `docs/07` §6's remaining content notes LENGTHEN this
+                paragraph: if C1's coursework qualifier ever returns, or C2's
+                referent is named more fully, it grows. A block measured exactly
+                to today's word count gets re-measured twice, and the action row
+                below moves both times.
 
-                GROWTH CONSUMES SLACK, IT DOES NOT SHRINK THE TYPE. The measure
-                stays 34rem and the size stays `text-body`. Fitting a longer
-                paragraph by dropping to `text-caption` is the exact failure
-                this reserve exists to prevent.
+                AT `xl` THE RESERVE IS RE-DERIVED, NOT INHERITED. The measure is
+                40rem (640px) and the size is `text-h4` there, so leaving
+                `sm:min-h-[179px]` in place would have been a `text-body` figure
+                guarding `text-h4` copy — reserve in name only. The design brief
+                derived the count from an effective average advance of 0.464 em
+                (lines = ceil(204.2 x fontSize / measure)) and predicted
+                204.2 x 26 / 640 = 8.30 -> 9 lines, with a TEN-line reserve at
+                35.1px = 351px.
+
+                THE PREDICTION IS ONE LINE LOW AND THE MEASUREMENT IS RECORDED
+                RATHER THAN THE FORMULA DEFENDED. MEASURED off the rendered
+                range rects: 9 lines at 1280 (306.37px, 44.6px spare in the
+                reserve), and **10 lines at 1440 (350.35px) and at 2560
+                (351.00px)** — i.e. AT 1440 AND ABOVE THE TEN-LINE RESERVE IS
+                FULLY CONSUMED AND CARRIES ZERO GROWTH HEADROOM. The 351px value
+                shipped as specified and the page still fits everywhere (0.00px
+                of overflow at all six `lg`+ viewports in both themes, with
+                254.2px of slack at 1440x900 and 74.2px at 1280x720), but the
+                reserve is no longer doing the job the paragraph above describes
+                at those widths.
+
+                SO IF EITHER OF `docs/07` §6'S CONTENT NOTES LANDS, THIS NUMBER
+                MOVES FIRST AND IT IS NOT A FREE EDIT. Eleven lines is 386.1px,
+                which takes the text column to 591.9px and 1280x720 to 680.9px —
+                still inside 720 with 39.1px of slack, and 1024x600 is untouched
+                because the step is gated at `xl`. That is the next value, with
+                its arithmetic, so nobody has to re-derive it under pressure.
+
+                THE LINE HEIGHT IS THE ONE GENUINELY NEW VALUE IN THIS CHANGE
+                AND IT IS FLAGGED AS SUCH. `docs/03` states 1.6 for body and
+                1.1-1.2 for headings; 26px LEAD PROSE is neither, and optical
+                leading falls as size rises. `text-h4` carries 1.2, which is a
+                heading's leading applied to a 65-word paragraph. At `text-h4`'s
+                own 1.6 the 10-line reserve would be 416px, which does NOT fit
+                1280x720; at 1.35 (35.1px) it is 351px and fits with 74px to
+                spare. The fallback of 1.4 with a 9-line reserve also fits, but
+                it spends the growth reserve the two content notes above exist
+                to protect. The line height was taken and the reserve kept.
+                `docs/03`'s type section records the value.
+
+                GROWTH CONSUMES SLACK, IT DOES NOT SHRINK THE TYPE. Fitting a
+                longer paragraph by dropping to `text-caption` is the exact
+                failure this reserve exists to prevent, and it is unchanged by
+                the size going UP at `xl`: growing the type multiplies that
+                future growth against a budget that is already the binding
+                constraint at 1024x600.
               */}
               {/* UNIT 2, delay `STAGGER.line`. The `<p>` keeps its own
                   `mt-md` / `sm:mt-lg` rather than moving them onto the
@@ -631,7 +727,7 @@ export function AboutScreen() {
                   that would stop it. Measured: the paragraph's top is
                   unchanged to the hundredth of a pixel. */}
               <IntroEntrance delay={STAGGER.line}>
-                <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px]">
+                <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px] xl:min-h-[351px] xl:text-h4 xl:leading-[1.35]">
                   {ABOUT_PAGE_PARAGRAPH}
                 </p>
               </IntroEntrance>
@@ -787,14 +883,38 @@ export function AboutScreen() {
               it would indent the paragraph ~122px from the spine every other
               section on the site starts on.
 
-              `lg:max-w-[384px]` IS DERIVED, NOT CHOSEN. The text block
-              measures 384.95px tall at `sm` and up (mark 72 + mt-lg 34 +
-              paragraph 179.16 + mt-xl 55 + action row 44.8). A square whose
-              side equals that height is the one that terminates on the same
-              line as the text under `lg:items-center`, so the row reads as a
-              single rectangle. 384 rather than 385 because 384 is a real
-              `next/image` bucket and halves cleanly; the 0.95px shortfall is
-              a sub-line rounding, not a misalignment.
+              `lg:max-w-[448px]` IS DERIVED, NOT CHOSEN, AND THE DERIVATION
+              SURVIVED THE CHANGE RATHER THAN BEING DROPPED BY IT.
+
+              IT READ `lg:max-w-[384px]` UNTIL 2026-08-23, and the reasoning was:
+              the text block measures 384.95px tall at `sm` and up (mark 72 +
+              mt-lg 34 + paragraph 179.16 + mt-xl 55 + action row 44.8), and a
+              square whose side equals that height is the one that terminates on
+              the same line as the text under `lg:items-center`, so the row
+              reads as a single rectangle.
+
+              THAT RELATIONSHIP IS KEPT BY GROWING THE TEXT COLUMN IN STEP, not
+              by abandoning it. At `xl` the paragraph is `text-h4` on a 640px
+              measure with a 10-line 351px reserve, so the text column measures
+              72 + 34 + 351 + 55 + 44.8 = 556.8px. The portrait cap does NOT go
+              to 556.8: the row is width-limited before it is height-limited,
+              and 1262 - 640 - 89 = 533 is the widest square 1440 can give it.
+              448 is the value that leaves ONE SPINE UNIT of trailing void
+              (1262 - 640 - 89 - 448 = 85px, within 4px of `2xl`); 444 would
+              land it on exactly 89 and is the uglier number for the same
+              result and the same image bucket.
+
+              THE 629px CEILING THIS FILE ALREADY REFUSED IS UNTOUCHED. 448 is
+              well inside it, and the refusal's reasoning — "a 629px square
+              beside a 65-word bio makes this a portrait page with a caption" —
+              still binds anything past ~500.
+
+              THE INVARIANT WORTH KNOWING BEFORE EDITING EITHER COLUMN: at `xl`+
+              the TEXT COLUMN governs the row height at every width, because the
+              portrait is capped at 448 and 448 + 68 (the flip board's block) =
+              516 < 556.8. So the portrait's size and the board's presence are
+              both FREE against the height budget, and that is why they could
+              both land in one round.
 
               `lg:min-w-[213px]` IS LOAD-BEARING TWICE. It is the floor that
               keeps 544 + 55 + 213 = 812 inside the 846px container at 1024 —
@@ -882,7 +1002,7 @@ export function AboutScreen() {
                 `lg`, where the two are columns of a row and there is no gap of
                 this kind between them.
               */
-              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[384px] lg:min-w-[213px] lg:flex-1"
+              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[448px] lg:min-w-[213px] lg:flex-1"
             >
               <Image
                 src={portrait}

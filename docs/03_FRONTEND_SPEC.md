@@ -368,6 +368,22 @@ Base unit: `16px` (1rem). Scale multiplier: `×1.618` per step.
 **Line height:** `1.6` for body text (already near-golden-ratio, keeps long-form reading comfortable).
 Headings tighter, around `1.1–1.2`.
 
+> **A THIRD LEADING SHIPPED ON 2026-08-23, FOR ONE CASE: `1.35` FOR LEAD PROSE SET AT `text-h4`.**
+> `/about`'s bio takes `xl:text-h4 xl:leading-[1.35]` on a 40rem measure. It is genuinely neither of
+> the two above and the gap is real rather than an oversight: `text-h4` carries `1.2`, which is a
+> *heading's* leading applied to a 65-word paragraph, and optical leading falls as size rises, so
+> body's `1.6` is too open at 26px. The arithmetic that fixed the value rather than taste: at `1.6`
+> the paragraph's 10-line reserve is 416px, which **does not fit 1280×720**; at `1.35` (35.1px) it is
+> 351px and fits with 74.2px to spare.
+>
+> **This is a leading, not a new size step — no token was added and none should be.** The scale still
+> runs 12 / 16 / 26 / 42 / 68 / 110 and there is deliberately nothing between 16 and 26; a 20px step
+> invented to make one paragraph comfortable is the failure `text-caption`'s note above exists to
+> prevent in the other direction. **Do not add a 20px size.**
+>
+> It has exactly one consumer. If a second one ever appears, that is the moment to promote it to a
+> token rather than to keep spelling it as an arbitrary value.
+
 **Spacing:** use a Fibonacci-derived scale (approximates the golden ratio and is easier to work with in
 practice) for margins/padding/section gaps: `8, 13, 21, 34, 55, 89, 144` (px). This keeps the
 heading-to-text relationship and overall rhythm consistent with the ×1.618 type scale rather than
