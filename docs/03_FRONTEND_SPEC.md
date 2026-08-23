@@ -180,9 +180,28 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > (`RevealFooter.tsx:460`, `:639`). *That sentence named `Contact.tsx`, which was absorbed into
 > `RevealFooter.tsx` in Phase 5 and no longer exists.*
 >
-> **One** existing sub-`/70` value remains on this surface, and it is NON-TEXT: `HeroHeadline`'s
-> reduced-motion chevron at `text-hero-fg/55`, an **icon** on the 3:1 floor (5.38:1). It is not
-> precedent for text.
+> **Two** existing sub-`/70` values remain on this surface, and **both are NON-TEXT**:
+>
+> 1. `HeroHeadline`'s reduced-motion chevron at `text-hero-fg/55`, an **icon** on the 3:1 floor
+>    (5.38:1).
+> 2. **`RevealFooter`'s `SAAD` wordmark, added 2026-08-23** — a decorative, `aria-hidden` logotype
+>    whose resting outline paints at `stroke-opacity: 0.45`, **measured 3.90:1** off the rendered
+>    raster on `#07090C` (composite `#6C6E71`). Same 3:1 non-text floor, 0.90 of headroom over it.
+>
+> Neither is precedent for text.
+>
+> **The wordmark's alpha is a `strokeOpacity` on the SVG, NOT a `text-hero-fg/45` on its caller, and
+> the mechanism is load-bearing rather than stylistic.** A text token carrying a sub-`/70` modifier
+> would breach the letter of the floor rule and is exactly what the sweep below greps for; it is also
+> byte-identical in shape to the loader regression closed on 2026-08-22 (*"the value silently drifted
+> to `/45` (3.90:1, failing)"*), so a future sweeper would flag it as that bug and be right to. As a
+> paint property on a decorative logotype it is the same category of value as `QUIET_FIELD`'s
+> `nodeAlpha` — which nobody has ever counted as a text-opacity violation, because it is not one.
+> **So the sweep row below still reads 1, and that is correct rather than stale.** `docs/03`'s own
+> warning applies to this whole carve-out: *"the second floor is the one a reviewer forgets exists"*.
+>
+> `RESTING_STROKE_ALPHA`'s docstring in `components/ui/text-hover-effect.tsx` carries the arithmetic,
+> including why `/40` (3.31:1) is not a fallback.
 >
 > *There were two. The loader's percentage counter at `text-hero-fg/50` was the second — flagged, not
 > changed, in Ticket 10, and handed to "whoever revisits the loader". It was raised to `/70` (8.17:1)
@@ -219,7 +238,7 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > | Nothing is styled in one theme only | full `getComputedStyle` capture of `color`, `background-color`, all four border colours, plus `fill`/`stroke` on SVG nodes; the dark and light captures diffed element-for-element | **1340 property-instances compared, 24 flagged, all 24 explained** |
 > | Hex literals outside comments | comment-stripped AST-ish scan of `app/` and `components/` | **0** |
 > | `dark:` variants | same scan | **2**, both `ThemeToggle`'s label spans — the one sanctioned pair |
-> | Sub-`/70` text opacities | same scan | **1**, `HeroHeadline`'s reduced-motion chevron (an icon, 3:1 floor) |
+> | Sub-`/70` text opacities | same scan | **1**, `HeroHeadline`'s reduced-motion chevron (an icon, 3:1 floor). *`RevealFooter`'s wordmark is a second sub-`/70` value on this surface as of 2026-08-23, and is deliberately NOT in this count: it is a `strokeOpacity` paint property, not a text-token modifier, so this scan does not and should not see it. See the opacity section above.* |
 >
 > **The 24 flags are all `fill: rgb(0, 0, 0)` on `<svg>` and `<g>` WRAPPER nodes** — the CSS initial
 > value, on elements that paint nothing. Their `<path>` children carry the real paint and do flip.
@@ -231,7 +250,35 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > both). `docs/04` already resolves this: it gets judged when it first gets a consumer. It is a pair
 > defined once, not dead surface to prune.
 
-> ### `accent-hero` has exactly ONE DOM consumer site-wide — and count RENDER SITES, not code paths. Ticket 10.
+> ### `accent-hero` has exactly TWO DOM consumers site-wide — and count RENDER SITES, not code paths. Ticket 10.
+>
+> **This heading read ONE until 2026-08-23.** The second consumer is `RevealFooter`'s `SAAD`
+> wordmark: the cursor-reveal layer's stroke is painted by a `<radialGradient>` whose innermost stop
+> is `var(--accent-hero)`, ramping to `currentColor` by 45% of the disc's radius. Both consumers are
+> on `bg-hero-surface`, both `aria-hidden`, both non-interactive; the bar is 34×3px and permanent,
+> the wordmark's ramp is **pointer-transient** and does not exist at all where
+> `(hover: hover) and (pointer: fine)` is false.
+>
+> **The standing refusal it overturns, and on what grounds.** `text-hover-effect.tsx` refused cyan at
+> *"~9,300px² of ink against the plate's one licensed 34×3px bar (102px²) — 91×, which is not
+> sparingly"*. **That figure priced a SOLID FILL** — it is the file's own "roughly five times"
+> multiple of the outlined 1,860px², against a fill the component is forbidden from painting.
+> Recomputed against the shipped geometry: 2,584px² of outlined stroke at `FONT_SIZE_UNITS` 100, ×
+> 0.307 inside the reveal disc, × the 1/3 mean alpha of a linear white→black mask, × the gradient's
+> 15.7% cyan-weighted share = **~42px² of effective cyan, on hover only** — ~0.4× the licensed bar,
+> not 91×. Both of CLAUDE.md's conditions ("sparingly", "on its own dark surface") hold.
+>
+> **Teal was refused separately and that refusal is unchanged and unweakened.** Teal's objection was
+> never area: teal means *activate this* and nothing else on this site, so a 365px wordmark you
+> cannot click that turns teal **under the cursor** is the canonical signal of an interactive control,
+> on an `aria-hidden` non-link. At rest a teal wordmark is a static mistake; on hover it is an active
+> lie.
+>
+> **`grep -rn "accent-hero" components/` now returns three hits rather than two — that is the audit
+> still working, not failing.** And the colour is gated on a **required `revealAccent: boolean` prop
+> with no default**, because `components/ui/text-hover-effect.tsx` is generically named and takes a
+> string plus a width: it is one call from carrying #00E5FF onto a Tier 2 page without anybody typing
+> the token, which is the `ParticleGrid` leak below in its exact recorded form.
 >
 > **This heading counted code paths, and counting code paths is exactly what let a Tier 1 accent onto
 > a Tier 2 page.** Corrected 2026-08-22. The two code paths below were always real and are still real

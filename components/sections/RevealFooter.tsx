@@ -206,10 +206,27 @@ import { FONT_SIZE_UNITS } from "@/components/ui/textHoverEffectMetrics";
  * EXPLICITLY NOT, and each must stay absent: no R3F, no Canvas, no camera, no
  * `three` import, no GSAP, no ScrollTrigger, no parallax, no scroll-linked
  * value, no `useScroll`, no particle field, no glow, no blur, no box-shadow, no
- * gradient FILL, no radius (no token exists), no hover transform, no counter,
- * no typewriter, no marquee, and NO INFINITE OR REPEATING ANIMATION. The last
- * one is sharper here than it was: a pinned element at the bottom of the page
- * is one the visitor can sit on indefinitely BY CONSTRUCTION.
+ * radius (no token exists), no hover transform, no counter, no typewriter, no
+ * marquee, and NO INFINITE OR REPEATING ANIMATION. The last one is sharper here
+ * than it was: a pinned element at the bottom of the page is one the visitor
+ * can sit on indefinitely BY CONSTRUCTION.
+ *
+ * THE GRADIENT BAN WAS NARROWED ON 2026-08-23, NOT DELETED. This list read "no
+ * gradient FILL" and `text-hover-effect.tsx` §5 said "Nothing on screen is ever
+ * a gradient: the wordmark is one flat colour at one of two strengths." The
+ * second sentence is now false and both are amended in the same commit rather
+ * than left contradicting the code, the same treatment the viewport-unit ban
+ * got two paragraphs above.
+ *
+ * WHAT IS BANNED, RESTATED: no gradient on any SURFACE of this plate — no
+ * gradient plate, no gradient panel, no gradient text fill. WHAT SHIPS: the
+ * colour ramp of a 1.5px non-scaling STROKE, inside a cursor-following disc, on
+ * the wordmark's reveal layer only, and no second one. It touches no surface,
+ * exists only while a fine pointer rests on the wordmark, and is ~42px of
+ * accent against the licensed bar's 102px.
+ *
+ * THE ONE-LINE TEST FOR A FUTURE READER: **a gradient that any visitor can see
+ * without moving a pointer is still banned here.**
  *
  * -------------------------------------------------------------------------
  * THE VIEWPORT-UNIT BAN WAS REVERSED ON 2026-08-23. `md:min-h-dvh` NOW SHIPS.
@@ -943,11 +960,25 @@ export function RevealFooter() {
             nothing is lost by that.
 
             IT DOES NOT OUT-WEIGH THE THREE LINKS, AND THAT IS ARITHMETIC RATHER
-            THAN REASSURANCE. Outlined at a 1.5px stroke the wordmark carries a
-            comparable amount of ink to the three link values at `text-body`;
-            solid-filled it would carry roughly five times as much. That ratio
-            is why it is outlined — not because outlined display type looks
-            good. Three more things hold the hierarchy independently of the ink:
+            THAN REASSURANCE — RE-STATED AT THE NEW SIZE ON 2026-08-23, because
+            a comment whose conclusion survives while its arithmetic rots is a
+            class of defect this repo has already shipped six of.
+
+            Stroke length scales linearly with the type size at a fixed 1.5px
+            non-scaling stroke, so the outlined wordmark's ink went from
+            ~1,860px at F=72 to ~2,584px at F=100 — where this note previously
+            claimed parity with the three link values' ~1,860px. THE EFFECTIVE
+            INK WENT DOWN ANYWAY, because the resting alpha fell in the same
+            change:
+
+                before   1,860px x 0.70 = 1,302px
+                after    2,584px x 0.45 = 1,163px      (-11%)
+
+            The enlargement is PAID FOR by the lightening; they are one change,
+            not two competing ones. Solid-filled it would still carry roughly
+            five times the outlined figure, which is why it is outlined — not
+            because outlined display type looks good. Three more things hold the
+            hierarchy independently of the ink:
             it is LAST in the DOM and last on the plate, so at full exposure the
             read is heading, sentence, links, mark+year, signature; it is
             NEUTRAL and un-underlined where the links are teal and permanently
@@ -962,6 +993,17 @@ export function RevealFooter() {
             site's LAST surface), and the hover target is the wordmark rather
             than a 1262px-wide invisible strip across the bottom of the plate.
 
+            THE 2026-08-23 ENLARGEMENT DID NOT TOUCH THIS CLASS, AND THAT IS
+            THE WHOLE POINT OF WHERE IT WAS SPENT. Saad asked for a bigger
+            signature; the lever taken was `FONT_SIZE_UNITS` 72 -> 100 in
+            `textHoverEffectMetrics.ts`, which grows the glyphs INSIDE the
+            100-unit viewBox and costs the plate 0px of height. The box class
+            below is unchanged, so the "DO NOT RAISE IT WITHOUT RE-MEASURING"
+            warning was not triggered — and the plate was re-measured anyway:
+            composed content still 775.98px at every width from 1280 up, in 24
+            of 24 cases. The wordmark's rendered box went 262.93 x 144 to
+            365.18 x 144; only the WIDTH moved.
+
             `h-2xl sm:h-3xl` — 89px below 640, 144px at 640 and up, and THE SIZE
             IS BOUNDED BY THE SHORTEST SUPPORTED VIEWPORT, NOT THE TALLEST. The
             plate's composed content has to fit inside a 768px-tall laptop
@@ -973,11 +1015,40 @@ export function RevealFooter() {
             chasing a bigger wordmark." DO NOT RAISE IT WITHOUT RE-MEASURING THE
             PLATE AT 1366x768 AND 1280x720.
 
-            `text-hero-fg/70` sets `color` for BOTH of the component's layers:
-            the resting outline reads it through `currentColor` at 8.17:1, and
-            the cursor-revealed layer overrides it to full at 16.53:1. NEITHER
-            CYAN NOR TEAL — `text-hover-effect.tsx`'s header has both refusals
-            with the arithmetic.
+            `text-hero-fg` — FULL STRENGTH, AND IT USED TO BE `/70`. The class
+            sets `color` for both of the component's layers through
+            `currentColor`. The resting outline's recession is now a
+            `strokeOpacity` of 0.45 set INSIDE the component (3.91:1 on
+            #07090C), not an alpha modifier on a text token out here; that
+            constant's docstring carries the arithmetic and the reason the
+            mechanism is not interchangeable. The reveal layer paints at full
+            strength, so the parent has to BE full strength.
+
+            `revealAccent` IS PASSED, AND CYAN IS LICENSED HERE SPECIFICALLY.
+            The standing refusal in `text-hover-effect.tsx` computed cyan at
+            ~9,300px of ink against this plate's one licensed 34x3px bar
+            (102px) — 91x, "which is not sparingly". THAT WAS COMPUTED AGAINST A
+            SOLID RESTING FILL this component does not paint and is forbidden
+            from painting. What ships is a stroke ramp inside a masked disc, on
+            hover only: ~42px of effective cyan, against the bar's 102px, and
+            transient where the bar is permanent. Both of CLAUDE.md's conditions
+            — "sparingly" and "on its own dark surface" — are met, on the plate
+            CLAUDE.md licenses by name.
+
+            TEAL IS STILL REFUSED, AND MORE FIRMLY ON HOVER THAN AT REST. That
+            half of the refusal was never about area: teal means "activate this"
+            and nothing else on this site, so a 365px neutral wordmark that
+            turns teal UNDER THE CURSOR is the canonical signal of an
+            interactive control, on an `aria-hidden` non-link. At rest a teal
+            wordmark is a static mistake; on hover it is an active lie. Do not
+            "harmonise" this to teal later.
+
+            THIS IS THE SECOND DOM CONSUMER OF `--accent-hero`, and `docs/03`'s
+            count was amended from ONE to TWO in the same commit. Both are on
+            this plate, both `aria-hidden`, both non-interactive; the bar is
+            34x3px and permanent, this one is pointer-transient.
+            `grep -rn "accent-hero" components/` now returns three hits instead
+            of two, which is the audit still working rather than failing.
 
             THE ASPECT RATIO IS AN INLINE STYLE, NOT AN ARBITRARY TAILWIND
             VALUE, because it is computed from `WORDMARK_VIEWBOX_UNITS` — the
@@ -994,7 +1065,8 @@ export function RevealFooter() {
             <TextHoverEffect
               text={WORDMARK_TEXT}
               viewBoxWidth={WORDMARK_VIEWBOX_UNITS}
-              className="text-hero-fg/70"
+              revealAccent
+              className="text-hero-fg"
             />
           </div>
         </div>

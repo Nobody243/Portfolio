@@ -35,12 +35,50 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  *      parent's `/70` for the resting outline, `currentColor` at full strength
  *      through the mask. One hue, no new token, no new colour.
  *
- *      NEITHER CYAN NOR TEAL, AND BOTH WERE REFUSED IN WRITING. `--accent-hero`
- *      cyan inside a 263x144 wordmark is ~9,300px of ink against the plate's
- *      one licensed 34x3px bar (102px) — 91x, which is not "sparingly". And
- *      `hero-accent` teal means "activate this" and nothing else on this site;
- *      a 263px teal wordmark you cannot click is the largest possible version
- *      of that mistake. Do not "improve" this by colouring it.
+ *      THE CYAN HALF OF THAT REFUSAL WAS OVERTURNED ON 2026-08-23, IN WRITING
+ *      AND WITH THE ARITHMETIC. THE TEAL HALF STANDS, UNCHANGED.
+ *
+ *      It read: "NEITHER CYAN NOR TEAL, AND BOTH WERE REFUSED IN WRITING.
+ *      `--accent-hero` cyan inside a 263x144 wordmark is ~9,300px of ink
+ *      against the plate's one licensed 34x3px bar (102px) — 91x, which is not
+ *      'sparingly'."
+ *
+ *      THE 9,300 WAS A FILL FIGURE, COMPUTED AGAINST A GEOMETRY THIS COMPONENT
+ *      IS FORBIDDEN FROM PAINTING. It is this file's own "roughly five times"
+ *      multiple of the outlined 1,860px — i.e. it priced a SOLID-FILLED,
+ *      PERMANENT, device-independent wordmark. What Saad asked for, and what
+ *      ships, is accent in the HOVER REVEAL ONLY. Recomputed against the real
+ *      geometry, in order:
+ *
+ *        total outlined stroke ink at F=100    ~2,584px   (1,860 x 100/72)
+ *        fraction inside the reveal disc       112.3 / 365.2 = 0.307 -> 794px
+ *        mean mask alpha over a linear
+ *          white->black disc                   exactly 1/3 -> ~265px
+ *        cyan-weighted share of that           15.7%      -> ~42px
+ *
+ *      ~42px OF EFFECTIVE CYAN, present only while a fine pointer rests on the
+ *      wordmark, against the licensed bar's 102px which is present 100% of the
+ *      time the plate is on screen. That is ~0.4x the bar, not 91x, and it does
+ *      not exist at all where `(hover: hover) and (pointer: fine)` is false.
+ *      Both of CLAUDE.md's conditions — "sparingly", "on its own dark surface"
+ *      — are met, on the plate CLAUDE.md licenses by name.
+ *
+ *      CYAN ON THE RESTING STROKE IS STILL REFUSED, and that version of the
+ *      refusal is still correct: permanent, device-independent, ~1,163px of
+ *      cyan. Cyan exists only inside the disc.
+ *
+ *      TEAL IS STILL REFUSED, AND MORE FIRMLY ON HOVER THAN AT REST. The area
+ *      argument does not carry teal, because teal's objection was never area:
+ *      `hero-accent` teal means "activate this" and nothing else on this site,
+ *      so a 365px wordmark you cannot click that turns teal UNDER THE CURSOR is
+ *      the canonical signal of an interactive control, on an `aria-hidden`
+ *      non-link. At rest it is a static mistake; on hover it is an active lie.
+ *      Do not "harmonise" this to teal later.
+ *
+ *      THE COLOUR IS GATED ON A REQUIRED `revealAccent` PROP WITH NO DEFAULT.
+ *      See the prop's own docstring: this file is one call away from carrying
+ *      #00E5FF onto a Tier 2 page, which is the `ParticleGrid` leak in its
+ *      exact recorded form.
  *
  *   2. `font-[helvetica]` DELETED, three times. The site has two families and
  *      neither is Helvetica. This takes `font-sans` (Space Grotesk) from the
@@ -67,13 +105,39 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  *      stay absent. The wordmark renders in its resting state. It is a fourth
  *      ELEMENT on that plate, not a fourth GESTURE.
  *
- *   5. BOTH GRADIENTS RECONSIDERED. `RevealFooter` bans "no gradient" alongside
- *      glow/blur/box-shadow/radius. The rainbow `linearGradient` is gone
- *      outright. The `radialGradient` that remains is NOT PAINT — it is the
- *      luminance ramp of an SVG `<mask>`, never composited onto the plate, and
- *      the ban is a ban on gradient FILLS on that surface. Nothing on screen
- *      is ever a gradient: the wordmark is one flat colour at one of two
- *      strengths.
+ *   5. BOTH GRADIENTS RECONSIDERED, AND ON 2026-08-23 A THIRD WAS ADDED.
+ *
+ *      The demo's rainbow `linearGradient` is gone outright and stays gone —
+ *      five hues is the registry component's tell, and multi-hue stops are
+ *      refused here permanently. The `radialGradient` that drives the `<mask>`
+ *      is NOT PAINT: it is a luminance ramp, never composited onto the plate,
+ *      and it is byte-identical to what shipped.
+ *
+ *      THIS SECTION ENDED "Nothing on screen is ever a gradient: the wordmark
+ *      is one flat colour at one of two strengths." THAT SENTENCE IS NOW FALSE
+ *      and is rewritten here rather than left standing while the code
+ *      contradicts it — the same treatment `RevealFooter`'s viewport-unit ban
+ *      got. A second `radialGradient` paints the REVEAL LAYER'S STROKE, ramping
+ *      `--accent-hero` at the disc's centre to `currentColor` by 45% of its
+ *      radius.
+ *
+ *      THE NARROWING THAT MAKES `RevealFooter`'s BAN SURVIVABLE: the ban is on
+ *      gradient SURFACE FILLS — a gradient plate, a gradient panel, a gradient
+ *      text fill. What ships is the colour ramp of a 1.5px stroke inside a
+ *      cursor-following disc, which touches no surface and exists only during
+ *      hover. THE ONE-LINE TEST: a gradient that any visitor can see without
+ *      moving a pointer is still banned here.
+ *
+ *      REJECTED ALONGSIDE IT, so the next reader does not re-propose them: any
+ *      glow, blur or `filter: drop-shadow` on the stroke (`RevealFooter` bans
+ *      glow/blur/box-shadow by name, and a glowing cyan wordmark is the single
+ *      most recognisable "premium template" footer detail in the genre — the
+ *      luminance step IS the effect); animated stop offsets or auto-shifting
+ *      hue (a second, self-driving motion author on a plate the visitor can sit
+ *      on forever); and the literal-compliance alternative of two nested masked
+ *      layers with a flat cyan inner disc, which produces a hard colour edge
+ *      mid-glyph and costs a third `<text>` and a second mask to satisfy the
+ *      letter of a rule while breaking its spirit.
  *
  *   6. `preserveAspectRatio` SET TO `xMinYMid meet`. Unset it defaults to
  *      `xMidYMid`, which CENTRES the wordmark inside its box — and Rule S-1 is
@@ -109,12 +173,14 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * this one is not.
  *
  * IT STAYS OUTLINED IN BOTH STATES, and that is an ink-budget decision rather
- * than a look. Measured against `RevealFooter`'s three link values at
- * `text-body` (~1,860px of ink), an outlined `SAAD` carries a comparable
- * amount and a SOLID-FILLED one would carry roughly five times as much — which
- * would make a decorative signature out-weigh the three links the footer
- * exists to deliver. The reveal moves the stroke from `/70` to full; it does
- * not fill the glyphs. DO NOT ADD A `fill`.
+ * than a look. At F=100 the outlined `SAAD` carries ~2,584px of stroke ink
+ * against `RevealFooter`'s three link values at `text-body` (~1,860px), and a
+ * SOLID-FILLED one would carry roughly five times as much — which would make a
+ * decorative signature out-weigh the three links the footer exists to deliver.
+ * THE EFFECTIVE FIGURE FELL EVEN AS THE WORDMARK GREW, because the resting
+ * alpha fell in the same change: 1,860 x 0.70 = 1,302px before, 2,584 x 0.45 =
+ * 1,163px after, i.e. -11%. The reveal moves the stroke from 0.45 to full and
+ * ramps its hue; it does not fill the glyphs. DO NOT ADD A `fill`.
  */
 
 /**
@@ -190,23 +256,79 @@ const BASELINE_Y =
   (VIEWBOX_HEIGHT + FONT_SIZE_UNITS * CAP_HEIGHT_RATIO) / 2;
 
 /**
- * The reveal disc's radius, in USER UNITS — 28 of the 100-unit box, so a
- * 56-unit spotlight against a 50.4-unit cap: roughly one-and-a-bit letters at a
- * time. At a 144px render that is an ~81px disc.
+ * The reveal disc's radius, in USER UNITS — 39 of the 100-unit box, so a
+ * 78-unit spotlight against a 70-unit cap: roughly one-and-a-bit letters at a
+ * time. At a 144px render that is a ~112px disc.
+ *
+ * IT MUST MOVE WITH `FONT_SIZE_UNITS` AND NOTHING FORCES IT TO. The radius is
+ * absolute in the viewBox while the box's rendered height is fixed by a class,
+ * so when the type went 72 -> 100 on 2026-08-23 a radius left at 28 would have
+ * held the disc at 40.3px while the cap grew to 100.8px — the spotlight
+ * silently dropping from the "one-and-a-bit letters" this docstring states to
+ * 0.79 of one letter, which reads as a keyhole rather than a reveal. THE
+ * INVARIANT IS THE RATIO:
+ *
+ *     REVEAL_RADIUS_UNITS / (FONT_SIZE_UNITS x CAP_HEIGHT_RATIO)
+ *       = 28 / 50.4 = 39 / 70 = 0.5571
+ *
+ * 28 x 100/72 = 38.89, rounded to 39 (0.5571 against the old 0.5556 — within
+ * 0.3%). IF `FONT_SIZE_UNITS` EVER MOVES AGAIN, MOVE THIS WITH IT.
  *
  * USER UNITS AND `gradientUnits="userSpaceOnUse"` TOGETHER. The demo's `20%`
  * against `userSpaceOnUse` resolves against the viewport rather than the
  * viewBox and is ambiguous across engines; a user-unit radius is not.
  */
-const REVEAL_RADIUS_UNITS = 28;
+const REVEAL_RADIUS_UNITS = 39;
 
 /** Stroke weight in CSS px, held constant at every rendered size by
  *  `vector-effect="non-scaling-stroke"`. Matches `ScrollCue`'s hairline. */
 const STROKE_PX = 1.5;
 
+/**
+ * The resting outline's alpha — 0.45, and THE MECHANISM MATTERS AS MUCH AS THE
+ * NUMBER.
+ *
+ * THE VALUE. 0.45 of `--color-hero-fg` (#E8EAEC) composited on
+ * `bg-hero-surface` (#07090C) is #6C6E70, which is **3.91:1**. The caller used
+ * to pass `text-hero-fg/70` (8.17:1); Saad asked on 2026-08-23 for a lighter,
+ * more background-level resting state to go with the larger size. The next step
+ * down, 0.40, computes to 3.31:1 — 0.31 of headroom over the floor, which is
+ * the same thin margin this project has twice rejected as an unsafe rule
+ * (`docs/03`'s `/60` on `bg-elevated`, and `/50` on this very surface). 0.35 is
+ * 2.79:1 and fails outright. **0.45 IS THE FLOOR VALUE HERE AND 0.40 IS NOT A
+ * FALLBACK.**
+ *
+ * THE FLOOR IT IS HELD TO IS 3:1, NOT 4.5:1, AND NOT "NONE". WCAG 1.4.3 exempts
+ * logotypes outright and this is a signature wordmark, but "no requirement" is
+ * not the standard this site holds: `docs/03` says `aria-hidden` exempts
+ * nothing, because 1.4.3 protects a low-vision user looking straight at it. The
+ * stricter of the two floors that actually apply to a DECORATIVE element is the
+ * site's existing 3:1 non-text floor — the one `HeroHeadline`'s reduced-motion
+ * chevron sits on at `/55`. 0.91 of headroom over it.
+ *
+ * WHY IT IS `strokeOpacity` AND NOT `text-hero-fg/45` ON THE PARENT. A text
+ * token carrying a sub-`/70` alpha modifier would breach the letter of
+ * `docs/03`'s floor rule, and it is exactly what that spec's whole-site sweep
+ * greps for ("Sub-`/70` text opacities: 1"). It is also byte-identical in shape
+ * to the loader regression this project just closed, where "the value silently
+ * drifted to `/45` (3.90:1, failing)" — a future sweeper would flag it as that
+ * bug and would be right to. As a PAINT PROPERTY on a decorative, `aria-hidden`
+ * logotype it is categorically the same kind of value as `QUIET_FIELD`'s
+ * `nodeAlpha` (0.30 / 0.17), which nobody has ever considered a text-opacity
+ * violation because it is not one. The sweep stays clean and the count of
+ * sub-`/70` TEXT opacities stays at 1.
+ *
+ * IT APPLIES TO THE RESTING LAYER ONLY. The masked reveal layer paints at full
+ * strength through the gradient, so the rest -> hover ratio widens from 2.02x
+ * to 4.23x — which is most of what makes the reveal a larger event at the new
+ * size than it was at the old one.
+ */
+const RESTING_STROKE_ALPHA = 0.45;
+
 export const TextHoverEffect = ({
   text,
   viewBoxWidth,
+  revealAccent,
   className,
 }: {
   text: string;
@@ -218,6 +340,25 @@ export const TextHoverEffect = ({
    * font's own metrics.
    */
   viewBoxWidth: number;
+  /**
+   * Whether the cursor reveal ramps through `--accent-hero` cyan — REQUIRED,
+   * WITH NO DEFAULT, AND THE ABSENCE OF A DEFAULT IS THE GUARD.
+   *
+   * This file lives in `components/ui/`, is generically named, and takes a
+   * string plus a width: it is one call away from being mounted on a Tier 2
+   * page, at which point a defaulted `true` would carry #00E5FF there without
+   * anybody typing the token. THAT IS NOT HYPOTHETICAL — it is the
+   * `ParticleGrid` leak in its exact recorded form (`docs/03`: a component
+   * generalised to a second render site carried the Tier 1 accent to a Tier 2
+   * page while `grep -rn "accent-hero" components/` kept returning clean,
+   * "because nobody had to type the token to leak it"). The surface a control
+   * sits on is the CALL SITE's knowledge, so the call site has to state it.
+   *
+   * Same idiom and same reasoning as `PageStack`'s `fade`, `ProjectDetailFrame`'s
+   * `as` and `ThemeToggle`'s required `className`. `false` puts `currentColor`
+   * at every stop, which is exactly the pre-2026-08-23 behaviour.
+   */
+  revealAccent: boolean;
   /** Sets `color`, which both layers read through `currentColor`. */
   className?: string;
 }) => {
@@ -240,6 +381,10 @@ export const TextHoverEffect = ({
   const rawId = useId();
   const maskId = `wordmark-mask-${rawId}`;
   const gradientId = `wordmark-reveal-${rawId}`;
+  // A THIRD paint id, derived the same way and for the same reason. Two
+  // instances on one page would otherwise share it and the second would
+  // silently win.
+  const paintId = `wordmark-paint-${rawId}`;
 
   // Coalesced to one layout read per frame. `getScreenCTM()` honours
   // `preserveAspectRatio` and the viewBox mapping exactly, so there is no
@@ -299,7 +444,6 @@ export const TextHoverEffect = ({
     y: BASELINE_Y,
     textAnchor: "start" as const,
     fill: "none",
-    stroke: "currentColor",
     strokeWidth: STROKE_PX,
     vectorEffect: "non-scaling-stroke" as const,
     fontSize: FONT_SIZE_UNITS,
@@ -330,6 +474,47 @@ export const TextHoverEffect = ({
           <stop offset="100%" stopColor="black" />
         </motion.radialGradient>
 
+        {/*
+          THE PAINT GRADIENT — the one thing on this plate that is a gradient,
+          and it is a STROKE RAMP, never a surface. See §5 of the header.
+
+          IT INHERITS `cx`, `cy` AND `r` FROM THE MASK'S GRADIENT VIA `href`,
+          AND THAT IS THE MECHANISM RATHER THAN A CONVENIENCE. SVG gradient
+          attribute inheritance hands this element the mask's ANIMATED centre
+          for free, so there is exactly ONE animator and two consumers. Two
+          independently-animated gradients following one pointer can differ by a
+          frame, and a one-frame hue desync on a 1.5px stroke is a visible
+          shimmer. Only the `<stop>` children are overridden.
+
+          VERIFIED, not assumed: `href` is the SVG2 spelling and the legacy one
+          is `xlink:href`. Measured in a headed production Chromium at three
+          pointer x-positions, the sampled stroke hue tracks the cursor, which
+          is only possible if inheritance resolves AND re-resolves as the
+          referenced attributes animate. If a target engine is ever found where
+          it does not, the fallback is a second `motion.radialGradient` bound to
+          the same `maskPosition` state with the same transition — correct in
+          practice, but it is the version with the desync exposure.
+
+          THE RAMP IS CENTRED ON THE CURSOR, NOT LAID ALONG THE WORDMARK. A
+          gradient anchored to the glyphs would be a static property OF the
+          glyphs, shown through the mask as an arbitrary slice of itself: the
+          colour would not be CAUSED by the pointer, and the right-hand letters
+          would carry no accent at all at any pointer position. Centred, every
+          reveal has a cyan core and a neutral surround wherever it happens.
+
+          NOTHING HERE ANIMATES ON ITS OWN. No stop-offset animation, no hue
+          rotation, no drift when the pointer is still. The only animated values
+          on this element are the inherited pointer-driven `cx`/`cy`.
+        */}
+        <radialGradient id={paintId} href={`#${gradientId}`}>
+          <stop
+            offset="0%"
+            stopColor={revealAccent ? "var(--accent-hero)" : "currentColor"}
+          />
+          <stop offset="45%" stopColor="currentColor" />
+          <stop offset="100%" stopColor="currentColor" />
+        </radialGradient>
+
         <mask id={maskId}>
           <rect
             x="0"
@@ -341,18 +526,29 @@ export const TextHoverEffect = ({
         </mask>
       </defs>
 
-      {/* The resting composition. Always painted, at the parent's own colour —
-          which `RevealFooter` sets to `text-hero-fg/70`, measured 8.17:1 on
-          #07090C. */}
-      <text {...glyphProps}>{text}</text>
+      {/* The resting composition. Always painted, at the parent's own colour
+          through `currentColor`, held down to `RESTING_STROKE_ALPHA` — 3.91:1
+          on #07090C. The alpha is on the PAINT, not on the caller's text token;
+          the constant's docstring is why. */}
+      <text
+        {...glyphProps}
+        stroke="currentColor"
+        strokeOpacity={RESTING_STROKE_ALPHA}
+      >
+        {text}
+      </text>
 
-      {/* The enhancement: the same outline at FULL strength (16.53:1), shown
-          only through the cursor's disc. `opacity` rather than a colour swap,
-          so there is one painted colour on this surface and one alpha. */}
+      {/* The enhancement: the same outline at FULL strength, shown only through
+          the cursor's disc, and ramped from cyan at the disc's centre to
+          `currentColor` by 45% of its radius. `opacity` carries the fade in and
+          out; the gradient carries the hue. The caller's `text-hero-fg` class
+          used to be repeated here to override a `/70` parent — the parent is
+          full strength now, so the override is gone rather than left fighting
+          the gradient silently. */}
       <motion.text
         {...glyphProps}
+        stroke={`url(#${paintId})`}
         mask={`url(#${maskId})`}
-        className="text-hero-fg"
         initial={false}
         animate={{ opacity: hovered ? 1 : 0 }}
         transition={{
