@@ -539,8 +539,23 @@ const RESIZE_DEBOUNCE_MS = 150;
  * colliding, and 60 on the new geometry predicts 38.1% against 58's recorded
  * 38.8% on the old one.
  *
- * THE CEILING, RECORDED SO IT IS NOT DRIFTED PAST: 66. At N=66 the collision
- * figure is +22.3% against today, which spends more than a quarter of the 78%
+ * EVERY COLLISION FIGURE IN THIS BLOCK IS ANCHORED TO THE RETIRED LINEAR RAMP
+ * AND READS LOW AGAINST TODAY'S CODE — 2026-08-24. The perspective ramp shrinks
+ * the mean drawn label, so at an unchanged N=60 the measured collision rate at
+ * 1440x900 fell **49.6% -> 43.5% idle and 50.9% -> 44.9% under the cursor**,
+ * with `pairs/frame` 12.04 -> 9.65. The count did not move and did not need to;
+ * this is recorded so nobody reads "predicts 38.1%" as a live figure, and so
+ * the ceiling below is understood against the right baseline.
+ *
+ * THE CEILING, RECORDED SO IT IS NOT DRIFTED PAST: 66. IT DOES NOT MOVE JUST
+ * BECAUSE COLLISIONS GOT CHEAPER ON 2026-08-24. The ramp change bought roughly
+ * a 19% reduction in mean label area, so N=66 would now land near the
+ * PRE-CHANGE absolute collision rate rather than 22.3% above today's — which is
+ * exactly the "partial reversal of a measured fix wearing that phrase as cover"
+ * this paragraph was written to refuse. The escape clause is unchanged and is
+ * still the only one: a MEASUREMENT under 14.1 overlapping labels per frame.
+ * At N=66 the collision
+ * figure is +22.3% against the pre-2026-08-24 baseline, which spends more than a quarter of the 78%
  * reduction the density cut bought, and past that the change stops being
  * "scaling the count to match a larger surface" and becomes a partial reversal
  * of a measured fix wearing that phrase as cover. An argument past 66 has to be
@@ -548,7 +563,43 @@ const RESIZE_DEBOUNCE_MS = 150;
  * labels per frame, not a preference for a rounder number.
  */
 const SPHERE_COUNT = 60;
-const SPHERE_COUNT_COMPACT = 44;
+
+/**
+ * 44 -> 38 ON 2026-08-24, AND IT IS THE `k / m` RULE ABOVE APPLIED TO A CHANGE
+ * IN WHAT GETS DRAWN RATHER THAN IN WHAT GETS SAMPLED.
+ *
+ * WHAT MOVED. The depth ramp became the perspective divide and the render
+ * floor's cull went with it — see the remap in `drawCommandSphere`. At base 11
+ * the OLD arithmetic made `floorStep` 3 of 5, which culled everything with
+ * `t < 0.6`: a font-size test doing a density job, by accident rather than by
+ * design. Removing it restored the alpha floor as the only cull, exactly as
+ * `SPHERE_FONT_PX`'s note says it should be — and admitted the labels the
+ * accident had been removing. MEASURED at 375x667, count still 44: drawn per
+ * frame 22.35 -> 26.13 and collision 60.4% -> 63.4%.
+ *
+ * THAT IS A REGRESSION ON THE ONE BREAKPOINT WITH NO ROOM, so the density came
+ * off the count, which is the lever this file already documents, instead of off
+ * a cull nobody designed. 38 was MEASURED rather than derived — the drawn count
+ * is what collides, and it is not linear in the sampled count once the alpha
+ * floor is doing the cutting.
+ *
+ * MEASURED AT 38, and it beats the state it is restoring on both numbers:
+ *
+ *              drawn/frame   collision   pairs/frame
+ *   44, before      22.35       60.4%          8.20
+ *   44, after       26.13       63.4%         12.59
+ *   38, shipped     23.20       58.0%         10.86
+ *
+ * So 5.5% MORE labels are on screen than before the change at a LOWER collision
+ * rate, and `pairs/frame` stays under the 14.1 ceiling this file records. 320
+ * moved the same way: 70.0% -> 68.6%.
+ *
+ * THE FEATURED FOUR SURVIVE 38, verified rather than assumed — the last time
+ * this count changed without checking, the stride silently dropped
+ * `docker ps -a`. All four present at 375 and at 320, idle and cursor, and on
+ * the frozen reduced-motion frame at both.
+ */
+const SPHERE_COUNT_COMPACT = 38;
 
 /**
  * Base type size at the near pole, CSS px. Everything else is this times the
@@ -559,9 +610,24 @@ const SPHERE_COUNT_COMPACT = 44;
  *
  * 16px IS `text-body`, the site's base reading size. At 16 the near face is
  * exactly as legible as the page's own body copy, which is the strongest
- * available statement that these are COMMANDS rather than texture, and the
- * mid-depth buckets (11.14 / 12.35 / 13.57) land in and just above the
- * `text-caption` band. The whole ramp is inside the site's type vocabulary
+ * available statement that these are COMMANDS rather than texture. THAT IS THE
+ * LOAD-BEARING HALF AND IT IS UNTOUCHED.
+ *
+ * THE OTHER HALF USED TO SAY the mid-depth buckets "land in and just above the
+ * `text-caption` band" and conclude that "the whole ramp is inside the site's
+ * type vocabulary instead of beside it". THAT WAS TRUE WHILE THE SMALLEST
+ * PAINTED SIZE WAS 12.35px, just above `--text-caption` (0.75rem = 12px). It is
+ * not true as shipped: the painted range is 10.75-16.00px on desktop and
+ * 9.50-11.00px on compact, so the far end of the ramp is BELOW the smallest
+ * type token on the site.
+ *
+ * THAT IS ACCEPTED DELIBERATELY RATHER THAN OVERLOOKED. The far end of this
+ * ramp is DEPTH CUEING, not type — a label at 10.75px is not asking to be read
+ * at a glance, it is telling you it is at the back of a sphere, and the thing
+ * that keeps it honest is the 9px floor rather than a design token. The type
+ * vocabulary claim survives where it matters: the near face is `text-body`
+ * exactly. Do not "fix" this by raising the floor to 12px — that would delete
+ * the back half of the sphere. The whole ramp is inside the site's type vocabulary
  * instead of beside it; 13 sat between two tokens and belonged to neither.
  *
  * 18 IS THE CEILING AND IT IS REFUSED. At 18 the clip guard's clean band moves
@@ -578,6 +644,29 @@ const SPHERE_COUNT_COMPACT = 44;
  * human can read, not about this sphere, and nothing about a larger sphere
  * makes 8px type readable. What replaces the font floor's share of the cull is
  * the ALPHA floor, which is unchanged and does the majority of it either way.
+ *
+ * >> THAT PARAGRAPH IS OBSOLETE AS OF 2026-08-24 AND IS KEPT BECAUSE ITS LAST
+ * >> THREE SENTENCES ARE NOT. The sizing formula it quotes no longer exists:
+ * >> the depth ramp is the projection's perspective divide now
+ * >> (`commandSphere.ts`, `SCALE_NORM`), rendered size is
+ * >> `base x (0.4286 + (step/8) x 0.5714)`, and at base 16 the bottom two steps
+ * >> are 6.86px and 8.00px.
+ * >>
+ * >> THE PARAGRAPH ABOVE HELD FOR ABOUT AN HOUR AND IS CORRECTED HERE RATHER
+ * >> THAN REWRITTEN, because the sequence is the lesson. It went on to say
+ * >> "THE RENDER FLOOR FIRES ON DESKTOP AGAIN, `floorStep` is 2, and the
+ * >> smallest drawn size is 9.14px" — true of the ramp change ALONE, and false
+ * >> as shipped. Letting the geometric range reach the renderer unmapped did
+ * >> not merely pin those buckets, it CULLED them (`legible` feeds `hidden`),
+ * >> and at base 11 that cost 72% of the labels on a phone: 22.35 drawn per
+ * >> frame down to 6.29, measured. The remap in `drawCommandSphere` is the fix.
+ * >>
+ * >> AS SHIPPED, THE RENDER FLOOR FIRES NOWHERE. `floorStep` is 0 at both
+ * >> breakpoints, `legible` is always true, and the minimum rendered size is
+ * >> `basePx * lowScale` = exactly 9.00px by remap rather than by pin. The 9px
+ * >> floor is untouched and still does not move; what moved is that the ramp
+ * >> now REACHES it instead of stopping 0.9px above it. `SPHERE_FONT_PX` is
+ * >> unchanged at 16 and the 18px refusal above still stands.
  *
  * `SPHERE_FONT_PX_COMPACT` STAYS AT 11 for the same reason the compact diameter
  * does: raising it would re-admit the collisions the render floor removed on the
@@ -618,9 +707,12 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * been none, which is an artifact of the fix rather than a property of it. The
  * exit now runs through the same `SPHERE_FADE_MS` ramp and the same
  * `state.fade` slot as the clip guard, because all three gates are one
- * question. A fragment mid-exit is also PINNED to the lowest legible bucket
- * (see `floorStep`), so it fades at a readable size instead of shrinking into
- * the mush on its way out.
+ * question. A fragment mid-exit fades at a readable size instead of shrinking
+ * into the mush on its way out — that was `floorStep`'s pin when this was
+ * written and it is the remap in `drawCommandSphere` now: the render range
+ * BOTTOMS OUT at 9.00px, so a fragment keeps shrinking honestly as it recedes
+ * and simply cannot go under the floor. Same outcome, and it no longer depends
+ * on a gate that also decides visibility.
  *
  * THE NUMBER THAT DECIDES WHETHER THAT IS HONEST is the share of drawn labels
  * still under 0.25 alpha. A standing layer is what was measured and deleted; a
@@ -632,6 +724,14 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  *     floors faded (now)       0.7%     1440 idle
  *                              0.6%     375 idle
  *                              2.7%     1440 under a continuous cursor sweep
+ *
+ * RE-TAKEN ON 2026-08-24, because the ramp under those numbers is retired and a
+ * measured figure may not be re-quoted against code that did not produce it.
+ * The alpha boundary itself did not move, so the transit rate should not have,
+ * and it did not: **0.7% at 1440 idle, 2.8% at 1440 cursor, 0.9% at 375, 1.1%
+ * at 320** — the same order, and the two that moved at all moved by 0.2-0.4pt
+ * because slightly more labels are drawn. The tripwire below is unchanged and
+ * still nowhere near.
  *
  * The cursor figure is the adversarial one and is the one to watch: the tilt
  * drags fragments across the boundary several times faster than the idle spin,
@@ -658,16 +758,25 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * what a human can read, and a phone is not the place that gets to be laxer
  * about it. The pair existed only because the two base sizes differ and the
  * guard was designed never to fire; once it is meant to fire, two numbers that
- * have to agree is the shape this repo has repeatedly had to unpick. It costs
- * the compact sphere roughly half its drawn labels — 44 built, ~22 painted —
- * and that is the correction rather than a side effect of it: at 375 the
- * compact sphere measured 78.6% of labels colliding, the worst of any viewport.
+ * have to agree is the shape this repo has repeatedly had to unpick.
  *
- * ALPHA IS THE OTHER HALF, AND NEITHER FLOOR SUBSUMES THE OTHER. At the 13px
- * desktop base the 9px floor only cuts below t = 0.19, which the alpha floor
- * has already removed, so alpha binds; at the 11px compact base the font floor
- * cuts below t = 0.52 and is the stricter of the two. Both breakpoints need
- * both numbers.
+ * IT USED TO COST THE COMPACT SPHERE ROUGHLY HALF ITS DRAWN LABELS — "44 built,
+ * ~22 painted" — AND AS OF 2026-08-24 IT COSTS NOTHING AT ALL. The remap in
+ * `drawCommandSphere` starts the render range at the floor, so no fragment is
+ * ever sized under it and none is ever hidden for being small. The density that
+ * cull was silently providing came off `SPHERE_COUNT_COMPACT` instead (44 ->
+ * 38), which is the lever this file documents; the numbers are there.
+ *
+ * ALPHA IS THE OTHER HALF, AND IT SUBSUMES THE FONT FLOOR ENTIRELY NOW. This
+ * read "NEITHER FLOOR SUBSUMES THE OTHER... at the 11px compact base the font
+ * floor cuts below t = 0.52 and is the stricter of the two. Both breakpoints
+ * need both numbers." The first half was true of the retired linear ramp. As
+ * shipped, `SPHERE_MIN_ALPHA` cuts at t = 0.382 at BOTH breakpoints and the
+ * font floor cuts nothing — which is what `SPHERE_FONT_PX`'s own note always
+ * said should happen ("What replaces the font floor's share of the cull is the
+ * ALPHA floor"). THE 9px NUMBER IS STILL LOAD-BEARING: it is what the render
+ * range is anchored to, so deleting it would not remove a cull, it would let
+ * the type run to 6.86px.
  *
  * THE ALPHA FLOOR IS A PARTIAL BACK-HEMISPHERE CULL, AND `projectCommandSphere`
  * WARNS AGAINST EXACTLY THAT. The warning is not wrong and has not been
@@ -684,9 +793,13 @@ const SPHERE_MIN_ALPHA = 0.25;
  * How many discrete type sizes the depth ramp is quantised to.
  *
  * `ctx.font` assignment is a font-shorthand PARSE, not a field write, and it is
- * the most expensive thing in the draw loop after the glow. Six steps across a
- * 0.62–1.00 range is a ≤1px difference between neighbouring buckets at 13px —
- * invisible — in exchange for six parses a frame instead of one per fragment.
+ * the most expensive thing in the draw loop after the glow. The trade is a
+ * sub-perceptual difference between neighbouring buckets in exchange for a
+ * handful of parses a frame instead of one per fragment. AS SHIPPED that is
+ * nine steps across `SPHERE_SCALE_MIN`..1 — 0.875px between neighbours at base
+ * 16, measured at 11.68 parses against 37.7 drawn. (It read "Six steps across a
+ * 0.62–1.00 range is a <=1px difference at 13px" when the base was 13, the ramp
+ * was linear and the count was six; all three have since moved.)
  *
  * Bucketing rather than `ctx.setTransform`: a transform would also scale the
  * letter-spacing and the shadow blur, and it would make the minimum-size rule
@@ -711,14 +824,72 @@ const SPHERE_MIN_ALPHA = 0.25;
  * ninety" bought. If a future change pushes this past roughly half the drawn
  * count, the trade has stopped being worth it — measure it, do not assume it.
  */
-const SPHERE_SCALE_BUCKETS = 6;
+const SPHERE_SCALE_BUCKETS = 9;
+
+/*
+ * SIX UNTIL 2026-08-24. It went to NINE in the same change that replaced the
+ * linear depth ramp with the projection's own perspective divide
+ * (`commandSphere.ts`, `SCALE_NORM`), and the two halves are one decision:
+ * widening the size range without adding steps would have made the STEPS
+ * visible, which is the "stepped, not continuous" reading Saad asked to remove.
+ *
+ * NINE IS DERIVED FROM THE STEP SIZE A VIEWER CAN SEE, not chosen for
+ * roundness. After the remap the drawn sizes at base 16 are
+ * 10.75 / 11.63 / 12.50 / 13.38 / 14.25 / 15.13 / 16.00 px steady-state, with
+ * 9.875 and 9.00 reached only by fragments already fading out — SEVEN painted
+ * sizes where FOUR were painted before, and MEASURED as exactly that set in a
+ * single captured frame. One step is 0.875px, i.e. **5.5% of the type size at
+ * the near face and never more than 8.1% anywhere in the painted range**, which
+ * is under the ~10% at which a size change is noticeable at a glance on moving
+ * text.
+ *
+ * (The pre-remap arithmetic put the step at 1.14px on a 9.14px base — 12.5%,
+ * ABOVE that threshold. The remap made this argument true as well as making
+ * the phone work; it was not quite true when it was first written.)
+ *
+ * THE PARSE BUDGET IS THE THING THIS TRADES AGAINST AND IT WAS MEASURED, NOT
+ * ASSUMED, exactly as the block above requires. `ctx.font` assignments per
+ * frame on a production build, six buckets -> nine, against the tripwire of
+ * roughly half the drawn count:
+ *
+ *     1440x900 idle      7.57 -> 11.68     tripwire ~18.9  (37.7 drawn)
+ *     1440x900 cursor    6.83 -> 10.41     tripwire ~18.9
+ *     375x667            5.19 ->  8.61     tripwire ~11.6  (23.2 drawn)
+ *     320x568            5.40 ->  8.48     tripwire ~11.2  (22.3 drawn)
+ *
+ * COMPACT IS THE TIGHT ONE AND IT WAS WORTH CHECKING RATHER THAN ASSUMING: the
+ * review of this change predicted ~12.3 at 375 against a ~11.7 tripwire, i.e. a
+ * fail, by scaling the recorded hysteresis multiplier off the bucket count. It
+ * measured 8.61. The estimate was high because distinct buckets among DRAWN
+ * fragments is not the bucket count — the alpha cull removes the bottom two
+ * everywhere, so seven are painted, not nine.
+ *
+ * THE RENDER FLOOR NOW FIRES NOWHERE, WHICH IS A SHARPER VERSION OF THE CLAIM
+ * AT `SPHERE_FONT_PX` RATHER THAN A REVERSAL OF IT. That block reads "ONE
+ * RENDER FLOOR STOPS FIRING ON DESKTOP AND THAT IS ARITHMETIC, NOT A BUG"; as
+ * shipped it stops firing on BOTH breakpoints, because `drawCommandSphere`
+ * remaps the buckets onto the size range each breakpoint can legibly draw
+ * instead of letting the geometric range reach the renderer raw. `floorStep` is
+ * 0 everywhere and nothing is pinned. NOTHING ABOUT THE 9px FLOOR MOVED — it is
+ * still the same claim about what a human can read, and the sub-9px share is
+ * still required to measure 0%, which it does BY REMAP now rather than by pin.
+ *
+ * (An intermediate version of this change did put `floorStep` at 2 on desktop
+ * and 6 on compact, and the second of those culled 72% of the labels at 375.
+ * The `>>` block at `SPHERE_FONT_PX` carries that measurement. It is recorded
+ * because "the floor pins" and "the floor culls" look identical in this file
+ * until you read `legible` into `hidden`.)
+ */
 
 /**
  * Bucket hysteresis, as a fraction of one bucket's width.
  *
  * WITHOUT IT A LABEL SWITCHES THE INSTANT IT RECROSSES A BOUNDARY, and the
- * switch is not subtle: one bucket is ~8% of the type size, so a 24-character
- * label changes width by ~3.3px at each end in a single frame. `Math.round` on
+ * switch is not subtle: one bucket is 0.875px, so a 24-character label changes
+ * width by ~6.9px at each end in a single frame. (It read "~8% of the type
+ * size... ~3.3px" at six buckets on the retired ramp. The per-step SIZE change
+ * got smaller with nine buckets; the per-step WIDTH change got bigger, because
+ * the range it spans roughly doubled.) `Math.round` on
  * a continuously varying depth has no memory, so a label sitting near a
  * boundary while the depth wobbles pops back and forth.
  *
@@ -736,8 +907,32 @@ const SPHERE_SCALE_BUCKETS = 6;
  * 0.18 — inside the 15-20% the review asked for and not at either edge. A
  * label that switched at a boundary must travel 18% of a bucket back PAST that
  * boundary before it switches again, so a wobble smaller than that is absorbed
- * entirely. Raising it much further starts to visibly delay honest depth
- * changes at the far pole, where the buckets are narrowest in `t`.
+ * entirely.
+ *
+ * THE LAST SENTENCE USED TO READ "Raising it much further starts to visibly
+ * delay honest depth changes AT THE FAR POLE, where the buckets are narrowest
+ * in `t`." THAT IS NOW EXACTLY BACKWARDS AND ACTING ON IT WOULD MISLEAD. The
+ * buckets were uniform in `t` under the retired linear ramp. Under the
+ * perspective divide `dscale/dz = (f-1)/(f-z)^2`, so a bucket spans 0.583
+ * z-units at the FAR pole and 0.107 at the NEAR pole — a 5.4x spread, narrowest
+ * at the front. The cost of raising this constant now lands on the big, legible
+ * near-face labels, which is a worse place for it to land than the back.
+ *
+ * THE CONSTANT DID NOT NEED TO SCALE WITH THE BUCKET COUNT — it is expressed as
+ * a fraction of a bucket, so "18% of a bucket" means the same thing at nine as
+ * at six, and a bucket's width in SCALE units barely moved (0.0762 -> 0.0714).
+ * What did change is that the deadband it buys in DEPTH near the front face is
+ * ~3.7x smaller than it was.
+ *
+ * MEASURED AFTER THE RAMP CHANGE rather than reasoned about, because that is
+ * what this constant's own history demands. At 1440x900 under the rig's cursor
+ * sweep: 33.24 -> 103.05 switches per 5s and 0 -> 0.83 reversals per 5s. The
+ * switch rate roughly tripled, as the geometry predicts; the reversal rate is
+ * still far under the 3.25 per 5s that was recorded as acceptable when this
+ * constant was introduced. Idle is 0 reversals at every viewport, before and
+ * after. NO CHANGE TO 0.18 IS WARRANTED ON THIS EVIDENCE — but the review that
+ * caught the inverted sentence above predicted 6-7 reversals, so if this ever
+ * needs revisiting, the near face is where to look.
  */
 const SPHERE_BUCKET_HYSTERESIS = 0.18;
 
@@ -919,8 +1114,75 @@ function drawCommandSphere(
   const span = SPHERE_SCALE_MAX - SPHERE_SCALE_MIN;
   const steps = SPHERE_SCALE_BUCKETS - 1;
 
-  // THE SMALLEST BUCKET THAT STILL CLEARS THE FONT FLOOR. At most six
-  // iterations, once per frame, never per fragment.
+  /*
+   * THE GEOMETRIC RANGE AND THE RENDERED RANGE ARE NOT THE SAME RANGE, AND
+   * CONFLATING THEM COST 72% OF THE LABELS ON A PHONE. Added 2026-08-24, with
+   * the measurement that forced it.
+   *
+   * `span` above is GEOMETRY: `SPHERE_SCALE_MIN..1`, which since the ramp
+   * became the perspective divide is 0.4286..1, a 2.33x range. That is the
+   * right range to QUANTISE depth into — it is what the sphere actually does.
+   * It is the wrong range to RENDER into, because `basePx * 0.4286` is 6.86px
+   * at base 16 and 4.71px at base 11, both under `SPHERE_MIN_FONT_PX`.
+   *
+   * WHAT HAPPENED WHEN THEY WERE THE SAME RANGE. `floorStep` below marks every
+   * bucket whose rendered size is under the floor as NOT LEGIBLE, and
+   * `legible` feeds `hidden`, so those fragments do not merely pin — THEY FADE
+   * OUT. At base 11 with nine buckets `floorStep` came out at 6 of 8, which
+   * culls everything with `z < 0.75`: the front cap of the sphere and nothing
+   * else. MEASURED at 375x667 before this remap: **6.29 drawn per frame
+   * against 22.35 before the ramp change.** Desktop was untouched (37.67) only
+   * because the alpha floor already cut above where the font floor landed.
+   *
+   * THE FIX IS TO REMAP, NOT TO CULL. The nine buckets still span the full
+   * geometric depth — `q` below is unchanged and still uses `span` — but they
+   * are DRAWN across `lowScale..1`, the range this breakpoint can actually put
+   * on screen. Nothing is hidden for being small any more; the ALPHA floor
+   * does the culling, which is what `SPHERE_FONT_PX`'s own note always said
+   * should happen ("What replaces the font floor's share of the cull is the
+   * ALPHA floor, which is unchanged and does the majority of it either way").
+   *
+   * `floorStep` THEREFORE EVALUATES TO 0 AT BOTH BREAKPOINTS NOW, BY
+   * CONSTRUCTION, and the loop below is kept rather than deleted for exactly
+   * that reason: it is the assertion that this is true. If a future `basePx`
+   * or floor makes it non-zero again, the pin-and-fade behaviour it documents
+   * is still correct and still there.
+   *
+   * WHAT IT COSTS AT EACH BREAKPOINT, and the honest half is the second one:
+   *
+   *   base 16 (desktop)  lowScale 0.5625  ->  9.00 .. 16.00px, 1.78x
+   *   base 11 (compact)  lowScale 0.8182  ->  9.00 .. 11.00px, 1.22x
+   *
+   * 1.22x IS ALL A PHONE CAN HAVE AND IT IS ARITHMETIC, NOT A COMPROMISE
+   * ANYONE CHOSE. An 11px base against a 9px floor cannot express more range
+   * than 11/9. The depth read Saad asked for is a desktop effect; on compact
+   * the cue that carries depth is the alpha ramp, which is unchanged. The two
+   * ways to buy more are both refused elsewhere in this file: raising
+   * `SPHERE_FONT_PX_COMPACT` re-admits collisions on the one breakpoint with
+   * no room for them, and lowering the 9px floor is "a claim about what a
+   * human can read", not a tuning knob.
+   */
+  const lowScale = Math.max(SPHERE_SCALE_MIN, SPHERE_MIN_FONT_PX / basePx);
+  const renderSpan = SPHERE_SCALE_MAX - lowScale;
+
+  // THE SMALLEST BUCKET THAT STILL CLEARS THE FONT FLOOR. At most `steps`
+  // iterations (8), once per frame, never per fragment.
+  //
+  // IT EVALUATES TO 0 AT BOTH SHIPPED BREAKPOINTS AND IS KEPT AS AN ASSERTION.
+  // The remap above starts the render range AT the floor, so bucket 0 is
+  // exactly 9.00px and the loop cannot advance. Everything below is therefore
+  // describing a path that is currently unreachable — deliberately, because it
+  // is the path that runs if a future `basePx` or floor breaks that property,
+  // and because `legible` feeding `hidden` means the difference between "pins"
+  // and "culls" here is 72% of the labels on a phone.
+  //
+  // "BY CONSTRUCTION" IS TOO STRONG AND THE REVIEW WAS RIGHT TO SAY SO.
+  // `basePx * (SPHERE_MIN_FONT_PX / basePx) >= SPHERE_MIN_FONT_PX` is not an
+  // IEEE754 theorem. It holds for both shipped bases — 16 exactly (9/16 is a
+  // dyadic rational), and 11 by half-ulp luck (11 * fl(9/11) rounds to exactly
+  // 9.0) — and it was VERIFIED by measurement rather than by the algebra: the
+  // drawn count at 375 is 23.2, which it could not be if this had come out 1.
+  // A future compact base must re-check it or take an epsilon.
   //
   // IT EXISTS SO THAT A FADING FRAGMENT FADES AT A LEGIBLE SIZE. The font floor
   // is a claim about what a human can read; a fragment left to keep shrinking
@@ -928,12 +1190,15 @@ function drawCommandSphere(
   // mush the floor was added to delete, and it would put the sub-9px share —
   // one of the two numbers this whole change is judged on — back above zero.
   //
-  // PINNED TO THE LOWEST LEGAL BUCKET, NOT TO `SPHERE_MIN_FONT_PX` ITSELF. The
-  // floor is 9px and the buckets near it are 8.492 and 9.328 at the compact
-  // base; pinning to 9 would introduce a seventh font size that exists only
-  // during fades, and would visibly step the glyph down at the moment the fade
-  // starts. Pinning to the bucket means the fragment simply stops shrinking and
-  // then fades, and adds no new `ctx.font` value at all.
+  // PINNED TO THE LOWEST LEGAL BUCKET, NOT TO `SPHERE_MIN_FONT_PX` ITSELF —
+  // and after the remap those are the same thing, which is why this no longer
+  // fires. The reasoning is kept for the unreachable path: pinning to a raw 9px
+  // would introduce a font size that exists only during fades and would step
+  // the glyph at the moment the fade starts, where pinning to a BUCKET adds no
+  // new `ctx.font` value at all. (The figures this paragraph used to quote —
+  // "the buckets near it are 8.492 and 9.328 at the compact base" — were the
+  // retired linear ramp's. Compact buckets are 9.00 / 9.25 / 9.50 ... now, none
+  // below the floor.)
   //
   // The `< steps` guard bounds the loop if a future `basePx` were ever smaller
   // than the floor — in which case nothing is legible and everything fades out.
@@ -941,8 +1206,7 @@ function drawCommandSphere(
   let floorStep = 0;
   while (
     floorStep < steps &&
-    basePx * (SPHERE_SCALE_MIN + (floorStep / steps) * span) <
-      SPHERE_MIN_FONT_PX
+    basePx * (lowScale + (floorStep / steps) * renderSpan) < SPHERE_MIN_FONT_PX
   ) {
     floorStep++;
   }
@@ -987,7 +1251,10 @@ function drawCommandSphere(
     // than to the floor value itself.
     const legible = step >= floorStep;
     const drawStep = legible ? step : floorStep;
-    const px = basePx * (SPHERE_SCALE_MIN + (drawStep / steps) * span);
+    // GEOMETRIC bucket in, RENDERED size out — see the remap at the top of
+    // this function. `q` above quantises the full depth range; this maps the
+    // step it chose onto the size range this breakpoint can legibly draw.
+    const px = basePx * (lowScale + (drawStep / steps) * renderSpan);
 
 
     // HORIZONTAL CLIP GUARD. `textAlign` is `center`, so a rim fragment extends

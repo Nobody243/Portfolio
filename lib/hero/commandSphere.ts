@@ -64,21 +64,25 @@ const ALPHA_SPAN = 0.7;
  */
 const ALPHA_EXPONENT = 1.6;
 
-const SCALE_FAR = 0.62;
-const SCALE_SPAN = 0.38;
-
 /**
- * The scale range, exported so the draw pass can bucket into it.
+ * `SCALE_FAR = 0.62` / `SCALE_SPAN = 0.38` USED TO LIVE HERE, FEEDING A LINEAR
+ * RAMP `p.scale = SCALE_FAR + SCALE_SPAN * t`. BOTH ARE DELETED — 2026-08-24 —
+ * AND THE SCALE IS NOW THE PROJECTION'S OWN PERSPECTIVE DIVIDE. The range
+ * endpoints moved with it and are declared next to `PERSPECTIVE`, which is the
+ * only constant they now depend on; see `SPHERE_SCALE_MIN` there.
  *
- * The renderer has to quantise `scale` to a handful of steps — assigning
- * `ctx.font` is a string parse and doing it ninety times a frame is the single
- * cheapest thing to get wrong here — and it cannot pick sensible bucket
- * boundaries without knowing the range the ramp actually produces. Exporting
- * the two endpoints is cheaper than exporting a bucketing function that would
- * drag a rendering concern into a module whose whole point is not having any.
+ * WHAT WAS WRONG WITH IT, MEASURED RATHER THAN ASSERTED. The ramp's stated
+ * range was 0.62..1.00 — 1.61x — but the range that ever REACHES THE SCREEN is
+ * much narrower, because `SPHERE_MIN_ALPHA` culls at `t = 0.382` and the ramp
+ * is only at 0.765 by then. So the visible span was 0.765..1.00, i.e. **1.31x
+ * across the entire drawn sphere**, and of the six font buckets only FOUR were
+ * ever painted on desktop (12.35 / 13.57 / 14.78 / 16.00 — the rig reported
+ * `min font seen 12.352` over a six-second capture, never lower).
+ *
+ * That is exactly the shape Saad reported: near-uniform size across most of the
+ * sphere, then an edge. The cull was doing the work the depth ramp should have
+ * been doing.
  */
-export const SPHERE_SCALE_MIN = SCALE_FAR;
-export const SPHERE_SCALE_MAX = SCALE_FAR + SCALE_SPAN;
 
 /** Above this `t` a fragment takes the cool near-white tint instead of accent. */
 const NEAR_TINT_T = 0.75;
@@ -110,6 +114,63 @@ const PERSPECTIVE = 2.5;
  */
 const PERSPECTIVE_FIT =
   PERSPECTIVE / Math.sqrt(PERSPECTIVE * PERSPECTIVE - 1);
+
+/**
+ * THE DEPTH SCALE IS THE PERSPECTIVE DIVIDE ITSELF, NORMALISED SO THE NEAR POLE
+ * IS 1.0 — added 2026-08-24, replacing a linear ramp in `t`.
+ *
+ * WHY THIS AND NOT A TUNED CURVE. Saad asked for labels that "continuously
+ * scale down as they rotate toward the back, proportional to their actual
+ * depth/angle from the camera... genuine perspective depth". The projection
+ * ALREADY computes exactly that number, one line above where the scale is set:
+ * `s = PERSPECTIVE / (PERSPECTIVE - r.z)` is the factor the label's POSITION is
+ * multiplied by. Using anything else for its SIZE means the label moves with
+ * one perspective and is drawn with another. There is no curve to tune here and
+ * no exponent to invent — a fragment at the far pole is 2.33x further from the
+ * camera than one at the near pole, so it is drawn 2.33x smaller.
+ *
+ *   scale = s / s(near pole) = (f - 1) / (f - z)      z in [-1, 1]
+ *
+ * `SCALE_NORM` is `(f - 1) / f`, so the per-frame cost is one MULTIPLY against
+ * the `s` that is already in hand rather than a second divide.
+ *
+ * RANGE: 0.4286 .. 1.0 at f = 2.5, i.e. **2.33x**, against the retired ramp's
+ * nominal 1.61x and its actual on-screen 1.31x. Over the range that survives
+ * the alpha cull (`t >= 0.382`, so `z >= -0.236`) it is 0.548..1.0 = **1.82x**,
+ * which is the number that matters because it is the one a viewer sees.
+ *
+ * THIS COUPLES TYPE SIZE TO `PERSPECTIVE`, AND THAT COUPLING IS CORRECT RATHER
+ * THAN ACCIDENTAL. Retuning `PERSPECTIVE` inside its documented 2.0-4.0 window
+ * now changes the labels' size range as well as the disc's bulge — because
+ * those are the same physical fact. Note the direction: LARGER `f` flattens the
+ * sphere toward orthographic and therefore FLATTENS THE SIZE RANGE too (3.0
+ * gives 2.0x, 4.0 gives 1.67x). If a future change wants the tag-cloud look
+ * back, `PERSPECTIVE` is now the one knob, which is fewer knobs than before.
+ *
+ * `ALPHA_EXPONENT` IS DELIBERATELY NOT REUSED HERE even though the two cues are
+ * meant to read together. That constant carries its own rejection criterion
+ * ("if the back reads as DIRT rather than as DEPTH, raise this to 2.0"), and a
+ * shared exponent would make acting on it silently resize every label on the
+ * sphere. Two cues, two independent knobs, one shared input `t`/`z`.
+ */
+const SCALE_NORM = (PERSPECTIVE - 1) / PERSPECTIVE;
+
+/**
+ * The scale range, exported so the draw pass can bucket into it.
+ *
+ * The renderer has to quantise `scale` to a handful of steps — assigning
+ * `ctx.font` is a string parse and doing it ninety times a frame is the single
+ * cheapest thing to get wrong here — and it cannot pick sensible bucket
+ * boundaries without knowing the range the ramp actually produces. Exporting
+ * the two endpoints is cheaper than exporting a bucketing function that would
+ * drag a rendering concern into a module whose whole point is not having any.
+ *
+ * BOTH ARE DERIVED FROM `PERSPECTIVE` NOW rather than being independent tuning
+ * constants, so they cannot drift away from the ramp that produces them. The
+ * min is the far pole (`z = -1`), the max is the near pole (`z = +1`).
+ */
+export const SPHERE_SCALE_MIN = (PERSPECTIVE - 1) / (PERSPECTIVE + 1);
+export const SPHERE_SCALE_MAX = 1;
 
 /* -------------------------------------------------------------------------
    Sizing and placement — design §5 and §6
@@ -311,7 +372,7 @@ export type ProjectedFragment = {
   /** Anchor in CSS px, container coordinates. Text is centred on it. */
   x: number;
   y: number;
-  /** Font scale, `SCALE_FAR`..1. */
+  /** Font scale, `SPHERE_SCALE_MIN`..1 — the perspective divide, normalised. */
   scale: number;
   /** `ALPHA_FAR`..`ALPHA_FAR + ALPHA_SPAN`. */
   alpha: number;
@@ -749,7 +810,10 @@ export function projectCommandSphere(sphere: CommandSphere): readonly number[] {
     const p = projected[i];
     p.x = centreX + r.x * scaled * s;
     p.y = centreY + r.y * scaled * s;
-    p.scale = SCALE_FAR + SCALE_SPAN * t;
+    // The label is SIZED by the same divide that POSITIONS it — see
+    // `SCALE_NORM`. `s * SCALE_NORM` is `(f - 1) / (f - z)`, one multiply
+    // against the `s` already computed for x/y rather than a second divide.
+    p.scale = s * SCALE_NORM;
     p.alpha = ALPHA_FAR + ALPHA_SPAN * Math.pow(t, ALPHA_EXPONENT);
     p.near = t > NEAR_TINT_T;
     p.glow = t > GLOW_T;
@@ -762,7 +826,11 @@ export function projectCommandSphere(sphere: CommandSphere): readonly number[] {
   // pairs ever swap. That makes this O(n) in practice where a general sort is
   // O(n log n) every time regardless.
   //
-  // Keyed on `scale`, which is a strictly increasing linear function of `t` and
+  // Keyed on `scale`, which is strictly increasing in `t` — no longer LINEAR in
+  // it since the ramp became the perspective divide, but `d(scale)/dz` is
+  // `(f-1)/(f-z)^2 > 0` everywhere on [-1, 1], so the ORDER this produces is
+  // identical to a z-order and the near-sortedness this loop relies on is
+  // exactly as true as it was. Monotonicity is what matters here, not shape —
   // therefore of depth. Using it avoids carrying a second field whose only job
   // is to be the sort key, and it makes the bucket monotonicity the draw pass
   // relies on true by construction rather than by coincidence.
