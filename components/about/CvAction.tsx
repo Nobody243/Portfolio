@@ -291,6 +291,57 @@ export function CvAction() {
 function CvModal({ onClose }: { onClose: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  /* ─────────────────────────────────────────────────────────────────────────
+     WHY A FLAG, AND WHY REMOVING THE LISTENER FIRST IS NOT ENOUGH.
+
+     `HTMLDialogElement.close()` does NOT fire `close` synchronously. The spec
+     says to "queue an element task ... to fire an event named close", so the
+     event is delivered in a LATER task. That is the standard, not a Chromium
+     quirk — every engine behaves this way, which is why the symptom below
+     reproduced identically in Firefox, Chrome and Opera.
+
+     Under StrictMode (development only) React runs this effect, tears it down,
+     and runs it again. The teardown calls `close()`, which QUEUES the event;
+     the second run then attaches a FRESH listener and re-opens; the queued
+     event is finally delivered — to that fresh listener — and `onClose()` sets
+     `open` to false. The modal opened and closed itself in ~3ms, and the PDF
+     `<iframe>` was torn down mid-flight, which is what surfaced as a solid
+     black frame and a 0-byte, `NS_ERROR_FAILURE` / `ERR_ABORTED` subdocument.
+     Measured on `next dev`, 2026-08-23:
+
+         6223.70ms  removeEventListener(close)   cleanup unhooks listener A
+         6223.80ms  CALL close()                 <- the event is QUEUED here
+         6226.70ms  addEventListener(close)      second run attaches listener B
+         6226.70ms  CALL showModal()             ... and re-opens
+         6228.50ms  >> close EVENT delivered     lands on B -> onClose()
+
+     THE OBVIOUS FIX IS THE TRAP. `removeEventListener` ALREADY runs before
+     `close()` here and always did — it does not help, because it unhooks
+     listener A while the queued event is dispatched against whatever is
+     registered when the task RUNS, i.e. listener B. Ordering inside the
+     cleanup cannot reach across a task boundary; nothing in the cleanup can.
+
+     So the state sync is made to recognise the event instead. This ref is set
+     immediately before any `close()` THIS COMPONENT issues for teardown, and
+     the handler consumes it — one flag, one event. A ref is the right carrier
+     precisely because it survives the StrictMode cycle: the component instance
+     is the same across both effect runs, so the mark written by the first
+     run's cleanup is still there when the event lands after the second's.
+
+     REJECTED, so the next reader does not re-try them: inspecting
+     `event.target` or `dialog.open` in the handler (the element is the same
+     node and is closed in both cases, so neither distinguishes anything);
+     leaving the dialog open in the cleanup (a real unmount would then hand the
+     top layer back by node removal rather than by an explicit call); and
+     syncing from the three call sites instead of one listener — Escape has no
+     signal other than this event, and that design is stated above.
+
+     Production has no double-invoke, so none of this ever ran there; the modal
+     always worked on a production build, which is exactly why the bug survived
+     a previous verification pass.
+  ───────────────────────────────────────────────────────────────────────── */
+  const teardownClose = useRef(false);
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -317,14 +368,25 @@ function CvModal({ onClose }: { onClose: () => void }) {
        from three call sites. Nothing calls `preventDefault` on `cancel`: unlike
        `ProjectOverlay`, there is no exit animation and no history entry to pop,
        so the default close is exactly the wanted behaviour. */
-    const onNativeClose = () => onClose();
+    const onNativeClose = () => {
+      // A close this component issued while tearing down is not the visitor
+      // closing the modal. Consume the mark and say nothing; see above.
+      if (teardownClose.current) {
+        teardownClose.current = false;
+        return;
+      }
+      onClose();
+    };
     dialog.addEventListener("close", onNativeClose);
 
     if (!dialog.open) dialog.showModal();
 
     return () => {
       dialog.removeEventListener("close", onNativeClose);
-      if (dialog.open) dialog.close();
+      if (dialog.open) {
+        teardownClose.current = true;
+        dialog.close();
+      }
       html.removeAttribute("data-overlay-open");
       html.style.removeProperty("--overlay-scrollbar-width");
     };
