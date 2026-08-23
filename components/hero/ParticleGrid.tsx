@@ -146,6 +146,7 @@ import {
 } from "@/lib/animation/frameRate";
 import {
   createCommandSphere,
+  startCommandSphereBurst,
   placeCommandSphere,
   projectCommandSphere,
   stepCommandSphere,
@@ -1054,6 +1055,28 @@ type ParticleGridProps = {
    * is. `ambient="settled"` says something; `drift={false}` says it backwards.
    */
   ambient?: "drift" | "settled";
+  /**
+   * The hand-off's arrival burst, delivered as a REF HOLDING A COUNTER rather
+   * than as a value, and every word of that is load-bearing.
+   *
+   * WHY A REF AND NOT A PROP VALUE. The tick below lives in one effect whose
+   * deps are `[reducedMotion, field, withSphere, ambient]`. A changing prop
+   * there would tear down and rebuild the canvas, the field and the sphere ON
+   * THE HAND-OFF FRAME — the sphere would restart at its rest angle in the
+   * middle of the arrival. A ref's identity never changes, so naming it in
+   * those deps re-runs nothing, exactly as `field` does.
+   *
+   * WHY A COUNTER AND NOT A BOOLEAN. The burst is an EVENT. `IntroProvider`
+   * seeds `arriving` true on a client navigation, so a boolean would either
+   * fire on every mount or never fire at all — `IntroEntrance.tsx`'s
+   * `waitedForHandoff` exists for the same reason. The tick remembers the last
+   * value it acted on and arms a burst only when it changes, which also makes
+   * the request survive being made before the sphere exists.
+   *
+   * UNDEFINED IS THE HONEST DEFAULT: `/about` renders this canvas with
+   * `sphere={false}` and there is nothing to burst.
+   */
+  arrivalBurst?: { current: number };
 };
 
 /**
@@ -1073,6 +1096,7 @@ export function ParticleGrid({
   field = HERO_FIELD,
   sphere: withSphere = true,
   ambient = "drift",
+  arrivalBurst,
 }: ParticleGridProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reducedMotion = useReducedMotion();
@@ -1115,6 +1139,14 @@ export function ParticleGrid({
      *  it — a stale array against a rebuilt sphere would carry one fragment's
      *  bucket and fade onto a different fragment. */
     let sphereDraw: SphereDrawState | null = null;
+    /** The last `arrivalBurst.current` this tick acted on.
+     *
+     *  SEEDED FROM THE REF, NOT FROM 0. This effect re-runs when `reducedMotion`
+     *  changes, and a resize rebuilds the sphere without re-running it. Seeding
+     *  0 would mean any later re-run saw `current` 1 against a remembered 0 and
+     *  replayed the arrival burst minutes after the arrival. Seeding from the
+     *  ref makes a burst deliverable exactly once per increment. */
+    let burstSeen = arrivalBurst?.current ?? 0;
     let compact = false;
     /** rAF timestamp of the previous tick, for real elapsed `dt`. */
     let lastFrame = 0;
@@ -1368,6 +1400,17 @@ export function ParticleGrid({
       let voidAnchor: { cx: number; cy: number; radius: number } | null = null;
       if (sphere) {
         if (!reducedMotion) {
+          /* THE ARRIVAL BURST, CONSUMED AS AN EDGE. Read here rather than in an
+             effect so that a request made before the sphere existed is still
+             honoured on the first frame it does — and so that nothing about it
+             can reach the dependency array above. Inside `!reducedMotion`
+             because a visitor who asked for less motion gets the frozen sphere,
+             not a faster one. */
+          if (arrivalBurst && arrivalBurst.current !== burstSeen) {
+            burstSeen = arrivalBurst.current;
+            startCommandSphereBurst(sphere);
+          }
+
           // The sphere's tilt gates on the SAME `interactive` flag as the
           // cursor void, plus an inactivity window on top: a pointer parked
           // motionless still counts as a position for the field's void, but it
@@ -1789,8 +1832,10 @@ export function ParticleGrid({
     // `field`, `withSphere` and `ambient` are constants at every call site — a
     // module preset and two literals — so naming them here re-runs nothing. It
     // just stops them from silently going stale if a future caller ever does
-    // swap one.
-  }, [reducedMotion, field, withSphere, ambient]);
+    // swap one. `arrivalBurst` is a REF, so its identity is stable for the same
+    // reason and for a sharper one: a rebuild here on the hand-off frame would
+    // restart the sphere at its rest angle mid-arrival.
+  }, [reducedMotion, field, withSphere, ambient, arrivalBurst]);
 
   return (
     // `pointer-events-none` is load-bearing: the pointer listener is on the

@@ -215,6 +215,30 @@ export function Hero() {
   const [inView, setInView] = useState(true);
   const [tabVisible, setTabVisible] = useState(true);
 
+  /*
+    WAS THIS PAGE ACTUALLY WAITING FOR A HAND-OFF? Captured once, in a lazy
+    initialiser, exactly as `IntroEntrance.tsx` does and for the identical
+    reason: `IntroProvider` seeds `arriving` TRUE on a client navigation, so
+    "burst when `arriving` is true" would fire on every arrival at `/` from the
+    navbar, where there is no Intro and nothing to arrive out of. Only a Hero
+    that mounted UNDER a plate gets the burst.
+
+    It is a separate capture from the arrival tween below, which deliberately
+    still runs on a client navigation — the stage settling in is the page
+    appearing, and that happens either way. What does not happen either way is
+    the Intro handing off, and that is what the sphere is answering.
+  */
+  const [waitedForHandoff] = useState(() => !arriving);
+
+  /*
+    THE REQUEST, AS A COUNTER IN A REF. `ParticleGrid`'s prop docblock has the
+    two reasons — a value here would rebuild the canvas on the hand-off frame,
+    and a boolean cannot express an event. Incremented from the arrival effect
+    so the burst and the scale-in are armed by the same code on the same frame,
+    rather than by two things that agree until one of them is retuned.
+  */
+  const arrivalBurst = useRef(0);
+
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
@@ -276,6 +300,15 @@ export function Hero() {
     const stage = stageRef.current;
     if (!stage) return;
 
+    /* THE SPHERE'S HALF OF THE SAME BEAT. `lib/hero/commandSphere.ts`'s
+       `SPHERE_BURST_RATE` carries the values (2.5x, easing to idle over 1.6s)
+       and the derivation; this line only says WHEN. Guarded by
+       `waitedForHandoff` so a client navigation to `/` — where `arriving` is
+       seeded true and no plate ever existed — does not fire it, and inside the
+       `reducedMotion` early return above so a visitor who asked for less motion
+       gets neither the scale-in nor the burst. */
+    if (waitedForHandoff) arrivalBurst.current += 1;
+
     const tween = gsap.fromTo(
       stage,
       { scale: ARRIVAL_SCALE, opacity: 0, transformOrigin: "50% 50%" },
@@ -316,7 +349,7 @@ export function Hero() {
       tween.kill();
       gsap.set(stage, { clearProps: "transform,opacity" });
     };
-  }, [arriving, reducedMotion]);
+  }, [arriving, reducedMotion, waitedForHandoff]);
 
   return (
     <section
@@ -335,10 +368,16 @@ export function Hero() {
       <div ref={stageRef} className="absolute inset-0">
         {/* Layer 1 — the mesh AND the command sphere, on one canvas. Full-bleed,
             pointer-events-none; the pointer listener lives on this section,
-            which is why the canvas must not intercept. It takes no props: the
-            sphere it draws is the subject the permanent void is cut for, so
-            both numbers live inside it. */}
-        <ParticleGrid />
+            which is why the canvas must not intercept.
+
+            IT TOOK NO PROPS UNTIL 2026-08-22, and the reason it took none is
+            unchanged: the sphere it draws is the subject the permanent void is
+            cut for, so both numbers still live inside it. What it takes now is
+            not a number — it is the hand-off, as a ref-held counter, because
+            the sphere has to arrive on the same frame the stage above it does
+            and nothing inside that canvas can see the Intro. Everything about
+            WHAT is drawn is still decided in there. */}
+        <ParticleGrid arrivalBurst={arrivalBurst} />
 
         {/* Layer 2 — the DOM text. `fallback` stays FALSE. It is tempting to
             flip it now that no wordmark renders — the fallback layout makes the

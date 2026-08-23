@@ -208,6 +208,57 @@ const DAMPING = 0.06;
 export const SPHERE_REST_ANGLE_Y = 0.42;
 export const SPHERE_REST_ANGLE_X = 0.18;
 
+/**
+ * THE ARRIVAL BURST — how much faster than idle the sphere turns on the frame
+ * the Intro hands off, and how long it takes to ease back.
+ *
+ * WHAT IT IS FOR. The hero's stage settles out of a small over-scale over
+ * `ARRIVAL_S` (1.30s, `Hero.tsx`) while the Intro's plate dissolves over 0.55s.
+ * Before this, the sphere inside that stage turned at exactly its resting 6°/s
+ * throughout — so the one element that is intrinsically in motion was the one
+ * element that did not participate in the arrival. The burst makes the sphere
+ * arrive too.
+ *
+ * 2.5x AND 1.6s. Both come from Saad's brief (2–3x, easing to idle over
+ * 1.5–2s) and the values inside those bands are chosen: 2.5 is the midpoint,
+ * and 1.6s is 1.23x `ARRIVAL_S`, so the rotation is the LAST thing to settle.
+ * A burst that ended with the scale would put two moves on one frame and read
+ * as a single hard stop; ending after it means the sphere carries the beat out.
+ *
+ * THE FALLOFF IS CUBIC BECAUSE THE ARRIVAL'S IS. `Hero.tsx` uses `power2.out`,
+ * and GSAP's Power2 is CUBIC (Power1 is the quadratic) — so `(1 − τ/T)³` is the
+ * same curve family, decaying the way the arrival's remaining distance does.
+ * It reaches exactly 1.0 at T rather than approaching it, and it is within 5%
+ * of idle at 0.678·T = **1.085s**.
+ *
+ * IT IS APPLIED TO THE RENDERED ANGLE, NOT ONLY TO THE IDLE TARGET, AND THAT IS
+ * MEASURED RATHER THAN PREFERRED. `angleY` chases `idleY` through `DAMPING`
+ * 0.06/frame — a ~278ms time constant. Multiplying the target alone lets that
+ * lag eat the burst: simulated at 60Hz, a 2.5x target produces a RENDERED peak
+ * of only **1.52x**, and it peaks at **483ms** rather than at the hand-off, so
+ * the sphere would speed UP while the plate dissolves and then slow down. That
+ * is the opposite shape from the one asked for. Getting a rendered 2.5x out of
+ * the target alone needs ~4.6x, which then overshoots at every other frame
+ * rate. `stepCommandSphere` therefore advances the target AND the rendered
+ * angle by the same excess, which leaves the lag between them exactly as it
+ * was and delivers the burst at full amplitude on its first frame.
+ *
+ * IT DOES NOT SNAP, and the file's opening promise is intact: nothing is
+ * ASSIGNED to an angle here. This is an integrated advance, in radians per
+ * millisecond of real elapsed time, whose coefficient starts at 2.5 and eases
+ * to 1. What steps discontinuously is a VELOCITY, once, on the hand-off frame —
+ * which is also true of the arrival tween it accompanies, since `power2.out`
+ * is at its fastest on its first frame.
+ *
+ * THE CURSOR IS UNAFFECTED, BY CONSTRUCTION. The burst scales the IDLE term
+ * only. `offsetY`/`offsetX` are a separate addend reaching the angle through
+ * the same damping they always did, so "what wins if the visitor moves the
+ * mouse during the burst" has the same answer as before: neither — they add.
+ */
+export const SPHERE_BURST_RATE = 2.5;
+/** Milliseconds. See `SPHERE_BURST_RATE`. */
+export const SPHERE_BURST_MS = 1600;
+
 /* -------------------------------------------------------------------------
    Types
 ------------------------------------------------------------------------- */
@@ -258,6 +309,13 @@ export type CommandSphere = {
   /** Damped cursor tilt offsets, radians. */
   offsetY: number;
   offsetX: number;
+  /**
+   * Milliseconds LEFT in the arrival burst, counted down by the same clamped
+   * `dt` the rotation is advanced by. 0 means "not bursting", which is the
+   * resting state and the state every sphere is built in — the burst is armed
+   * by `startCommandSphereBurst` and by nothing else.
+   */
+  burstMs: number;
   centreX: number;
   centreY: number;
   /** Projected radius in CSS px. The drawn disc is exactly `2 * radius` wide. */
@@ -429,6 +487,7 @@ export function createCommandSphere(
     idleX: SPHERE_REST_ANGLE_X,
     offsetY: 0,
     offsetX: 0,
+    burstMs: 0,
     centreX: 0,
     centreY: 0,
     radius: 0,
@@ -524,6 +583,10 @@ export function placeCommandSphere(
  * the angles. The frame is still projected and drawn from the state it already
  * holds; the next frame carries a real delta. Nothing is stranded.
  */
+export function startCommandSphereBurst(sphere: CommandSphere): void {
+  sphere.burstMs = SPHERE_BURST_MS;
+}
+
 export function stepCommandSphere(
   sphere: CommandSphere,
   dtMs: number,
@@ -536,6 +599,21 @@ export function stepCommandSphere(
   // way over the same frame, and computing it four times would be four chances
   // for them to stop agreeing.
   const k = dampingFactor(DAMPING, dt);
+
+  /* THE ARRIVAL BURST. `SPHERE_BURST_RATE` carries the whole derivation,
+     including why the excess is added to the rendered angle as well as to the
+     target and why that is not a snap.
+
+     COUNTED DOWN BY THE CLAMPED `dt`, the same one the rotation uses, so a
+     dropped frame or a throttled tab cannot advance the burst further than it
+     advances the sphere — the two would otherwise disagree about how much of
+     the ease has been spent, and the burst would end mid-amplitude. */
+  let burstExcess = 0;
+  if (sphere.burstMs > 0) {
+    const remaining = sphere.burstMs / SPHERE_BURST_MS;
+    burstExcess = (SPHERE_BURST_RATE - 1) * remaining * remaining * remaining;
+    sphere.burstMs = Math.max(0, sphere.burstMs - dt);
+  }
 
   sphere.idleY += IDLE_RATE_Y * dt;
   sphere.idleX += IDLE_RATE_X * dt;
@@ -554,6 +632,21 @@ export function stepCommandSphere(
 
   sphere.angleY += (sphere.idleY + sphere.offsetY - sphere.angleY) * k;
   sphere.angleX += (sphere.idleX + sphere.offsetX - sphere.angleX) * k;
+
+  /* ADDED TO BOTH SIDES OF THE CHASE, so the difference `idle − angle` — the
+     lag the damping maintains — is EXACTLY unchanged and the burst survives it
+     at full amplitude. Written after the lerp rather than folded into the two
+     lines above so that this property is visible: remove these four lines and
+     the rotation is byte-for-byte what it was. `burstExcess` is 0 unless a
+     burst is running, so the resting sphere pays two adds and no branch. */
+  if (burstExcess !== 0) {
+    const exY = IDLE_RATE_Y * dt * burstExcess;
+    const exX = IDLE_RATE_X * dt * burstExcess;
+    sphere.idleY += exY;
+    sphere.angleY += exY;
+    sphere.idleX += exX;
+    sphere.angleX += exX;
+  }
 }
 
 /* -------------------------------------------------------------------------
