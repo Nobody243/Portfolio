@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import portrait from "@/public/images/about/portrait.jpg";
+import { AboutFlipBoard } from "@/components/about/AboutFlipBoard";
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import { CvAction, CvModalHost } from "@/components/about/CvAction";
 import {
@@ -103,6 +104,23 @@ const PORTRAIT_SIZES =
  * `.claude/handoff/about-design.md` is built around it. Four absences are
  * DECISIONS, not omissions, and each has a place elsewhere on the site that a
  * later pass might mistake this page for having forgotten:
+ *
+ * ABSENCE 4 WAS RETIRED ON 2026-08-23 AND IS NOT IN THE LIST BELOW. It read:
+ * "It runs the site's standard entrance ONCE, on load, and then NOTHING ON
+ * THIS PAGE EVER MOVES AGAIN." That is false as of the flip board under the
+ * portrait, which advances a 15-tile split-flap string every 7 seconds on
+ * hover-capable devices. Saad asked for it explicitly; `docs/07` §6 and
+ * `docs/03`'s motion-drivers section carry the reversal, and
+ * `AboutFlipBoard.tsx`'s header carries the four statements it falsifies and
+ * the mitigations that were not optional.
+ *
+ * TWO HALVES OF THAT SENTENCE SURVIVE AND ARE WORTH SEPARATING OUT, because
+ * they are what a later reader will otherwise assume died with it:
+ *   - **The motion-author count ON ARRIVAL is still exactly one.** The board's
+ *     first flip is at 7.0s against a 0.90s settle, so it authors nothing
+ *     during the entrance. The deleted route fade is still correctly deleted.
+ *   - **The canvas still costs 0 frames per 5 idle seconds**, in both themes,
+ *     re-measured after the board landed. `ambient="settled"` is untouched.
  *
  *   1. NO SCROLL — AT `lg` AND UP. `lg:h-dvh` + `lg:overflow-hidden`. Nothing
  *      below the fold there, ever. If content is ever added that does not fit
@@ -1011,6 +1029,47 @@ export function AboutScreen() {
                 priority
                 className="aspect-square w-full object-cover"
               />
+
+              {/*
+                THE FLIP BOARD, AND ITS PLACEMENT IS THE WHOLE OF ITS HEIGHT
+                BUDGET.
+
+                UNDER THE PORTRAIT, IN THE RIGHT COLUMN — never under the text.
+                The right column is WIDTH-limited (a square capped at 448) while
+                the left column is CONTENT-limited (556.8px at `xl`+), so the
+                right column carries 115.8px of spare height at 1280 and 40.8px
+                at 1440 that nothing else on the page can use. At 34px of board
+                plus `mt-lg` above it, the block is 68px and the row height is
+                still governed by the text column at every `lg`+ width:
+
+                  1024   portrait 247 + 68 = 315   text 384.95   row 384.95
+                  1280   portrait 373 + 68 = 441   text 556.8    row 556.8
+                  1440+  portrait 448 + 68 = 516   text 556.8    row 556.8
+
+                THE BOARD DISPLACES NOTHING AT ANY `lg`+ WIDTH. The ceiling, so
+                a future edit knows where the wall is: at 1440+ it may grow to
+                556.8 − 448 − 34 = 74.8px before it starts driving the row
+                height, and at 1280 that figure is 149.8px. 34px is the design;
+                74.8px is the hard limit.
+
+                LEFT-ALIGNED ON THE PORTRAIT'S EDGE, WHICH IS THE LOCAL SPINE,
+                with fixed-width tiles rather than a stretched full-width band.
+                Strings shorter than the board leave void on the right, which is
+                the correct grammar for this site — Rule S-1 — and it also means
+                the tile size does not change with the viewport.
+
+                INSIDE THIS `IntroEntrance` RATHER THAN BESIDE IT, so it arrives
+                with the portrait at delay 0 and adds no unit to the cascade. A
+                static element appearing instantly while everything around it
+                fades would read as a bug. The one consequence, declared: the
+                hand-off re-keys this wrapper, so the board's index resets to
+                string 0 there — which happens at ~1.30s on a hard load, well
+                before its first flip at 7.0s.
+
+                ITS MOTION, ITS GATES AND THE RULE IT REVERSES ARE ALL IN
+                `AboutFlipBoard.tsx`. Read that before changing anything here.
+              */}
+              <AboutFlipBoard className="mt-lg" />
             </IntroEntrance>
           </div>
         </div>

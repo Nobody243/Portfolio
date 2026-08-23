@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useSyncExternalStore } from "react";
 import { motion } from "motion/react";
 
 import { DURATION, EASE } from "@/lib/animation/easing";
 import { FONT_SIZE_UNITS } from "@/components/ui/textHoverEffectMetrics";
+import { useHoverCapable } from "@/lib/hooks/useHoverCapable";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /**
@@ -183,56 +183,20 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * ramps its hue; it does not fill the glyphs. DO NOT ADD A `fill`.
  */
 
-/**
- * A CAPABILITY QUERY, NOT A BREAKPOINT, AND THE SPELLING IS THE POINT.
+/*
+ * THE CAPABILITY QUERY MOVED TO `lib/hooks/useHoverCapable.ts` ON 2026-08-23,
+ * when `/about`'s flip board became its second consumer. It used to be declared
+ * here along with its three `useSyncExternalStore` helpers, under a long note
+ * whose last line was "DO NOT MIX THE TWO SPELLINGS IN ONE COMPONENT" — which
+ * is exactly the hazard a second private copy in a second file would have
+ * created, one level up. The hook carries that whole argument now, including
+ * why `ParticleGrid`'s width gate is correct where it is and must not be
+ * harmonised to this one.
  *
- * Without it, iOS and Android synthesise `mouseenter` + `mousemove` on tap: a
- * tap anywhere on the wordmark would flash the reveal and leave it stuck on
- * until the next tap elsewhere — sticky hover, the classic mobile artefact, on
- * a decorative element the visitor did not mean to touch.
- *
- * `docs/03` forbids behaviour that is specific to a breakpoint ("a phone gets
- * the site's normal motion language, not a degraded Home"). This is not a
- * breakpoint: it says "this input device has no hover", which is a statement
- * about the DEVICE rather than about its size, and it is correct on a
- * touch-capable laptop where a width test is not.
- *
- * `INTERACTIVE_MIN_WIDTH = 768` in `ParticleGrid` gates the particle field's
- * cursor void by WIDTH for the same underlying reason. That is existing and
- * fine. DO NOT MIX THE TWO SPELLINGS IN ONE COMPONENT, and do not "harmonise"
- * the field's gate to match this one — the field is an `/about` render site.
+ * WHAT DID NOT CHANGE: the server snapshot is still `false`, and this component
+ * still gates only its EVENT HANDLERS, never its markup, so both branches emit
+ * identical DOM.
  */
-const HOVER_CAPABLE_QUERY = "(hover: hover) and (pointer: fine)";
-
-function subscribeHoverCapable(onChange: () => void) {
-  const mediaQuery = window.matchMedia(HOVER_CAPABLE_QUERY);
-  mediaQuery.addEventListener("change", onChange);
-  return () => mediaQuery.removeEventListener("change", onChange);
-}
-
-function getHoverCapableSnapshot(): boolean {
-  return window.matchMedia(HOVER_CAPABLE_QUERY).matches;
-}
-
-/**
- * Server snapshot is `false` for the same reason `useReducedMotion`'s is: no
- * input device exists during prerender. The consumer must therefore emit
- * IDENTICAL DOM in both branches — which is why the reveal layer below is
- * always rendered and only the LISTENERS are gated. Event handlers are not
- * markup, so gating them cannot produce a hydration mismatch; removing an
- * element would.
- */
-function getHoverCapableServerSnapshot(): boolean {
-  return false;
-}
-
-function useHoverCapable(): boolean {
-  return useSyncExternalStore(
-    subscribeHoverCapable,
-    getHoverCapableSnapshot,
-    getHoverCapableServerSnapshot,
-  );
-}
 
 /** The viewBox is `0 0 viewBoxWidth 100`. Height is fixed so the caller only
  *  ever has to supply the string's measured advance. */
