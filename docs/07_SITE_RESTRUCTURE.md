@@ -1027,6 +1027,41 @@ page.
 > new rung, same token, and it keeps the glyph-to-tile fill at 58% where 26px in a 36px tile would
 > have been 72% against the 47% both previous sizes sat at.
 >
+> **THE COMPOSITION IS CENTRED ON BOTH AXES NOW — 2026-08-24, AND THE HORIZONTAL HALF BREAKS RULE
+> S-1 DELIBERATELY.** Saad reported the block sitting left of centre. It was, by 265px, and the three
+> obvious causes were all ruled out by measurement before anything was changed:
+>
+> - **Not a scrollbar.** The skew is 265px at 1920×945 where `/about` has NO SCROLLBAR AT ALL
+>   (`clientWidth` 1920 = `innerWidth`, `scrollHeight` 945, confirmed in real Chrome), and it gets
+>   SMALLER on the viewports that do scroll — 191px at 1366, 105px at 1280. Wrong sign, wrong
+>   magnitude, wrong viewports. (For the record, a real classic scrollbar on this machine is 15px
+>   and `/` and `/work` both carry one; `mx-auto` centres inside it correctly there.)
+> - **Not the container.** The spine's own margins are symmetric at every viewport — 240/240 at
+>   1920, 80/80 at 1600, 0/0 at 1440 and below — with symmetric 89/55/21 padding.
+> - **Not stray padding.** Same evidence.
+>
+> **The cause was that the composition is narrower than its container**: 544 + 89 + 364 = 997px of
+> content in a 1262px content box, with `lg:flex-1` on the portrait banking the 265px difference on
+> the right. Painted extents at 1920×945: **329px of gap left, 594px right.** Filling the container
+> instead was tried in an earlier round (measure 640, portrait 448) and cannot come back — it makes
+> the row 448px tall and spends 84px of the 93px of vertical slack the page's *vertical* centring
+> lives on.
+>
+> So the row is `lg:w-fit lg:mx-auto` and the three stacked boxes below `lg` are `mx-auto`.
+> **MEASURED after: 0.00px of delta between left and right painted gap at ELEVEN viewports in BOTH
+> themes — 22 of 22** (461.5/461.5 at 1920, 221.5/221.5 at 1440, 184.5/184.5 at 1366, 141.5/141.5 at
+> 1280, 178/178 at 900, 112/112 at 768, and unchanged where the cap never bound). The vertical
+> result is untouched — same 0.00px overflow and same 135.5px above and below — and the band still
+> starts on the paragraph's left edge and ends on the portrait's right edge everywhere.
+>
+> **`w-fit`, NOT `justify-center`**: the band is a SIBLING of the row, so centring inside a row box
+> that still spanned the container would move the row and leave the band behind.
+>
+> **RULE S-1 IS BROKEN HERE ON PURPOSE AND `docs/03` NAMES `/about` AS ITS ONE EXCEPTION**, which is
+> the condition `AboutScreen.tsx` has always attached to breaking it. It does not generalise: swept
+> at 1920, every content section on `/` and `/work` already fills its container exactly (329 left,
+> 329 right, delta 0), so there is nothing to centre anywhere else and nothing else changed.
+>
 > **THE E/C FIX WAS RE-VERIFIED AT THE NEW SIZE RATHER THAN ASSUMED TO SURVIVE IT**, because half
 > of it was the glyph growing. Re-captured at 8× and measured as a per-row ink profile: at 21px the
 > crossbar still reaches **0.92 of peak ink** and the split line costs one device-pixel row of it

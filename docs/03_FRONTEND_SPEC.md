@@ -507,13 +507,43 @@ The hero established this deliberately — its wordmark is an object in a space 
 annotation anchored to the frame. Re-centring any later section would retroactively demote that to an
 artefact of the 3D layout rather than a compositional claim.
 
+**S-1's ONE NAMED EXCEPTION: `/about`, 2026-08-24, on Saad's instruction.** `AboutScreen.tsx` has
+carried the terms of this since the page was built — *"if S-1 is ever broken here it must be broken
+VISIBLY, with `/about` named in `docs/03`, or not at all"* — and this paragraph is that naming. On
+`/about` only, the composition is **centred horizontally inside the spine rather than started on
+it**: the row is `lg:w-fit lg:mx-auto` and the three stacked boxes below `lg` are `mx-auto`. The
+spine container itself is untouched — same `max-w-[1440px]`, same 21 / 55 / 89 paddings — so the
+mechanical sweep below still passes.
+
+**WHY IT WAS UNAVOIDABLE, and it is a fact about `/about`'s geometry rather than a taste call.** S-1
+is only *visible* as a constraint on a section whose content is NARROWER than the spine, because for
+any section that fills its container "starts on the left inset" and "is symmetric" are the same
+statement. MEASURED at 1920 on the shipped build, painted extents against `clientWidth`: every
+content section on `/` and `/work` fills exactly — **329px left, 329px right, delta 0** — and only
+`/about` did not. Its composition is `544 (measure) + 89 (gap) + 364 (portrait) = 997px` inside a
+1262px content box, and `lg:flex-1` on the portrait banked the 265px difference on the right, so the
+page read visibly left of centre: **329px of gap on the left against 594px on the right.**
+
+Closing that void by FILLING the container was the fix taken once before (measure to 640, portrait
+cap to 448) and it is no longer available: it makes the row 448px tall against 364 and spends 84px
+of the 93px of vertical slack `/about`'s vertical centring lives on, i.e. it fixes one axis by
+re-breaking the other. The alternative width — a 629px portrait — is refused on its own terms in
+`AboutScreen.tsx`.
+
+**THE EXCEPTION IS NARROW AND MUST STAY THAT WAY.** `/about` is the only route on the site that is a
+*composed screen* rather than a scrolling document: it is already centred VERTICALLY as one unit, it
+has no sections, no reveal footer and no scroll-scrub. A screen centred on one axis and
+spine-aligned on the other is the actual inconsistency. **This does not license centring anywhere
+else**, and in particular not on `/` or `/work`, where the sweep above shows there is nothing to
+centre — their sections already reach both edges.
+
 **S-1 swept mechanically, 2026-08-22.** Every occurrence of `max-w-[1440px]` in `app/` and
 `components/`, comment-stripped, with each container's *full* class string diffed against the spine:
 **twelve containers, ten byte-identical, two known deviations and no third.**
 
 | Deviation | Class string | Verdict |
 |---|---|---|
-| `AboutScreen.tsx` | spine + `lg:flex lg:items-center lg:gap-xl xl:gap-2xl` | **Sanctioned.** Its own header says to diff the max-width and the three paddings, not the whole string. All four match. |
+| `AboutScreen.tsx` | spine + `my-auto` | **Sanctioned.** Its own header says to diff the max-width and the three paddings, not the whole string. All four match. The flex classes this row used to list moved OFF the spine container onto an inner row (`lg:mx-auto lg:flex lg:w-fit …`) when `/about` was centred horizontally on 2026-08-24 — so the deviation is now smaller than when it was swept, not larger. `my-auto` is the vertical centring and is not an S-1 concern. |
 | `HeroHeadline.tsx` | `relative mx-auto h-full w-full max-w-[1440px]` | **Sanctioned, and it is a THIRD FORM of the same spine.** The container carries no padding because its child is absolutely positioned and takes the gutters as *insets*: `right-md left-md sm:right-xl sm:left-xl lg:left-2xl` — the same 21 / 55 / 89 sequence on the left edge, which is the edge S-1 is about. |
 
 *Noted while sweeping, not changed: the hero's inset form is **asymmetric above `lg`** — `lg:left-2xl`
@@ -525,6 +555,14 @@ sweep will otherwise re-derive the difference.*
 Also swept in the same pass: **zero** `text-center` anywhere in `app/` or `components/`, and every one
 of the twelve `mx-auto` occurrences is a spine container rather than a centred text block — which is
 the mechanical form of *"nothing on this site is ever a centred content column."*
+
+**THAT SECOND HALF NEEDS RE-READING AFTER 2026-08-24, AND IT SURVIVES.** `/about` added four
+`mx-auto` occurrences that are NOT spine containers — the row, the text column, the portrait and the
+flip-board band. They centre **boxes whose widths are set by the composition** (a 34rem measure, a
+square portrait, a tile grid), not a text block inside a wider column: every line of prose on the
+page still begins on the left edge of its own 544px measure and is ragged-right. **`text-center` is
+still zero and must stay zero** — that is the half of the rule that was always doing the work, and a
+future sweep should count `text-center`, not `mx-auto`.
 
 **S-1's chrome carve-out — REVERSED for chrome only, 2026-08-21, per `docs/07_SITE_RESTRUCTURE.md`
 §1.** S-1 originally read "the site has one spine and chrome does not get its own." That is no longer

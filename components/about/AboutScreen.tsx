@@ -371,11 +371,21 @@ const PORTRAIT_SIZES =
  * the same `34rem` measure. Chrome went full-bleed in Phase 0 (§1's tracked
  * reversal of Rule S-1); CONTENT SECTIONS KEEP THE SPINE, and this is one.
  *
- * IT USED TO BE BYTE-IDENTICAL AND IS NO LONGER, because the portrait added
- * `lg:flex lg:items-center lg:gap-xl xl:gap-2xl` to the same element. The four
- * spine classes are untouched and Tailwind sorts the added ones in among them;
- * a reviewer diffing the container against Skills' should compare the
- * max-width and the three paddings, not the whole string.
+ * IT USED TO BE BYTE-IDENTICAL AND IS NO LONGER, and the difference is now
+ * ONE CLASS: `my-auto`, the vertical centring, which is not an S-1 concern.
+ * The flex classes this note used to name — `lg:flex lg:items-center
+ * lg:gap-xl xl:gap-2xl` — moved OFF this element onto an inner row when the
+ * flip-board band became a sibling of the two columns, so the deviation is
+ * smaller than when `docs/03` swept it, not larger. The four spine classes are
+ * untouched; a reviewer diffing the container against Skills' should compare
+ * the max-width and the three paddings, not the whole string.
+ *
+ * THE SPINE CONTAINER IS NOT WHERE `/about` BREAKS RULE S-1. It breaks it one
+ * level down, on the row and the three stacked boxes, which are `mx-auto` so
+ * the composition is CENTRED inside this spine rather than started on its left
+ * inset — 2026-08-24, on Saad's instruction, with `/about` named in `docs/03`
+ * as the rule's one exception. The row's own note carries the measurements and
+ * the three candidate causes that were ruled out first.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * TWO REVERSED RULES, RECORDED RATHER THAN DELETED — 2026-08-22. Both were
@@ -571,7 +581,72 @@ export function AboutScreen() {
           <div className="mx-auto my-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
             {/* THE ROW. `lg:flex` turns text-then-portrait into two columns at
                 1024px; the band below it is a SIBLING of this, not a child. */}
-            <div className="lg:flex lg:items-center lg:gap-xl xl:gap-2xl">
+            {/*
+                `lg:w-fit lg:mx-auto` — THE COMPOSITION IS CENTRED IN THE SPINE
+                RATHER THAN STARTED ON IT, AND THAT IS A DELIBERATE BREACH OF
+                RULE S-1 ON THIS ROUTE ONLY. `docs/03` names `/about` as the
+                exception, which is the condition this file has always attached
+                to breaking it: "if S-1 is ever broken here it must be broken
+                VISIBLY, with `/about` named in `docs/03`, or not at all."
+
+                WHAT IT FIXES, MEASURED. Saad reported the block sitting left of
+                centre. The containers were not the cause and neither was a
+                scrollbar — the spine's own margins are symmetric at every
+                viewport (240/240 at 1920, 0/0 at 1440, padding 89/89), and at
+                1920x945 `/about` has NO SCROLLBAR AT ALL (`clientWidth` 1920,
+                `scrollHeight` 945, verified in real Chrome). The cause was that
+                the COMPOSITION IS NARROWER THAN ITS CONTAINER and the residual
+                was parked on the right by `lg:flex-1` on the portrait:
+                544 (measure) + 89 (gap) + 364 (portrait) = 997px of content in
+                a 1262px content box. MEASURED painted extents at 1920x945:
+                329px of gap on the left and 594px on the right — 265px of skew,
+                constant at 1440 and wider, 191px at 1366, 105px at 1280, and 0
+                at 1024 where the portrait shrinks to fill.
+
+                THIS FILE ALREADY CALLED THAT VOID A DEFECT ONCE, at 245px:
+                "That is not the spine; it is a composition that stops 245px
+                early, which is what an unfinished grid looks like." The fix
+                taken then was to FILL the container — measure to 640, portrait
+                cap to 448 — and it was reverted when the height budget
+                tightened, which brought the void back at 265px without the
+                reasoning coming back with it.
+
+                FILLING IT IS NO LONGER AVAILABLE, and that is why the answer is
+                centring this time rather than width. Reaching 1262px needs
+                either a 629px portrait — refused three paragraphs down, "a
+                629px square beside a 65-word bio makes this a portrait page
+                with a caption" — or the 640 + 448 pair, which makes the row
+                448px tall against 364 and spends 84px of the 93px of vertical
+                slack the page's centring lives on. It would fix the horizontal
+                axis by re-breaking the vertical one.
+
+                WHY THE EXCEPTION IS DEFENSIBLE AND NARROW. `/about` is the only
+                route on the site that is a COMPOSED SCREEN rather than a
+                scrolling document: it is already centred vertically as one unit
+                (`my-auto` above), it has no sections, no reveal footer and no
+                scrub. A screen that is centred on one axis and spine-aligned on
+                the other is the inconsistency. And S-1 is only VISIBLE as a
+                constraint on a section whose content is narrower than the
+                spine — MEASURED on the shipped build at 1920, every other
+                content section on `/` and `/work` fills its container exactly
+                (gap 329 left, 329 right, delta 0), so nothing else on the site
+                is affected by this and nothing else needs to change.
+
+                `w-fit`, NOT `justify-center`. `justify-center` would centre the
+                two columns inside a row box that still spans the container, so
+                the BAND below — which is a sibling and is capped at the content
+                column's width — would stay left while the row moved. `w-fit`
+                makes the row's box equal its content, so the band's `mx-auto`
+                lands on exactly the same edges. VERIFIED: the band's left edge
+                is still the paragraph's and its right edge is still the
+                portrait's at every viewport.
+
+                IT IS INERT WHERE THE ROW ALREADY FILLS. Below ~1161px the
+                portrait shrinks and `fit-content` resolves to the available
+                width, so the row is the container and `mx-auto` has nothing to
+                distribute — the layout at 1024 is byte-identical to before.
+            */}
+            <div className="lg:mx-auto lg:flex lg:w-fit lg:items-center lg:gap-xl xl:gap-2xl">
             {/*
               THE MEASURE IS 34rem TO `xl` AND 40rem ABOVE IT, AND THE TWO
               HALVES OF THAT ARE ONE DECISION WITH THE PARAGRAPH'S SIZE.
@@ -613,7 +688,21 @@ export function AboutScreen() {
               media query would be a new CLASS of one. `xl` is an existing step;
               the site still ships zero custom breakpoints.
             */}
-            <div className="max-w-[34rem] lg:shrink-0">
+            {/* `mx-auto lg:mx-0` — the same centring, for the single-column
+                half of the page. Below `lg` this box, the portrait and the band
+                are three stacked siblings all capped at the 34rem measure, so
+                wherever the container is WIDER than 544px the same residual
+                appears on the right: MEASURED 246px at 900px and 114px at 768px,
+                and 0 at 640 and below where the cap stops binding. One page, one
+                rule — the composition is centred at every width rather than at
+                the widths someone happened to check.
+
+                `lg:mx-0` because at `lg`+ this is a flex item of a `w-fit` row,
+                where an auto margin would absorb free space BEFORE `flex-grow`
+                runs. There is no free space in that row, so the class is inert
+                either way; it is written out so the interaction is visible
+                rather than latent. */}
+            <div className="mx-auto max-w-[34rem] lg:mx-0 lg:shrink-0">
               {/*
                 THE MARK IS `variant="nav"` AT A LARGER SIZE — NOT A THIRD
                 VARIANT. `MonogramMark.tsx`'s own header says it: "the navbar
@@ -904,6 +993,23 @@ export function AboutScreen() {
               it would indent the paragraph ~122px from the spine every other
               section on the site starts on.
 
+              THE LAST SENTENCE IS OVERRIDDEN AS OF 2026-08-24 AND THE REST OF
+              THE PARAGRAPH IS NOT. Saad reported the composition reading left
+              of centre, and it was: 265px of that residual, measured. The row
+              is `lg:w-fit lg:mx-auto` now, so the slack is split evenly OUTSIDE
+              the composition instead of banked on one side of it — see the
+              row's own note for the measurements, the three candidate causes
+              that were ruled out, and the terms on which Rule S-1 is broken
+              here.
+
+              `lg:flex-1` ITSELF IS UNTOUCHED AND STILL LOAD-BEARING. Between
+              1024 and ~1161 the row still fills the container and the portrait
+              is still the elastic column that absorbs the difference; only the
+              case where the row is NARROWER than the container changed. The
+              refusal of `justify-center` also still stands on its own terms —
+              it is refused now because it would move the row and leave the band
+              behind, which `w-fit` does not do.
+
               `lg:max-w-[448px]` IS DERIVED, NOT CHOSEN, AND THE DERIVATION
               SURVIVED THE CHANGE RATHER THAN BEING DROPPED BY IT.
 
@@ -1034,7 +1140,7 @@ export function AboutScreen() {
                 `lg`, where the two are columns of a row and there is no gap of
                 this kind between them.
               */
-              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[364px] lg:min-w-[213px] lg:flex-1"
+              className="mx-auto mt-xl max-w-[34rem] lg:mx-0 lg:mt-0 lg:max-w-[364px] lg:min-w-[213px] lg:flex-1"
             >
               <Image
                 src={portrait}
@@ -1180,7 +1286,7 @@ export function AboutScreen() {
               it reverses are all in `AboutFlipBoard.tsx`. Read that before
               changing anything here.
             */}
-            <IntroEntrance className="mt-xl max-w-[34rem] lg:mt-2xl lg:max-w-[963px] xl:max-w-[997px]">
+            <IntroEntrance className="mx-auto mt-xl max-w-[34rem] lg:mt-2xl lg:max-w-[963px] xl:max-w-[997px]">
               <AboutFlipBoard />
             </IntroEntrance>
 
