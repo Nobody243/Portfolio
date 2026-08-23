@@ -11,6 +11,7 @@ import {
   REVEAL_FOOTER_SENTINEL_ID,
 } from "@/components/sections/contactContent";
 import { contact } from "@/content/contact";
+import { TextHoverEffect } from "@/components/ui/text-hover-effect";
 
 /**
  * The reveal footer — Phase 5's curtain, and the end of the document.
@@ -20,6 +21,13 @@ import { contact } from "@/content/contact";
  * repeated below rather than linked, because the file it lived in is gone. The
  * curtain changed this component's GEOMETRY and added TWO content atoms (a mark
  * and a year). It changed nothing else.
+ *
+ * 2026-08-23 CHANGED THE GEOMETRY AGAIN — the plate is now `md:min-h-dvh` — and
+ * added a THIRD content atom, the `SAAD` wordmark, which took over the stamp's
+ * closing slot and demoted the mark and year into a single 21px row above it.
+ * Both reversals are recorded in place below, in the past tense, rather than
+ * being deleted: the viewport-unit ban and the stamp's "not beside it, below
+ * it" argument.
  *
  * -------------------------------------------------------------------------
  * THE MECHANIC: `position: sticky; bottom: 0`, NOT `position: fixed`.
@@ -64,8 +72,8 @@ import { contact } from "@/content/contact";
  * pushing this down toward a viewport bottom that sits below it. A page that
  * does not scroll clamps the plate flush under the last section — no gap, no
  * floating bar, no check needed. A page that barely scrolls shows a sliver of
- * the plate's BOTTOM at rest, which is the stamp, which is the one element in
- * the composition designed to be read out of sequence.
+ * the plate's BOTTOM at rest, which is the signature, which is the one element
+ * in the composition designed to be read out of sequence.
  *
  * WHAT MUST NEVER BE PUT ON ANY ANCESTOR OF THIS ELEMENT: `overflow: hidden`,
  * `overflow: clip`, `overflow: auto`, a `transform`, a `filter`, a
@@ -121,12 +129,14 @@ import { contact } from "@/content/contact";
  * wanted, is a static non-curtain <footer> on that route — which would break
  * §6's framing, which is why it was not taken.
  *
- * NOTHING COMES AFTER THE LINKS EXCEPT THE STAMP. No copyright line, no
- * colophon, no "built with": a copyright line states nothing a visitor needs
- * and nothing in dispute, and a stack brag is the wrong thing on the one
- * surface CLAUDE.md reserves for real links. `CurrentlyLearning` owns the
- * site's only freshness stamp. THE MARK + YEAR IS NOT A COPYRIGHT LINE AND MUST
- * NOT BECOME ONE — see the stamp's own comment below.
+ * NOTHING COMES AFTER THE LINKS EXCEPT THE STAMP AND THE SIGNATURE. No
+ * copyright line, no colophon, no "built with": a copyright line states nothing
+ * a visitor needs and nothing in dispute, and a stack brag is the wrong thing
+ * on the one surface CLAUDE.md reserves for real links. `CurrentlyLearning`
+ * owns the site's only freshness stamp. THE MARK + YEAR IS NOT A COPYRIGHT LINE
+ * AND MUST NOT BECOME ONE — see the stamp's own comment below, which records
+ * what changed about that argument when the two moved onto one row on
+ * 2026-08-23.
  *
  * -------------------------------------------------------------------------
  * THE TWO ACCENTS, AND THE ONE ERROR THIS FILE IS MOST LIKELY TO CONTAIN.
@@ -181,14 +191,138 @@ import { contact } from "@/content/contact";
  * So the three things that make this the SMALL Tier 1 echo are now: the
  * surface, the wipe, and one 34x3px cyan mark.
  *
+ * THE SAAD WORDMARK ADDED ON 2026-08-23 IS A FOURTH ELEMENT, NOT A FOURTH
+ * GESTURE, and the distinction is what keeps that count at three. It renders in
+ * its RESTING STATE — no mount animation, no entrance, no scroll driver. Its
+ * only motion is a cursor-following luminance reveal, which is authored by the
+ * visitor's own hand and does not exist at all on a device with no hover. The
+ * Aceternity component it was adapted from shipped a 4s `strokeDashoffset`
+ * draw-on fired on MOUNT; that is the "animates in secret" defect this very
+ * paragraph retired the three `Reveal`s for, and it was DELETED rather than
+ * retimed — every trigger that would have retimed it correctly is a
+ * scroll-position driver, which the list below bans.
+ *
  * EXPLICITLY NOT, and each must stay absent: no R3F, no Canvas, no camera, no
  * `three` import, no GSAP, no ScrollTrigger, no parallax, no scroll-linked
- * value, no `useScroll`, no `100dvh` / `min-h-screen` / any viewport-unit
- * height — NOT EVEN AS A `max-height` — no particle field, no glow, no blur, no
- * box-shadow, no gradient, no radius (no token exists), no hover transform, no
- * counter, no typewriter, no marquee, and NO INFINITE OR REPEATING ANIMATION.
- * The last one is sharper here than it was: a pinned element at the bottom of
- * the page is one the visitor can sit on indefinitely BY CONSTRUCTION.
+ * value, no `useScroll`, no particle field, no glow, no blur, no box-shadow, no
+ * gradient FILL, no radius (no token exists), no hover transform, no counter,
+ * no typewriter, no marquee, and NO INFINITE OR REPEATING ANIMATION. The last
+ * one is sharper here than it was: a pinned element at the bottom of the page
+ * is one the visitor can sit on indefinitely BY CONSTRUCTION.
+ *
+ * -------------------------------------------------------------------------
+ * THE VIEWPORT-UNIT BAN WAS REVERSED ON 2026-08-23. `md:min-h-dvh` NOW SHIPS.
+ * -------------------------------------------------------------------------
+ * THIS LIST READ "no `100dvh` / `min-h-screen` / any viewport-unit height —
+ * NOT EVEN AS A `max-height`" UNTIL 2026-08-23, and `docs/03_FRONTEND_SPEC.md`
+ * Rule S-6 said the same in two places. Saad asked for the plate to occupy a
+ * full viewport so the curtain matches the hero's visual weight; the reversal
+ * is deliberate and the prior reasoning is kept below in the past tense rather
+ * than deleted, exactly as hide-on-scroll, the theme toggle and `/about`'s
+ * route fade were each reversed on this project.
+ *
+ * WHAT THE BAN WAS ACTUALLY PROTECTING, AND WHY THAT SURVIVES. Two things:
+ *
+ *   1. THE Δ=0 GUARANTEE — "toggling the footer between `sticky` and `static`
+ *      moves `scrollHeight` by 0px". That is a claim about the POSITIONING
+ *      SCHEME, not about the height. Sticky is still the one scheme that does
+ *      not remove an element from flow, so the sticky-vs-static delta is still
+ *      exactly 0. RE-MEASURED WITH THE CLASS PRESENT rather than assumed:
+ *      **0px in 32 of 32 cases** — `/` and `/work`, both themes, at 1440x900,
+ *      1280x800, 1024x600, 768x1024, 360x640, 1366x768, 1280x720 and 2560x1440.
+ *      Also re-measured: the plate's TRAVEL through a full reveal at 1440x900
+ *      is still exactly 0px (top pinned at 0, bottom at 900, across the whole
+ *      wipe), and it un-sticks at its static position to the pixel.
+ *   2. THE 900px CEILING — "if the plate ever measures more than 900px at
+ *      >=1024px, cut content; do not cap the box." AMENDED, in `docs/03` and
+ *      below: THE CEILING NOW GOVERNS THE PLATE'S COMPOSED CONTENT HEIGHT, NOT
+ *      ITS BOX HEIGHT. `min-h-dvh` sets a floor on the BOX; the content sits
+ *      inside it and stays bounded by the same 900px. The rule's purpose is
+ *      untouched — it exists to stop CONTENT growing until the reveal becomes a
+ *      crawl over something that can never be seen whole, which is also reason
+ *      1 of the below-768 carve-out. A box that is exactly one viewport tall
+ *      can by definition always be seen whole.
+ *
+ *      MEASURED COMPOSED CONTENT, 2026-08-23: **775.98px** at every width from
+ *      1280 up (the composition is width-invariant there), **867.58px** at
+ *      1024x600 where the link row wraps, 833.58px at 768x1024 and 811.36px at
+ *      360x640. All four are under 900. The old composition measured 793px at
+ *      1440, so the plate's CONTENT got 17px SHORTER even as its box got taller
+ *      — the `<h2>` demotion and the smaller stamp between them paid for most
+ *      of the wordmark.
+ *
+ * -------------------------------------------------------------------------
+ * KNOWN, ACCEPTED RESIDUAL: 775.98px DOES NOT FIT A 768-TALL VIEWPORT.
+ * -------------------------------------------------------------------------
+ * The design brief budgeted 763.4px and called 1366x768 the binding case with
+ * 4.6px of headroom. MEASURED IT IS 775.98px — **7.98px OVER** — so at 1366x768
+ * (and 55.98px over at 1280x720) the plate is taller than the scrollport and
+ * pins with its top cut off. THIS IS RECORDED AS ACCEPTED, NOT FIXED, and it is
+ * not folded into any passing total.
+ *
+ * THE 12.58px THE BRIEF MISSED, itemised so nobody re-derives it: the link list
+ * takes `lg:mt-2xl` (89px) at these widths, not the 55px the budget assumed;
+ * the closing line sets on ONE line, not the two it budgeted; and
+ * `text-caption`'s line-height is 1.4, not the 1.6 it assumed. Two of those cut
+ * the other way, and the net is +12.58.
+ *
+ * WHY IT IS ACCEPTED. The 7.98px that cannot be on screen at once is `pt-3xl`
+ * padding — blank plate. Measured at 1366x768, the cyan bar sits at y = 136 and
+ * the entire composition, bar to signature, is visible. The rule this brushes
+ * against exists to stop CONTENT becoming unseeable; no content is unseeable.
+ *
+ * THE TWO LEVERS, NAMED SO THE NEXT READER DOES NOT HAVE TO FIND THEM — and
+ * NEITHER WAS APPLIED, deliberately:
+ *   1. `pb-3xl` -> `pb-2xl` saves 55px. This file already names that exact edit
+ *      as the sanctioned fix for a DIFFERENT symptom (144px of empty plate
+ *      reading as nothing in dark mode). Spending it here would retune a value
+ *      against a problem it was not chosen for.
+ *   2. `STAMP_MARK_PX` 21 -> 17 saves 4px, which is not enough on its own, and
+ *      it would shrink a mark that was just demoted and put it exactly on the
+ *      17px legibility floor.
+ * If the plate ever has to fit 768 exactly, take lever 1 and re-record BOTH
+ * symptoms against it.
+ *
+ * THE SEPARATE NUMBER, DECLARED HERE RATHER THAN DISCOVERED LATER: the document
+ * DOES get taller. `min-h-dvh` grows `document.scrollHeight` by
+ * `max(0, viewportHeight − composedContentHeight)` — MEASURED at **+124px** at
+ * 1440x900, **+24px** at 1280x800, **+190px** at 768x1024, **+664px** at
+ * 2560x1440, and **0px** at 1024x600, 1366x768, 1280x720 and 360x640, where the
+ * content is already taller than the viewport (or the `md:` gate is off). That
+ * growth lands entirely AFTER `<main>`'s last child, so no section's own
+ * top/bottom moves and every `end: "bottom bottom"` (which is element-relative
+ * — `ScrubReveal.tsx`) resolves where it did. The only geometric effect is
+ * RUNWAY, and a taller footer gives the last scrubbed unit on `/` more of it,
+ * never less. If a trigger is ever added that resolves its `end` against the
+ * document or `body` rather than a section, it moves by that delta — that is
+ * the one thing to check.
+ *
+ * `min-h`, NOT `h`: at 1024x600 the plate's natural content is taller than the
+ * viewport, and `h-dvh` would clip it. `min-h` only ever grows the box.
+ * `md:`-GATED AT THE CURTAIN'S OWN BREAKPOINT: below 768px there is no curtain
+ * and the plate is already taller than a phone viewport, so `min-h-dvh` there
+ * would append up to a full empty viewport of plate to the bottom of every page
+ * on a phone for a curtain that does not exist. ONE BREAKPOINT GOVERNS BOTH THE
+ * PIN AND THE HEIGHT — if they ever diverge they are describing different
+ * things.
+ *
+ * THE FLEX LIVES ON THE `<footer>`, NOT ON THE SPINE CONTAINER, and that is a
+ * correction to the design brief rather than a preference. `justify-end` on the
+ * spine container is a NO-OP: free space in a column flex container is
+ * distributed by the container, and the spine div is the item. Putting it on
+ * the footer also keeps the S-1 spine string byte-identical to the twelve other
+ * sections', which is what the brief wanted from placing the height on the
+ * footer in the first place.
+ *
+ * `justify-end` AND NOT `justify-between`: the slack has to go somewhere, and
+ * at 2560x1440 there is ~650px of it. Distributed between the groups, the
+ * composition's internal rhythm would become a function of viewport HEIGHT —
+ * a viewport-unit layout by another name. Pooled at the BOTTOM (the default),
+ * the first thing the curtain reveals is empty plate, and in dark mode the
+ * occlusion edge measures 1.01:1 and is invisible, so the curtain would open on
+ * a band of apparent nothing — the exact failure that put the stamp at the
+ * bottom. `justify-end` puts the slack at the TOP where it is unpainted, and
+ * the composition's internal spacing is then fixed at every viewport height.
  *
  * NO PARALLAX ON THE PLATE, and that is a concept decision rather than a budget
  * one. The standard version of this pattern moves the footer up at ~50% of
@@ -199,13 +333,21 @@ import { contact } from "@/content/contact";
  * footer in the genre, and it would reintroduce the scroll-linked value the
  * zero-delta guarantee depends on not having.
  *
- * HOW HEIGHT IS BOUNDED WITHOUT A VIEWPORT UNIT: compositionally. The plate is
- * the sum of eight known spacing values and measures ~790px at 1440px wide. The
- * two things that could grow it are more `contact` entries (which wrap into the
- * existing flex row, adding one ROW height per wrap, not one per entry) and a
- * longer closing line (capped by `max-w-[34rem]`). THE RULE: if the plate's
- * measured height ever exceeds 900px at >=1024px, THE FIX IS TO CUT CONTENT,
- * NOT TO CAP THE BOX.
+ * HOW THE CONTENT'S HEIGHT IS BOUNDED: compositionally, and this is unchanged
+ * by `md:min-h-dvh` — the class sets a floor on the BOX, and everything below
+ * is about what goes IN it. The composed content is the sum of nine known
+ * spacing values. The three things that could grow it are more `contact`
+ * entries (which wrap into the existing flex row, adding one ROW height per
+ * wrap, not one per entry), a longer closing line (capped by `max-w-[34rem]`)
+ * and a taller wordmark (`WORDMARK_HEIGHT` below, which is capped by the
+ * SHORTEST supported viewport, not the tallest).
+ *
+ * THE RULE, AMENDED 2026-08-23: if the plate's COMPOSED CONTENT ever measures
+ * more than 900px at >=1024px, THE FIX IS TO CUT CONTENT, NOT TO CAP THE BOX.
+ * It said "the plate's measured height" until the box acquired a viewport-unit
+ * floor, at which point the box height at >=1024px is 900px or more BY
+ * CONSTRUCTION and the rule as written was violated the moment the class
+ * landed. `docs/03` Rule S-6 carries the same amendment.
  *
  * -------------------------------------------------------------------------
  * REDUCED MOTION: THE CURTAIN DOES NOT CHANGE, AND THAT IS DELIBERATE.
@@ -299,24 +441,31 @@ import { contact } from "@/content/contact";
  */
 
 /**
- * The stamp's mark, in CSS pixels — `--spacing-lg` on the Fibonacci scale, ONE
+ * The stamp's mark, in CSS pixels — `--spacing-md` on the Fibonacci scale, ONE
  * VALUE AT EVERY BREAKPOINT.
  *
- * Exactly 2x the navbar's 17px and well clear of the 17px legibility floor
- * (`MIN_HEIGHT_PX` in `msMarkGeometry.ts`), so the **S's** 44-unit gap — the
- * tightest clear air anywhere in the mark — holds with 4.68px of it
- * (44 x 34 / 320, against 2.34px at the 17px floor). At the 592x320 viewBox the
- * stamp renders 62.9px wide, comfortable inside the 318px of content available
- * at a 360px viewport.
+ * DEMOTED FROM 34px (`--spacing-lg`) ON 2026-08-23, and the demotion is what
+ * pays for the wordmark below it. Saad's instruction was that "the existing MS
+ * mark + year stamp stays as a smaller, secondary detail, not competing with
+ * the name for primary visual weight", and a 34px mark directly above a 144px
+ * wordmark would have read as two competing marks rather than as a stamp
+ * lockup. The design brief gave a 17–21px range; 21px is taken because it is an
+ * actual value on the spacing scale and because 17px is the legibility FLOOR
+ * (`MIN_HEIGHT_PX` in `msMarkGeometry.ts`) — sitting a shipped size exactly on
+ * a floor leaves nothing for a future engine or DPR to give back.
  *
- * THE 34px IS RIGHT; THE DERIVATION UNDER IT WAS NOT. This read "the M's
- * 44-unit bar gap holds with ~4.2px of clear air". The M is ONE polygon and has
- * no bar gaps — that was the THREE-BAR faceted M, whose gap was 40 units, which
- * is where the ~4.2px came from (40 x 34 / 320 = 4.25). Both `Navbar.tsx` and
- * `msMarkGeometry.ts` already record the S as what binds, and `docs/07` §2.1
- * records fixing this identical dead derivation elsewhere. Nothing about the
- * size changes; the sentence now points at the constraint that actually
- * governs it, so a future resize is measured against the right gap.
+ * At 21px the **S's** 44-unit gap — the tightest clear air anywhere in the mark
+ * — holds with 2.89px of it (44 x 21 / 320, against 2.34px at the 17px floor).
+ * At the 592x320 viewBox the stamp renders 38.9px wide, comfortable inside the
+ * 318px of content available at a 360px viewport.
+ *
+ * THE DERIVATION UNDER THE OLD 34px WAS WRONG AND THE CORRECTION IS KEPT. It
+ * read "the M's 44-unit bar gap holds with ~4.2px of clear air". The M is ONE
+ * polygon and has no bar gaps — that was the THREE-BAR faceted M, whose gap was
+ * 40 units. Both `Navbar.tsx` and `msMarkGeometry.ts` record the S as what
+ * binds, and `docs/07` §2.1 records fixing this identical dead derivation
+ * elsewhere. The sentence above points at the constraint that actually governs
+ * it, so this resize was measured against the right gap.
  *
  * NO BREAKPOINT RAMP, deliberately: a mark that grows with the viewport reads
  * as a logo lockup rather than as a stamp.
@@ -325,7 +474,47 @@ import { contact } from "@/content/contact";
  * turns it into an inline height with `width: auto` — the viewBox does the
  * rest.
  */
-const STAMP_MARK_PX = 34;
+const STAMP_MARK_PX = 21;
+
+/**
+ * THE WORDMARK'S STRING AND ITS ADVANCE, DELIBERATELY ADJACENT — CHANGE ONE AND
+ * YOU MUST CHANGE THE OTHER.
+ *
+ * `SAAD`, NOT `MUHAMMAD SAAD`, and the arithmetic decided it rather than taste.
+ * At 72 user units in a 100-unit box, `SAAD` is ~1.83:1 and renders 263px wide
+ * at a 144px height; `MUHAMMAD SAAD` is ~6.2:1 and renders ~896px. The spine's
+ * content measure at 1440 is 1262px, so `SAAD` leaves ~999px of void to its
+ * right — which is exactly the site's grammar — and the long form very nearly
+ * eliminates that void on the site's LAST surface, which is the one thing Rule
+ * S-1 exists to protect. `Hero.tsx` also already refuses a static wordmark
+ * because "a static wordmark sitting here would restate what the Intro just
+ * spent its whole duration saying": `SAAD` at the document's end is a
+ * SIGNATURE, `MUHAMMAD SAAD` is a restatement. Tracking `SAAD` out to fill the
+ * measure was rejected too — 250px of tracking per gap is a fashion-brand
+ * lockup and a template move in its own right.
+ *
+ * THE ADVANCE IS MEASURED, NOT ESTIMATED. Space Grotesk's own horizontal
+ * advances, read out of `public/fonts/space-grotesk-latin.typeface.json` at
+ * 1000 units/em: S 613 + A 630 + A 630 + D 663 = 2536, i.e. 2.536em. At
+ * `FONT_SIZE_UNITS` = 72 that is 182.59 user units.
+ *
+ * CROSS-CHECKED AGAINST THE SHIPPED WEBFONT, because a converted typeface JSON
+ * is not the same artefact as the woff2 the browser loads:
+ * `getComputedTextLength()` in Chrome returns **182.38** user units. The 0.21
+ * unit difference is 0.3px of trailing dead space at a 144px render, i.e. under
+ * half a pixel, and 182.6 is kept because it is the value that can be
+ * RE-DERIVED from a file in this repo. If the string changes, re-derive from the
+ * JSON and re-check in the browser — do not guess from character count.
+ *
+ * WHY NOT IN `contactContent.ts` WITH THE OTHER STRINGS. That file's own rules
+ * ban font names and styling from it, and a glyph advance is a font metric.
+ * Splitting the pair across two files is the failure mode: someone edits the
+ * string, the advance silently no longer describes it, and the box grows dead
+ * space on the right that reads as a wrong indent off the spine. They stay
+ * together, here, with the derivation attached.
+ */
+const WORDMARK_TEXT = "SAAD";
+const WORDMARK_ADVANCE_UNITS = 182.6;
 
 export function RevealFooter() {
   return (
@@ -367,7 +556,18 @@ export function RevealFooter() {
         // both call sites. Vertical rhythm is the header's SPINE AND SEAM
         // section: `pt-2xl sm:pt-3xl` mirrors About's opening across the hard
         // colour edge, and the bottom mirrors the top.
-        className="relative z-0 w-full bg-hero-surface pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl md:sticky md:bottom-0"
+        //
+        // `md:flex md:min-h-dvh md:flex-col md:justify-end` is the full-height
+        // plate, added 2026-08-23. All four are gated at the SAME 768px as the
+        // pin, deliberately — one breakpoint governs the curtain and its
+        // height. The header's "THE VIEWPORT-UNIT BAN WAS REVERSED" section
+        // carries the reasoning, the re-measured Δ=0, the declared
+        // `scrollHeight` growth and why the flex is on this element rather than
+        // on the spine container. `pt-2xl sm:pt-3xl` is NOT decorative under
+        // `justify-end`: it is what provides the top gap in exactly the case
+        // where `min-h` does not bind, and `min-height` plus flex-end honours
+        // padding on both sides, so the two compose.
+        className="relative z-0 w-full bg-hero-surface pt-2xl pb-2xl sm:pt-3xl sm:pb-3xl md:sticky md:bottom-0 md:flex md:min-h-dvh md:flex-col md:justify-end"
       >
         {/* Rule S-1, byte-identical to every shipped section's container —
             inside a full-bleed plate, exactly as the hero does it. The spine is
@@ -427,9 +627,32 @@ export function RevealFooter() {
             style={{ backgroundColor: "var(--accent-hero)" }}
           />
 
-          {/* Weight left at the inherited 400, as in every shipped section: the
-              type scale carries the size. */}
-          <h2 id="contact-heading" className="text-h2 text-hero-fg">
+          {/*
+            IT IS STILL A REAL `<h2>`, AND IT IS NOW A MONO CAPTION.
+
+            DEMOTED FROM `text-h2` ON 2026-08-23 (~68px x 1.2 = 81.6px down to
+            12px x 1.6 = 19.2px, a 62.4px saving) so the wordmark at the bottom
+            of the plate can be the largest element without the plate carrying
+            two large elements. `aria-labelledby="contact-heading"` keeps
+            working, the `contentinfo` landmark keeps its accessible name, and
+            nothing invented enters the a11y tree — a heading is allowed to be
+            small. Inverting the hierarchy (a 12px mono label above a 144px
+            wordmark) reads as deliberate typographic direction rather than as a
+            missing heading.
+
+            FULL OPACITY, NOT `/70`. The three link LABELS below are
+            `text-caption font-mono text-hero-fg/70`; if the heading took the
+            same string it would be indistinguishable from a fourth label. The
+            colour decision this element already carried is the one that is
+            kept; only the size and the family changed.
+
+            Weight left at the inherited 400, as in every shipped section: the
+            type scale carries the size.
+          */}
+          <h2
+            id="contact-heading"
+            className="text-caption font-mono text-hero-fg"
+          >
             {CONTACT_HEADING}
           </h2>
 
@@ -567,7 +790,7 @@ export function RevealFooter() {
           </ul>
 
           {/*
-            THE STAMP, AND WHY IT IS AT THE BOTTOM RATHER THAN THE TOP.
+            THE STAMP, AND WHY THE COMPOSITION ENDS BOTTOM-HEAVY.
 
             THE CURTAIN IS REVEALED BOTTOM-UP, WHICH INVERTS READING ORDER, and
             that is the single fact the arrangement has to answer. The first
@@ -576,16 +799,19 @@ export function RevealFooter() {
             tall. A heading or a sentence cannot survive being read that way. A
             STAMP CAN — it is not a sentence, it has no order, and it is
             complete at any size. So the reveal reads as a signature emerging
-            from under the page: mark, then year, then the links, then the
-            sentence, then the heading, as the page lifts. By the time the plate
-            is fully exposed the composition re-reads correctly top-down. Both
-            passes are coherent, which is the only arrangement of this content
-            for which that is true.
+            from under the page: the wordmark, then the mark and year, then the
+            links, then the sentence, then the heading, as the page lifts. By
+            the time the plate is fully exposed the composition re-reads
+            correctly top-down. Both passes are coherent, which is the only
+            arrangement of this content for which that is true.
 
-            It is also what carries the reveal in DARK MODE, where the occlusion
-            edge measures 1.01:1 and is invisible: the strongest element in the
-            composition, a solid `text-hero-fg` monogram at 16.53:1, is the
-            first thing the strip contains.
+            THE WORDMARK INHERITED THIS SLOT ON 2026-08-23 AND THE ARGUMENT CAME
+            WITH IT, RATHER THAN BEING DELETED. A wordmark is a stamp: it
+            satisfies every clause above, and it satisfies the DARK MODE clause
+            better than a 34px monogram did. The occlusion edge measures 1.01:1
+            in dark mode and is invisible, so the reveal is carried entirely by
+            content entering the strip — and the strongest element in the
+            composition is now the first thing the strip contains.
 
             THE ALTERNATIVE REJECTED: the stamp as a letterhead at the TOP of
             the plate. It composes well statically and it kills the copyright
@@ -596,21 +822,21 @@ export function RevealFooter() {
             at the plate's top-left puts two identical marks in one vertical
             line on every scroll-up. The bottom placement has no collision.
 
-            IF THE 144px OF EMPTY PLATE BELOW THE STAMP EVER READS AS NOTHING in
-            dark mode, the fix is to reduce the plate's bottom padding to
-            `pb-xl sm:pb-2xl` and record it as a deliberate, curtain-specific
-            revision of the symmetry rule. NOT a shadow, NOT a rule, NOT a
-            lighter plate.
+            `mt-xl` (55px) RATHER THAN THE OLD `mt-2xl sm:mt-3xl`. The stamp is
+            no longer the plate's closing beat — the wordmark is — so it takes
+            the same 55px separation the link list takes from the closing line
+            rather than a terminal-sized gap. The 89/144px it used to take is
+            what the wordmark's own slot is built out of.
           */}
-          <div className="mt-2xl sm:mt-3xl">
+          <div className="mt-xl flex items-center gap-xs">
             {/*
               `variant="nav"` — the settled mark, static, no third dressing.
               Decided upstream and not reopened.
 
-              `text-hero-fg` AT FULL OPACITY: the mark is `currentColor`, and
-              this is the first thing the reveal shows — a recessed first sight
-              is a weak opening. The year below carries the recession instead,
-              which also builds hierarchy inside the stamp itself.
+              `text-hero-fg` AT FULL OPACITY: the mark is `currentColor`. It is
+              the smaller of the two stamp elements now, but it is still the
+              solid one — the year beside it carries the recession, which is
+              what builds hierarchy inside the stamp itself.
 
               `label={null}` — DECORATIVE, DELIBERATELY, and passed explicitly
               rather than left to the default so the choice is on the record.
@@ -621,8 +847,8 @@ export function RevealFooter() {
               honest count.
 
               `block` because an `<svg>` is inline by default and would sit on a
-              text baseline with descender space under it, which would make the
-              5px bind below inexact.
+              text baseline with descender space under it, which would throw the
+              row's vertical centring off by the descender.
 
               NO HOVER AND NO LETTER-PART GESTURE. `Navbar.tsx` reaches
               `<g data-ms-letter>` for its hover micro-motion; nothing here
@@ -636,22 +862,32 @@ export function RevealFooter() {
             />
 
             {/*
-              THE YEAR — AND IT IS NOT A COPYRIGHT LINE. Four digits at the
-              bottom-left of a dark footer under a monogram is one layout
-              decision away from becoming one, which this file bans outright.
-              Three things keep it on the right side of that line:
+              THE YEAR — AND IT IS STILL NOT A COPYRIGHT LINE, BUT ONE OF THE
+              THREE THINGS THAT KEPT IT ON THE RIGHT SIDE OF THAT LINE CHANGED
+              ON 2026-08-23 AND IS REPLACED RATHER THAN QUIETLY DROPPED.
 
-                1. It sits BELOW the mark, left-aligned to the mark's left edge,
-                   not beside it. Every copyright line ever written is
-                   horizontal; a vertical mark-over-date stack is a stamp.
-                2. It is four digits and nothing else. No `©`, no name, no "All
-                   rights reserved", no range, no separator glyph.
-                3. It is the last thing in the document and the FIRST thing
-                   revealed, so it is framed as the signature on the piece
-                   rather than as legal furniture appended after the content.
+              IT USED TO READ: "1. It sits BELOW the mark, left-aligned to the
+              mark's left edge, not beside it. Every copyright line ever written
+              is horizontal; a vertical mark-over-date stack is a stamp." That
+              was true and it is now false — mark and year sit on ONE ROW, which
+              is exactly the horizontal arrangement that sentence warned about.
 
-              `mt-2xs` is 5px — tight enough that the mark and the year are
-              unambiguously one object rather than two stacked elements.
+              WHAT REPLACES IT: the row is no longer the last thing on the
+              plate. It sits ABOVE a signature, which makes it a DATE STAMP on a
+              signed piece rather than legal furniture appended after the
+              content. A copyright line is the last thing in a document by
+              definition; this one is not. The demotion to a 21px mark is part
+              of the same reading — legal furniture is set at body size, a stamp
+              is set small.
+
+              THE OTHER TWO ARE UNCHANGED AND STILL BINDING:
+                - It is four digits and nothing else. No `©`, no name, no "All
+                  rights reserved", no range, no separator glyph.
+                - Nothing on this surface may state a fact Saad has not stated,
+                  and a copyright assertion is a claim.
+
+              `gap-xs` is 8px — the same 8px that binds each link's label to its
+              value as ONE unit a few lines above, used here for the same job.
 
               IF IN REVIEW THIS STILL READS AS A COPYRIGHT LINE, THE FIX IS TO
               DELETE THE YEAR and leave the mark alone. It is not to add a
@@ -660,9 +896,78 @@ export function RevealFooter() {
               a perfectly good signature and `docs/07` §5's "stamp/signature
               detail" is satisfied by the mark alone.
             */}
-            <p className="mt-2xs text-caption font-mono text-hero-fg/70">
+            <p className="text-caption font-mono text-hero-fg/70">
               {CONTACT_EDITION_YEAR}
             </p>
+          </div>
+
+          {/*
+            THE SIGNATURE. Saad's request, 2026-08-23: the name "sized and
+            positioned as the dominant visual element of the footer", with the
+            MS mark and year demoted above it into a smaller, secondary detail.
+
+            `aria-hidden`, AND THAT IS NOT AN OVERSIGHT. The name is already in
+            the accessibility tree twice on this page — the navbar's mark
+            carries it, and the page's `<h1>` carries it — and the
+            `MonogramMark` directly above passes `label={null}` at this very
+            call site for exactly this reason. A third announcement inside
+            `contentinfo` is redundancy, not access. The `<h2>` still names the
+            landmark "Contact" and the links are still a real `<ul>` with an
+            honest count; the wordmark is invisible to a screen reader and
+            nothing is lost by that.
+
+            IT DOES NOT OUT-WEIGH THE THREE LINKS, AND THAT IS ARITHMETIC RATHER
+            THAN REASSURANCE. Outlined at a 1.5px stroke the wordmark carries a
+            comparable amount of ink to the three link values at `text-body`;
+            solid-filled it would carry roughly five times as much. That ratio
+            is why it is outlined — not because outlined display type looks
+            good. Three more things hold the hierarchy independently of the ink:
+            it is LAST in the DOM and last on the plate, so at full exposure the
+            read is heading, sentence, links, mark+year, signature; it is
+            NEUTRAL and un-underlined where the links are teal and permanently
+            underlined, so it cannot be mistaken for something to activate; and
+            it is invisible to assistive technology.
+
+            THE BOX IS THE WORDMARK, not a full-measure band. `w-fit` plus an
+            aspect ratio derives the width from the height and the string's own
+            advance, which does three things at once: the leading edge sits on
+            the spine (Rule S-1), ~999px of void is left to its right at 1440
+            (also Rule S-1 — the void is the site's grammar and this is the
+            site's LAST surface), and the hover target is the wordmark rather
+            than a 1262px-wide invisible strip across the bottom of the plate.
+
+            `h-2xl sm:h-3xl` — 89px below 640, 144px at 640 and up, and THE SIZE
+            IS BOUNDED BY THE SHORTEST SUPPORTED VIEWPORT, NOT THE TALLEST. The
+            plate's composed content has to fit inside a 768px-tall laptop
+            viewport or the curtain there becomes a crawl over something that
+            can never be seen whole — which is reason 1 of the below-768
+            carve-out, applied to a laptop. A larger `sm:h-4xl` (233px) was
+            available and was declined by Saad on exactly that trade: "accept
+            the constrained size, don't spend more of the footer's height budget
+            chasing a bigger wordmark." DO NOT RAISE IT WITHOUT RE-MEASURING THE
+            PLATE AT 1366x768 AND 1280x720.
+
+            `text-hero-fg/70` sets `color` for BOTH of the component's layers:
+            the resting outline reads it through `currentColor` at 8.17:1, and
+            the cursor-revealed layer overrides it to full at 16.53:1. NEITHER
+            CYAN NOR TEAL — `text-hover-effect.tsx`'s header has both refusals
+            with the arithmetic.
+
+            THE ASPECT RATIO IS AN INLINE STYLE, NOT AN ARBITRARY TAILWIND
+            VALUE, because it is computed from `WORDMARK_ADVANCE_UNITS` — the
+            same constant the component's `viewBox` takes. Two spellings of one
+            number is how the box and the glyphs drift apart.
+          */}
+          <div
+            aria-hidden="true"
+            className="mt-md h-2xl w-fit sm:h-3xl"
+            style={{ aspectRatio: `${WORDMARK_ADVANCE_UNITS} / 100` }}
+          >
+            <TextHoverEffect
+              text={WORDMARK_TEXT}
+              viewBoxWidth={WORDMARK_ADVANCE_UNITS}
+              className="text-hero-fg/70"
+            />
           </div>
         </div>
       </footer>

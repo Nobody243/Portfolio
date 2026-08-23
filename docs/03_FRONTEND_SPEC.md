@@ -595,13 +595,24 @@ the page"; `sticky` produces the identical effect and is what ships.
   and the hero palette the bar takes on `/` is correct for a dark ground and catastrophic on
   `#FDFCFA`. `app/(site)/(chrome)/page.tsx` carries the measurement. **Do not "harmonise" the two
   back together.**
-- **`document.scrollHeight` changes by exactly 0px, and that is the whole point.** A sticky element
-  occupies its normal flow box in full — sticky is the one positioning scheme that does *not*
-  remove an element from flow, and its offset is a paint-time shift rather than a layout change.
-  **Measured on `/` and `/work` at 1440x900, 1280x800, 1024x600, 768x1024 and 360x640, both
-  themes: toggling the footer between `sticky` and `static` moves `scrollHeight` by 0px in all
-  twenty cases.** No phantom scroll is added and none is removed, so every `end: "bottom bottom"`
-  on the page resolves exactly where it did.
+- **Toggling `sticky` ↔ `static` changes `document.scrollHeight` by exactly 0px, and that is the
+  whole point.** A sticky element occupies its normal flow box in full — sticky is the one
+  positioning scheme that does *not* remove an element from flow, and its offset is a paint-time
+  shift rather than a layout change. **Re-measured 2026-08-23 with `md:min-h-dvh` present, on `/`
+  and `/work`, both themes, at 1440x900, 1280x800, 1024x600, 768x1024, 360x640, 1366x768, 1280x720
+  and 2560x1440: 0px in all 32 cases.** No phantom scroll is added and none is removed, so every
+  `end: "bottom bottom"` on the page resolves exactly where it did. **The plate's travel through a
+  full reveal is likewise still 0px, measured.**
+
+  **THIS BULLET SAID "`document.scrollHeight` changes by exactly 0px" UNTIL 2026-08-23, AND THAT
+  SENTENCE WAS ALWAYS ABOUT THE POSITIONING SCHEME RATHER THAN ABOUT THE HEIGHT — the distinction
+  only became load-bearing when the plate acquired a viewport-unit floor.** The document *does* now
+  get taller: `md:min-h-dvh` grows `scrollHeight` by `max(0, viewportHeight − composedContentHeight)`,
+  **measured at +124px at 1440x900, +24px at 1280x800, +190px at 768x1024, +664px at 2560x1440, and
+  0px at 1024x600 / 1366x768 / 1280x720 / 360x640.** That growth lands entirely after `<main>`'s last
+  child, so no section moves and every element-relative trigger end resolves where it did; the only
+  effect is more scroll runway for the last scrubbed unit on `/`, never less. **A trigger that ever
+  resolves its `end` against the document or `body` rather than a section would move by that delta.**
 - **`ScrollTrigger.refresh()` is NOT required, and adding it is mildly harmful.** There is no
   post-mount geometry change to refresh against, and a refresh recomputes every trigger on the page
   — landing mid-scroll it can visibly re-snap a scrubbed section. `docs/07` §5's implementation
@@ -623,18 +634,56 @@ the page"; `sticky` produces the identical effect and is what ships.
 - **The short page needs no handling at all.** A sticky offset may only move an element *within*
   its containing block, and the footer is the last child of `<body>`, so the browser cannot push it
   down toward a viewport bottom below it. A page that does not scroll clamps the plate flush under
-  the last section. **Never add `min-h-[calc(100dvh-…)]` to "fix" a short page** — that is the
-  reflexive fix and it is the one that grows `scrollHeight`, breaking the guarantee above.
-- **No viewport-unit height on the plate, and no parallax on it.** The plate's travel is **0px**;
-  the page scrolls off it at 1:1 and that is the entire wipe. A plate that drifts as it appears did
-  not arrive early — it is arriving now — which contradicts the one thing the footer is supposed to
-  say. Height is bounded compositionally instead: **if the plate ever measures more than 900px at
-  ≥1024px, cut content; do not cap the box.** (Measured at Phase 5: 793px at 1440 wide, 787px at
-  1280, **870px at 1024**, where the link row wraps.)
-- **Reduced motion does not branch here.** There is one rate — the visitor's own — no `transition`,
-  no `transform`, no `animation` and no scroll-linked value, so there is nothing to disable. A
-  branch would have to change `position`, which changes layout, which would give two classes of
-  visitor different document heights and different resolved trigger ends for the same page.
+  the last section. **Never add `min-h-[calc(100dvh-…)]` to "fix" a short page** — the short page is
+  not broken, so there is nothing there to fix, and a `calc()` against the viewport is the reflexive
+  version of it. (This clause used to end "…because it grows `scrollHeight`, breaking the guarantee
+  above". The plate now carries `md:min-h-dvh` deliberately and `scrollHeight` does grow; the
+  guarantee that survives is the `sticky`↔`static` delta, per the bullet above. The ban on the
+  `calc()` form stands on its own reason.)
+- **THE VIEWPORT-UNIT BAN WAS REVERSED ON 2026-08-23. The plate is `md:min-h-dvh`.** This bullet
+  read "No viewport-unit height on the plate" and "if the plate ever measures more than 900px at
+  ≥1024px, cut content; do not cap the box." Saad asked for the curtain to occupy a full viewport so
+  it matches the hero's visual weight; the reversal is deliberate, and the prior reasoning is kept
+  here in the past tense rather than deleted — the same treatment hide-on-scroll, the navbar theme
+  toggle and `/about`'s route fade each got.
+  - **`min-h`, not `h`; `dvh`, not `vh`; gated at `md:`, the curtain's own breakpoint, not a new
+    one.** `h-dvh` would clip the plate at 1024x600, where the content is 867.58px. Below 768px
+    there is no curtain and the plate is already taller than a phone viewport, so `min-h-dvh` there
+    would append up to a full empty viewport of plate to the end of every phone visit. **One
+    breakpoint governs both the pin and the height.**
+  - **`md:flex md:flex-col md:justify-end` goes with it, on the `<footer>` itself.** The slack has to
+    pool somewhere: `justify-between` would make the composition's internal rhythm a function of
+    viewport *height* (a viewport-unit layout by another name), and the default `flex-start` pools it
+    at the bottom, so the curtain would open on a band of empty plate — which in dark mode is
+    invisible, since the occlusion edge measures 1.01:1. `justify-end` puts the slack at the top
+    where it is unpainted. **Not on the spine container**: free space is distributed by the flex
+    container, so `justify-end` on the item is a no-op, and the spine string must stay byte-identical
+    to the other twelve sections'.
+  - **THE 900px CEILING NOW GOVERNS COMPOSED CONTENT HEIGHT, NOT BOX HEIGHT.** The box is ≥900px at
+    ≥1024px by construction now, so the rule as written was violated the moment the class landed. Its
+    purpose is untouched: it exists to stop *content* growing until the reveal becomes a crawl over
+    something that can never be seen whole. **If the plate's composed content ever exceeds 900px at
+    ≥1024px, cut content; do not cap the box.** (Measured 2026-08-23 with the wordmark: **775.98px**
+    at every width from 1280 up, **867.58px** at 1024x600 where the link row wraps, 833.58px at
+    768x1024, 811.36px at 360x640. Measured at Phase 5, before the wordmark: 793px at 1440, 787px at
+    1280, 870px at 1024.)
+- **No parallax on the plate. The plate's travel is still 0px**, measured through a full reveal at
+  1440x900 with the full-height class present; the page scrolls off it at 1:1 and that is the entire
+  wipe. A plate that drifts as it appears did not arrive early — it is arriving now — which
+  contradicts the one thing the footer is supposed to say. **A full-height plate makes this more
+  tempting, not less**, and it is exactly when someone reasons "it's big enough to justify it now".
+- **Reduced motion does not branch THE CURTAIN.** There is one rate — the visitor's own — no
+  `transform`, no `animation` and no scroll-linked value on the plate's *position*, so there is
+  nothing there to disable. A branch would have to change `position`, which changes layout, which
+  would give two classes of visitor different document heights and different resolved trigger ends
+  for the same page. **`md:min-h-dvh` does not weaken this**: it is a static size, not a rate, and it
+  is identical for both classes of visitor.
+
+  **The wordmark added on 2026-08-23 IS motion and DOES branch, and the two are separate things.**
+  Its cursor-following luminance reveal drops its travel to 0 under `prefers-reduced-motion` and
+  cross-fades in place — the same split `CopyEmailButton` already ships on this plate. It is also
+  absent entirely on a device that matches `(hover: hover) and (pointer: fine)` false. Neither
+  touches the plate's position, so the paragraph above is unaffected.
 - **Exactly one `contentinfo` per page, and `/about` deliberately has none.** `position` does not
   move an element in the accessibility tree, so the landmark survives the technique intact. `/about`
   renders no reveal footer per `docs/07` §5–6 and therefore has zero `contentinfo` landmarks — a
