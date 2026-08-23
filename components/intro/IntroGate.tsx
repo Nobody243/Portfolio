@@ -12,8 +12,10 @@
  *      no longer one to fight.
  *   3. `Intro`'s PHASE 7 fires `onHandoff` on its first frame, the plate
  *      dissolves over 0.55s while the hero settles in behind it over 1.30s, the
- *      navbar slides in on the same INSTANT (not for the same duration), and
- *      `onDone` retires the gate.
+ *      navbar slides in on the same INSTANT (not for the same duration),
+ *      `onPlateCleared` fires 65% of the way through that dissolve — so the
+ *      bar can swap OFF the plate's palette while the plate is still dark
+ *      enough to swap onto its own — and `onDone` retires the gate.
  *      This step said "`Intro`'s zoom-in fires `onHandoff`, the hero settles in
  *      behind the camera out of the mark's anchor pixel" until 2026-08-22, when
  *      the ×17 camera was retired and the dissolve became the only ending on
@@ -120,19 +122,32 @@ type IntroGateProps = {
    * mounting a gate that immediately retires itself.
    */
   onHandoff?: () => void;
+  /**
+   * Fired PART-WAY INTO the dissolve — on the frame the plate stops being the
+   * GROUND behind fixed chrome, which is neither of the other two instants.
+   * `Intro.tsx`'s `PLATE_GROUND_RATIO` places it and carries the arithmetic;
+   * `IntroContext.tsx` records why it can be neither `onHandoff` nor `onDone`.
+   */
+  onPlateCleared?: () => void;
   /** Fired once the gate is finished and can be unmounted. */
   onDone: () => void;
 };
 
-export function IntroGate({ onHandoff, onDone }: IntroGateProps) {
+export function IntroGate({
+  onHandoff,
+  onPlateCleared,
+  onDone,
+}: IntroGateProps) {
   const [phase, setPhase] = useState<Phase>("loading");
 
   const onHandoffRef = useRef(onHandoff);
+  const onPlateClearedRef = useRef(onPlateCleared);
   const onDoneRef = useRef(onDone);
   useEffect(() => {
     onHandoffRef.current = onHandoff;
+    onPlateClearedRef.current = onPlateCleared;
     onDoneRef.current = onDone;
-  }, [onHandoff, onDone]);
+  }, [onHandoff, onPlateCleared, onDone]);
 
   /* UNCONDITIONAL NOW, and that is a simplification rather than a change of
      behaviour: this component is only ever rendered when it is going to play,
@@ -169,6 +184,7 @@ export function IntroGate({ onHandoff, onDone }: IntroGateProps) {
     <Intro
       sequence="full"
       onHandoff={() => onHandoffRef.current?.()}
+      onPlateCleared={() => onPlateClearedRef.current?.()}
       onComplete={() => {
         // AT FINISH, NOT AT START — `played`'s one load-bearing property,
         // preserved verbatim under the new mount point. A run interrupted

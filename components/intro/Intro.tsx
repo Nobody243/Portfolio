@@ -27,7 +27,9 @@
  *   6  1.995 → 2.215  BREATH.    Nothing happens. That is the phase.
  *   7  2.215 → 2.765  DISSOLVE.  The stage holds at 0.82 and the plate fades
  *                                out from under the mark on `power2.in`. THE
- *                                DISSOLVE IS THE TRANSITION.
+ *                                DISSOLVE IS THE TRANSITION. One `.call()` sits
+ *                                inside it, at 2.573 — see
+ *                                `PLATE_GROUND_RATIO`.
  *
  * PHASE 7 WAS A ×17 ZOOM-IN CAMERA ON HOME UNTIL 2026-08-22, AND ONLY ON HOME.
  * `/work` and `/about` already ended on this dissolve, so the file carried two
@@ -226,6 +228,61 @@ const BREATH_S = 0.22;
  */
 const DISSOLVE_S = 0.55;
 
+/**
+ * WHERE INSIDE THE DISSOLVE THE PLATE STOPS BEING A *GROUND*, as a fraction of
+ * `DISSOLVE_S`. It is the instant `onPlateCleared` fires, and its only consumer
+ * is the navbar's palette.
+ *
+ * THE PROBLEM IS THAT NEITHER END OF THIS TWEEN IS USABLE, AND BOTH ENDS WERE
+ * TRIED. The bar is fixed over this plate on all three routes. While the plate
+ * is opaque the bar must be transparent and carry `--color-hero-fg`; once the
+ * plate has gone the bar must carry its own 80% `--color-base` scrim and
+ * `--color-fg`. Off Home the swap therefore has to happen DURING the fade:
+ *
+ *   - AT THE HAND-OFF (`t = 0`), which is what shipped in `fc2f567`: the scrim
+ *     paints over a plate at opacity 1.000. MEASURED at 1440x900 light on
+ *     `/work`, sampling every frame: 15 frames — ~250ms — with header
+ *     background alpha 204/255 while the plate was still ≥0.9 opaque. Contrast
+ *     was never the failure (11.25:1 throughout); a light slab on a black plate
+ *     was.
+ *   - AT `onDone` (`t = 1`): the hero palette rides the fade to the end, and in
+ *     light mode the ground under the bar travels #07090C → #FDFCFA. #E8EAEC on
+ *     that measures **1.18:1** at the last frame. Not survivable.
+ *
+ * 0.65 IS DERIVED FROM TWO INDEPENDENT CONSTRAINTS THAT AGREE. `power2.in` is
+ * cubic, so plate opacity at fraction `u` is `1 − u³`.
+ *
+ *   1. CONTRAST CEILING — how late the swap may be. #E8EAEC over the composite
+ *      of the plate on `--color-base` (light) falls to 7:1 at u = 0.655 and to
+ *      the 4.5:1 AA floor at u = 0.736. Swapping at 0.65 leaves the outgoing
+ *      palette at **7.16:1** on its last frame and keeps ~45ms — three frames
+ *      at 60Hz — of margin before AA would be breached by a late call.
+ *   2. THE SLAB FLOOR — how early the swap may be. The bar's own row is tweened
+ *      `yPercent −100 → 0` over `HANDOFF_DURATION_S` (0.45s) on `power2.out`,
+ *      also cubic. At u = 0.65 that is t = 358ms, i.e. **99.1% arrived**: the
+ *      scrim therefore never paints an EMPTY bar, which is what made the
+ *      `t = 0` version read as a hole punched in the Intro rather than as a
+ *      navbar. Below u ≈ 0.5 the row is still visibly short of its rest.
+ *
+ * WHAT IT COSTS, STATED RATHER THAN HIDDEN. Between u = 0.65 and u = 1 the bar
+ * carries its light scrim over a plate that is still 0.725 → 0 opaque, so in
+ * light mode a #D9D9D9 bar sits on a ground travelling #4B4C4D → #FDFCFA for
+ * 192ms. That is a lighter bar over a fading plate, not a bar-shaped hole in an
+ * opaque one, and it is the shortest window the contrast ceiling permits.
+ *
+ * WHY NOT A CROSS-FADE INSTEAD OF A DISCRETE SWAP AT A CHOSEN FRAME: because
+ * ramping the scrim in over the fade walks the ground through mid-grey, where
+ * NEITHER palette clears AA — at u = 0.7 with a half-strength scrim the ground
+ * is ~#A8A8A8 and the two inks measure 1.92:1 and 4.31:1. `Navbar.tsx`'s
+ * "A CROSS-FADE BETWEEN TWO INVERTED PALETTES IS UNSAFE AT ITS MIDPOINT" block
+ * is the same finding, measured on the same bar at 1.01:1.
+ *
+ * ON HOME IT CHANGES NOTHING. `Navbar.tsx` ORs this ground with the hero's, and
+ * at scroll 0 on `/` the hero is under the bar for the whole sequence — so the
+ * attribute never changes there and this constant is inert.
+ */
+const PLATE_GROUND_RATIO = 0.65;
+
 /** The navbar's slide, from `lib/animation/handoff.ts` so that the timing and
  *  the DOM contract it depends on stay in one place.
  *
@@ -329,6 +386,12 @@ type IntroProps = {
    * route rather than a camera on one.
    */
   onHandoff?: () => void;
+  /**
+   * Fired PART-WAY THROUGH phase 7 — at `PLATE_GROUND_RATIO` of the dissolve —
+   * on the frame the plate stops being the GROUND behind fixed chrome. See that
+   * constant for why it is neither `onHandoff` nor `onComplete`.
+   */
+  onPlateCleared?: () => void;
   /** Fired once the plate is finished and can be unmounted. */
   onComplete?: () => void;
 };
@@ -337,6 +400,7 @@ export function Intro({
   sequence = "full",
   playToken = 0,
   onHandoff,
+  onPlateCleared,
   onComplete,
 }: IntroProps) {
   const reducedMotion = useReducedMotion();
@@ -348,11 +412,13 @@ export function Intro({
   /* Callbacks through refs, so a parent re-render that produces new function
      identities cannot restart a running timeline. */
   const onHandoffRef = useRef(onHandoff);
+  const onPlateClearedRef = useRef(onPlateCleared);
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
     onHandoffRef.current = onHandoff;
+    onPlateClearedRef.current = onPlateCleared;
     onCompleteRef.current = onComplete;
-  }, [onHandoff, onComplete]);
+  }, [onHandoff, onPlateCleared, onComplete]);
 
   /** The mark's letters, from the geometry module's own derivation of
    *  `HERO_NAME` — never the literal "MS". */
@@ -488,6 +554,7 @@ export function Intro({
 
     const finish = () => onCompleteRef.current?.();
     const handoff = () => onHandoffRef.current?.();
+    const plateCleared = () => onPlateClearedRef.current?.();
 
     /* -------------------------------------------------------------------
        REDUCED MOTION — a fade to the settled mark and an instant reveal.
@@ -525,7 +592,16 @@ export function Intro({
       const tl = gsap.timeline({ onComplete: finish });
       tl.to(wrapper, { opacity: 1, duration: REDUCED_MARK_IN_S, ease: "power2.out" });
       tl.to({}, { duration: REDUCED_HOLD_S });
+      /* THE SAME FRACTION OF THE SAME FADE. The reduced path's plate goes out
+         LINEARLY over 0.25s rather than cubically over 0.55s, so the ratio is
+         applied to the fade's own length and the opacity it lands on differs
+         (1 − 0.65 = 0.35 here, 1 − 0.65³ = 0.725 there). Both are past the
+         "still an opaque slab" band and short of the "ground has gone white"
+         one, which is the property `PLATE_GROUND_RATIO` names. A `.call()` on
+         the same timeline rather than a `setTimeout`, so killing the timeline
+         cancels it. */
       tl.to(plate, { autoAlpha: 0, duration: REDUCED_FADE_S, onStart: handoff });
+      tl.call(plateCleared, undefined, `-=${REDUCED_FADE_S * (1 - PLATE_GROUND_RATIO)}`);
       return () => {
         tl.kill();
         if (nav) gsap.set(nav, { yPercent: 0 });
@@ -721,6 +797,14 @@ export function Intro({
       },
       tHandoff,
     );
+
+    /* THE PALETTE HAND-OFF, WHICH IS NOT THE SAME INSTANT AS THE HAND-OFF.
+       Scheduled on THIS timeline at an absolute position rather than fired from
+       a `setTimeout` in the navbar: a timeline call is killed with the timeline
+       and drifts with nothing, and it keeps the fraction next to the tween it
+       is a fraction OF. `PLATE_GROUND_RATIO` carries the arithmetic and the two
+       measurements that rule out both ends of this tween. */
+    tl.call(plateCleared, undefined, tHandoff + DISSOLVE_S * PLATE_GROUND_RATIO);
 
     return () => {
       tl.kill();

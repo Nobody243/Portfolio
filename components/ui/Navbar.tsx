@@ -402,33 +402,52 @@ export function Navbar() {
      light-grey slab — a bar-shaped hole in the Intro, for the whole ~2.2s
      before phase 7 starts. Screenshot: `scratchpad/navwhite-work.png`.
 
-     `!arriving` IS THE TERM, AND THE INSTANT MATTERS MORE THAN THE ATTRIBUTE.
-     `arriving` is false only while an Intro is in front of this document and
-     has not yet handed off; it is seeded TRUE on a client navigation, so a
-     `/work` reached by clicking is unaffected. Releasing the ground at the
-     hand-off — rather than at `introDone`, when the plate is finally gone —
-     is a contrast decision and it is derived rather than preferred:
+     `!plateCleared` IS THE TERM, AND IT IS NOT `!arriving`. THE INSTANT IS THE
+     WHOLE FIX. `plateCleared` is the third wire out of `IntroContext`: false
+     while an Intro is in front of this document, true from
+     `PLATE_GROUND_RATIO` (0.65) of the way through the plate's dissolve. Like
+     the other two it is seeded TRUE on a client navigation, so a `/work`
+     reached by clicking is unaffected.
 
-       Off Home the plate's dissolve is a LIGHTNESS RAMP. In light mode the
-       ground behind this bar travels L* 2.41 -> 98.99 over 0.55s. Hold the
-       hero palette across that ramp and #e8eaec ink ends up on a near-white
-       ground: at t = 0.50s of 0.55s the composite is ~#C0BFBE and the ink
-       measures **1.45:1**. Release at the hand-off instead and the bar takes
-       its OWN scrim on the same frame — 80% `--color-base` over whatever the
-       plate is doing, which is never darker than ~#CBCBCB in light mode — so
-       #151515 stays above 12:1 for every frame of the ramp. The swap itself is
-       discrete (see `apply()` below), so there is no midpoint to pass through.
+     BOTH ENDS OF THE DISSOLVE WERE TRIED AND BOTH FAIL. `fc2f567` released on
+     `!arriving`, i.e. on the hand-off frame, and that shipped:
 
-       The cost is stated rather than hidden: for the first ~50ms of the
-       dissolve the bar carries its light scrim while its own row is still
-       sliding in, i.e. the old empty slab, for about three frames instead of
-       for 2.2 seconds. That window is the frame the bar is DEFINED to arrive
-       on by `docs/07` §3 step 7, and the alternative — pinning the bar's
-       background to `--color-hero-surface` for the plate's whole life — trades
-       it for a dark bar sitting over the page as the page appears.
+       MEASURED at 1440x900 light on `/work`, sampling EVERY frame and resolving
+       colours through a canvas: the header's background alpha jumped to 204/255
+       at the hand-off instant while the plate was still at opacity **1.000**,
+       and held it for **15 frames (~250ms) with the plate ≥0.9 opaque**. The
+       same on `/about`, both themes. Contrast was never what failed — it
+       measured 11.25:1 throughout — a LIGHT SLAB ON A BLACK PLATE was, which is
+       the original bug at 1/9th the duration. Dark mode is clean either way,
+       because a dark scrim on a dark plate reads as nothing.
+
+     The other end fails harder. Holding the hero palette to `introDone` rides
+     #e8eaec ink down a LIGHTNESS RAMP: in light mode the ground behind this bar
+     travels L* 2.41 -> 98.99 over 0.55s, and the ink measures **1.45:1** at
+     t = 0.50s and **1.18:1** at the last frame.
+
+     SO THE SWAP HAPPENS INSIDE THE DISSOLVE, at the latest frame the outgoing
+     palette can still carry. At `PLATE_GROUND_RATIO` the plate is at opacity
+     0.725 and #e8eaec on the composite behind the bar is **7.16:1** — its last
+     frame — while #151515 on the scrim over that same composite is **12.91:1**
+     — its first. AA is not breached until u = 0.736, three frames later, so a
+     late call cannot break it. The swap itself is discrete (see `apply()`
+     below), so there is no midpoint to pass through; `Intro.tsx`'s constant has
+     the full derivation, including why a ramped scrim is worse than either end.
+
+     THE COST, STATED RATHER THAN HIDDEN: for the last 192ms of the dissolve the
+     bar carries its light scrim over a plate that is still 0.725 -> 0 opaque —
+     a #D9D9D9 bar on a ground travelling #4B4C4D -> #FDFCFA. It is a lighter
+     bar over a visibly fading plate rather than a hole punched in an opaque
+     one, and by that frame the bar's OWN row is 99.1% arrived, so it is never
+     empty. The alternative — pinning the bar's background to
+     `--color-hero-surface` for the plate's whole life — trades it for a dark
+     bar sitting over the page as the page appears.
   ----------------------------------------------------------------------- */
-  const { arriving } = useIntroHandoff();
-  const [initialOverHero] = useState(() => pathname === HOME_ROUTE || !arriving);
+  const { plateCleared } = useIntroHandoff();
+  const [initialOverHero] = useState(
+    () => pathname === HOME_ROUTE || !plateCleared,
+  );
 
   /* -----------------------------------------------------------------------
      RE-RUNS ON EVERY ROUTE CHANGE, and that dependency is load-bearing rather
@@ -567,10 +586,13 @@ export function Navbar() {
        OR means the attribute simply never changes across the hand-off, and the
        bar's ground goes #07090C -> #07090C with nothing to swap.
 
-       `intro` WAS ADDED 2026-08-22 for the empty-light-slab bug — the block at
-       `initialOverHero` above has the measurement, the reason the release
-       instant is the hand-off rather than `introDone`, and the cost. */
-    const ground = { hero: false, plate: false, intro: !arriving };
+       `intro` WAS ADDED 2026-08-22 for the empty-light-slab bug. It read
+       `!arriving` for one commit and that released it on the hand-off frame,
+       over a plate still at opacity 1.000; it is `!plateCleared` now, which
+       fires 65% of the way through the dissolve. The block at `initialOverHero`
+       above has both measurements, the derivation of that fraction and the
+       cost. */
+    const ground = { hero: false, plate: false, intro: !plateCleared };
 
     /* THE PALETTE SWAP IS DISCRETE, AND THAT IS A FIX, NOT AN OVERSIGHT.
 
@@ -704,14 +726,19 @@ export function Navbar() {
     apply();
 
     return () => kills.forEach((kill) => kill());
-    /* `arriving` IS A DEPENDENCY, AND IT FIRES EXACTLY ONCE PER DOCUMENT.
+    /* `plateCleared` IS A DEPENDENCY, AND IT FIRES EXACTLY ONCE PER DOCUMENT.
        It is monotonic false -> true (`IntroProvider`'s `setPhase` never runs it
-       back), so this effect re-runs one extra time, at the hand-off, and both
-       ScrollTriggers are rebuilt against a page that is at scroll 0 and fully
-       laid out. It is deliberately NOT read through a ref: the whole point is
-       that the palette must change on that frame, and `apply()` only runs from
-       inside this effect. */
-  }, [pathname, arriving]);
+       back), so this effect re-runs one extra time, inside the dissolve, and
+       both ScrollTriggers are rebuilt against a page that is at scroll 0 and
+       fully laid out. It is deliberately NOT read through a ref: the whole
+       point is that the palette must change on that frame, and `apply()` only
+       runs from inside this effect.
+
+       IT IS ALSO THE ONLY INTRO WIRE THIS FILE READS. `arriving` was the
+       dependency for one commit; swapping it for `plateCleared` rather than
+       adding it keeps the extra run count at ONE. Reading both would rebuild
+       the triggers twice inside a 0.55s window. */
+  }, [pathname, plateCleared]);
 
   /* -----------------------------------------------------------------------
      Where the indicator line sits.

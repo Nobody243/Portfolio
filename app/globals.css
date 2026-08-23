@@ -717,9 +717,16 @@ html[data-nav-open] {
    in both themes, `/` only), the mid-page sections (`bg-base`, which FLIPS),
    and the reveal footer's plate (dark again). One fixed colour cannot serve all
    four — light text vanishes on #FDFCFA, dark text vanishes on the hero — so
-   the bar swaps its palette at THREE boundaries: the Intro's hand-off, the
-   hero's bottom edge and the plate's top edge. `components/ui/Navbar.tsx` has
-   the measured contrast figures and all three.
+   the bar swaps its palette at THREE boundaries: a point INSIDE the Intro's
+   dissolve, the hero's bottom edge and the plate's top edge.
+   `components/ui/Navbar.tsx` has the measured contrast figures and all three.
+
+   THE FIRST OF THOSE THREE READ "the Intro's hand-off" FOR ONE COMMIT, and that
+   put this scrim on top of a plate still at opacity 1.000 for ~250ms. It is
+   `PLATE_GROUND_RATIO` (`components/intro/Intro.tsx`) now — 65% of the way
+   through the dissolve, which is the latest frame the hero palette can still
+   carry and the earliest one at which the bar's own row has arrived. Both
+   measurements are in `docs/06` §6.
 
    THIS SAID "three grounds on `/`" AND "TWO boundaries" UNTIL 2026-08-22, and
    the missing one was a shipped bug: `Navbar.tsx` seeded the attribute from

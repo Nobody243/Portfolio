@@ -705,19 +705,43 @@ applies only over `bg-base` — the only ground it was ever needed on.
 > empty light-grey slab — a bar-shaped hole in the Intro — for the whole ~2.2s
 > before the plate began to dissolve.
 >
-> The third ground is `!arriving` from `IntroContext`, OR-ed into the same
-> attribute, and it is RELEASED AT THE HAND-OFF rather than at `introDone`.
-> Off Home the plate's dissolve is a lightness ramp: in light mode the ground
-> behind the bar travels L\* 2.41 → 98.99 over 0.55s, so holding the hero palette
-> across it would put `#e8eaec` ink on a near-white ground. Releasing at the
-> hand-off means the bar takes its own scrim on the same frame instead.
-> **MEASURED per frame, decoded from composited pixels, 717 frames across the
-> whole plate lifetime on all three routes in both themes: the worst frame is
-> 11.25:1** (light `/work` and `/about`, the first frame after the crossing,
-> `#151515` on the `#CBCBCA` composite of the scrim over the still-opaque
-> plate), rising to 17.92:1 as the plate clears. **Zero frames below 4.5:1.**
+> The third ground is `!plateCleared` from `IntroContext`, OR-ed into the same
+> attribute, and **it is released INSIDE the dissolve — at `PLATE_GROUND_RATIO`
+> = 0.65 of it — rather than at either end.** Both ends were tried and both
+> fail, in opposite directions:
+>
+> | release instant | what fails | measured |
+> |---|---|---|
+> | `onDone`, plate gone | in light mode the ground under the bar travels `#07090C` → `#FDFCFA` while the bar still carries `#e8eaec` | **1.18:1** at the last frame |
+> | `!arriving`, the hand-off frame | the bar's own 80% `--color-base` scrim paints over a plate still at opacity **1.000** — the same light slab as the bug above, at 1/9th the duration | **15 frames (~250ms)** at 1440×900 light on `/work` with the plate ≥0.9 opaque; 16 on `/about`; contrast never failed (11.25:1) |
+>
+> `!arriving` is what shipped in `fc2f567` and it was corrected the same day.
+> 0.65 comes from two independent constraints that agree. `power2.in` is cubic,
+> so plate opacity at fraction *u* is 1 − *u*³. **The contrast ceiling** says how
+> LATE the swap may be: `#e8eaec` on the composite behind the bar falls to 7:1 at
+> *u* = 0.655 and to the 4.5:1 AA floor at *u* = 0.736, so 0.65 leaves the
+> outgoing palette at 7.16:1 on its last frame with ~45ms of margin. **The slab
+> floor** says how EARLY: the bar's own row tweens `yPercent −100 → 0` over 0.45s
+> on `power2.out`, also cubic, so at *u* = 0.65 (t = 358ms) it is **99.1%
+> arrived** — the scrim never paints an empty bar, which is what made the
+> hand-off-frame version read as a hole punched in the Intro.
+>
+> **RE-MEASURED after the change, on a production build at 1440×900.** Every rAF
+> frame, colours resolved through a canvas: **0** frames with header background
+> alpha > 8/255 while plate opacity > 0.9, on `/work` and `/about` in both themes
+> (62 before the fix — 15/16/16/15 across those four runs, `/` clean in both).
+> Per-frame contrast from the SAME composited CDP frames, ink and ground out of
+> one PNG, 156–244 assessed frames per run across the whole plate lifetime:
+> **zero frames below 4.5:1**, worst **5.64:1** (light `/work`, the last
+> hero-palette frame, `#e8eaec` on the `rgb(90,91,92)` composite — one frame
+> later than nominal, which is exactly what the 7:1 design margin was for).
 > On `/` the ink never changes across the hand-off at all, because `intro`
 > overlaps `hero` there by construction.
+>
+> The cost is stated rather than hidden: for the last 192ms of the dissolve the
+> bar carries its light scrim over a plate still 0.725 → 0 opaque — a `#D9D9D9`
+> bar on a ground travelling `#4B4C4D` → `#FDFCFA`. A lighter bar over a visibly
+> fading plate, not a bar-shaped hole in an opaque one.
 
 **The plate case was previously UNOBSERVED, not handled.** `Navbar.tsx` bound one
 ScrollTrigger, to the hero, and nothing tested the plate at all. Measured on the

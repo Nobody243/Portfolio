@@ -65,8 +65,8 @@ export function IntroProvider({ children }: { children: ReactNode }) {
   */
   const [phase, setPhase] = useState<IntroPhase>(() =>
     shouldPlay
-      ? { arriving: false, introDone: false }
-      : { arriving: true, introDone: true },
+      ? { arriving: false, plateCleared: false, introDone: false }
+      : { arriving: true, plateCleared: true, introDone: true },
   );
 
   /*
@@ -92,15 +92,35 @@ export function IntroProvider({ children }: { children: ReactNode }) {
     setPhase((p) => (p.arriving ? p : { ...p, arriving: true }));
   }, []);
 
+  /* THE THIRD WIRE, and it fires between the other two — part-way into the
+     dissolve, not at either end of it. `IntroContext.tsx` has the two
+     measurements that rule out reusing `arriving` or `introDone` for it. */
+  const handlePlateCleared = useCallback(() => {
+    setPhase((p) => (p.plateCleared ? p : { ...p, plateCleared: true }));
+  }, []);
+
+  /* SETS BOTH, and that is a safety property rather than a convenience.
+     `plateCleared` is delivered by a `tl.call` inside the dissolve, so a
+     timeline killed between the hand-off and that call — an unmount, an error
+     boundary, Fast Refresh — would otherwise leave the navbar holding the dark
+     plate's palette over a page with no plate on it. Finishing implies the
+     plate is gone, so `onDone` closes the wire unconditionally. Both terms are
+     monotonic false -> true, so this can never run either one backwards. */
   const handleDone = useCallback(() => {
-    setPhase((p) => (p.introDone ? p : { ...p, introDone: true }));
+    setPhase((p) =>
+      p.introDone ? p : { ...p, plateCleared: true, introDone: true },
+    );
   }, []);
 
   return (
     <IntroPhaseProvider value={phase}>
       {children}
       {shouldPlay && !phase.introDone ? (
-        <IntroGate onHandoff={handleHandoff} onDone={handleDone} />
+        <IntroGate
+          onHandoff={handleHandoff}
+          onPlateCleared={handlePlateCleared}
+          onDone={handleDone}
+        />
       ) : null}
     </IntroPhaseProvider>
   );

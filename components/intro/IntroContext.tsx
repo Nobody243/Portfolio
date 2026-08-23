@@ -55,12 +55,35 @@ export type IntroPhase = {
    * instant; the ×17 camera that used to carry it is retired.
    */
   arriving: boolean;
+  /**
+   * True once the plate has faded far enough to stop being the GROUND behind
+   * fixed chrome. It fires part-way INTO the dissolve, so it sits strictly
+   * between `arriving` and `introDone`.
+   *
+   * IT IS A THIRD WIRE RATHER THAN A REUSE OF EITHER OF THE OTHER TWO, and the
+   * reason is that both of those are wrong by a measured amount. `arriving` is
+   * the frame the dissolve STARTS, when the plate is still fully opaque:
+   * releasing on it makes `Navbar.tsx` paint its 80% `--color-base` scrim over
+   * a #07090C plate — the light-slab defect, in miniature. `introDone` is the
+   * frame the plate is GONE: holding until then leaves `--color-hero-fg` ink
+   * over a ground that has travelled to `--color-base`, which measures 1.18:1
+   * in light mode at the last frame. Neither instant is usable, so the release
+   * is placed inside the dissolve at `PLATE_GROUND_RATIO` (`Intro.tsx`), where
+   * both sides of the swap clear 7:1.
+   *
+   * THE ONLY CONSUMER IS `Navbar.tsx`. Nothing that RENDERS should read it:
+   * it fires mid-tween, so a component that re-rendered on it would commit a
+   * DOM change in the middle of the seam. The navbar writes an attribute from a
+   * layout effect, which costs no render — see its `ground` object.
+   */
+  plateCleared: boolean;
   /** True once the gate is finished and unmounted. */
   introDone: boolean;
 };
 
 const IntroContext = createContext<IntroPhase>({
   arriving: true,
+  plateCleared: true,
   introDone: true,
 });
 
