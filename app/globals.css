@@ -220,6 +220,57 @@
   --spacing-3xl: 144px;
   --spacing-4xl: 233px;
 
+  /* --- RADIUS -----------------------------------------------------------
+     THIS IS THE SITE'S FIRST AND ONLY RADIUS, ADDED 2026-08-24 ON SAAD'S
+     INSTRUCTION, AND IT REVERSES A DECISION THAT WAS STATED IN FOUR PLACES.
+
+     Until this line the site had NO radius token and NOT ONE `rounded-*`
+     class anywhere in `app/` or `components/` — verified by sweep, the only
+     four matches in the codebase were comments saying so. The refusals on
+     record:
+
+       - this file, 40 lines down: "No shadow, gradient, backdrop-blur or
+         radius tokens either."
+       - `docs/03` Rule S-4: the project overlay has "no scrim, no radius".
+       - `docs/03`'s theme-toggle note, which REFUSED a switch control
+         specifically because "a switch needs a visible track and knob, which
+         needs a radius", and a radius "would make it the site's first
+         non-typographic widget".
+       - `AboutScreen.tsx` at the portrait: "NO RADIUS, NO BORDER, NO FILTER,
+         NO DUOTONE, NO HOVER... a soft-cornered photo would be the exception
+         announcing itself."
+
+     THE TICKET THAT ADDED IT ASKED FOR "the matching token from the site's
+     established radius scale". THERE IS NO SUCH SCALE AND THERE ARE NO
+     ROUNDED BUTTONS OR CARDS TO MATCH — every control on the site is a hard
+     rectangle. So this is not reuse of an existing value; it is the first
+     one, and it is written here rather than as a `rounded-[13px]` at the call
+     site so that fact is visible in the design system instead of buried in a
+     class string.
+
+     13px IS `--spacing-sm`, NOT A NEW NUMBER. The whole site is built on the
+     Fibonacci scale above, so the radius comes off that scale rather than out
+     of Tailwind's default radius scale (4 / 6 / 8 / 12 / 16px), which is a
+     foreign system this project has never imported. It is written as a
+     literal because nothing else in `@theme static` cross-references another
+     token, and consistency inside this block is worth more than the
+     indirection. IF THE SPACING SCALE EVER CHANGES, THIS MOVES WITH `sm`.
+
+     On the 364px portrait it is 3.6% of the side — unmistakably deliberate at
+     a glance, and nowhere near the pill the ticket ruled out. `--spacing-xs`
+     (8px, 2.2%) was the alternative and reads as very nearly square at this
+     size; the ticket asked for a moderate radius, so `sm` was taken.
+
+     THE NAME IS THE GUARD, AND IT IS THE SAME MECHANISM `--field-ink` USES.
+     `--radius-photo` names ONE consumer. It deliberately does NOT open a
+     radius SCALE — there is no `--radius-sm`/`md`/`lg`, so nothing else can
+     quietly acquire soft corners by reaching for a generic name. A SECOND
+     CONSUMER IS THE MOMENT TO DECIDE WHETHER THIS SITE HAS A RADIUS SYSTEM,
+     with Saad, and it is not a decision an implementer may take by adding
+     `rounded-photo` to something that is not a photograph.
+  --------------------------------------------------------------------- */
+  --radius-photo: 13px;
+
   /* --- BREAKPOINTS -------------------------------------------------------
      THERE ARE NO CUSTOM BREAKPOINTS. The site runs on Tailwind's defaults.
 
@@ -535,7 +586,9 @@ html {
    structural rather than decorative and a theme-dependent weight would make
    the grid read differently in the two modes. That is still the rule: ONE
    value for both themes, never a per-mode split.
-   No shadow, gradient, backdrop-blur or radius tokens either.
+   No shadow, gradient or backdrop-blur tokens either. (It said "or radius"
+   until 2026-08-24; there is now exactly one, `--radius-photo`, with one
+   consumer and its whole reversal recorded at the token.)
 --------------------------------------------------------------------------- */
 body {
   background-color: var(--color-base);

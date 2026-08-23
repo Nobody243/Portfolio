@@ -1070,13 +1070,41 @@ export function AboutScreen() {
               4096x4096. A square box is therefore the only ratio that is not
               a crop, and no crop of this image has been decided.
 
-              NO RADIUS, NO BORDER, NO FILTER, NO DUOTONE, NO HOVER, AND NO
-              `placeholder="blur"`. There is not one `rounded-*` in this
+              A RADIUS AS OF 2026-08-24, AND NO BORDER, NO FILTER, NO
+              DUOTONE, NO HOVER, AND NO `placeholder="blur"`.
+
+              THE FIRST CLAUSE READ "NO RADIUS" AND IS REVERSED BY SAAD, NOT
+              WORKED AROUND. It argued: "there is not one `rounded-*` in this
               codebase and a soft-cornered photo would be the exception
-              announcing itself; the rest is this page's brief — it is the
-              quiet page, and a blur-up placeholder is a filter that resolves,
-              which is motion. `priority` is the right answer to the pop a
-              blur-up would paper over.
+              announcing itself." THE PREMISE WAS AND IS TRUE — swept before
+              the change, `app/` and `components/` carried ZERO `rounded-*`
+              classes and `globals.css` carried no radius token, so the ticket
+              asking for "the matching token from the site's established radius
+              scale" was asking for something that did not exist. The
+              CONCLUSION is Saad's to draw, and he drew the other one.
+
+              `rounded-photo` IS 13px = `--spacing-sm`, off the Fibonacci scale
+              the site is built on rather than off Tailwind's default radius
+              scale, and it is declared as a ONE-CONSUMER token in
+              `app/globals.css` with the four places the old rule was written
+              down. It is 3.6% of the 364px side. Read that token before adding
+              a second consumer: the guard is the NAME, not the value.
+
+              IT IS ON THE `<img>` ITSELF, NOT ON THE WRAPPER. The wrapper is
+              `IntroEntrance`, which owns a `transform`; giving it
+              `overflow-hidden` to clip a child that already fills it exactly
+              would add a clipping context to the entrance for no gain.
+              `border-radius` on a replaced element clips the painted image
+              directly, which is verified rather than assumed — see the commit.
+
+              PURELY VISUAL, VERIFIED: the 364px cap, the square aspect, the
+              centring and `PORTRAIT_SIZES` are all untouched and were
+              re-measured after the change.
+
+              The rest of the list is this page's brief and is unchanged — it
+              is the quiet page, and a blur-up placeholder is a filter that
+              resolves, which is motion. `priority` is the right answer to the
+              pop a blur-up would paper over.
 
               DELAY 0, NOT `STAGGER.line * 3`, AND THE REASON IS THE SCROLL.
 
@@ -1147,7 +1175,7 @@ export function AboutScreen() {
                 alt={ABOUT_PAGE_PORTRAIT_ALT}
                 sizes={PORTRAIT_SIZES}
                 priority
-                className="aspect-square w-full object-cover"
+                className="aspect-square w-full rounded-photo object-cover"
               />
 
             </IntroEntrance>

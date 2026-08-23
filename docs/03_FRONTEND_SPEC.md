@@ -448,6 +448,39 @@ practice) for margins/padding/section gaps: `8, 13, 21, 34, 55, 89, 144` (px). T
 heading-to-text relationship and overall rhythm consistent with the ×1.618 type scale rather than
 arbitrary spacing values.
 
+### Radius — one token, one consumer, and it used to be zero
+
+**`--radius-photo: 13px`, on `/about`'s portrait, and nothing else on the site is rounded.** Added
+2026-08-24 on Saad's instruction.
+
+**The ticket asked for "the matching token from the site's established radius scale". THERE IS NO
+SUCH SCALE, AND THERE WERE NO ROUNDED BUTTONS OR CARDS TO MATCH** — that is worth stating plainly
+because it is the opposite of what a request like this usually assumes. Swept before the change:
+**zero `rounded-*` classes in `app/` and `components/`** (the only four matches in the codebase were
+comments *saying* there were none) and **no radius token in `globals.css`**, which said so in as many
+words. The refusal was also load-bearing twice in this document — Rule S-4 ("the overlay has no
+scrim, **no radius**") and the theme-toggle note, which refused a switch control *specifically*
+because "a switch needs a visible track and knob, which needs a radius" and that would make it "the
+site's first non-typographic widget". Both of those still stand: **this token does not license a
+switch, a rounded card, or a rounded button.**
+
+**13px IS `--spacing-sm`.** It comes off the Fibonacci scale the whole site is built on rather than
+out of Tailwind's default radius scale (4 / 6 / 8 / 12 / 16px), which is a foreign system this
+project has never imported. On the 364px portrait it is 3.6% of the side. `--spacing-xs` (8px, 2.2%)
+was the alternative and reads very nearly square at that size.
+
+**THE NAME IS THE GUARD, and it is the same mechanism `--accent-hero` and `--field-ink` use.**
+`--radius-photo` names ONE consumer and deliberately does not open a *scale* — there is no
+`--radius-sm`/`md`/`lg`, so nothing can quietly acquire soft corners by reaching for a generic name.
+**A second consumer is the moment to decide, with Saad, whether this site has a radius system.** It
+is not a decision an implementer may take by adding `rounded-photo` to something that is not a
+photograph.
+
+*Noted while sweeping, not fixed: the built CSS also contains `.rounded-tr-sm` and `.rounded-xl`,
+both dead. Tailwind's scanner extracts class names from COMMENTS, and those two are named inside
+`text-flipping-board.tsx`'s record of what was deleted from the registry source. ~60 bytes, present
+before this change, and the fix would be to damage the record — so it is recorded here instead.*
+
 ### Borders — two families, one rule
 
 **`accent-working` at low opacity marks INTERACTIVE surfaces. Neutral `fg` at low opacity marks
