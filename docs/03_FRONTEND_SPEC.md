@@ -418,8 +418,17 @@ Base unit: `16px` (1rem). Scale multiplier: `×1.618` per step.
 **Line height:** `1.6` for body text (already near-golden-ratio, keeps long-form reading comfortable).
 Headings tighter, around `1.1–1.2`.
 
-> **A THIRD LEADING SHIPPED ON 2026-08-23, FOR ONE CASE: `1.35` FOR LEAD PROSE SET AT `text-h4`.**
-> `/about`'s bio takes `xl:text-h4 xl:leading-[1.35]` on a 40rem measure. It is genuinely neither of
+> **THAT THIRD LEADING WAS RETIRED THE SAME WEEK IT SHIPPED, AND THE BLOCK BELOW IS KEPT AS A
+> RECORD RATHER THAN AS A LIVE RULE. `grep -rn "leading-\[1.35\]" components/` now returns ZERO.**
+> Its one consumer was `/about`'s bio, and the About rebalance took the paragraph back to `text-body`
+> on a 34rem measure so the flip-board band could have the height — see `docs/07` §6. The scale is
+> two leadings again, `1.6` and `1.1–1.2`, exactly as the two lines above it say. Everything the
+> block argues is still TRUE of a 26px paragraph; there just isn't one any more. If lead prose ever
+> returns to `text-h4`, this is the value and this is the arithmetic — do not re-derive it, and do
+> not read its presence here as a rule in force.
+>
+> ~~**A THIRD LEADING SHIPPED ON 2026-08-23, FOR ONE CASE: `1.35` FOR LEAD PROSE SET AT `text-h4`.**~~
+> `/about`'s bio took `xl:text-h4 xl:leading-[1.35]` on a 40rem measure. It is genuinely neither of
 > the two above and the gap is real rather than an oversight: `text-h4` carries `1.2`, which is a
 > *heading's* leading applied to a 65-word paragraph, and optical leading falls as size rises, so
 > body's `1.6` is too open at 26px. The arithmetic that fixed the value rather than taste: at `1.6`
@@ -905,6 +914,31 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 > breakpoint, i.e. a breach. The shipped rule is the same everywhere ("stop when nothing is moving");
 > below 768px the field simply *happens* to always be settled, so a phone draws one frame for the
 > whole visit as a **consequence** of the general rule rather than as a special case for it.
+
+> **AND THEN A SECOND BEHAVIOUR SLIPPED UNDER IT, ON 2026-08-23, AND WAS NOT WRITTEN DOWN HERE
+> EITHER.** `/about` carries a split-flap board driven by `setInterval`. That is an unbounded
+> autonomous loop with no end state — the exact category the paragraph above spent a page removing
+> from this same page — and the round that added it reported that this section carried the
+> amendment. It did not. The record is being made now rather than being quietly correct.
+>
+> **The rule is not being relaxed; the board is licensed by four specific mitigations and each
+> answers a specific objection.** It stops on `visibilitychange`, so it cannot run unobserved in a
+> background tab. It does not exist under `prefers-reduced-motion: reduce` — the correct
+> reduced-motion form of an ambient loop is its ABSENCE, not a shorter one. It does not exist on a
+> device without `(hover: hover) and (pointer: fine)`. And it is at rest for 90% of its cycle
+> (10.75s of every 12.0s), so the settled, legible state is the design and the flip is the
+> transition between two resting frames. **Remove any one of those four and it is a breach again.**
+>
+> **Two things it did NOT cost, both re-measured on the shipped build rather than assumed:** the
+> canvas is still **0 operations per 5 idle seconds** in both themes, and the arrival author count
+> is still exactly one (first flip at 12.0s against a 0.90s entrance settle). The full record,
+> including the board's second reshaping and the quotation-sourcing rule that came with it, is in
+> `docs/07_SITE_RESTRUCTURE.md` §6.
+>
+> **Its device gate is a capability query and its render gate is a fit test — neither is a width.**
+> `(hover: hover) and (pointer: fine)` gates the interval; the component measures its own band and
+> declines to render past nine rows, which is what keeps a nineteen-row wall of tiles off a 375px
+> screen. Both are the worked example above with the sign the right way round.
 
 **The reveal footer's curtain (Rule S-6) takes the same 768px floor, and for the same reason.**
 Below it the footer is a plain in-flow `<footer>` — one responsive class,

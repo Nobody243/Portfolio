@@ -684,9 +684,36 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
   > problem, and removing the claim solves it more cleanly than qualifying it. The closing line
   > ("Not a security engineer yet") carries the honesty the qualifier was there to supply.
 
-**Single screen, not scrollable — AT `lg` (1024px) AND UP. Below `lg` the page SCROLLS.**
+**Single screen, not scrollable — AT `xl` (1280px) AND UP. Below `xl` the page SCROLLS.**
 Photo + the paragraph above, plus an action row:
 
+> **THE FLOOR MOVED A SECOND TIME, `lg` → `xl`, AND SAAD TOOK THAT DECISION TOO. It is not a drift
+> and it is not the first move restated.** The first move (below) released the page to scroll on
+> PHONES so the portrait could be a full-measure square. This one releases the 1024–1279 band as
+> well, and it bought one thing: the height for the quote band under the row.
+>
+> **The arithmetic, measured, not argued.** After the About rebalance the row is 385px tall and sits
+> at `pt-2xl` (89px), so the band under it is `viewportHeight − 474`:
+>
+> | viewport | band available | six rows of tiles + `mt-md` |
+> |---|---|---|
+> | 1024×600 | **126px** | 230px — does not fit, by 104px |
+> | 1280×720 | 246px | 230px — fits, 16px spare |
+> | 1366×768 | 294px | fits |
+> | 1440×900 | 426px | fits |
+>
+> 1024×600 was the binding case and nothing legible fits it: at ~105px the board holds four rows of
+> 12px type, and 5–6 lines of a quotation is not reachable there at any tile size the scale contains.
+> The three options were put to Saad with those numbers — move the floor, shrink the board, or take
+> the height out of the bio — and he chose the floor. **A 1024–1279 desktop window now gains a
+> scrollbar on `/about`; that is the cost and it is not an oversight.**
+>
+> **The two-column layout still turns on `lg`, and the two breakpoints are now deliberately
+> different things.** `lg` is "is there room for text beside the portrait"; `xl` is "is there room
+> for the whole composition on one screen". They were the same number for as long as the composition
+> was just the row. `docs/03`'s Rule S-5 asks for no NEW breakpoints, and none was added — both are
+> existing steps.
+>
 > **THE SPLIT, DECIDED BY SAAD 2026-08-23, AND IT REVERSES THIS SECTION'S OLDEST RULE FOR HALF THE
 > WIDTH RANGE.** This line read "Single screen, not scrollable" without qualification, and the route
 > table in `CLAUDE.md` said `/about` is "One screen, does not scroll". That is now true only from
@@ -773,6 +800,15 @@ moved, all of them widths and one type step:
   2560×1440, in both themes — 12 of 12.** At `xl`+ the TEXT COLUMN governs the row height at every
   width (556.8px, against a capped portrait's 448 + 68 = 516), which is why the portrait's size and
   the flip board's presence are both free against the budget.
+
+  > **EVERY NUMBER IN THE BULLET ABOVE IS OBSOLETE AND IT IS KEPT ONLY SO THE MOVE IS LEGIBLE.** The
+  > About rebalance reversed all three of its inputs: the paragraph went back to `text-body` on a
+  > 34rem measure (556.8px text column → **385px**), the portrait cap went 448 → **384px**, and the
+  > flip board left the portrait's column for a band under the whole row, where it is no longer free
+  > against the budget — it IS the budget. The one-screen rule itself moved to `xl`. Re-measured on
+  > the shipped build: **0.00px of overflow at 1280×720, 1280×800, 1366×768, 1440×900, 1536×864,
+  > 1600×900, 1728×1117 and 1920×1080, in both themes — 16 of 16.** Below `xl` the page scrolls by
+  > design and 1024×600 reports 276px of scroll, which is the decision, not a regression.
 - **One correction to the brief, recorded rather than smoothed over.** The 10-line reserve was
   derived from a predicted 9 rendered lines. **Measured, it is 9 at 1280 but 10 at 1440 and 2560** —
   so at 1440+ the reserve is fully consumed and carries **zero growth headroom**, which is not what a
@@ -809,7 +845,7 @@ page.
 > > "the mark's ROW, the paragraph, the action row, the portrait — at `STAGGER.line` multiples of
 > > 0 / 0.10 / 0.20 / 0.30s, settling at 1.00s".
 > >
-> > **The scroll clause is now `lg`-only** (see the split above). It never carried the argument: the
+> > **The scroll clause is now `xl`-only** (see the split above; it was `lg`-only for one day). It never carried the argument: the
 > > page is quiet because it has no motion DRIVER of its own, and scrolling drives nothing here —
 > > there is no scrub, no trigger, no parallax and no sticky element bound to scroll position. The
 > > scroll moves the page and animates nothing.
@@ -847,7 +883,7 @@ page.
 >    text column plus the portrait at 0, settling at 0.90s. (It read "0 / 0.10 / 0.20 / 0.30s,
 >    settling at 1.00s" until 2026-08-23 — see the amendment above for why the portrait's delay went
 >    to 0.) **The author count is still exactly one and the 2026-08-23 split added none:** no new
->    driver, no new trigger, no new curve, no new duration, and the scroll below `lg` drives nothing.
+>    driver, no new trigger, no new curve, no new duration, and the scroll below `xl` drives nothing.
 >    The route fade was the second author and was removed in `0ee6371`
 >    (`docs/03_FRONTEND_SPEC.md`, route-transition section). The canvas's drift was the third and is
 >    removed here. One author, not three.
@@ -862,6 +898,55 @@ page.
 >    following 2 seconds. A theme flip while idle costs exactly one frame; a resize exactly one. On a
 >    phone, where the pointer interaction is width-gated off anyway, the whole visit costs **one
 >    frame** (377 before). The resting image is byte-identical to the mount image in both themes.
+>
+> **PROPERTY 3 IS FALSE AS A PAGE-LEVEL CLAIM AND HAS BEEN SINCE 2026-08-23. IT WAS NOT RECORDED
+> HERE WHEN IT BROKE, AND THAT OMISSION IS THE POINT OF THIS PARAGRAPH.** `/about` carries a
+> split-flap board that advances on an interval, so the page HAS an idle animation. The reversal was
+> written into `AboutFlipBoard.tsx`'s header at the time and a round report asserted that "`docs/07`
+> §6 and `docs/03` carry the amendment" — `docs/07` §6 did not, and `docs/03` did not either. This
+> is the same invisible-because-unwritten failure CLAUDE.md's "where decisions live" section exists
+> to prevent, one level down: the decision was in the code, so it was invisible to anyone reading
+> the spec.
+>
+> **What survives of property 3, stated precisely, because two of its three halves are still true:**
+>
+> - **The CANVAS still costs 0 frames per 5 idle seconds in both themes.** Re-measured on the
+>   shipped build with the board present: **0 canvas operations over 5 idle seconds.** Every number
+>   in property 3 above is a claim about `ParticleGrid` and every one of them still holds.
+> - **The arrival author count is still exactly ONE.** The board's first flip is at 12.0s against a
+>   0.90s entrance settle, so it authors nothing during arrival — which is the premise `/about`'s
+>   route fade was deleted on, and that premise is intact.
+> - **What is gone is the page-level "no idle animation at all".** An interval-driven flip is an
+>   unbounded loop with no end state — structurally the same shape as the particle drift this
+>   section spent nine paragraphs removing. It is defensible on different grounds, not on those:
+>   it stops when the document is hidden, it does not exist under `prefers-reduced-motion: reduce`,
+>   it does not exist on a device without a fine pointer, and it is at rest for 90% of its cycle
+>   (10.75s of every 12.0s). Those four mitigations are the whole of its licence and none is optional.
+>
+> **THE BOARD'S SHAPE CHANGED AGAIN THE SAME WEEK, AND THE SECOND CHANGE IS WHY THE ONE-SCREEN RULE
+> MOVED TO `xl`.** It shipped as a single 15-character line under the portrait — 34px tall, free
+> against a budget the text column governed. Saad's instruction was that it should span the content
+> column, from where the paragraph starts to where the portrait ends, and hold 5–6 lines. That makes
+> it a band under the whole row: **1017px wide at `xl`+, 46 columns of 21×34px tiles, six rows,
+> 209px tall.** Measured on the shipped build, the band's left edge is the paragraph's and its right
+> edge is the portrait's at **32 of 32** viewport × theme combinations.
+>
+> **Its content changed with its shape, and the reason is geometric before it is editorial.** The
+> 15-character cap was the stated reason `content/flipBoard.ts` refused quotations — "a quotation
+> that fits in 15 characters is not a quotation". At 46 columns that objection is gone, and Saad
+> chose real attributed quotations over the eight traceable technical terms. The terms were never
+> placeholder text; they were his own choice from the previous round and are in git history. The
+> new rule in that file is a SOURCING rule rather than a length rule: every entry must be verbatim
+> from a primary or near-primary source that is named in the entry and was actually read. One
+> candidate — Schneier's "security is a process, not a product" — was refused for failing it, which
+> is the rule doing its job rather than decorating the file.
+>
+> **Where it does not render at all is decided by FIT, not by a breakpoint.** `TextFlippingBoard`
+> measures its own band and declines past nine rows. At 375px that band is 15 columns and the
+> longest entry wraps to nineteen lines — a 664px wall of tiles — so nothing renders. `docs/03`'s
+> "no behaviour may be specific to a breakpoint" is satisfied because the test is on the real box:
+> the phone outcome falls out of a general rule instead of being written as a special case, the
+> same shape `ambient="settled"` is praised for above.
 >
 > **A HELD CURSOR IS THE CASE THIS TURNS ON, and it is the common case rather than an edge one.**
 > The field is full-viewport, so "the pointer is inside the field" just means "the pointer is
@@ -887,7 +972,7 @@ page.
 > O(n²) link pass ran **11,628 pair tests per frame** (~698,000/s) and the canvas re-rastered
 > **5.18M device pixels** at DPR 2 sixty times a second (~311 MPx/s) — on a page that holds 65 words
 > ("...and cannot scroll" stood at the end of the line above until 2026-08-23; the page scrolls below
-> `lg` now, and the cost argument never rested on that clause.) Nothing on the page could ever go
+> `xl` now, and the cost argument never rested on that clause.) Nothing on the page could ever go
 > idle, because a frame always differed from the
 > last one by the drift. Two honest qualifications so this is not overclaimed: rAF is suspended in a
 > background tab, so it was never a phone-in-your-pocket drain; and it is not a large cost in

@@ -128,7 +128,7 @@ this summary is downstream of it. The numbered list below keeps its original num
 |---|---|
 | `/` | Hero · Trajectory · Skills · Projects (**the featured three only**) · reveal footer |
 | `/work` | The full five-project archive · Experience · Currently Learning · reveal footer |
-| `/about` | One screen at `lg`+, does not scroll there; **scrolls below `lg`** (2026-08-23, so the portrait can take the full measure as a square — `docs/07` §6 has the 252.7px shortfall that forced it). No reveal footer, deliberately, at any width — see `docs/07` §5–6 |
+| `/about` | One screen at `xl`+, does not scroll there; **scrolls below `xl`** (the floor was `lg` for one day — 2026-08-23 — and moved to `xl` the same week to buy the quote band its height; `docs/07` §6 carries both moves and the 252.7px shortfall that forced the first). No reveal footer, deliberately, at any width — see `docs/07` §5–6 |
 | `/projects/<slug>` | Tier 3 detail, plus an intercepted overlay at the same URL. **No navbar** |
 
 0. **Chrome** — a fixed, transparent navbar on `/`, `/work` and `/about` (MS mark + location,

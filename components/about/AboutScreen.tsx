@@ -478,7 +478,7 @@ export function AboutScreen() {
         content, which is the failure `Reveal`'s 13px clip note describes from
         the other side.
       */
-      className="relative min-h-dvh w-full bg-base lg:h-dvh lg:overflow-hidden"
+      className="relative min-h-dvh w-full bg-base xl:h-dvh xl:overflow-hidden"
     >
       {/*
         THE PAGE HAD NO HEADING AT ALL, AND NO ACCESSIBLE NAME. Not a
@@ -523,7 +523,7 @@ export function AboutScreen() {
         shorter. At `lg` it is `absolute inset-0` exactly as before, so the
         one-screen composition is byte-identical there.
       */}
-      <div className="relative min-h-dvh lg:absolute lg:inset-0 lg:min-h-0">
+      <div className="relative min-h-dvh xl:absolute xl:inset-0 xl:min-h-0">
         {/* The same mesh the hero draws, thinned rather than veiled, and in
             `--field-ink` rather than the hero's Tier 1 cyan — see
             `QUIET_FIELD`. THAT SECOND HALF IS WHY THE PRESET NAMES A COLOUR:
@@ -540,7 +540,7 @@ export function AboutScreen() {
             sides equally, and the half above the top is unreachable by scrolling.
             A scrolling page starts at the top; `pb-2xl` gives its bottom the same
             air the top gets from `pt-xl`. */}
-        <div className="relative flex items-center pt-xl pb-2xl sm:pt-2xl lg:h-full lg:pb-0">
+        <div className="relative flex items-center pt-xl pb-2xl sm:pt-2xl xl:h-full xl:items-start xl:pb-0">
           {/* THE SPINE, NOW ALSO THE ROW. `lg:flex` turns the same container
               into text-then-portrait at 1024px.
 
@@ -568,7 +568,10 @@ export function AboutScreen() {
               difference from an overflow. At `gap-xl` the same row is 812px
               with 34px in hand. Both are existing spine steps; no new token,
               and the wider gap returns at `xl` where there is room for it. */}
-          <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:flex lg:items-center lg:gap-xl lg:px-2xl xl:gap-2xl">
+          <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
+            {/* THE ROW. `lg:flex` turns text-then-portrait into two columns at
+                1024px; the band below it is a SIBLING of this, not a child. */}
+            <div className="lg:flex lg:items-center lg:gap-xl xl:gap-2xl">
             {/*
               THE MEASURE IS 34rem TO `xl` AND 40rem ABOVE IT, AND THE TWO
               HALVES OF THAT ARE ONE DECISION WITH THE PARAGRAPH'S SIZE.
@@ -610,7 +613,7 @@ export function AboutScreen() {
               media query would be a new CLASS of one. `xl` is an existing step;
               the site still ships zero custom breakpoints.
             */}
-            <div className="max-w-[34rem] lg:shrink-0 xl:max-w-[40rem]">
+            <div className="max-w-[34rem] lg:shrink-0">
               {/*
                 THE MARK IS `variant="nav"` AT A LARGER SIZE — NOT A THIRD
                 VARIANT. `MonogramMark.tsx`'s own header says it: "the navbar
@@ -745,7 +748,7 @@ export function AboutScreen() {
                   that would stop it. Measured: the paragraph's top is
                   unchanged to the hundredth of a pixel. */}
               <IntroEntrance delay={STAGGER.line}>
-                <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px] xl:min-h-[351px] xl:text-h4 xl:leading-[1.35]">
+                <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px]">
                   {ABOUT_PAGE_PARAGRAPH}
                 </p>
               </IntroEntrance>
@@ -1020,7 +1023,7 @@ export function AboutScreen() {
                 `lg`, where the two are columns of a row and there is no gap of
                 this kind between them.
               */
-              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[448px] lg:min-w-[213px] lg:flex-1"
+              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[384px] lg:min-w-[213px] lg:flex-1"
             >
               <Image
                 src={portrait}
@@ -1030,46 +1033,74 @@ export function AboutScreen() {
                 className="aspect-square w-full object-cover"
               />
 
-              {/*
-                THE FLIP BOARD, AND ITS PLACEMENT IS THE WHOLE OF ITS HEIGHT
-                BUDGET.
+            </IntroEntrance>
+            </div>
 
-                UNDER THE PORTRAIT, IN THE RIGHT COLUMN — never under the text.
-                The right column is WIDTH-limited (a square capped at 448) while
-                the left column is CONTENT-limited (556.8px at `xl`+), so the
-                right column carries 115.8px of spare height at 1280 and 40.8px
-                at 1440 that nothing else on the page can use. At 34px of board
-                plus `mt-lg` above it, the block is 68px and the row height is
-                still governed by the text column at every `lg`+ width:
+            {/*
+              THE FLIP BOARD, AS A BAND UNDER THE WHOLE ROW.
 
-                  1024   portrait 247 + 68 = 315   text 384.95   row 384.95
-                  1280   portrait 373 + 68 = 441   text 556.8    row 556.8
-                  1440+  portrait 448 + 68 = 516   text 556.8    row 556.8
+              IT USED TO LIVE INSIDE THE PORTRAIT'S COLUMN, 34px TALL, AND THE
+              MOVE IS THE WHOLE OF THIS ROUND. Saad's instruction on 2026-08-23
+              was explicit: "constrain its width to match the existing content
+              column — from where the paragraph text starts to where the
+              portrait ends", not a narrow box under the photo. That makes it a
+              SIBLING of the row rather than a child of one of its columns, and
+              it is why the spine container above is no longer the flex row —
+              the row is now its own element so the band can sit beside it in a
+              column.
 
-                THE BOARD DISPLACES NOTHING AT ANY `lg`+ WIDTH. The ceiling, so
-                a future edit knows where the wall is: at 1440+ it may grow to
-                556.8 − 448 − 34 = 74.8px before it starts driving the row
-                height, and at 1280 that figure is 149.8px. 34px is the design;
-                74.8px is the hard limit.
+              THE WIDTH IS DERIVED AND THE TWO CAPS ARE THE TWO GAPS.
+              The content column is `measure + gap + portrait`:
 
-                LEFT-ALIGNED ON THE PORTRAIT'S EDGE, WHICH IS THE LOCAL SPINE,
-                with fixed-width tiles rather than a stretched full-width band.
-                Strings shorter than the board leave void on the right, which is
-                the correct grammar for this site — Rule S-1 — and it also means
-                the tile size does not change with the viewport.
+                lg  (1024-1279, `gap-xl`)   544 + 55 + 384 = 983px
+                xl+ (1280+,     `gap-2xl`)  544 + 89 + 384 = 1017px
 
-                INSIDE THIS `IntroEntrance` RATHER THAN BESIDE IT, so it arrives
-                with the portrait at delay 0 and adds no unit to the cascade. A
-                static element appearing instantly while everything around it
-                fades would read as a bug. The one consequence, declared: the
-                hand-off re-keys this wrapper, so the board's index resets to
-                string 0 there — which happens at ~1.30s on a hard load, well
-                before its first flip at 7.0s.
+              Below those widths the container is narrower than the cap and the
+              band simply takes the container — at 1024 the inner box is 846px
+              and the content column is 846px, so the cap is inert and correct
+              rather than inert and wrong. MEASURED at 1024, 1280, 1440 and
+              1920; the band's left edge is the paragraph's and its right edge
+              is the portrait's at every one.
 
-                ITS MOTION, ITS GATES AND THE RULE IT REVERSES ARE ALL IN
-                `AboutFlipBoard.tsx`. Read that before changing anything here.
-              */}
-              <AboutFlipBoard className="mt-lg" />
+              BELOW `lg` IT IS `max-w-[34rem]`, THE MEASURE, for the same reason
+              the portrait is: this div is a SIBLING of the text column, not a
+              child, so without it the band would run to the container's full
+              width and break the spine the rest of the page is set on.
+
+              ITS HEIGHT IS THE PAGE'S BINDING CONSTRAINT NOW, AND THE
+              ARITHMETIC IS IN `content/flipBoard.ts`. Short version, measured
+              at 1280x720 — the tightest viewport that still may not scroll:
+              89 (`pt-2xl`) + 385 (row) leaves 246px, `mt-md` takes 21, and six
+              rows of tiles is 209px, so 16px is left under the board. A
+              seventh row overflows a page that is not allowed to scroll, which
+              is why the content module caps entry length rather than trusting
+              the wrap.
+
+              THE MARGIN IS `mt-md` AND NOT `mt-lg` FOR THAT 16px ALONE. At
+              `mt-lg` the arithmetic still fits — by THREE PIXELS — and a
+              three-pixel margin on a page that may not scroll is not a
+              composition, it is a scrollbar waiting for one font metric to
+              differ on another platform. The 13px buys a 5x safety factor at
+              the binding viewport and costs 13px of air at 1440x900, where
+              there are 195 of them.
+
+              ITS OWN `IntroEntrance` AT DELAY 0, not a fifth cascade index.
+              The cascade is per column (text 0 / 0.10 / 0.20, portrait 0) and
+              the band is a third region, not a fourth line of the text column;
+              a 0.30s delay on it would be the index-shaped cascade
+              `STAGGER.line`'s docstring forbids where units have independent
+              triggers. Below `lg` it has an independent trigger — it is far
+              below the fold on a page that scrolls there.
+
+              WHETHER IT RENDERS AT ALL IS NOT DECIDED HERE. `TextFlippingBoard`
+              measures this band and declines past `BOARD_MAX_ROWS`, which keeps
+              a 19-row wall of tiles off a 375px screen. That is a fit test on
+              the real box, not a breakpoint. Its motion, its gates and the rule
+              it reverses are all in `AboutFlipBoard.tsx`. Read that before
+              changing anything here.
+            */}
+            <IntroEntrance className="mt-xl max-w-[34rem] lg:mt-md lg:max-w-[983px] xl:max-w-[1017px]">
+              <AboutFlipBoard />
             </IntroEntrance>
           </div>
         </div>
