@@ -125,9 +125,44 @@ const BLOCK_LEFT_FRACTION = 0.42;
 const BLOCK_WIDTH_FRACTION = 0.54;
 const BLOCK_MAX_WIDTH = 900;
 
-const D_FRACTION = 0.3;
+/**
+ * THE DESKTOP DIAMETER — 0.38 of the viewport width, floored at 280 and capped
+ * at 660.
+ *
+ * `D_FRACTION` WENT 0.30 -> 0.38 AND `D_MAX` 520 -> 660 ON 2026-08-23, at
+ * Saad's request that the sphere read larger. +26.7% radius, +60.4% projected
+ * area at 1440x900: R 216 -> 273.6, D 432 -> 547.2.
+ *
+ * `D_MAX` IS DERIVED, NOT PICKED. `520 / 0.30 = 1733px` is the width at which
+ * the cap engages today; `0.38 x 1733 = 658.6 -> 660`. The cap therefore
+ * engages at the SAME viewport width it did before, so no viewport changes
+ * which regime it is in and the 1920x1080 case stays a capped case.
+ *
+ * `D_MIN` STAYS AT 280, AND THAT IS THE LOAD-BEARING "DO NOT TOUCH". It engages
+ * below `D_MIN / D_FRACTION`: 933px today, and 737px at 0.38 — which is BELOW
+ * the desktop branch's floor of 768, so on desktop the floor is now inert and
+ * every desktop width takes the plain `0.38 x vw`. Scaling it with the fraction
+ * (to 355) would put the engagement point back at 934px and keep inflating the
+ * 768-933 band, which is exactly the band where the clip guard is tightest.
+ * The growth is therefore deliberately NON-UNIFORM across widths: +26.7% at
+ * 1440, +4.2% at 768. That is the point, not a defect — 768 is where the rim
+ * runs closest to the viewport edge and it is not the width being complained
+ * about.
+ *
+ * THE COMPACT CONSTANTS BELOW DO NOT MOVE, and the reason is vertical room:
+ * at 375x667 the sphere's bottom already sits at 449.8 against a tagline block
+ * starting at ~467. Seventeen pixels. There is also no problem to fix there —
+ * the compact disc is 232.5 of 375, i.e. 62% of the viewport width, and is
+ * already the dominant object.
+ *
+ * THE NAV CAP IS NOT LOOSENED TO BUY RADIUS. It now binds at 1440x720, where it
+ * did not before (547.2 against a 544 cap), and the outcome is a 272px radius
+ * against an uncapped 273.6 — 1.6px. That is the cap working. Verify it; do not
+ * "fix" it.
+ */
+const D_FRACTION = 0.38;
 const D_MIN = 280;
-const D_MAX = 520;
+const D_MAX = 660;
 
 const D_FRACTION_COMPACT = 0.62;
 const D_MIN_COMPACT = 200;

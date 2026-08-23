@@ -475,17 +475,80 @@ const RESIZE_DEBOUNCE_MS = 150;
  * the 90-sample had strided past. The last time this count changed without that
  * guarantee the stride silently dropped `docker ps -a`.
  *
- * `heroContent.ts` currently ships 95 fragments and the sphere draws 58 of
+ * `heroContent.ts` currently ships 95 fragments and the sphere draws 60 of
  * them, sampled by stride.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * 58 -> 60 ON 2026-08-23, AND TWO IS THE RIGHT ANSWER RATHER THAN A TIMID ONE.
+ *
+ * The sphere grew (R 216 -> 273.6, `D_FRACTION` 0.30 -> 0.38) and the type grew
+ * with it (`SPHERE_FONT_PX` 13 -> 16). The obvious inference is that the count
+ * should scale with the surface, r-squared, to ~93. IT IS THE WRONG MEASURE,
+ * because surface density is blind to the font.
+ *
+ * COLLISIONS SCALE AS `N² x (label area) / (disc area)`. Label area scales with
+ * the SQUARE of the font size and disc area with the SQUARE of the radius, so
+ * with radius scaled by `k` and font by `m` the collision-neutral count scales
+ * by `k / m` — NOT by `k²`. Here `k = 1.267` and `m = 1.231`, so `k/m = 1.029`,
+ * and 58 x 1.029 = 59.7 -> 60.
+ *
+ * The r-squared half of the reasoning is correct FOR A FIXED FONT SIZE. The
+ * conclusion inverts because the same request also asked for bigger type, and
+ * the font bump consumes almost exactly the surface the radius bump creates.
+ *
+ * AND THE PERCEIVED-SIZE FIX IS THE FONT, NOT THE COUNT. A 432px disc built out
+ * of 13px type reads as "a lot of small writing"; a 547px disc built out of
+ * 16px type reads as an object. Twenty more 13px commands would have made it
+ * read SMALLER — more, finer texture. Which is also why this is the density cut
+ * HOLDING rather than being partially reversed: 90 measured 74.9% of labels
+ * colliding, and 60 on the new geometry predicts 38.1% against 58's recorded
+ * 38.8% on the old one.
+ *
+ * THE CEILING, RECORDED SO IT IS NOT DRIFTED PAST: 66. At N=66 the collision
+ * figure is +22.3% against today, which spends more than a quarter of the 78%
+ * reduction the density cut bought, and past that the change stops being
+ * "scaling the count to match a larger surface" and becomes a partial reversal
+ * of a measured fix wearing that phrase as cover. An argument past 66 has to be
+ * a MEASUREMENT showing the collision rate there is under 14.1 overlapping
+ * labels per frame, not a preference for a rounder number.
  */
-const SPHERE_COUNT = 58;
+const SPHERE_COUNT = 60;
 const SPHERE_COUNT_COMPACT = 44;
 
 /**
  * Base type size at the near pole, CSS px. Everything else is this times the
  * fragment's depth scale.
+ *
+ * 13 -> 16 ON 2026-08-23, AND THIS IS THE CONSTANT THAT ACTUALLY MAKES THE
+ * SPHERE READ LARGER — see `SPHERE_COUNT` for why the count barely moved.
+ *
+ * 16px IS `text-body`, the site's base reading size. At 16 the near face is
+ * exactly as legible as the page's own body copy, which is the strongest
+ * available statement that these are COMMANDS rather than texture, and the
+ * mid-depth buckets (11.14 / 12.35 / 13.57) land in and just above the
+ * `text-caption` band. The whole ramp is inside the site's type vocabulary
+ * instead of beside it; 13 sat between two tokens and belonged to neither.
+ *
+ * 18 IS THE CEILING AND IT IS REFUSED. At 18 the clip guard's clean band moves
+ * to vw >= 1163, which puts 1280-wide laptops into the clipping regime, and the
+ * canvas would assert a LARGER type size than the DOM's reading size — which
+ * inverts the split `HeroHeadline` states, that the canvas is the spectacle and
+ * the DOM is the content. 15 is the documented fallback if the collision
+ * prediction is refuted: it buys the collision-neutral count up to 64.
+ *
+ * ONE RENDER FLOOR STOPS FIRING ON DESKTOP AND THAT IS ARITHMETIC, NOT A BUG.
+ * Rendered size is `base x (0.62 + (step/5) x 0.38)`, so at 16 the smallest
+ * bucket is 9.92px — above `SPHERE_MIN_FONT_PX`. At 13 it was 8.06 and the
+ * floor cut step 0. The 9px floor DOES NOT MOVE: it is a claim about what a
+ * human can read, not about this sphere, and nothing about a larger sphere
+ * makes 8px type readable. What replaces the font floor's share of the cull is
+ * the ALPHA floor, which is unchanged and does the majority of it either way.
+ *
+ * `SPHERE_FONT_PX_COMPACT` STAYS AT 11 for the same reason the compact diameter
+ * does: raising it would re-admit the collisions the render floor removed on the
+ * one breakpoint that has no room to absorb them.
  */
-const SPHERE_FONT_PX = 13;
+const SPHERE_FONT_PX = 16;
 const SPHERE_FONT_PX_COMPACT = 11;
 
 /** Tracking. `em`-relative, so it follows the per-bucket font size for free. */
