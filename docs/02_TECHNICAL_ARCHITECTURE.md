@@ -42,7 +42,7 @@ form is added, it posts to a lightweight serverless function or a third-party fo
     /(chrome)                — the three chrome-bearing routes. The group exists so Navbar +
                                IntroGate mount ONCE in its layout instead of per page
       /page.tsx              — Home: Hero, Trajectory, Skills, Projects (featured three)
-      /about/page.tsx        — /about, one screen, does not scroll
+      /about/page.tsx        — /about, one screen at lg+; scrolls below lg (docs/07 §6, 2026-08-23)
       /work/page.tsx         — /work: full project archive, Experience, CurrentlyLearning
     /projects/[slug]/page.tsx — Project detail pages
     /@modal/(.)projects/[slug] — the intercepted overlay for the same URL

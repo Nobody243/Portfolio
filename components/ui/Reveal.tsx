@@ -15,8 +15,12 @@
  * curve, for the same time. What it removes is 13px of travel — so the widest
  * thing it can express is a subset of what this component already did.
  *
- * It exists because `/about` is `h-dvh overflow-hidden` and one measured
- * viewport cannot afford the travel. At 360x640 the action row's resting
+ * It exists because `/about` WAS `h-dvh overflow-hidden` at every width and one
+ * measured viewport could not afford the travel. (Since 2026-08-23 that is
+ * `lg:h-dvh lg:overflow-hidden` and the page scrolls below `lg`, so the clip
+ * this was bought for cannot happen at the viewport that produced it. The prop
+ * stays and the one call site stays — `AboutScreen.tsx` records why gating it
+ * at a width would be worse than either keeping or removing it.) At 360x640 the action row's resting
  * bottom slack is 5.14px against a 13px start offset, so the row sits 7.86px
  * PAST the viewport's bottom edge for ~80ms and is silently clipped. Measured,
  * both themes, at ten viewports: 360x640 is the only one that fails; 375x667
@@ -120,9 +124,10 @@ type RevealProps = {
    * other call site gets.
    *
    * ONE CONSUMER, AND IT IS A CONTAINER CONSTRAINT, NOT A TASTE ONE:
-   * `/about`'s action row, on a page that is `h-dvh overflow-hidden` and
-   * therefore clips instead of scrolling. See the header for the measurement
-   * and for the two alternatives that are still forbidden.
+   * `/about`'s action row, on a page that is `lg:h-dvh lg:overflow-hidden` and
+   * therefore clips instead of scrolling AT `lg` AND UP. See the header for the
+   * measurement, for what the 2026-08-23 scroll split did to it, and for the
+   * two alternatives that are still forbidden.
    *
    * It is a boolean rather than a travel distance ON PURPOSE. A number would
    * let a call site invent a fourth, fifth and sixth slide distance, which is

@@ -41,16 +41,26 @@ import { STAGGER } from "@/lib/animation/easing";
  * phone preload a desktop derivative it never paints. VERIFIED: exactly one
  * image request at every tested viewport and every tested DPR.
  *
- * EXACT PIXELS, NOT A `vw` EXPRESSION, matching this file's standing rule. The
- * `lg` band is fluid (247px at 1024 growing to the 384px cap at 1161), and
- * declaring the band's MAXIMUM only ever over-selects — 247 and 384 land on
- * the same 384 bucket anyway.
+ * THE TWO SUB-`lg` BANDS ARE `calc()` EXPRESSIONS NOW, AND THE STANDING RULE
+ * THAT FORBADE THEM IS AMENDED RATHER THAN IGNORED. It read: "EXACT PIXELS,
+ * NOT A `vw` EXPRESSION... declaring the band's MAXIMUM only ever over-selects
+ * — 247 and 384 land on the same 384 bucket anyway." That argument depended on
+ * the band's two ends landing on ONE bucket, which was true while the sub-`lg`
+ * portrait was a fixed 112/144px square. It stopped being true on 2026-08-23,
+ * when the photograph took the full measure: the `<640` band now runs 318px at
+ * 360 to 598px at 640, and declaring its maximum would make a 360px phone at
+ * DPR-2 preload a w=1200 derivative to paint 318 CSS px. The expressions are
+ * the measure, exactly: `100vw − 2 × px-md (21)` below `sm` and
+ * `min(34rem, 100vw − 2 × px-xl (55))` from `sm` to `lg`, which reproduce the
+ * recorded 333px at 375, 318px at 360 and 530px at 640.
  *
- * MEASURED SELECTION, one request in every case: w=128 at 375/DPR-1, w=256 at
- * 375/DPR-2 and at 640-1023/DPR-1, w=384 at 375/DPR-3 and at every desktop
- * DPR-1, w=828 at desktop DPR-2 (384 x 2 = 768 selects the 828 bucket), w=1200
- * at desktop DPR-3. 828 is the realistic ceiling; 1200 is the true one and is
- * still ~3.4x smaller than the master in each dimension.
+ * THE `lg` BAND KEEPS ITS EXACT PIXEL VALUE and the old rule's reasoning with
+ * it — it is fluid from 247px at 1024 to the 384px cap at 1161, and both ends
+ * still land on the same 384 bucket.
+ *
+ * MEASURED SELECTION, one request in every case — RE-MEASURED after the change,
+ * because every sub-`lg` figure in the old list moved: see the item 7 handoff
+ * and the commit that carries it.
  *
  * THE 4096x4096 MASTER IS STRUCTURALLY UNREACHABLE, verified rather than
  * assumed: 4096 exceeds `next/image`'s largest deviceSize (3840), so no bucket
@@ -62,10 +72,19 @@ import { STAGGER } from "@/lib/animation/easing";
  * guarantee are `unoptimized: true` in `next.config.ts` and a raw
  * `<img src={portrait.src}>`. Neither exists; neither may be added.
  */
-const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112px";
+const PORTRAIT_SIZES =
+  "(min-width: 1024px) 384px, (min-width: 640px) min(544px, calc(100vw - 110px)), calc(100vw - 42px)";
 
 /**
- * `/about` — one screen, one paragraph, three controls, and nothing else.
+ * `/about` — one paragraph, three controls, one photograph, and nothing else.
+ *
+ * IT READ "ONE SCREEN" UNTIL 2026-08-23, AND THAT IS NOW TRUE OF ONLY HALF THE
+ * WIDTH RANGE. At `lg` (1024px) and up the page is still exactly one screen and
+ * still cannot scroll. Below `lg` it scrolls. Saad took that decision to get the
+ * portrait to its full measure as a square, which is arithmetically impossible
+ * on a non-scrolling phone — short by 252.7px at 375x667 against 37.3px of
+ * slack. `docs/07` §5-6 and `docs/01`, `docs/02`, `docs/04` and `docs/06` are
+ * amended to match; the split is in the spec, not only here.
  *
  * THE ONE DELIBERATELY QUIET PAGE ON THE SITE. `docs/07_SITE_RESTRUCTURE.md` §6
  * says so in as many words, and the composition in
@@ -73,11 +92,31 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * DECISIONS, not omissions, and each has a place elsewhere on the site that a
  * later pass might mistake this page for having forgotten:
  *
- *   1. NO SCROLL. `h-dvh` + `overflow-hidden`. Nothing below the fold, ever. If
- *      content is ever added that does not fit, the answer is to cut it or to
- *      re-open the page's design with Saad, NOT to remove the overflow rule.
- *   2. NO REVEAL FOOTER. Home and Work only (§5). The curtain's ScrollTrigger
- *      maths need a scrolling page and this page has none.
+ *   1. NO SCROLL — AT `lg` AND UP. `lg:h-dvh` + `lg:overflow-hidden`. Nothing
+ *      below the fold there, ever. If content is ever added that does not fit
+ *      AT `lg`+, the answer is still to cut it or to re-open the page's design
+ *      with Saad, NOT to remove the overflow rule at that width.
+ *
+ *      THIS ABSENCE WAS UNCONDITIONAL UNTIL 2026-08-23 and it read: "NO SCROLL.
+ *      `h-dvh` + `overflow-hidden`. Nothing below the fold, ever." It was
+ *      reopened the way it always said it had to be — by Saad, as a design
+ *      decision, and not by an implementer working around it. Below `lg` the
+ *      page scrolls, because a full-measure square portrait cannot be made to
+ *      fit a phone screen that may not: the shortfall was MEASURED at 252.7px
+ *      (375x667) and 264.7px (360x640) against 37.3px and 10.3px of slack, and
+ *      there is not enough content on the page to cut that much — deleting the
+ *      whole 65-word paragraph AND the whole action row frees 407.8px and would
+ *      also be deleting the page.
+ *
+ *      WHAT DID NOT CHANGE: the answer to "it does not fit" is still never
+ *      "shrink the type", never "relax the rule locally", and never a new
+ *      breakpoint. The split is at `lg`, which this page already turns on.
+ *   2. NO REVEAL FOOTER. Home and Work only (§5), and this is UNCHANGED by the
+ *      scroll split. The curtain's ScrollTrigger maths need a scrolling page,
+ *      and below `lg` this page technically now has one — but §6 keeps the
+ *      footer off `/about` as a composition decision, not as a consequence of
+ *      the overflow rule. Do not "restore" it below `lg` on the strength of the
+ *      mechanism becoming available.
  *   3. NO SCROLL-SCRUB, NO PINNING. §5 closes that question by name: scrubbed
  *      animation is Home only.
  *   4. NO DRIVER OF ITS OWN. Rewritten 2026-08-22; it read "NO `Reveal`, and
@@ -94,10 +133,14 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  *      not quieter than its neighbours, it is DISCONTINUOUS with them, and a
  *      page that behaves unlike the rest of the site reads as unfinished
  *      rather than as calm. The replacement claim is narrower and checkable:
- *      `/about` is quiet because it has NO DRIVER OF ITS OWN — no scroll, no
- *      scrub, no reveal footer, no hover motion, no loop beyond the shared
- *      particle field. It runs the site's standard entrance ONCE, on load, and
- *      then nothing on this page ever moves again.
+ *      `/about` is quiet because it has NO DRIVER OF ITS OWN — no scrub, no
+ *      reveal footer, no hover motion, no loop beyond the shared particle
+ *      field. It runs the site's standard entrance ONCE, on load, and then
+ *      nothing on this page ever moves again. ("No scroll" was the first item
+ *      in that list until 2026-08-23. Below `lg` the page scrolls, and the
+ *      claim survives because scrolling is not a DRIVER here: nothing on this
+ *      page is bound to scroll position — no scrub, no trigger, no parallax,
+ *      no sticky. The scroll moves the page and animates nothing.)
  *
  *      Absences 1, 2 and 3 are untouched by that, and so is the client-boundary
  *      count's REASONING even though the count itself moved: `Reveal` is a
@@ -123,10 +166,14 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * THE ENTRANCE — FOUR UNITS, ONE SHOT, THEN STILLNESS.
  *
  * `Reveal`, used UNCHANGED, with the `delay` prop it already has. Not a new
- * component and not a new prop: `Reveal` is `whileInView` at `amount: 0.1`,
- * and on a page that is exactly one screen every unit is already in view, so
- * the first observer tick fires all of them on mount — hard load and client
- * navigation alike. That satisfies the site's motion rule by construction:
+ * component and not a new prop: `Reveal` is `whileInView` at `amount: 0.1`.
+ *
+ * AT `lg` AND UP the page is exactly one screen, every unit is already in view,
+ * and the first observer tick fires all of them on mount — hard load and client
+ * navigation alike. BELOW `lg` the page scrolls, and MEASURED at 375x667 the
+ * portrait's top lands at 649.6px with 5.2% of it visible, under the 10%
+ * threshold: the three text units still share the mount tick and the portrait
+ * reveals on scroll, alone. That is why it carries no delay — see its own note. That satisfies the site's motion rule by construction:
  * same driver (elapsed time), same curve (`EASE.reveal`), same numbers
  * (`y: 13 -> 0` over `DURATION.reveal`, `opacity: 0 -> 1` over half of it), a
  * new TRIGGER. 13px and not 21px — 21 is scrub-only.
@@ -150,8 +197,15 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * count on arrival is still ONE. `Reveal` itself is untouched and stays
  * byte-identical, which `ScrubReveal`'s header requires.
  *
- * FOUR UNITS AT 0 / 0.10 / 0.20 / 0.30, in document order: the mark's row,
- * the paragraph, the action row, the portrait.
+ * FOUR UNITS, CASCADING PER COLUMN: the mark at 0, the paragraph at 0.10 and
+ * the action row at 0.20 — document order, monotonic — and the portrait at 0.
+ *
+ * IT READ "FOUR UNITS AT 0 / 0.10 / 0.20 / 0.30, in document order: the mark's
+ * row, the paragraph, the action row, the portrait" UNTIL 2026-08-23. The
+ * portrait lost its 0.30 when `/about` gained a scroll below `lg`, because a
+ * unit that can be the only thing entering view must not carry a delay that was
+ * measured from a cascade it is no longer part of. Its own note has the
+ * measurement and the `Projects.tsx` precedent.
  *
  * WHEN THE LAST UNIT SETTLES DEPENDS ON HOW YOU GOT HERE, AND THIS USED TO
  * STATE ONLY THE CHEAPEST CASE ("0.30 + 0.70 = 1.00s, which is exactly
@@ -173,9 +227,13 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * AN INDEX-SHAPED CASCADE IS LEGAL HERE AND ALMOST NOWHERE ELSE. `STAGGER.line`
  * forbids it "wherever units have independent triggers and a reader may arrive
  * at one deliberately", because the delay is then measured from the wrong
- * origin. `/about` cannot scroll, has no anchors into it, and every unit
- * always enters on the same tick — the exact condition that docstring names as
- * safe. The delays are written out as multiples rather than derived from a map
+ * origin. `/about` has no anchors into it and every unit still enters on the
+ * same tick — see the note on `amount: 0.1` below — which is the condition that
+ * docstring names as safe. ("`/about` cannot scroll" was the first clause here
+ * until 2026-08-23; it is now true only at `lg`+, and it was never the load-
+ * bearing half. What matters is that no reader can arrive at unit 3 without
+ * having passed units 1 and 2, and a page with no in-page anchors cannot be
+ * entered anywhere but the top.) The delays are written out as multiples rather than derived from a map
  * index so they are auditable at the call site, and they increase
  * monotonically, which is the actual invariant.
  *
@@ -184,12 +242,14 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * it would put the last control's arrival past 0.4s for no informational gain.
  * One `Reveal` around the row.
  *
- * THE MOBILE PORTRAIT IS NOT A FIFTH UNIT. Below 1024px it lives inside the
- * mark's row, so it arrives with the mark at delay 0 — which is correct, since
- * the pair is one identity block and splitting it would be the page's only
- * intra-unit stagger. The fourth unit is the DESKTOP portrait, `display: none`
- * below `lg`, so below `lg` the page is three units at 0 / 0.10 / 0.20 and
- * still monotonic.
+ * THERE IS ONE PORTRAIT NOW, AT EVERY WIDTH, and it is the fourth unit
+ * everywhere. This paragraph used to describe two: a mobile one inside the
+ * mark's row ("not a fifth unit... it arrives with the mark at delay 0") and a
+ * desktop one that was `display: none` below `lg`, which made the page three
+ * units below `lg` and four at and above it. The mobile one is deleted. The
+ * outcome is the same in the one respect that mattered — the photograph still
+ * arrives at delay 0 — but it is now one element, one `<Image>` and one entry
+ * in this list at all widths.
  *
  * THE PARTICLE CANVAS DOES NOT PARTICIPATE. It is already drawn when the
  * entrance runs and it is background; fading it would make the page's arrival
@@ -202,7 +262,9 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  *
  * REDUCED MOTION NEEDS NO SECOND CODE PATH. `MotionProvider`'s
  * `reducedMotion="user"` drops transform and keeps opacity, so the page
- * becomes four fades at 0 / 100 / 200 / 300ms with zero travel. THE STAGGER IS
+ * becomes four fades at 0 / 100 / 200ms — the portrait sharing 0 with the mark
+ * — and zero travel. (It read "0 / 100 / 200 / 300ms" while the portrait
+ * carried `STAGGER.line * 3`.) THE STAGGER IS
  * DELIBERATELY KEPT: it is what every other `Reveal` on the site does under
  * the preference, and giving this one page a private rule would be the
  * inconsistency rather than the fix.
@@ -216,8 +278,15 @@ const PORTRAIT_SIZES = "(min-width: 1024px) 384px, (min-width: 640px) 144px, 112
  * THE 13px START POSITION AGAINST THE CLIP BUDGET — measured, and one case
  * does not clear it. Each unit begins 13px BELOW its resting place, so the
  * bottom-most unit needs 13px of resting bottom slack to stay inside the box
- * that absence 1 will not let scroll. MEASURED at the action row's maximum
- * bottom edge during the entrance:
+ * that absence 1 will not let scroll.
+ *
+ * THE WHOLE OF THIS SECTION IS NOW AN `lg`+ CONCERN. Below `lg` the page
+ * scrolls and clips nothing, so there is no budget there to overrun — the
+ * 360x640 and 375x667 rows below describe a layout that no longer exists at
+ * those widths. They are kept, unedited, because they are the measurement that
+ * bought `fadeOnly` and because the moment anything moves the `lg` split they
+ * become live again. MEASURED at the action row's maximum bottom edge during
+ * the entrance, on the pre-2026-08-23 layout:
  *
  *     1440x900   0px over        375x667   0px over  (5.64px to spare)
  *     1280x800   0px over        640x800   0px over
@@ -349,7 +418,37 @@ export function AboutScreen() {
   return (
     <section
       aria-labelledby="about-heading"
-      className="relative h-dvh w-full overflow-hidden bg-base"
+      /*
+        ONE SCREEN AT `lg` AND UP; A SCROLLING PAGE BELOW IT. That split is a
+        DECISION taken by Saad on 2026-08-23 and it reverses `docs/07` §5-6's
+        "one screen, does not scroll" for one half of the width range. Both docs
+        are amended; this is not a local override of a spec that still says
+        otherwise.
+
+        WHY: the portrait was asked for at full measure width, as a square. On a
+        page that may not scroll that is arithmetically impossible below `lg` —
+        MEASURED, it is short by 252.7px at 375x667 and 264.7px at 360x640,
+        against 37.3px and 10.3px of resting slack. Those numbers are not
+        obsolete, they are the reason the constraint was lifted: the workaround
+        that produced today's 112px in-row portrait existed only to force the
+        request inside a constraint that no longer applies below `lg`.
+
+        `lg` (1024px), AND IT IS NOT A NEW BREAKPOINT. It is the one this page
+        already turns on — the same value that makes the container a two-column
+        row, that the portrait's `lg:hidden`/`hidden lg:block` pair switched at,
+        and that `lg:shrink-0` and `lg:flex-1` answer to. The non-scroll rule now
+        holds exactly where the two-column composition exists and is released
+        exactly where the single column forces the photograph into the flow.
+        Rule S-5 is untouched: the site still ships zero custom breakpoints.
+
+        `min-h-dvh` BELOW `lg`, NOT `h-dvh`: the page must still fill the
+        viewport when the content is shorter than it, and must be allowed to
+        exceed it when it is not. `overflow-hidden` goes with `h-dvh` — a
+        scrolling page that clips its own overflow is a page with unreachable
+        content, which is the failure `Reveal`'s 13px clip note describes from
+        the other side.
+      */
+      className="relative min-h-dvh w-full bg-base lg:h-dvh lg:overflow-hidden"
     >
       {/*
         THE PAGE HAD NO HEADING AT ALL, AND NO ACCESSIBLE NAME. Not a
@@ -375,7 +474,26 @@ export function AboutScreen() {
           sibling of this div would sit above a canvas whose container never
           saw the pointer, and the field would only respond in the margins.
           Same arrangement as `Hero.tsx`'s stage, for the same reason. */}
-      <div className="absolute inset-0">
+      {/*
+        `relative` IN FLOW BELOW `lg`, `absolute inset-0` AT `lg`, AND THAT
+        SPLIT IS A BUG FIX RATHER THAN A TIDY-UP.
+
+        The content is INSIDE this box (see above), so while the box was
+        absolutely positioned at every width it contributed NOTHING to the
+        section's height. That was invisible while the section was `h-dvh
+        overflow-hidden` — the section's height was fixed and the overflow was
+        clipped. The moment `/about` gained a scroll below `lg` it stopped being
+        invisible: MEASURED at 360x640 before this line, the section stayed
+        640px tall while its content ran to 1036px, so `bg-base` and the
+        particle canvas — which is `absolute inset-0` OF THIS BOX — both ended
+        at 640 and the bottom 396px of the page had no field behind it.
+
+        In flow, this box is sized by the content and the canvas fills all of
+        it. `min-h-dvh` keeps it at least a screen tall when the content is
+        shorter. At `lg` it is `absolute inset-0` exactly as before, so the
+        one-screen composition is byte-identical there.
+      */}
+      <div className="relative min-h-dvh lg:absolute lg:inset-0 lg:min-h-0">
         {/* The same mesh the hero draws, thinned rather than veiled, and in
             `--field-ink` rather than the hero's Tier 1 cyan — see
             `QUIET_FIELD`. THAT SECOND HALF IS WHY THE PRESET NAMES A COLOUR:
@@ -385,7 +503,14 @@ export function AboutScreen() {
             `sphere={false}` keeps the command sphere on Home. */}
         <ParticleGrid field={QUIET_FIELD} sphere={false} ambient="settled" />
 
-        <div className="relative flex h-full items-center pt-xl sm:pt-2xl">
+        {/* `lg:h-full` + `items-center` IS THE CENTRING, AND IT IS NOW `lg`-ONLY.
+            Below `lg` this box is sized by its content, so `items-center` is a
+            no-op there rather than a centring — which is deliberate. Vertical
+            centring of a box TALLER than its container puts the overflow on both
+            sides equally, and the half above the top is unreachable by scrolling.
+            A scrolling page starts at the top; `pb-2xl` gives its bottom the same
+            air the top gets from `pt-xl`. */}
+        <div className="relative flex items-center pt-xl pb-2xl sm:pt-2xl lg:h-full lg:pb-0">
           {/* THE SPINE, NOW ALSO THE ROW. `lg:flex` turns the same container
               into text-then-portrait at 1024px.
 
@@ -437,19 +562,20 @@ export function AboutScreen() {
                 STATIC. NO ANIMATION ON IT, AT ALL — §6: "static only, no
                 animation here; About stays the quiet page."
 
-                IT SHARES ITS ROW BELOW 1024px, and the wrapper below is why.
-                See the mobile portrait's own note: the two identity artifacts
-                pair at a fixed 2:1, mark first. At `lg` the portrait leaves
-                for the second column and `lg:block` puts this element back in
-                exactly the block context it had before the row existed.
+                IT SHARED ITS ROW BELOW 1024px UNTIL 2026-08-23, and the
+                wrapper carried `flex items-center gap-md lg:block` to say so.
+                The photograph left that row when `/about` gained a scroll below
+                `lg`; the mark is alone at every width now, and the `Reveal` is
+                a plain block again with no flex classes to pass through.
               */}
-              {/* UNIT 1 of the entrance, delay 0. `Reveal` renders the row's
+              {/* UNIT 1 of the entrance, delay 0. `Reveal` renders this unit's
                   own `<div>` rather than adding one around it — its
                   `className` is passed straight to the `motion.div`, so the
-                  flex row and the revealed box are the same element and the
-                  resting layout is unchanged. Verified: geometry at rest is
-                  identical to the pre-entrance build at every viewport. */}
-              <IntroEntrance className="flex items-center gap-md lg:block">
+                  revealed box IS the element the layout sees and the resting
+                  geometry is unchanged. It takes no `className` now that the
+                  row is gone; `Reveal` handles that, and the omission is
+                  deliberate rather than a dropped class. */}
+              <IntroEntrance>
                 <MonogramMark
                   variant="nav"
                   label={ABOUT_PAGE_MARK_LABEL}
@@ -457,40 +583,28 @@ export function AboutScreen() {
                 />
 
                 {/*
-                  THE PORTRAIT, BELOW 1024px — PAIRED WITH THE MARK, NOT
-                  STACKED ABOVE THE PARAGRAPH.
+                  THE IN-ROW PORTRAIT IS GONE, AND WITH IT THIS PAGE'S ONLY
+                  TWO-ARTIFACT ROW.
 
-                  Below `lg` the page is one column and there is no second
-                  column to put a photograph in. Stacking it would cost its
-                  full height; putting it in the mark's row costs only the
-                  DIFFERENCE between the two, and it makes a composition
-                  rather than an insertion — the site's two identity artifacts
-                  on one line. It is exactly 2x the mark's height at both
-                  sizes (112/56 below 640, 144/72 above), which is one ratio
-                  expressed at two sizes rather than two arbitrary numbers.
+                  It was a 112px square (144 at `sm`) paired with the mark at a
+                  fixed 2:1, and it was CORRECT for the constraint it was built
+                  under: on a page that may not scroll, stacking the photograph
+                  costs its full height while pairing it costs only the
+                  difference between the two, and the action row's 1-up + 2-up
+                  rearrangement was measured to return 57.79px against the
+                  56.0px the pairing added. That whole chain was load-bearing
+                  only while `overflow-hidden` was.
 
-                  MARK FIRST, PORTRAIT SECOND. The mark is the page's
-                  established visual entry and reading order is not re-ordered
-                  for a photograph.
+                  Below `lg` the page scrolls now (see the section's class), so
+                  there is nothing left to force the photograph into a slot it
+                  did not want. It takes the full measure as a square, in its own
+                  slot, below the action row — which is also what removes the two
+                  identical MS marks that sat in one vertical line, the page's
+                  own and the navbar's fixed one 55px above it.
 
-                  NOT A CENTRED CIRCULAR AVATAR ABOVE THE NAME. That is the
-                  universal template mobile About page, and this codebase
-                  ships no radius token to build it with.
-
-                  `shrink-0` GUARDS THE 2:1, and it never engages today.
-                  Measured at 375: 103.59 (mark at h-56, viewBox 592x320) +
-                  21 (gap-md) + 112 = 236.59 inside a 333px measure, 96px
-                  spare. At 640: 133.19 + 21 + 144 = 298.19 inside 530px, 232
-                  spare. Without it, a future longer mark would silently
-                  squeeze the photograph out of square rather than overflow.
+                  `shrink-0` and the 2:1 ratio go with it. Do not reintroduce
+                  either as a "guard": there is no row left to guard.
                 */}
-                <Image
-                  src={portrait}
-                  alt={ABOUT_PAGE_PORTRAIT_ALT}
-                  sizes={PORTRAIT_SIZES}
-                  priority
-                  className="aspect-square w-[112px] shrink-0 object-cover sm:w-[144px] lg:hidden"
-                />
               </IntroEntrance>
 
               {/*
@@ -562,18 +676,26 @@ export function AboutScreen() {
                 one of them is rendered by a different component and takes no
                 `className`.
               */}
-              {/* `fadeOnly` — THE ONE CALL SITE ON THE SITE, and the clip
-                  budget below is its whole justification. This row is the
-                  bottom-most unit on a page that may not scroll, and at
-                  360x640 it has 5.14px of resting slack against `Reveal`'s
-                  13px start offset. Without this it sits 7.86px past the
-                  viewport's bottom edge for ~80ms and is silently clipped.
-                  UNCONDITIONAL, NOT GATED AT A WIDTH: a media query here
-                  would make the row a fourth motion behaviour that exists
-                  only below some breakpoint, which is the "third behaviour"
-                  the motion rules forbid. One row fades where three units
-                  travel; that is a smaller inconsistency than one row being
-                  clipped on the narrowest phone. */}
+              {/* `fadeOnly` — THE ONE CALL SITE ON THE SITE. Its original
+                  justification was the clip budget: this row was the
+                  bottom-most unit on a page that could not scroll at any
+                  width, and at 360x640 it had 5.14px of resting slack against
+                  `Reveal`'s 13px start offset — 7.86px past the bottom edge
+                  for ~80ms, silently clipped.
+
+                  THAT CLIP IS GONE BELOW `lg` AS OF 2026-08-23, because the
+                  page scrolls there and `overflow-hidden` went with it. IT
+                  STAYS ANYWAY, and the reason is now the one its own last
+                  sentence already gave: "UNCONDITIONAL, NOT GATED AT A WIDTH:
+                  a media query here would make the row a fourth motion
+                  behaviour that exists only below some breakpoint." Gating it
+                  at `lg` to "restore" 13px of travel on phones would be
+                  exactly that, for a gesture nobody asked for, on the page
+                  whose brief is quiet. Removing it outright would put the
+                  travel back at `lg` too, where nothing measured it as safe.
+
+                  It is no longer the bottom-most unit anyway: the portrait
+                  follows it below `lg`. */}
               {/* `CvModalHost` WRAPS THE ENTRANCE RATHER THAN SITTING INSIDE
                   IT, and the order is the whole fix. `IntroEntrance`'s only
                   mechanism is a `key` that flips at the hand-off, which
@@ -698,7 +820,34 @@ export function AboutScreen() {
               which is motion. `priority` is the right answer to the pop a
               blur-up would paper over.
 
-              UNIT 4 of the entrance, delay `STAGGER.line * 3`. THE FLEX
+              DELAY 0, NOT `STAGGER.line * 3`, AND THE REASON IS THE SCROLL.
+
+              It was unit 4 at 0.30s while every unit on this page entered on
+              the same observer tick — which was guaranteed by the page being
+              exactly one screen. Below `lg` it is not: MEASURED, the portrait's
+              top lands at 649.6px in a 667px viewport at 375, so 5.2% of it is
+              visible against `Reveal`'s `amount: 0.1` and it does NOT fire on
+              load. It fires when the visitor scrolls to it — alone.
+
+              A 0.30s delay on a unit with its OWN trigger is the index-shaped
+              cascade `STAGGER.line`'s docstring forbids by name, "wherever units
+              have independent triggers and a reader may arrive at one
+              deliberately", because the delay is then measured from the wrong
+              origin. `Projects.tsx` refuses exactly this on `/work` and says so:
+              "`IntroEntrance` also accepts `delay`... nothing here passes it,
+              and nothing should."
+
+              SO THE CASCADE IS PER COLUMN NOW, and it is still monotonic in
+              each: the text column runs 0 / 0.10 / 0.20 in document order, and
+              the photograph — a second column at `lg`, a solitary
+              scroll-triggered unit below it — runs at 0. At `lg` that reads as
+              the two identity artifacts arriving together while the prose
+              cascades under them, which is the composition the retired in-row
+              pairing was reaching for. `docs/07` §6's "four units at
+              0 / 0.10 / 0.20 / 0.30" is amended to match, and so is
+              `IntroEntrance.tsx`'s settle-time example, which used this unit.
+
+              THE FLEX
               CLASSES LIVE ON THE `Reveal`, NOT ON THE `<img>`, because the
               revealed box is what the flex row now lays out; the image fills
               it with `w-full` and keeps `aspect-square` so the wrapper's
@@ -714,8 +863,26 @@ export function AboutScreen() {
               above, which arrives with the mark at delay 0.
             */}
             <IntroEntrance
-              delay={STAGGER.line * 3}
-              className="hidden lg:block lg:min-w-[213px] lg:max-w-[384px] lg:flex-1"
+              /*
+                IT IS NO LONGER `hidden` BELOW `lg`, AND THAT IS THE WHOLE OF
+                ITEM 7. One element at every width instead of two, with the
+                mobile one deleted rather than re-sized.
+
+                `max-w-[34rem]` BELOW `lg` MATCHES THE TEXT COLUMN'S MEASURE,
+                deliberately. This div is a SIBLING of that column, not a child,
+                so without it the square would run to the container's full width
+                and be wider than the paragraph above it at any viewport past
+                ~586px — a photograph that breaks the spine the whole page is set
+                on. "Full width" means the measure, which is what "full width"
+                means everywhere else on this site.
+
+                `mt-xl` IS THE SAME STEP THE ACTION ROW TAKES FROM THE PARAGRAPH
+                (`sm:mt-xl`), so the page's vertical rhythm below `lg` is one
+                scale rather than one scale and an exception. It is zeroed at
+                `lg`, where the two are columns of a row and there is no gap of
+                this kind between them.
+              */
+              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[384px] lg:min-w-[213px] lg:flex-1"
             >
               <Image
                 src={portrait}

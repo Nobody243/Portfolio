@@ -512,9 +512,11 @@ body {
    IT HAS TWO CONSUMERS AS OF PHASE 4, and the second is noted here so the name
    is not read as belonging to one component: `components/about/CvAction.tsx`
    uses the identical attribute and the identical measure-then-set order for the
-   CV modal on /about. That page does not scroll, so the lock is mostly belt and
-   braces there — but the modal's own PDF iframe DOES scroll, and without it a
-   trackpad gesture past the end of the document scrolls the page behind. This
+   CV modal on /about. That page does not scroll AT `lg` AND UP, so the lock is
+   mostly belt and braces there — but it genuinely scrolls below `lg` since
+   2026-08-23, where the lock is doing real work, and the modal's own PDF iframe
+   DOES scroll at every width: without the lock a trackpad gesture past the end
+   of the document scrolls the page behind. This
    is a DOCUMENT-LEVEL lock, so it is deliberately one mechanism rather than one
    per modal; two modals are never open at once on this site. `overflow: clip` on <html> is what ACTUALLY stops
    the page behind the overlay from scrolling — three separate reasons, each of
@@ -606,9 +608,17 @@ html[data-overlay-open] {
                NOT CAUSED BY THE INTRO'S RELOCATION; Home has always done it.
                The move extended it to a second route, and finding it there
                is what found it here.
-     `/about`  ZERO elements. The page is `h-dvh overflow-hidden`, has no
-               scrollbar to remove, `clientWidth` never changes, and the
-               measurement below writes `0px`. The no-op stays a no-op.
+     `/about`  ZERO elements — and it is no longer a no-op at every width.
+               The page is `lg:h-dvh lg:overflow-hidden` since 2026-08-23 and
+               SCROLLS below `lg`, so on a desktop browser narrowed past 1024px
+               it now has a classic scrollbar to remove. RE-MEASURED HEADED,
+               where scrollbars are 15px rather than the 0px headless reports:
+               1440x900 and 1024x600 `clientWidth === innerWidth` (no scrollbar,
+               unchanged); 900x800 `clientWidth 885` and 768x1024 `clientWidth
+               753` (a real scrollbar, new) — and ZERO elements move at the
+               release in all four, because the compensation below is written
+               against `innerWidth - clientWidth` rather than against a route.
+               It was a no-op by accident; it is correct by construction.
 
    THE OLD OBJECTION — "would instead shift the plate itself" — WAS MEASURED,
    NOT ASSUMED, AND DOES NOT HOLD. The plate is `fixed inset-0`, and a fixed
@@ -667,8 +677,9 @@ html[data-overlay-open] {
    document load of any of the three content routes — and because the provider
    decides whether to render it at all, the gate is only ever mounted when it is
    going to play and sets this attribute unconditionally. On `/about` the lock
-   is close to a no-op (that page is `h-dvh overflow-hidden` and does not
-   scroll); on `/work` it is not, and holds the archive at the scroll position
+   is close to a no-op at `lg` and up (the page is `lg:h-dvh lg:overflow-hidden`
+   there) and real work below `lg`, where it has scrolled since 2026-08-23;
+   on `/work` it is not, and holds the archive at the scroll position
    the document loaded at until the gate retires. Moving the lock up to the
    provider was rejected: the provider outlives the gate for the whole document,
    so it would need its own clear-on-done path — a second lifetime to keep in

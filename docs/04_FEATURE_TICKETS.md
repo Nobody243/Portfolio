@@ -227,8 +227,9 @@ placeholder text), responsive on mobile.
 > **RESTRUCTURE NOTE 2026-08-22 — shipped, then SPLIT ACROSS TWO ROUTES.** The narrative section this
 > ticket describes is `components/sections/Trajectory.tsx`, is still on `/`, still Tier 2, still
 > `foundation → systems → directions`. What is new is that **`/about` also exists** and carries a
-> different thing: one 65-word first-person paragraph, a static MS mark and an action row, on a single
-> screen that does not scroll. `docs/07` §6 holds that paragraph as final approved copy and records
+> different thing: one 65-word first-person paragraph, a static MS mark, a portrait and an action row,
+> on a single screen that does not scroll at `lg` and up — it scrolls below `lg` as of 2026-08-23, and
+> `docs/07` §6 carries that split. `docs/07` §6 holds that paragraph as final approved copy and records
 > why the coursework framing is deliberately absent from it — the bio carries the pivot, the Stack
 > section carries the proof.
 >

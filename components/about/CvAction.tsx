@@ -301,10 +301,12 @@ function CvModal({ onClose }: { onClose: () => void }) {
        lock and this is its second consumer; the CSS block's comment is updated
        in the same commit to say so.
 
-       The About page does not scroll, so there is normally nothing to lock and
-       nothing to compensate — but the modal's own iframe DOES scroll, and
-       without the lock a trackpad gesture past the end of the PDF scrolls the
-       document behind it. The scrollbar width is measured BEFORE the attribute
+       The About page does not scroll at `lg` and up, so there is nothing to
+       lock or compensate THERE — but it scrolls below `lg` since 2026-08-23,
+       so on a narrowed desktop window this lock and its scrollbar compensation
+       are doing real work rather than belt and braces. Either way the modal's
+       own iframe DOES scroll, and without the lock a trackpad gesture past the
+       end of the PDF scrolls the document behind it. The scrollbar width is measured BEFORE the attribute
        is set, because setting it is what removes the scrollbar. */
     const scrollbarWidth = window.innerWidth - html.clientWidth;
     html.style.setProperty("--overlay-scrollbar-width", `${scrollbarWidth}px`);

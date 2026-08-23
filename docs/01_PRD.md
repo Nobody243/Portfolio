@@ -34,7 +34,9 @@ directly — "make myself the product."
 > |---|---|
 > | `/` | The cinematic narrative: Hero → Trajectory → Stack → **three** featured projects → reveal footer. Scroll-scrubbed, desktop only. |
 > | `/work` | The complete record: all five projects, Experience, Currently Learning. Normal scroll, no pinning, no scrubbing. Reveal footer. |
-> | `/about` | One screen that **deliberately does not scroll**, and the one page with no footer at all. |
+> | `/about` | One screen that **deliberately does not scroll at `lg` and up**; it scrolls below `lg`. The one page with no footer at all. |
+>
+> > **That cell read "One screen that deliberately does not scroll" until 2026-08-23.** One screen that does not scroll AT `lg` (1024px) AND UP; it SCROLLS below `lg`, so the portrait can take the full measure as a square. `docs/07` §6 carries the split, the 252.7px shortfall that forced it and what it does not change. The no-footer half is unchanged and is not a consequence of the scroll rule.
 > | `/projects/<slug>` ×5 | Tier 3 detail pages, reachable as a real route or as an intercepted overlay. |
 >
 > Entry is an asset **Loader** followed by the choreographed **Intro**, whose `scale: 17` zoom-in *is*

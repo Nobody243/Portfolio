@@ -76,10 +76,11 @@ import { markIntroSettled } from "@/components/intro/IntroSession";
  * because under reduced motion there is no Lenis instance and a JS-only lock
  * would silently do nothing for exactly the visitors most likely to notice.
  *
- * IT REACHES `/about` AND `/work` NOW. On `/about` that is close to a no-op —
- * the page is `h-dvh overflow-hidden` and does not scroll. On `/work` it is
- * not: the archive is a long page, and it is held at the scroll position the
- * document loaded at until the gate retires.
+ * IT REACHES `/about` AND `/work` NOW. On `/about` that is close to a no-op at
+ * `lg` and up — the page is `lg:h-dvh lg:overflow-hidden` there — and real work
+ * below `lg`, where it has scrolled since 2026-08-23. On `/work` it is not a
+ * no-op at any width: the archive is a long page, and it is held at the scroll
+ * position the document loaded at until the gate retires.
  */
 const SCROLL_LOCK_ATTR = "data-intro-active";
 
@@ -100,9 +101,15 @@ const SCROLL_LOCK_ATTR = "data-intro-active";
  * (`NavMobileMenu.tsx`), whose block in `globals.css` already accepted this
  * exact argument for the menu: "removing the scrollbar would visibly shift the
  * page behind it". MEASURED, never guessed — `innerWidth - clientWidth` is 0 on
- * overlay-scrollbar platforms (iOS, Android, macOS by default) and on `/about`,
- * which is `h-dvh overflow-hidden` and has no scrollbar to remove, and the
- * `var()` fallback keeps that honest rather than substituting a constant.
+ * overlay-scrollbar platforms (iOS, Android, macOS by default) and on `/about`
+ * AT `lg` AND UP, which is `lg:h-dvh lg:overflow-hidden` and has no scrollbar
+ * to remove — but NOT on `/about` below `lg`, which has scrolled since
+ * 2026-08-23 and does have one on a narrowed desktop window. RE-MEASURED
+ * HEADED: 900x800 `clientWidth 885`, 768x1024 `clientWidth 753`, and ZERO
+ * elements move at the release in either. The compensation was written against
+ * `innerWidth - clientWidth` rather than against a route, which is why it
+ * needed no change. The `var()` fallback keeps that honest rather than
+ * substituting a constant.
  */
 const SCROLLBAR_VAR = "--intro-scrollbar-width";
 

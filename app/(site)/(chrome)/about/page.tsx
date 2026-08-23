@@ -8,9 +8,14 @@ import { PageStack } from "@/components/ui/PageStack";
  *
  * WHAT THIS PAGE IS FOR, per `docs/07_SITE_RESTRUCTURE.md` §6: one first-person
  * paragraph, a static MS mark, and three controls — View CV, GitHub, LinkedIn.
- * A single screen that does not scroll. Everything about the composition lives
- * in `components/about/AboutScreen.tsx`, including the four things this page
- * deliberately does NOT have; read that header before adding anything here.
+ * ONE SCREEN THAT DOES NOT SCROLL AT `lg` (1024px) AND UP; A SCROLLING PAGE
+ * BELOW IT. That line read "a single screen that does not scroll" without
+ * qualification until 2026-08-23, when Saad took the portrait to its full
+ * measure as a square — which does not fit a phone screen that may not scroll,
+ * short by a MEASURED 252.7px at 375x667. `docs/07` §5-6 carries the split.
+ * Everything about the composition lives in `components/about/AboutScreen.tsx`,
+ * including the four things this page deliberately does NOT have; read that
+ * header before adding anything here.
  *
  * IT COMPLETES THE NAVBAR. Until this file existed, `NAV_ITEMS[0]` pointed at
  * `/#trajectory` — an anchor into Home — because a nav entry aimed at a route

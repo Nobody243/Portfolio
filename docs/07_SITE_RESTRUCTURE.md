@@ -684,7 +684,41 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
   > problem, and removing the claim solves it more cleanly than qualifying it. The closing line
   > ("Not a security engineer yet") carries the honesty the qualifier was there to supply.
 
-**Single screen, not scrollable.** Photo + the paragraph above, plus an action row:
+**Single screen, not scrollable — AT `lg` (1024px) AND UP. Below `lg` the page SCROLLS.**
+Photo + the paragraph above, plus an action row:
+
+> **THE SPLIT, DECIDED BY SAAD 2026-08-23, AND IT REVERSES THIS SECTION'S OLDEST RULE FOR HALF THE
+> WIDTH RANGE.** This line read "Single screen, not scrollable" without qualification, and the route
+> table in `CLAUDE.md` said `/about` is "One screen, does not scroll". That is now true only from
+> 1024px up, and `CLAUDE.md`, `docs/01` §route table, `docs/02`'s tree, `docs/04` and `docs/06`'s two
+> scroll-lock passages are all amended in the same commit.
+>
+> **Why.** Saad asked for the portrait at the full measure, as a square. On a page that may not
+> scroll that is arithmetically impossible below `lg`: **MEASURED, it is short by 252.7px at
+> 375x667 and 264.7px at 360x640, against 37.3px and 10.3px of resting slack.** There is not enough
+> content to cut — deleting the entire 65-word paragraph *and* the whole action row frees 407.8px,
+> which is enough and is also deleting the page. The 112px in-row portrait that shipped before this
+> existed only to force the request inside the non-scroll constraint; with the constraint lifted
+> below `lg` there is nothing left to force, so that workaround is deleted rather than re-tuned.
+>
+> **The breakpoint is `lg`, and it is not a new one.** It is the value this page already turns on:
+> the container becomes a two-column row at `lg`, the portrait's `lg:hidden` / `hidden lg:block`
+> pair switched there, and `lg:shrink-0` / `lg:flex-1` answer to it. The non-scroll rule now holds
+> exactly where the two-column composition exists and is released exactly where the single column
+> forces the photograph into the flow. **Rule S-5 is untouched — the site still ships zero custom
+> breakpoints.**
+>
+> **What did NOT change.** At `lg` and up the page is what it was: MEASURED at 1024x600, 1280x800,
+> 1440x900 and 2560x1440 in both themes, `document.scrollHeight === window.innerHeight` and no
+> element's bottom passes the page box at any frame of the entrance. The desktop scrollbar is still
+> absent there (headed: `clientWidth === innerWidth` at 1440 and 1024). Below `lg` a narrowed desktop
+> window now DOES get a classic scrollbar — headed, `clientWidth` 885 at 900x800 and 753 at
+> 768x1024 — and **zero elements move at the Intro's scroll-lock release** in either, because that
+> compensation was written against `innerWidth - clientWidth` rather than against a route.
+>
+> **The answer to "it does not fit" is unchanged everywhere else.** Never shrink the type, never
+> relax the rule locally, never add a breakpoint. Below `lg` the question no longer arises; at `lg`
+> and up it is answered exactly as before — cut the content, or reopen the design with Saad.
 
 `[View CV]   [GitHub]   [LinkedIn]`
 
@@ -716,13 +750,32 @@ MS mark placed on the page — static only, no animation. About stays the quiet 
 **Neither scroll-scrub nor the reveal-footer applies to About.** It is deliberately the one fully quiet
 page.
 
-> **What "fully quiet" means, stated precisely — amended 2026-08-22.** It was written against
-> **scroll-driven** motion and that half is absolute: no scrub, no pinning, no reveal footer, no
-> curtain, nothing below the fold, and the page still cannot scroll. What it does NOT mean is that
-> the page must be complete in frame 1. `/about` now runs the site's standard `Reveal` once, on load,
-> across four units — the mark's row, the paragraph, the action row, the portrait — at
-> `STAGGER.line` multiples of 0 / 0.10 / 0.20 / 0.30s, settling at 1.00s, after which nothing on the
-> page ever moves again except the particle field.
+> **What "fully quiet" means, stated precisely — amended 2026-08-22, and again 2026-08-23.** It was
+> written against **scroll-driven** motion and that half is absolute: no scrub, no pinning, no reveal
+> footer, no curtain. What it does NOT mean is that the page must be complete in frame 1. `/about`
+> runs the site's standard `Reveal` once, on load, across four units — the mark, the paragraph, the
+> action row, the portrait — after which nothing on the page ever moves again except the particle
+> field.
+>
+> > **Two clauses of that paragraph were amended on 2026-08-23 and are kept here as written.**
+> > It said "nothing below the fold, and the page still cannot scroll", and it gave the four units as
+> > "the mark's ROW, the paragraph, the action row, the portrait — at `STAGGER.line` multiples of
+> > 0 / 0.10 / 0.20 / 0.30s, settling at 1.00s".
+> >
+> > **The scroll clause is now `lg`-only** (see the split above). It never carried the argument: the
+> > page is quiet because it has no motion DRIVER of its own, and scrolling drives nothing here —
+> > there is no scrub, no trigger, no parallax and no sticky element bound to scroll position. The
+> > scroll moves the page and animates nothing.
+> >
+> > **The delays are now 0 / 0.10 / 0.20 in the text column, and 0 for the portrait.** The portrait
+> > lost its 0.30 because below `lg` it can fall below the fold — MEASURED at 375x667, its top lands
+> > at 649.6px in a 667px viewport, so 5.2% of it is visible against `Reveal`'s `amount: 0.1` and it
+> > does NOT fire on the mount tick. It reveals on scroll, alone, and a delay assigned to it for being
+> > fourth would then be measured from the wrong origin — the index-shaped cascade `STAGGER.line`'s
+> > docstring forbids by name and that `Projects.tsx` already refuses on `/work`. The cascade is now
+> > per column and monotonic in each; at `lg` that reads as the two identity artifacts arriving
+> > together while the prose cascades under them. **"The mark's ROW" is also retired: there is one
+> > portrait at every width now, in its own slot, and the mark stands alone.**
 >
 > The premise being replaced is that *quiet means static*. It does not: quiet is a claim about
 > amplitude and about what drives the motion. A page that assembles in zero frames while every other
@@ -743,8 +796,12 @@ page.
 > That exception is now closed, and the definition is positive rather than negative. `/about` has
 > **exactly three motion properties, and no fourth:**
 >
-> 1. **One motion author on arrival — the entrance.** Four `Reveal` units at 0 / 0.10 / 0.20 / 0.30s,
->    settling at 1.00s. The route fade was the second author and was removed in `0ee6371`
+> 1. **One motion author on arrival — the entrance.** Four `Reveal` units at 0 / 0.10 / 0.20 in the
+>    text column plus the portrait at 0, settling at 0.90s. (It read "0 / 0.10 / 0.20 / 0.30s,
+>    settling at 1.00s" until 2026-08-23 — see the amendment above for why the portrait's delay went
+>    to 0.) **The author count is still exactly one and the 2026-08-23 split added none:** no new
+>    driver, no new trigger, no new curve, no new duration, and the scroll below `lg` drives nothing.
+>    The route fade was the second author and was removed in `0ee6371`
 >    (`docs/03_FRONTEND_SPEC.md`, route-transition section). The canvas's drift was the third and is
 >    removed here. One author, not three.
 > 2. **An interaction that responds when touched, and only then.** The cursor void, its displacement
@@ -782,7 +839,9 @@ page.
 > **The cost this removes, since it is the argument.** At 1440×900 the field is 153 nodes, so the
 > O(n²) link pass ran **11,628 pair tests per frame** (~698,000/s) and the canvas re-rastered
 > **5.18M device pixels** at DPR 2 sixty times a second (~311 MPx/s) — on a page that holds 65 words
-> and cannot scroll. Nothing on the page could ever go idle, because a frame always differed from the
+> ("...and cannot scroll" stood at the end of the line above until 2026-08-23; the page scrolls below
+> `lg` now, and the cost argument never rested on that clause.) Nothing on the page could ever go
+> idle, because a frame always differed from the
 > last one by the drift. Two honest qualifications so this is not overclaimed: rAF is suspended in a
 > background tab, so it was never a phone-in-your-pocket drain; and it is not a large cost in
 > absolute terms. It is a cost with **no counterpart in what the visitor receives.**

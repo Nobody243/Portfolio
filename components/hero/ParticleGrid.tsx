@@ -1037,7 +1037,14 @@ type ParticleGridProps = {
    * what goes is the idle shimmer, and with it the loop. `/about` passes it
    * because `docs/07_SITE_RESTRUCTURE.md` §6 makes that page the one fully
    * quiet page, and a full-viewport canvas repainting sixty times a second
-   * behind 65 words that cannot scroll was the last thing contradicting it.
+   * behind 65 words was the last thing contradicting it. (That sentence read
+   * "65 words that cannot scroll" until 2026-08-23; `/about` scrolls below
+   * `lg` now, and the argument never depended on the scroll — a page that
+   * repaints forever behind static copy is the same defect either way. What the
+   * split DID change is the canvas's size on phones: the page box is taller
+   * than the viewport there, so this preset covers more area and seeds more
+   * nodes. It still paints once and parks — MEASURED, 0 frames in 5s idle at
+   * 375x667 and 1440x900.)
    * The hero keeps `"drift"`: Tier 1 is where the spectacle budget is spent,
    * and the hero is a section a visitor scrolls past rather than a terminal
    * page they sit on.

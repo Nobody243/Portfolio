@@ -375,15 +375,18 @@ scrollbar returns under a fully visible page: measured at 1440x900 in headed
 Chromium, 53 elements moved on `/work` and the bar's right cluster jumped 15px
 one frame after the plate cleared. The second rule exists because `<header>` is
 `fixed` and resolves against the initial containing block, which root padding
-cannot reach. `/about` is unaffected — it does not scroll, so the measurement is
-`0px`. Playwright's HEADLESS Chromium uses overlay scrollbars and cannot
+cannot reach. `/about` measured `0px` because it did not scroll at any width; since
+2026-08-23 it scrolls below `lg`, so a narrowed desktop window DOES have a
+scrollbar there — headed, `clientWidth` 885 at 900x800 and 753 at 768x1024 — and
+**zero elements still move at the release**, because the compensation is written
+against `innerWidth - clientWidth` rather than against a route. Playwright's HEADLESS Chromium uses overlay scrollbars and cannot
 reproduce any of this; use headed. Full record in `app/globals.css`. Neither
 child touches it. Two components setting and clearing one attribute with
 overlapping lifetimes is how a document ends up permanently unscrollable, and it
 is also what keeps `Intro` safe to reuse elsewhere: a transition that is not
 covering the whole page has no business locking it. **The lock now reaches
-`/about` and `/work` too** — a no-op on `/about`, which does not scroll, and not
-a no-op on `/work`, which is held at the scroll position it loaded at until the
+`/about` and `/work` too** — close to a no-op on `/about` at `lg` and up, real
+work on `/about` below `lg` where it scrolls, and never a no-op on `/work`, which is held at the scroll position it loaded at until the
 gate retires.
 
 The Intro plays **once per page load** — an **in-memory module-scope flag**, not
