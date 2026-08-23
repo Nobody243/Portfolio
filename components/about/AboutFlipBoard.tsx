@@ -36,7 +36,7 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  *      autonomous loop with no end state, the only one outside the hero."
  *   4. The motion-author count on arrival was one, which is the premise on
  *      which `/about`'s 0.35s route fade was DELETED. **That count is still
- *      one**: this board's first flip is at 12.0s and the entrance settles at
+ *      one**: this board's first flip is at 20.0s and the entrance settles at
  *      0.90s, so nothing here authors motion during arrival. It becomes a
  *      second author AFTER arrival, which is the part that is genuinely new.
  *
@@ -48,9 +48,12 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  *   - **It does not exist under `prefers-reduced-motion: reduce`.** Not a
  *     shorter flip — the correct reduced-motion form of an ambient loop is its
  *     ABSENCE. One quotation, held forever. Nothing is lost but the mechanism.
- *   - **It is at rest 90% of the time** (10.75s of every 12.0s). The settled,
+ *   - **It is at rest 80% of the time** (16.0s of every 20.0s). The settled,
  *     fully legible quotation is the design; the flip is the transition between
- *     two resting frames.
+ *     two resting frames. It was 90% before the scramble was restored on
+ *     2026-08-23 — a flip takes 4.02s now against 1.25s — and the dwell went
+ *     7000 -> 12000 -> 20000 to keep the ratio defensible rather than to keep
+ *     the number 90.
  *
  * THE DEVICE GATE IS A CAPABILITY QUERY, NOT A WIDTH, AND THE DIFFERENCE IS THE
  * RULE. `docs/03`: "no behaviour may be specific to a breakpoint — a phone gets
@@ -101,7 +104,7 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * person is content and hiding it would be a real omission — so the tiles stay
  * `aria-hidden` (a screen reader must not spell out 276 cells) and a real
  * `<blockquote>`/`<cite>` pair carries the same text off-screen. It is not a
- * live region: it changes every 12s and announcing that would be hostile.
+ * live region: it changes every 20s and announcing that would be hostile.
  */
 export function AboutFlipBoard({ className }: { className?: string }) {
   const reducedMotion = useReducedMotion();

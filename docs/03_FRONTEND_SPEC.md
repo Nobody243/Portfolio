@@ -925,15 +925,54 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 > answers a specific objection.** It stops on `visibilitychange`, so it cannot run unobserved in a
 > background tab. It does not exist under `prefers-reduced-motion: reduce` — the correct
 > reduced-motion form of an ambient loop is its ABSENCE, not a shorter one. It does not exist on a
-> device without `(hover: hover) and (pointer: fine)`. And it is at rest for 90% of its cycle
-> (10.75s of every 12.0s), so the settled, legible state is the design and the flip is the
+> device without `(hover: hover) and (pointer: fine)`. And it is at rest for 80% of its cycle
+> (16.0s of every 20.0s), so the settled, legible state is the design and the flip is the
 > transition between two resting frames. **Remove any one of those four and it is a breach again.**
 >
 > **Two things it did NOT cost, both re-measured on the shipped build rather than assumed:** the
 > canvas is still **0 operations per 5 idle seconds** in both themes, and the arrival author count
-> is still exactly one (first flip at 12.0s against a 0.90s entrance settle). The full record,
+> is still exactly one (first flip at 20.0s against a 0.90s entrance settle). The full record,
 > including the board's second reshaping and the quotation-sourcing rule that came with it, is in
 > `docs/07_SITE_RESTRUCTURE.md` §6.
+>
+> **THE COST THIS EXCEPTION WAS GRANTED ON CHANGED ON 2026-08-23, AND SO DID THE FIGURE IT WAS
+> GRANTED AGAINST. BOTH ARE RESTATED HERE RATHER THAN QUIETLY UPDATED.** Saad asked for the
+> registry component's real scramble — 4-8 random characters per tile before it lands — which had
+> been deleted during the colour adaptation. It is restored, and it is not free.
+>
+> **First, a correction I owe.** The round that added this board reported the flip as costing "0
+> long frames at 4x CPU throttle, 2 at 6x". That was measured over a sampling window that did not
+> actually contain a flip — an idle page. On a rig that proves a flip happened inside the window,
+> the same build costs **1,978ms of frames over 50ms at 4x** and 3,463ms at 6x, per flip. The
+> board was never free on slow hardware; the earlier figure was a rig error, not a regression
+> since.
+>
+> **Second, the real before/after, per flip, at 1440×900:**
+>
+> | | 1x | 4x | 6x |
+> |---|---|---|---|
+> | before (no scramble) | 62ms | 1,978ms | 3,463ms |
+> | after (scramble, tuned) | 120ms | 4,995ms | 7,790ms |
+> | the same DOM with a ONE-STEP scramble | 85ms | 2,470ms | 4,560ms |
+>
+> **At 1x it is free. At 4x and 6x it is ~2.5x, and the third row is why that is the honest
+> ceiling rather than a failure to optimise:** 2,470ms is what this DOM costs to repaint at all,
+> so half of the 4,995 is the board's existence, not its scramble. Four plausible fixes were tried
+> and measured before the constants were tuned — the flap was moved off Framer, the characters
+> off React, the timers into one ticker, the per-step animation removed — and the full table with
+> what each one actually bought is in `text-flipping-board.tsx`'s `FLAP_STEP_MS` docblock. The
+> WORST FRAME is now better than before (440ms against 520ms) because the cost is spread rather
+> than committed at once.
+>
+> **This is a declared regression on slow hardware, not an assurance.** The lever if it needs to
+> be cheaper is the step count, which is linear in the cost and is named in the file.
+>
+> **One structural note for this document specifically: the site now has `@keyframes`, and these
+> are the first.** Moving the flap off Framer means `EASE.ui` and `DURATION.ui` are SPELLED OUT in
+> `app/globals.css` rather than imported, because keyframes cannot read a JS constant. No new
+> curve and no new duration entered the system, but `lib/animation/easing.ts` is now a single
+> source of truth by convention rather than by import for those two values, and a change to either
+> has to be carried across by hand.
 >
 > **Its device gate is a capability query and its render gate is a fit test — neither is a width.**
 > `(hover: hover) and (pointer: fine)` gates the interval; the component measures its own band and

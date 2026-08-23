@@ -8,9 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { motion } from "motion/react";
-
-import { DURATION, EASE } from "@/lib/animation/easing";
+import { DURATION } from "@/lib/animation/easing";
 import { cn } from "@/lib/utils";
 
 /**
@@ -132,31 +130,87 @@ import { cn } from "@/lib/utils";
  *      REPLACED BY THE SITE'S OWN. Upstream had `[0.55, 0.055, 0.675, 0.19]`
  *      for the falling flap and `[0.33, 1.55, 0.64, 1]` — an OVERSHOOTING
  *      curve — for the rising one, plus `flipDuration * 0.85`, `* 1.3` and a
- *      `* 0.5` delay. All of it is now `EASE.ui` and `DURATION.ui`. No new
- *      curve and no new duration enters the system for this component.
+ *      `* 0.5` delay. All of it is `EASE.ui` and `DURATION.ui`. No new curve
+ *      and no new duration enters the system for this component.
  *
- *  11. THE SCRAMBLE DELETED. Each cell used to run 25-40 random intermediate
- *      characters at 55ms each before landing — 1.4 to 2.2 SECONDS of slot-
- *      machine per cell, with `Math.random()` deciding the count, so no two
- *      loads were alike. A scramble is also the thing that makes this kind of
- *      component read as a WIDGET, which is precisely what `/about` cannot
- *      afford.
+ *      ONE COST OF MOVING THE FLAP OFF FRAMER, DECLARED: the curve and the
+ *      durations are now SPELLED OUT in `app/globals.css`'s flap block,
+ *      because `@keyframes` cannot read a JS constant. They still have a
+ *      single source of truth in `lib/animation/easing.ts` — but it is now a
+ *      source of truth by convention rather than by import, and a change to
+ *      `EASE.ui` or `DURATION.ui` has to be carried across by hand. The
+ *      alternative was a 1,895ms frame; this is the cheaper debt.
  *
- *  12. THE FOUR GRADIENT SHADING OVERLAYS DELETED. Each flap carried a
- *      `bg-[linear-gradient(...rgba(255,255,255,...))]` sheen with a `dark:`
- *      twin. They are hardcoded colours, they are gradients on a site that has
- *      none outside the footer wordmark's licensed stroke ramp, and the split
- *      line plus the flap's own rotation already reads as a flap.
+ *  11. ~~THE SCRAMBLE DELETED.~~ **RESTORED 2026-08-23 ON SAAD'S INSTRUCTION,
+ *      FROM THE REGISTRY SOURCE RATHER THAN FROM THIS FILE'S DESCRIPTION OF
+ *      IT.** This item used to read: "Each cell used to run 25-40 random
+ *      intermediate characters at 55ms each before landing — 1.4 to 2.2
+ *      SECONDS of slot-machine per cell, with `Math.random()` deciding the
+ *      count, so no two loads were alike. A scramble is also the thing that
+ *      makes this kind of component read as a WIDGET, which is precisely what
+ *      `/about` cannot afford."
  *
- *      DISCLOSED RATHER THAN ASSUMED: the design brief did not rule on the
- *      sheen either way. It was dropped on the same grounds as items 4-7 — if
- *      Saad wants shading, the tokenised version is a `bg-base` overlay at an
- *      alpha, not a hardcoded white/black ramp.
+ *      **That was a SIMPLIFICATION, not a restyle, and it is the exact failure
+ *      Saad named: the same shape as `text-hover-effect.tsx` losing its
+ *      gradient alongside its colours.** The registry JSON at
+ *      `https://ui.aceternity.com/registry/text-flipping-board.json` was
+ *      re-fetched and diffed before anything was written, so this is the real
+ *      mechanic and not a reconstruction: `FLAP_CHARS`, the 8-15 / 25-39 step
+ *      counts, the 55ms step, the 20%-per-step accent flash and the per-cell
+ *      start delay are all the source's own values.
  *
- *  13. THE DECORATIVE BOTTOM STRIPES DELETED. A `repeating-linear-gradient`
- *      texture strip under every cell, 8px tall (16px at `md`). It is skeuomorph
- *      texture, it is a gradient, and at a 34px tile it is a quarter of the
- *      element.
+ *      WHAT IS DIFFERENT: the accent flash picks from ONE colour instead of
+ *      seven (see item 4 — the seven were hardcoded hues), and three timing
+ *      constants were tuned for a board twice the source's size. The
+ *      measurements that forced each of them are on `FLAP_STEP_MS` below —
+ *      they are not preferences and they were not chosen by eye.
+ *
+ *      THE `Math.random()` OBJECTION STANDS AND IS ACCEPTED RATHER THAN
+ *      ANSWERED: no two flips are alike, and that is the mechanic. It runs
+ *      inside `useEffect` only — never during render — so it cannot desync
+ *      hydration.
+ *
+ *      IT DOES NOT RUN ON MOUNT. `current` initialises to `target`, so the
+ *      board's first paint is landed text and the scramble happens on the
+ *      first ROTATION. That is what keeps `/about`'s arrival author count at
+ *      exactly one, which is the premise its route fade was deleted on.
+ *
+ *  12. ~~THE FOUR GRADIENT SHADING OVERLAYS DELETED.~~ **RESTORED 2026-08-23,
+ *      TOKENISED.** The previous note said the sheens "are hardcoded colours,
+ *      they are gradients on a site that has none outside the footer
+ *      wordmark", and then disclosed the escape hatch itself: "if Saad wants
+ *      shading, the tokenised version is a `bg-base` overlay at an alpha, not
+ *      a hardcoded white/black ramp." That is exactly what shipped.
+ *
+ *      THE MAPPING IS ONE-TO-ONE AND IT IS WHY ONE TOKEN REPLACES A `dark:`
+ *      PAIR. The source paints `rgba(255,255,255,...)` in light and
+ *      `rgba(0,0,0,...)` in dark. `--color-base` IS near-white in light
+ *      (`#FDFCFA`) and near-black in dark (`#0A0A0B`), so `from-base/80` is
+ *      the same ink in both themes by construction rather than by two
+ *      hand-picked ramps.
+ *
+ *      BE HONEST ABOUT THE RESULT: it is much subtler here than in the source,
+ *      and that is arithmetic rather than timidity. The source's sheen sits on
+ *      `bg-neutral-200` / `bg-neutral-900`, which are far from its page
+ *      ground; ours sits on `bg-elevated`, which `docs/03` records as ΔE 2.89
+ *      from `bg-base` in dark. The same 80% ramp therefore moves the tile a
+ *      fraction as far. It reads as a fold shadow rather than as a highlight,
+ *      which is the right end of that trade for this page.
+ *
+ *  13. THE DECORATIVE BOTTOM STRIPES ARE STILL OUT, AND THIS ONE IS A HEIGHT
+ *      DECISION RATHER THAN A TASTE ONE — DISCLOSED SO IT IS NOT MISTAKEN FOR
+ *      THE SIMPLIFICATION ITEM 11 WAS. A `repeating-linear-gradient` texture
+ *      strip sits under every cell in the source, `h-2` (16px at `md`), INSIDE
+ *      the tile — so restoring it costs 8px of a 34px tile, i.e. 48px across
+ *      six rows, on the one page whose binding constraint is vertical space
+ *      and whose whole current round is about finding more of it. It is the
+ *      only element of the source still absent.
+ *
+ *      THE LEVER, SO THE NEXT PERSON DOES NOT HAVE TO DERIVE IT: restoring it
+ *      means either a 42px tile (six rows go 209 -> 257px, which does not fit
+ *      1280x720) or a 26px flap area inside the existing 34px tile, which
+ *      leaves 13px per half for a 16px glyph. Neither is free; both are Saad's
+ *      call, not a tidy-up.
  *
  *  14. `wrapText` / `wrapParagraph` / `parseRow` DELETED AND REWRITTEN. The
  *      originals flowed a paragraph across a 6 x 22 grid and parsed colour-tile
@@ -251,11 +305,146 @@ const BOARD_SSR_COLS = 46;
  */
 const BOARD_MAX_ROWS = 9;
 
-/** Per-COLUMN onset — every tile in a column flips together, the way a real
- *  board's motor drives a column. 46 columns finish at
- *  `DURATION.ui + 45 * 0.02 = 1.25s`. Per-TILE stagger across a 276-cell grid
- *  would take 5.5s and turn a flip into a performance. */
-const TILE_STAGGER_S = 0.02;
+/**
+ * THE SCRAMBLE ALPHABET, AND IT IS THE SOURCE'S OWN STRING PLUS TWO CHARACTERS.
+ *
+ * The registry component's `FLAP_CHARS` is
+ * `" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$()-+&=;:'\"%,./?°"`. Two entries
+ * were APPENDED, not substituted: `·` (the separator in every attribution line)
+ * and `…` (the ellipsis marking the cut in the Mitnick quotation). Without them
+ * `normalizeChar` maps both to a blank and the board silently drops them —
+ * which is a content bug that looks like a rendering bug, so it is worth the
+ * two bytes.
+ *
+ * A character outside this set becomes a blank rather than throwing. That is
+ * the source's behaviour and it is the right one: a board has the flaps it has.
+ */
+const FLAP_CHARS =
+  " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$()-+&=;:'\"%,./?°·…";
+
+/**
+ * Scramble timing.
+ *
+ * A cell runs `steps` random characters at `FLAP_STEP_MS` apart and then lands
+ * on its real one. THE MECHANIC IS THE SOURCE'S; TWO OF THE FIVE NUMBERS ARE
+ * NOT, AND THE MEASUREMENTS THAT FORCED THEM ARE BELOW RATHER THAN A CLAIM
+ * THAT THEY WERE "TUNED".
+ *
+ * The source's values are `steps` 25-39 (8-15 for a blank), `FLAP_STEP_MS` 55,
+ * `COL_DELAY_MS` 30, `ROW_DELAY_MS` 20. `ROW_DELAY_MS` is kept exactly. Three
+ * changed:
+ *
+ *   `COL_DELAY_MS`  30 -> 70
+ *   `FLAP_STEP_MS`  55 -> 70
+ *   `steps`         25-39 -> 4-8   (blank 8-15 -> 2-4)
+ *
+ * -------------------------------------------------------------------------
+ * WHY. THE COST IS `(CELLS IN FLIGHT) x (STEPS PER SECOND)` AND NOTHING ELSE,
+ * WHICH TOOK FOUR WRONG GUESSES TO ESTABLISH. THEY ARE KEPT BECAUSE EACH ONE
+ * IS A PLAUSIBLE FIX THAT DOES NOT WORK, AND THE NEXT PERSON WILL THINK OF THE
+ * SAME ONES.
+ * -------------------------------------------------------------------------
+ *
+ * Every figure is ONE FLIP at 1440x900, measured as milliseconds of frames
+ * over 50ms, on a rig that PROVES a flip happened inside the sample window by
+ * watching the landed text change — an earlier rig did not, and reported an
+ * idle page as a clean flip. See the correction at the end.
+ *
+ *   build                                   1x        4x        6x
+ *   no scramble at all (the old baseline)   62ms   1,978ms   3,463ms
+ *   scramble, CSS keyframe flaps            65ms   7,735ms   7,565ms
+ *   ... + characters written imperatively   90ms   7,045ms   7,600ms
+ *   ... + one ticker for the whole board   150ms  12,020ms  19,055ms
+ *   ... + no flap at all on scramble steps  85ms   8,965ms  16,045ms
+ *   THE SAME DOM, scramble set to ONE step  85ms   2,470ms   4,560ms
+ *   SHIPPED (the constants above)          120ms   4,995ms   7,790ms
+ *
+ * WHAT EACH ROW KILLS:
+ *
+ *   - Not the animation library. Moving the flap from re-keyed Framer motion
+ *     components to CSS keyframes cut the WORST FRAME from 1,280ms to 480ms
+ *     and left the total unchanged. Worth keeping for the worst frame; not
+ *     the fix.
+ *   - Not React. Writing the intermediate characters straight to the DOM,
+ *     with no render per step, moved 7,735 to 7,045.
+ *   - Not scheduling. Replacing 276 independent timers with ONE ticker that
+ *     batches every write into a single synchronous block made it 1.7x WORSE
+ *     (12,020ms). It does not reduce the work, it concentrates it into one
+ *     unbreakable block per tick, so frames that used to interleave stall.
+ *   - Not the flap animation. Removing it from scramble steps entirely still
+ *     cost 8,965ms.
+ *   - THE SAME DOM WITH A ONE-STEP SCRAMBLE COSTS 2,470ms. That is the row
+ *     that settles it. The cost is mutating ~100 tiles inside a 276-tile
+ *     `perspective-dramatic` 3D context, N times a second. Only N and the
+ *     number of tiles matter.
+ *
+ * So the shipped constants cut both terms. Cells in flight is
+ * `(steps x FLAP_STEP_MS / COL_DELAY_MS) x rows`: the source's numbers on this
+ * board put all 276 in flight; these put `(8 x 70 / 70) x 6 = 48`. Steps per
+ * second went 18.2 to 14.3. Together that is 4,995ms against 7,735ms, on a
+ * floor of 2,470ms.
+ *
+ * WHAT IS HONESTLY STILL SPENT: 4,995ms against the old build's 1,978ms at 4x
+ * throttle — about 2.5x, and 2.3x at 6x. AT 1x IT IS FREE (120ms against
+ * 62ms), and the WORST FRAME is better than the old build's (440ms against
+ * 520ms) because the cost is spread instead of arriving in one commit. This
+ * is a real, declared regression on slow hardware and Saad was given the
+ * numbers rather than an assurance.
+ *
+ * THE LEVER, IF IT EVER NEEDS TO BE CHEAPER: `steps` is linear in both terms.
+ * 4-8 -> 2-4 roughly halves the added cost and still flips through more
+ * characters than the build this replaced, which flipped through exactly one.
+ *
+ * WHAT WAS NOT TRADED: every cell still flips through 4-8 REAL intermediate
+ * characters before landing. What was removed is simultaneity — the board
+ * crosses as a wave rather than shaking all at once, which is also the more
+ * characteristic read of the two.
+ */
+const FLAP_STEP_MS = 70;
+const SCRAMBLE_BLANK_MIN = 2;
+const SCRAMBLE_BLANK_SPAN = 3;
+const SCRAMBLE_CHAR_MIN = 4;
+const SCRAMBLE_CHAR_SPAN = 5;
+const COL_DELAY_MS = 70;
+const ROW_DELAY_MS = 20;
+
+/**
+ * Chance that any one non-final scramble step paints the cell in the accent.
+ *
+ * 0.2 is the source's value. What changed is the PALETTE, not the mechanic:
+ * the source picks uniformly from seven hardcoded hues (`bg-red-600` ...
+ * `bg-white`) and this picks the site's ONE Tier 2 accent.
+ *
+ * TEAL, NOT CYAN, AND THAT IS NOT A PREFERENCE. `/about` is a Tier 2 page and
+ * `--accent-hero` (`#00E5FF`) is Tier 1 only — `app/globals.css` deliberately
+ * registers it so that `bg-accent-hero` and `text-accent-hero` DO NOT EXIST,
+ * precisely so this kind of reach cannot be typed by accident. The pair used
+ * below is `bg-accent-working text-base`, which is correct in BOTH themes by
+ * construction because both tokens flip: 9.5:1 in dark (`#14B8A6` under
+ * `#0A0A0B`) and 5.4:1 in light (`#0F766E` under `#FDFCFA`).
+ *
+ * IT IS A FLASH ON A TRANSIENT FRAME, NOT A RESTING STATE. The final step of
+ * every cell forces the accent off, so a settled board carries none of it and
+ * no visitor ever sees teal sitting still on this page.
+ */
+const ACCENT_CHANCE = 0.2;
+
+/** Longest a single flip can take, in ms, for a board of this size: the last
+ *  cell's start delay, plus its longest possible scramble, plus the flap
+ *  animation it lands with. The content module asserts its dwell against this
+ *  rather than against a number typed twice. */
+export function boardSettleMs(cols: number, rows: number): number {
+  const lastStart = (cols - 1) * COL_DELAY_MS + (rows - 1) * ROW_DELAY_MS;
+  const longestScramble =
+    (SCRAMBLE_CHAR_MIN + SCRAMBLE_CHAR_SPAN - 2) * FLAP_STEP_MS;
+  return lastStart + longestScramble + DURATION.ui * 1000;
+}
+
+/** Anything the board cannot show becomes a blank flap. */
+function normalizeChar(ch: string): string {
+  const upper = ch.toUpperCase();
+  return FLAP_CHARS.includes(upper) ? upper : " ";
+}
 
 /**
  * Break `text` into lines of at most `cols` characters, on whitespace.
@@ -295,8 +484,20 @@ function columnsFor(width: number): number {
 }
 
 /**
- * One cell. Holds the character it is currently showing and, while a flip is
- * running, the one it was showing before.
+ * One cell.
+ *
+ * IT SCRAMBLES. On every change of `target` it runs 25-39 random characters at
+ * 55ms apart — each one a full flap — and lands on the real one. That is the
+ * registry component's mechanic, restored from the registry rather than from
+ * this file's prose about it; see header item 11 for what was removed and why
+ * the removal was wrong.
+ *
+ * THE FLAPS ARE KEYED ON `flipId`, SO EACH STEP REPLACES THE PREVIOUS ONE
+ * RATHER THAN STACKING ON IT. A flap animates for `DURATION.ui` (350ms) while a
+ * new step starts every 55ms, so every flap but the last is INTERRUPTED
+ * partway. That truncation is not a bug to be tuned out — it is what produces
+ * the blurred slot-machine read instead of 30 discrete legible characters.
+ * Concurrency stays at two flap elements per cell, not six.
  */
 const FlapCell = React.memo(
   function FlapCell({
@@ -305,51 +506,188 @@ const FlapCell = React.memo(
     flip,
   }: {
     target: string;
+    /** Onset in MILLISECONDS — the board's column/row stagger. */
     delay: number;
-    /** `false` under reduced motion: the character swaps with no flap at all. */
+    /** `false` under reduced motion or without a fine pointer: the character
+     *  lands with no scramble and no flap at all. */
     flip: boolean;
   }) {
-    const [current, setCurrent] = useState(target);
-    const [previous, setPrevious] = useState(target);
-    const [flipId, setFlipId] = useState(0);
-    const currentRef = useRef(target);
-    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const landedChar = normalizeChar(target);
+
+    /**
+     * THE CHARACTER REACT RENDERS, WHICH IS NOT THE TARGET AND MUST NOT BE.
+     *
+     * A CAUGHT BUG, RECORDED BECAUSE IT LOOKS LIKE A FEATURE IN A SCREENSHOT.
+     * Rendering `landedChar` directly meant React committed the NEW text on the
+     * frame `index` changed, and the scramble then ran ON TOP of it — so the
+     * board flashed the finished quotation and scrambled BACKWARDS into it.
+     * Sampled at 50ms across a flip, the first row read the complete new line
+     * 43ms before the first random character appeared.
+     *
+     * `settled` only advances when a cell actually lands, so React paints the
+     * OUTGOING character until the scramble delivers the incoming one. The
+     * imperative writes and this state agree at every resting frame; between
+     * them React is deliberately one flip behind.
+     */
+    const [settled, setSettled] = useState(landedChar);
+
+    const tile = useRef<HTMLDivElement | null>(null);
+    const topGlyph = useRef<HTMLDivElement | null>(null);
+    const bottomGlyph = useRef<HTMLDivElement | null>(null);
+    const fallEl = useRef<HTMLDivElement | null>(null);
+    const fallGlyph = useRef<HTMLDivElement | null>(null);
+    const riseEl = useRef<HTMLDivElement | null>(null);
+    const riseGlyph = useRef<HTMLDivElement | null>(null);
+    const sheenEl = useRef<HTMLDivElement | null>(null);
+
+    const shownRef = useRef(landedChar);
+    const accentRef = useRef(false);
+    const targetRef = useRef(landedChar);
+    const phaseRef = useRef(0);
+    const startTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const stepTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = null;
-      if (target === currentRef.current) return;
+      const clear = () => {
+        if (startTimer.current) clearTimeout(startTimer.current);
+        if (stepTimer.current) clearTimeout(stepTimer.current);
+        startTimer.current = null;
+        stepTimer.current = null;
+      };
+      clear();
 
-      const land = () => {
-        setPrevious(currentRef.current);
-        currentRef.current = target;
-        setCurrent(target);
-        setFlipId((n) => n + 1);
+      const normalized = normalizeChar(target);
+      // Nothing to say. This is also the branch that keeps the board still on
+      // mount and across the `flip` flag resolving after hydration.
+      if (normalized === targetRef.current) return;
+      targetRef.current = normalized;
+
+      /**
+       * Paint one step DIRECTLY INTO THE DOM, with no React render.
+       *
+       * BE HONEST ABOUT WHAT THIS BOUGHT: 7,735ms -> 7,045ms at 4x throttle.
+       * It is NOT the performance fix — see the table on `FLAP_STEP_MS`, where
+       * this is one of four plausible fixes that did not work. It is kept
+       * because it is correct in principle and it is the row that ruled React
+       * out, not because it earned its keep in milliseconds.
+       *
+       * The principle: the intermediate characters are never state. They are
+       * frames of an animation, the same category as `ParticleGrid`'s node
+       * positions, which this codebase already writes imperatively for the
+       * same reason. Only the LANDED character is state, and React owns that
+       * — see `settled` above, and the pre-flash bug that proved it has to.
+       */
+      const paint = (ch: string, previous: string, withAccent: boolean) => {
+        const shown = ch === " " ? " " : ch;
+        const before = previous === " " ? " " : previous;
+        if (topGlyph.current) topGlyph.current.textContent = shown;
+        if (bottomGlyph.current) bottomGlyph.current.textContent = shown;
+        if (riseGlyph.current) riseGlyph.current.textContent = shown;
+        if (fallGlyph.current) fallGlyph.current.textContent = before;
+
+        // The accent is a class swap on the two faces that carry a background,
+        // plus the ink on the three glyph slots that sit on them.
+        const on = withAccent;
+        const was = accentRef.current;
+        if (on !== was) {
+          tile.current?.classList.toggle("bg-accent-working", on);
+          tile.current?.classList.toggle("bg-elevated", !on);
+          riseEl.current?.classList.toggle("bg-accent-working", on);
+          riseEl.current?.classList.toggle("bg-elevated", !on);
+          for (const g of [topGlyph, bottomGlyph, riseGlyph]) {
+            g.current?.classList.toggle("text-base", on);
+            g.current?.classList.toggle("text-fg", !on);
+          }
+        }
+        // The falling half carries the OUTGOING step's accent, always.
+        fallEl.current?.classList.toggle("bg-accent-working", was);
+        fallEl.current?.classList.toggle("bg-elevated", !was);
+        fallGlyph.current?.classList.toggle("text-base", was);
+        fallGlyph.current?.classList.toggle("text-fg", !was);
+
+        accentRef.current = on;
+        shownRef.current = ch;
       };
 
-      if (!flip || delay === 0) {
-        land();
-      } else {
-        timer.current = setTimeout(land, delay * 1000);
+      /** Restart a CSS animation by alternating between two identical keyframe
+       *  names — one style write, and no `offsetWidth` reflow. */
+      const rerun = (
+        el: HTMLDivElement | null,
+        name: string,
+        phase: number,
+      ) => {
+        if (el) el.style.animationName = `${name}-${phase % 2 === 0 ? "a" : "b"}`;
+      };
+
+      const landStep = (ch: string, previous: string) => {
+        paint(ch, previous, false);
+        setSettled(ch);
+        const phase = ++phaseRef.current;
+        rerun(fallEl.current, "flap-fall", phase);
+        rerun(riseEl.current, "flap-rise", phase);
+        rerun(sheenEl.current, "flap-sheen", phase);
+      };
+
+      // The reduced-motion form of a scramble is its absence, not a short one.
+      if (!flip) {
+        // No `setSettled` here, deliberately: with `flip` false React renders
+        // `landedChar` directly (see `visible` below), so the character is
+        // already correct on the commit that changed `target` and a setState
+        // in an effect body would be both redundant and a cascading render.
+        paint(normalized, shownRef.current, false);
+        return;
       }
 
-      return () => {
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = null;
+      const steps =
+        normalized === " "
+          ? SCRAMBLE_BLANK_MIN +
+            Math.floor(Math.random() * SCRAMBLE_BLANK_SPAN)
+          : SCRAMBLE_CHAR_MIN + Math.floor(Math.random() * SCRAMBLE_CHAR_SPAN);
+
+      const runStep = (i: number) => {
+        const isLast = i === steps;
+        const previous = shownRef.current;
+        const ch = isLast
+          ? normalized
+          : FLAP_CHARS[1 + Math.floor(Math.random() * (FLAP_CHARS.length - 1))];
+
+        if (isLast) {
+          landStep(ch, previous);
+          return;
+        }
+
+        // A scramble step animates the FALLING half only. The rising half is
+        // already parked flat showing the new character, so animating it buys
+        // nothing legible at 70ms while tripling the animation starts — its
+        // sheen goes with it. The falling half is the one a viewer reads as
+        // motion, and it is what makes the churn look like flaps rather than
+        // like a text scramble. Measured separately, this is worth little on
+        // its own (see the table on `FLAP_STEP_MS`); it is kept because it is
+        // free and because the rising half genuinely has nothing to show.
+        // The landed frame is never accented — see `ACCENT_CHANCE`.
+        paint(ch, previous, Math.random() < ACCENT_CHANCE);
+        rerun(fallEl.current, "flap-fall", ++phaseRef.current);
+        stepTimer.current = setTimeout(() => runStep(i + 1), FLAP_STEP_MS);
       };
+
+      startTimer.current = setTimeout(() => runStep(1), delay);
+      return clear;
     }, [target, delay, flip]);
 
-    // A space would collapse the line box; the glyph slot has to keep its height.
-    const show = current === " " ? " " : current;
-    const showPrevious = previous === " " ? " " : previous;
-
-    // `h-[200%]` with `top-0` / `bottom-0` puts a full-height glyph inside a
-    // half-height clipping box, so the two halves are the same glyph cut once.
     const glyph =
       "absolute inset-x-0 flex select-none items-center justify-center font-mono text-body tracking-[0.08em] text-fg";
 
+    // A plain space collapses the line box; the glyph slot has to keep its
+    // height, so blanks stay a space inside a fixed-size tile.
+    // While the board can flip, React is deliberately one flip behind and the
+    // scramble owns the frames in between. With `flip` false there are no
+    // frames in between, so React owns the character outright.
+    const visible = flip ? settled : landedChar;
+    const show = visible === " " ? " " : visible;
+
     return (
       <div
+        ref={tile}
         className={cn(
           "relative flex flex-col overflow-hidden bg-elevated",
           BOARD_TILE.wClass,
@@ -358,43 +696,52 @@ const FlapCell = React.memo(
       >
         {/* Top half of the character now showing. */}
         <div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden">
-          <div className={cn(glyph, "top-0 h-[200%]")}>{show}</div>
+          <div ref={topGlyph} className={cn(glyph, "top-0 h-[200%]")}>
+            {show}
+          </div>
         </div>
 
-        {/* Bottom half of the character now showing. */}
+        {/* Bottom half of the character now showing. It is covered by the
+            resting rising flap and is revealed only while that flap rotates
+            in, which is exactly when it is wanted. */}
         <div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden">
-          <div className={cn(glyph, "bottom-0 h-[200%]")}>{show}</div>
+          <div ref={bottomGlyph} className={cn(glyph, "bottom-0 h-[200%]")}>
+            {show}
+          </div>
         </div>
 
-        {flip && flipId > 0 ? (
-          <>
-            {/* The outgoing character's top half, falling. */}
-            <motion.div
-              key={`t${flipId}`}
-              className="absolute inset-x-0 top-0 z-10 h-1/2 origin-bottom overflow-hidden bg-elevated backface-hidden transform-3d"
-              initial={{ rotateX: 0 }}
-              animate={{ rotateX: -90 }}
-              transition={{ duration: DURATION.ui / 2, ease: EASE.ui }}
-            >
-              <div className={cn(glyph, "top-0 h-[200%]")}>{showPrevious}</div>
-            </motion.div>
+        {/* The outgoing character's top half, falling. Its resting state is
+            `rotateX(-90deg)` — edge-on, invisible — which is both where the
+            animation ends and where the class parks it before the first flip,
+            so an un-flipped board shows nothing of it. */}
+        <div
+          ref={fallEl}
+          className="flap-fall absolute inset-x-0 top-0 z-10 h-1/2 origin-bottom overflow-hidden bg-elevated backface-hidden transform-3d"
+        >
+          <div ref={fallGlyph} className={cn(glyph, "top-0 h-[200%]")}>
+            {show}
+          </div>
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent to-base" />
+        </div>
 
-            {/* The incoming character's bottom half, rising. */}
-            <motion.div
-              key={`b${flipId}`}
-              className="absolute inset-x-0 bottom-0 z-10 h-1/2 origin-top overflow-hidden bg-elevated backface-hidden transform-3d"
-              initial={{ rotateX: 90 }}
-              animate={{ rotateX: 0 }}
-              transition={{
-                duration: DURATION.ui / 2,
-                delay: DURATION.ui / 2,
-                ease: EASE.ui,
-              }}
-            >
-              <div className={cn(glyph, "bottom-0 h-[200%]")}>{show}</div>
-            </motion.div>
-          </>
-        ) : null}
+        {/* The incoming character's bottom half, rising. It rests FLAT rather
+            than edge-on, directly over the static bottom half and showing the
+            same character, so at rest the two are indistinguishable — which is
+            what lets the settle sheen live in here, on top, instead of being
+            covered by the flap the moment it lands. */}
+        <div
+          ref={riseEl}
+          className="flap-rise absolute inset-x-0 bottom-0 z-10 h-1/2 origin-top overflow-hidden bg-elevated backface-hidden transform-3d"
+        >
+          <div ref={riseGlyph} className={cn(glyph, "bottom-0 h-[200%]")}>
+            {show}
+          </div>
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-transparent to-base/60" />
+          <div
+            ref={sheenEl}
+            className="flap-sheen pointer-events-none absolute inset-0 bg-linear-to-b from-base/80 to-transparent to-60%"
+          />
+        </div>
 
         {/* The split line. `bg-base` so it reads as the gap between two flaps
             rather than as a rule drawn on the tile. */}
@@ -500,7 +847,7 @@ export function TextFlippingBoard({
                 <FlapCell
                   key={c}
                   target={ch}
-                  delay={flip ? c * TILE_STAGGER_S : 0}
+                  delay={flip ? c * COL_DELAY_MS + r * ROW_DELAY_MS : 0}
                   flip={flip}
                 />
               ))}

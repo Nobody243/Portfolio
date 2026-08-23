@@ -913,15 +913,15 @@ page.
 > - **The CANVAS still costs 0 frames per 5 idle seconds in both themes.** Re-measured on the
 >   shipped build with the board present: **0 canvas operations over 5 idle seconds.** Every number
 >   in property 3 above is a claim about `ParticleGrid` and every one of them still holds.
-> - **The arrival author count is still exactly ONE.** The board's first flip is at 12.0s against a
+> - **The arrival author count is still exactly ONE.** The board's first flip is at 20.0s against a
 >   0.90s entrance settle, so it authors nothing during arrival — which is the premise `/about`'s
 >   route fade was deleted on, and that premise is intact.
 > - **What is gone is the page-level "no idle animation at all".** An interval-driven flip is an
 >   unbounded loop with no end state — structurally the same shape as the particle drift this
 >   section spent nine paragraphs removing. It is defensible on different grounds, not on those:
 >   it stops when the document is hidden, it does not exist under `prefers-reduced-motion: reduce`,
->   it does not exist on a device without a fine pointer, and it is at rest for 90% of its cycle
->   (10.75s of every 12.0s). Those four mitigations are the whole of its licence and none is optional.
+>   it does not exist on a device without a fine pointer, and it is at rest for 80% of its cycle
+>   (16.0s of every 20.0s). Those four mitigations are the whole of its licence and none is optional.
 >
 > **THE BOARD'S SHAPE CHANGED AGAIN THE SAME WEEK, AND THE SECOND CHANGE IS WHY THE ONE-SCREEN RULE
 > MOVED TO `xl`.** It shipped as a single 15-character line under the portrait — 34px tall, free
@@ -947,6 +947,39 @@ page.
 > "no behaviour may be specific to a breakpoint" is satisfied because the test is on the real box:
 > the phone outcome falls out of a general rule instead of being written as a special case, the
 > same shape `ambient="settled"` is praised for above.
+>
+> **THE SCRAMBLE WAS RESTORED ON 2026-08-23 AND THE PAGE'S VERTICAL LAYOUT WAS REBUILT AROUND THE
+> BOARD IN THE SAME PASS.** Both were Saad's instruction and both reverse something this section
+> previously recorded.
+>
+> **The scramble had been deleted, not weakened.** `text-flipping-board.tsx` argued at length that
+> 25-39 random characters per tile was "the thing that makes this kind of component read as a
+> WIDGET, which is precisely what `/about` cannot afford". Saad's instruction was to check the
+> registry source before assuming it was a tuning question — the same failure as
+> `text-hover-effect.tsx` losing its gradient alongside its colours — and the check confirmed it:
+> re-fetched from `https://ui.aceternity.com/registry/text-flipping-board.json`, the mechanic is
+> real in the source and was absent here. It is back, from the source rather than from this
+> codebase's description of it. Its cost is in `docs/03`'s motion-drivers section, including a
+> correction to the figure the exception was originally granted against.
+>
+> **The one-screen composition is now DISTRIBUTED rather than anchored.** `xl:items-start` pinned
+> everything 89px under the navbar and left the remainder as a single void at the bottom — 363px
+> of it at 1920×1080. Two flex spacers now split the slack 2:1 between "gap above the board" and
+> "margin below it", with floors of 34px and 21px so the tightest allowed viewport still gets a
+> real interval. MEASURED, gap / bottom: 37/21 at 1280×720, 71/35 at 1366×768, 159/79 at
+> 1440×900, 279/139 at 1920×1080.
+>
+> **That gap was bought, not found.** The action row's step from the paragraph went `mt-xl` (55px)
+> to `mt-lg` (34px) — matching the mark's own step, so the text column runs on one scale instead
+> of one scale and an exception — and the portrait cap followed it 384 -> 364px to keep the
+> square terminating on the same line. Row height 385 -> 364px. Without that 21px, 1280×720 had
+> nothing to distribute.
+>
+> **Re-measured after the re-layout, because the previous 16/16 was taken against the anchored
+> version and does not carry over:** 0.00px of overflow at 1280×720, 1280×800, 1366×768,
+> 1440×900, 1536×864, 1600×900, 1728×1117 and 1920×1080, in both themes — **16 of 16**, with the
+> band still landing exactly on the content column at all of them. The content column is 997px
+> now (544 + 89 + 364), giving 45 tile columns, and the longest entry still wraps to six rows.
 >
 > **A HELD CURSOR IS THE CASE THIS TURNS ON, and it is the common case rather than an edge one.**
 > The field is full-viewport, so "the pointer is inside the field" just means "the pointer is

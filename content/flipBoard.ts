@@ -73,33 +73,41 @@ import type { FlipBoardEntry } from "@/components/ui/text-flipping-board";
  * what makes the board read as pointed rather than as decoration.
  *
  * LENGTH IS A HARD CONSTRAINT, NOT A PREFERENCE. The board reserves height for
- * the LONGEST entry, and `/about` does not scroll at `xl`+. Measured at the
- * binding viewport (1280x720): 246px of band under the row, of which 34px is
- * the top margin, leaving 212px. Six rows is 209px. So at 46 columns no entry
- * may exceed SIX rows including its attribution — currently 3/4/5/5/6/6.
- * Adding a seventh row overflows a page that is not allowed to scroll. Re-run
- * the wrap before adding anything long.
+ * the LONGEST entry, and `/about` does not scroll at `xl`+. At 45 columns — the
+ * measured `xl`+ band after the vertical-distribution pass — no entry may
+ * exceed SIX rows including its attribution. Currently 3/4/5/5/6/6. A seventh
+ * row is 35px and there is not 35px anywhere at 1280x720; it would overflow a
+ * page that is not allowed to scroll. Re-run the wrap before adding anything
+ * long, and re-run it at 45 rather than at whatever the widest viewport gives.
  */
 
 /**
  * The board's rotation period, in MILLISECONDS.
  *
- * 12000ms, up from the 7000ms the one-word board used. The entries are now
- * 60-190 characters, i.e. 5-12 seconds of reading, and a dwell shorter than the
- * quotation takes to read is a ticker rather than a board. Six entries at 12s
- * is 72 seconds before a repeat — longer than a realistic visit, so a visitor
- * never sees the loop close.
+ * 20000ms. It went 7000 -> 12000 when one-word strings became five-line
+ * quotations, and 12000 -> 20000 when the scramble was restored, because the
+ * scramble is not free time: `boardSettleMs(45, 6)` is **4.02 SECONDS** at this
+ * board's size (the last cell starts at 3.18s, scrambles for up to 490ms, and
+ * lands with a 350ms flap). At a 12s dwell that is a third of the cycle in
+ * motion on the page whose entire brief is stillness.
  *
- * DO NOT GO BELOW 8000 NOW. The flip itself finishes at
- * `DURATION.ui + 45 * TILE_STAGGER_S = 1.25s` across 46 columns, so anything
- * faster spends a visible fraction of the cycle in motion on the quiet page.
+ * THE READING TIME IS THE OTHER HALF AND IT IS THE BINDING ONE. The longest
+ * entries are ~190 characters over six lines. At a conservative 200 wpm that is
+ * ~10s, and a visitor does not start reading on the frame the board lands. 20s
+ * leaves ~16.0s settled — 80% of the cycle at rest — and a reader who arrives
+ * mid-dwell still has time to finish.
+ *
+ * DO NOT GO BELOW 12000 NOW, and the floor is arithmetic rather than taste: at
+ * 12s the settled fraction is 66% and the six-line entries are unreadable
+ * without hurrying. Six entries at 20s is 120 seconds before a repeat — longer
+ * than a realistic visit, so a visitor never sees the loop close.
  *
  * Milliseconds rather than seconds because its one consumer is `setInterval`.
  * `lib/animation/easing.ts`'s `DURATION` is in seconds for GSAP and Framer and
  * this is deliberately not one of its entries: it is a dwell between two
  * resting states, not the duration of a transition.
  */
-export const FLIP_BOARD_DWELL_MS = 12000;
+export const FLIP_BOARD_DWELL_MS = 20000;
 
 /**
  * The row count the band reserves at `xl`+ regardless of content, so the

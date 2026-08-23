@@ -540,7 +540,7 @@ export function AboutScreen() {
             sides equally, and the half above the top is unreachable by scrolling.
             A scrolling page starts at the top; `pb-2xl` gives its bottom the same
             air the top gets from `pt-xl`. */}
-        <div className="relative flex items-center pt-xl pb-2xl sm:pt-2xl xl:h-full xl:items-start xl:pb-0">
+        <div className="relative flex items-center pt-xl pb-2xl sm:pt-2xl xl:h-full xl:items-stretch xl:pb-0">
           {/* THE SPINE, NOW ALSO THE ROW. `lg:flex` turns the same container
               into text-then-portrait at 1024px.
 
@@ -568,7 +568,7 @@ export function AboutScreen() {
               difference from an overflow. At `gap-xl` the same row is 812px
               with 34px in hand. Both are existing spine steps; no new token,
               and the wider gap returns at `xl` where there is room for it. */}
-          <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
+          <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl xl:flex xl:flex-col">
             {/* THE ROW. `lg:flex` turns text-then-portrait into two columns at
                 1024px; the band below it is a SIBLING of this, not a child. */}
             <div className="lg:flex lg:items-center lg:gap-xl xl:gap-2xl">
@@ -828,7 +828,7 @@ export function AboutScreen() {
                 <IntroEntrance
                   delay={STAGGER.line * 2}
                   fadeOnly
-                  className="mt-lg flex flex-col items-stretch gap-sm sm:mt-xl sm:flex-row sm:flex-wrap sm:items-center"
+                  className="mt-lg flex flex-col items-stretch gap-sm sm:flex-row sm:flex-wrap sm:items-center"
                 >
                   <CvAction />
                   {/* THE 2-UP PAIR. `grid-cols-2` rather than two `flex-1`
@@ -1023,7 +1023,7 @@ export function AboutScreen() {
                 `lg`, where the two are columns of a row and there is no gap of
                 this kind between them.
               */
-              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[384px] lg:min-w-[213px] lg:flex-1"
+              className="mt-xl max-w-[34rem] lg:mt-0 lg:max-w-[364px] lg:min-w-[213px] lg:flex-1"
             >
               <Image
                 src={portrait}
@@ -1035,6 +1035,47 @@ export function AboutScreen() {
 
             </IntroEntrance>
             </div>
+
+            {/*
+              THE UPPER SPACER, AND IT IS THE WHOLE OF "DISTRIBUTE, DO NOT
+              CLUSTER".
+
+              `xl:items-start` USED TO PIN THE COMPOSITION 89px UNDER THE NAVBAR
+              AND LEAVE EVERYTHING ELSE AS ONE VOID AT THE BOTTOM — 363px of it
+              at 1920x1080. Centring the same block instead is the other failure
+              Saad named: a compact object floating in a void with dead space at
+              both edges. Neither distributes anything.
+
+              SO THE SLACK IS A FLEX ITEM RATHER THAN A MARGIN. Two spacers
+              split whatever the viewport has left, 2:1, so the gap between the
+              two content groups grows with the screen and the bottom margin
+              grows with it at half the rate. MEASURED, gap / bottom:
+
+                1280x720    37 / 21     (the 21 is the spacer's floor, not the ratio)
+                1366x768    71 / 35
+                1440x900   159 / 79
+                1920x1080  279 / 139
+
+              THE RATIO IS 2:1 AND NOT 1:1 BECAUSE THE BOTTOM EDGE IS NOT A
+              THIRD GROUP. Air between two groups binds them into a composition;
+              air below the last one is just the page ending. Equal shares read
+              as the board floating rather than as the page filling — the same
+              reasoning the portrait's `lg:flex-1` uses one level up.
+
+              THE FLOORS ARE WHAT KEEP 1280x720 HONEST. `min-h-lg` (34px) on the
+              gap and `min-h-md` (21px) below mean the tightest allowed viewport
+              still gets a real interval rather than a hairline, and 21px is the
+              figure that stops the board sitting on the viewport edge. At
+              1280x720 the ratio would have given the bottom 19.3px and the
+              floor overrides it.
+
+              `hidden xl:block`, SO THIS EXISTS ONLY WHERE THE PAGE IS ONE
+              SCREEN. Below `xl` the page scrolls, the container is not
+              `h-full`, and a flex-grow spacer in an auto-height column
+              collapses to its floor — which would be 34px of unexplained air.
+              The board's own `mt-xl` carries the spacing there instead.
+            */}
+            <div aria-hidden="true" className="hidden xl:block xl:min-h-lg xl:flex-[2]" />
 
             {/*
               THE FLIP BOARD, AS A BAND UNDER THE WHOLE ROW.
@@ -1099,9 +1140,15 @@ export function AboutScreen() {
               it reverses are all in `AboutFlipBoard.tsx`. Read that before
               changing anything here.
             */}
-            <IntroEntrance className="mt-xl max-w-[34rem] lg:mt-md lg:max-w-[983px] xl:max-w-[1017px]">
+            <IntroEntrance className="mt-xl max-w-[34rem] lg:max-w-[963px] xl:mt-0 xl:max-w-[997px]">
               <AboutFlipBoard />
             </IntroEntrance>
+
+            {/* The lower spacer — the smaller half of the 2:1 split above. It
+                is what stops the board terminating on the viewport edge, and it
+                is why the composition reads as filling the screen rather than
+                as having been pushed to the bottom of it. */}
+            <div aria-hidden="true" className="hidden xl:block xl:min-h-md xl:flex-[1]" />
           </div>
         </div>
       </div>

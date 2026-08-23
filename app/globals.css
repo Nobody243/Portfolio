@@ -1032,3 +1032,121 @@ html[data-nav-open] {
 dialog::backdrop {
   background: transparent;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   THE SPLIT-FLAP BOARD'S FLAP ANIMATION — `/about`, one consumer.
+
+   THESE ARE THE FIRST `@keyframes` IN THIS FILE AND THEY EXIST FOR A MEASURED
+   REASON, NOT A STYLISTIC ONE. `components/ui/text-flipping-board.tsx` drove
+   the same two rotations through Framer Motion, re-keyed on every scramble
+   step. That works and it is what the registry source does — at 22 columns.
+   At this board's 276 cells it means ~1,100 component mount/unmounts every
+   scramble step, and MEASURED on a 1440x900 build the WORST FRAME was 1,280ms
+   at 4x CPU throttle and 1,895ms at 6x. The page visibly froze on a rotation.
+
+   WHAT THIS FIXED AND WHAT IT DID NOT, because the distinction cost four
+   wrong guesses to find and the full table is in that file's `FLAP_STEP_MS`
+   docblock. It cut the WORST FRAME by 2.7x, to 480ms. It did NOT reduce the
+   total cost of a flip at all — that stayed at 7,735ms of frames over 50ms
+   until the scramble's own constants were tuned. The flap library was never
+   the bulk of the cost; it was only the worst spike.
+
+   A CSS animation on a PERSISTENT element costs one style-property write to
+   restart. `animation-name` alternating between the `-a` and `-b` twins is
+   what restarts it: the pairs are byte-identical, and the only thing that
+   matters is that the NAME CHANGES, which is what makes the browser start a
+   new animation without the `void el.offsetWidth` reflow the usual restart
+   trick needs. 276 reflows per step would have replaced one cost with
+   another.
+
+   `forwards`, so a flap that has run holds its end state instead of snapping
+   back: the falling half stays edge-on at -90deg and the rising half stays
+   flat at 0deg, which is exactly the resting composition.
+   ───────────────────────────────────────────────────────────────────────── */
+@keyframes flap-fall-a {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(-90deg);
+  }
+}
+@keyframes flap-fall-b {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(-90deg);
+  }
+}
+@keyframes flap-rise-a {
+  from {
+    transform: rotateX(90deg);
+  }
+  to {
+    transform: rotateX(0deg);
+  }
+}
+@keyframes flap-rise-b {
+  from {
+    transform: rotateX(90deg);
+  }
+  to {
+    transform: rotateX(0deg);
+  }
+}
+@keyframes flap-sheen-a {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes flap-sheen-b {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* The durations and the curve are `DURATION.ui` (0.35s) and `EASE.ui`
+   (`cubic-bezier(0.4, 0, 0.2, 1)`) from `lib/animation/easing.ts`, spelled here
+   because keyframes cannot read a JS constant. NO NEW CURVE AND NO NEW
+   DURATION ENTERS THE SYSTEM — if either changes in `easing.ts`, these three
+   rules are the places that have to follow it, and that coupling is the price
+   of moving the flap off Framer. The rise is delayed by half the flip so the
+   incoming half starts only once the outgoing one is edge-on. */
+.flap-fall {
+  transform: rotateX(-90deg);
+  animation-duration: 0.175s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: forwards;
+}
+.flap-rise {
+  transform: rotateX(0deg);
+  animation-duration: 0.175s;
+  animation-delay: 0.175s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: forwards;
+}
+.flap-sheen {
+  opacity: 0;
+  animation-duration: 0.455s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+/* `docs/07` §8 requires a reduced-motion branch of ALL motion. The component
+   already refuses to scramble under `prefers-reduced-motion` — it lands the
+   character with no intermediate steps — so this is the belt to that braces:
+   even if a name were written, nothing rotates. */
+@media (prefers-reduced-motion: reduce) {
+  .flap-fall,
+  .flap-rise,
+  .flap-sheen {
+    animation: none !important;
+  }
+}
