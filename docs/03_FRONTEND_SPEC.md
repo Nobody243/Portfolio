@@ -24,7 +24,7 @@
 | `text-fg` | `#151515` | Body/heading text |
 | `accent-hero` | `#00E5FF` — same hex as dark mode | Unchanged; renders on the 3D scene's own dark backdrop. See the accent-tuning clarification below |
 | `accent-working` | `#0F766E` (dark mode: `#14B8A6`) | Same teal, darkened for contrast — `#14B8A6` on `#FDFCFA` is 2.44:1 and fails AA for text |
-| `--field-ink` | `#33474C` (dark mode: `#9EC9D4`) | `/about`'s particle field ONLY. Flips direction with the ground, unlike either accent |
+| `--field-ink` | `#223F49` (dark mode: `#9EC9D4`) | `/about`'s particle field ONLY. Flips direction with the ground, unlike either accent |
 
 **Rule:** the two tinted whites are a subtle echo of the cyber(green)/cloud(blue) duality — they should
 be used as occasional, quiet background tints (e.g. behind a "Systems Foundation" vs "Currently Building
@@ -62,19 +62,69 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 >
 > | | Dark on `#0A0A0B` | Light on `#FDFCFA` |
 > |---|---|---|
-> | ink | `#9EC9D4` | `#33474C` |
-> | `nodeAlpha` | 0.30 | 0.17 |
-> | node composite | `#374448`, L\* 27.88, ΔL\* **+25.12**, 1.96:1 | `#DBDEDD`, L\* 88.22, ΔL\* **−10.77**, 1.32:1 |
-> | `linkPeakAlpha` | 0.09 | 0.07 |
-> | link composite | `#181C1D`, L\* 9.90, ΔL\* **+7.14**, 1.15:1 | `#EFEFED`, L\* 94.40, ΔL\* **−4.59**, 1.12:1 |
-> | `linkFalloff` | 1.0 (linear) | **0.6** |
-> | `areaPerNode` / `maxNodes` | 8,500 / 160 | 8,500 / 160 — identical |
+> | ink | `#9EC9D4` | **`#223F49`** (was `#33474C`) |
+> | `nodeAlpha` | **0.36** (was 0.30) | **0.19** (was 0.17) |
+> | node composite | `#3F4F53`, L\* 32.38, ΔL\* **+29.62**, 2.31:1 | `#D3D8D8`, L\* 86.03, ΔL\* **−12.96**, 1.40:1 |
+> | `linkPeakAlpha` | **0.105** (was 0.09) | **0.08** (was 0.07) |
+> | link composite | ΔL\* **+8.16** (was +6.78) | ΔL\* **−5.41** (was −4.50) |
+> | `linkFalloff` | 1.0 (linear) | **0.6** — unchanged |
+> | `areaPerNode` / `maxNodes` | **7,000 / 200** | **7,000 / 200** — identical |
+>
+> > **RAISED IN BOTH THEMES TOGETHER ON 2026-08-23, and "together" is what makes it legal.** Saad
+> > asked for the field to be more present. Raising *light alone* is precisely the per-node correction
+> > this section forbids two bullets below, so both themes were multiplied and the ratio was
+> > preserved rather than closed:
+> >
+> > | | node | link |
+> > |---|---|---|
+> > | dark multiplier | ×1.1931 | ×1.2030 |
+> > | light multiplier | ×1.1778 | ×1.2031 |
+> >
+> > The node multipliers differ by **1.28%** and the link multipliers by **0.01%**. Only the light hex
+> > moved, and it moved to buy **saturation**, not darkness: hue 192.0° → 195.4° (held), HSL saturation
+> > 0.197 → **0.364**, lightness 0.249 → 0.210. It is still low-chroma and still on neither the cyan
+> > nor the teal.
+> >
+> > **Density is the free lever and it carries no contrast cost at all**: 152 → 185 nodes at 1440×900,
+> > mean spacing 92.3px → 83.7px against a 120px `LINK_RADIUS`, so the mesh triangulates harder. That
+> > moves *toward* `HERO_FIELD`'s proven 5,200/300 and away from the recorded failure at 11,000.
+> > **`RADIUS_MIN`/`RADIUS_MAX` were not touched and must not be** — bigger dots is the obvious way to
+> > make a field "more present" and it is the one lever `ParticleGrid` refuses by name.
+> >
+> > **Both node composites still sit below 3:1** (2.31 and 1.40), which is the ceiling below. Dark
+> > keeps 0.69 of headroom.
+> >
+> > **Re-measured against the ±10% band below, and the method has a noise floor that has to be stated
+> > with the result.** Node positions are `Math.random()`-seeded per load, so a single reading of the
+> > whole-canvas mass carries **~3% run-to-run standard deviation** — a single load put the ratio at
+> > 0.908 and another at 0.929. Averaged over **six loads per theme** at 1440×900:
+> >
+> > | | dark | light | ratio |
+> > |---|---|---|---|
+> > | total ink mass, Σ\|ΔL\*\| | 108,026 ± 3,616 | 114,347 ± 3,428 | **0.9447 ± 0.0424** |
+> > | mean ΔL\* per inked pixel | 1.5647 | 1.4100 | **1.1097** |
+> >
+> > **Total ink mass: light is 5.9% heavier than dark — inside ±10%.** Mean ΔL\* per inked pixel is
+> > 11.0% apart, marginally outside, and it **improved**: the same measurement on the pre-change build
+> > read 1.2464, i.e. 24.6% apart. The driver of the residual is named in `app/globals.css` and was
+> > predicted there in writing — light's `linkFalloff: 0.6` carries a *darker* ink past the faint
+> > visibility threshold further out than the d ≈ 101px it was tuned for, adding low-amplitude pixels
+> > to the denominator.
+> >
+> > **A canvas digest is NOT a valid regression check for this component and one was attempted.**
+> > Because node positions are randomly seeded at build time, Home's canvas digest differs on **every
+> > load** in both themes on one unchanged build (measured: three loads, three digests, twice). The
+> > guard that actually holds is that `HERO_FIELD` and the draw pass are untouched in the diff, plus
+> > Home's ink statistics.
 >
 > Three of those need their reason recorded, because each is the opposite of the obvious move:
 >
-> - **The dark field's weight did not change.** ΔL\* +25.12 against the old cyan's +24.30 — under one
->   L\* point. Only the hue moved. That is the whole design: dark was never the broken half.
-> - **The light delta is 43% of dark's, not equal to it.** Matching ΔL\* would put a mid-grey speckle
+> - **The dark field's weight did not change *when the hue did*.** ΔL\* +25.12 against the old cyan's
+>   +24.30 — under one L\* point. That was the whole design of the token: dark was never the broken
+>   half. *It has since been raised deliberately, to +29.62, as half of the 2026-08-23 amplitude pass
+>   above — that is a change of amplitude with the hue held, which is the opposite operation.*
+> - **The light delta is ~44% of dark's, not equal to it** (43% before the 2026-08-23 amplitude pass,
+>   which held the ratio). Matching ΔL\* would put a mid-grey speckle
 >   on white, and matching the WCAG ratio lands in the same place. Both metrics are blind to the fact
 >   that a light mark on near-black blooms and merges into haze while a dark mark on near-white stays
 >   a discrete object.

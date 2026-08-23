@@ -312,8 +312,42 @@ export const HERO_FIELD: ParticleFieldTuning = {
  * into triangles, is what actually reads as busy behind a paragraph. Dropping
  * the count and the alphas independently thins the mesh instead of veiling it.
  *
- * Density from `.claude/handoff/about-design.md` §5: ~39% fewer nodes and a 160
- * cap so a large viewport cannot walk it back up. Both numbers are unchanged.
+ * DENSITY AND INK BOTH ROSE ON 2026-08-23, AND THEY ARE THE ONLY TWO LEVERS ON
+ * THE TABLE. Saad asked for the field to be more present, in both themes.
+ *
+ *   areaPerNode  8,500 -> 7,000      maxNodes  160 -> 200
+ *   dark   nodeAlpha 0.30 -> 0.36    linkPeakAlpha 0.09 -> 0.105
+ *   light  nodeAlpha 0.17 -> 0.19    linkPeakAlpha 0.07 -> 0.08
+ *   light  ink #33474C -> #223F49    (in `app/globals.css`; hue held at ~195deg,
+ *                                     HSL saturation 0.197 -> 0.364)
+ *   linkFalloff, both themes: UNCHANGED (1.0 dark / 0.6 light)
+ *
+ * DENSITY IS THE FREE LEVER — it has no contrast cost at all. 152 -> 185 nodes
+ * at 1440x900, mean spacing 92.3px -> 83.7px against a 120px `LINK_RADIUS`, so
+ * each node finds more neighbours and the mesh triangulates harder. That is what
+ * "presence" actually is here, and it moves TOWARD `HERO_FIELD`'s proven
+ * 5,200/300 rather than toward the documented failure at 11,000 (~105px spacing,
+ * where the mesh collapses to scattered dots). Density stays identical across
+ * themes; that rule is untouched.
+ *
+ * COST: the O(n^2) link pass runs 1.48x the pair checks. `/about` passes
+ * `ambient="settled"` and paints one frame then parks, so that cost is only paid
+ * during a pointer settle (~60 frames). The hero already runs 300 nodes.
+ *
+ * BOTH THEMES ROSE TOGETHER, AND THAT IS NOT A COURTESY TO DARK. Raising light
+ * alone is precisely the "correct the per-node ratio upward" move `docs/03`
+ * forbids by name on bloom grounds. Multiplying both preserves the ratio:
+ * dark x1.1931, light x1.1778, the two within 1.28% of each other.
+ * `app/globals.css` carries the full composite arithmetic for both.
+ *
+ * `RADIUS_MIN` / `RADIUS_MAX` ARE STILL OFF THE TABLE. Bigger dots is the
+ * obvious way to make a field "more present" and it is the one lever this file
+ * refuses by name below. Density and ink are the two that are on it.
+ *
+ * THE PRIOR VALUES, kept rather than deleted: the density came from
+ * `.claude/handoff/about-design.md` §5 as ~39% fewer nodes than the hero, with a
+ * 160 cap so a large viewport could not walk it back up. The cap survives as a
+ * mechanism; only its value moved.
  *
  * THE INK IS NO LONGER THE HERO'S, AND THAT IS THE WHOLE POINT OF THIS PRESET
  * HAVING ONE. It used to inherit the draw pass's hardcoded `--accent-hero`,
@@ -321,10 +355,11 @@ export const HERO_FIELD: ParticleFieldTuning = {
  * the alphas and quietly false about the colour, because `--accent-hero` is
  * Tier 1 and `/about` is Tier 2/3. `--field-ink` is the dedicated low-chroma
  * ink; `app/globals.css` carries the full arithmetic for both values. In
- * summary: the dark field's weight is unchanged to within 0.4 L* (ΔL* +24.69
- * against the old cyan's +24.30) and only the hue moves, while light drops to
- * ΔL* −11.05 — 45% of dark's delta, because a dark mark on near-white does not
- * bloom the way a light mark on near-black does.
+ * summary: the dark field's hue moved off the Tier 1 cyan without moving its
+ * weight, and light sits at ~44% of dark's delta, because a dark mark on
+ * near-white does not bloom the way a light mark on near-black does. As of
+ * 2026-08-23 the pair is ΔL* +29.62 dark / −12.96 light, raised from
+ * +24.82 / −11.00 with the ratio held.
  *
  * THE CONNECTION TO THE HERO IS STRUCTURE, NOT HUE, and it always was: same
  * canvas, same mesh, same `LINK_RADIUS`, same displacement kernel, same cursor
@@ -346,18 +381,18 @@ export const HERO_FIELD: ParticleFieldTuning = {
  * still image with a canvas element's cost.
  */
 export const QUIET_FIELD: ParticleFieldTuning = {
-  areaPerNode: 8_500,
-  maxNodes: 160,
+  areaPerNode: 7_000,
+  maxNodes: 200,
   dark: {
     ink: "--field-ink",
-    nodeAlpha: 0.3,
-    linkPeakAlpha: 0.09,
+    nodeAlpha: 0.36,
+    linkPeakAlpha: 0.105,
     linkFalloff: 1,
   },
   light: {
     ink: "--field-ink",
-    nodeAlpha: 0.17,
-    linkPeakAlpha: 0.07,
+    nodeAlpha: 0.19,
+    linkPeakAlpha: 0.08,
     linkFalloff: 0.6,
   },
 };
