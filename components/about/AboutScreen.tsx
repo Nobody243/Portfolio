@@ -478,7 +478,7 @@ export function AboutScreen() {
         content, which is the failure `Reveal`'s 13px clip note describes from
         the other side.
       */
-      className="relative min-h-dvh w-full bg-base xl:h-dvh xl:overflow-hidden"
+      className="relative min-h-dvh w-full bg-base"
     >
       {/*
         THE PAGE HAD NO HEADING AT ALL, AND NO ACCESSIBLE NAME. Not a
@@ -523,7 +523,7 @@ export function AboutScreen() {
         shorter. At `lg` it is `absolute inset-0` exactly as before, so the
         one-screen composition is byte-identical there.
       */}
-      <div className="relative min-h-dvh xl:absolute xl:inset-0 xl:min-h-0">
+      <div className="relative min-h-dvh">
         {/* The same mesh the hero draws, thinned rather than veiled, and in
             `--field-ink` rather than the hero's Tier 1 cyan — see
             `QUIET_FIELD`. THAT SECOND HALF IS WHY THE PRESET NAMES A COLOUR:
@@ -540,7 +540,7 @@ export function AboutScreen() {
             sides equally, and the half above the top is unreachable by scrolling.
             A scrolling page starts at the top; `pb-2xl` gives its bottom the same
             air the top gets from `pt-xl`. */}
-        <div className="relative flex items-center pt-xl pb-2xl sm:pt-2xl xl:h-full xl:items-stretch xl:pb-0">
+        <div className="relative flex min-h-dvh pt-xl pb-2xl sm:pt-2xl">
           {/* THE SPINE, NOW ALSO THE ROW. `lg:flex` turns the same container
               into text-then-portrait at 1024px.
 
@@ -568,7 +568,7 @@ export function AboutScreen() {
               difference from an overflow. At `gap-xl` the same row is 812px
               with 34px in hand. Both are existing spine steps; no new token,
               and the wider gap returns at `xl` where there is room for it. */}
-          <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl xl:flex xl:flex-col">
+          <div className="mx-auto my-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
             {/* THE ROW. `lg:flex` turns text-then-portrait into two columns at
                 1024px; the band below it is a SIBLING of this, not a child. */}
             <div className="lg:flex lg:items-center lg:gap-xl xl:gap-2xl">
@@ -1037,46 +1037,30 @@ export function AboutScreen() {
             </div>
 
             {/*
-              THE UPPER SPACER, AND IT IS THE WHOLE OF "DISTRIBUTE, DO NOT
-              CLUSTER".
+              THE COMPOSITION IS TRULY CENTRED NOW, AND THE TWO FLEX SPACERS
+              THAT USED TO LIVE HERE ARE GONE.
 
-              `xl:items-start` USED TO PIN THE COMPOSITION 89px UNDER THE NAVBAR
-              AND LEAVE EVERYTHING ELSE AS ONE VOID AT THE BOTTOM — 363px of it
-              at 1920x1080. Centring the same block instead is the other failure
-              Saad named: a compact object floating in a void with dead space at
-              both edges. Neither distributes anything.
+              WHAT THEY DID AND WHY IT WAS WRONG. They split the leftover
+              height 2:1 between "gap above the board" and "margin below it",
+              so the gap was 37px at 1280x720 and 279px at 1920x1080 — the
+              composition changed proportion with the window instead of being
+              one thing that sits in the middle of it. Saad's instruction on
+              2026-08-23 was true centring as one composed unit, and a spacer
+              that grows is the opposite of a composed unit.
 
-              SO THE SLACK IS A FLEX ITEM RATHER THAN A MARGIN. Two spacers
-              split whatever the viewport has left, 2:1, so the gap between the
-              two content groups grows with the screen and the bottom margin
-              grows with it at half the rate. MEASURED, gap / bottom:
+              THE CENTRING IS `my-auto` ON THE SPINE CONTAINER, NOT
+              `items-center`, AND THE DIFFERENCE IS THE ONE THIS FILE ALREADY
+              LEARNED ONCE. `items-center` on a box TALLER than its container
+              puts the overflow on BOTH sides and the half above the top is
+              unreachable by scrolling. A flex auto margin resolves to 0 when
+              free space is negative, so the same element centres when it fits
+              and sits at the top when it does not — which is exactly the
+              behaviour a page that may or may not scroll needs.
 
-                1280x720    37 / 21     (the 21 is the spacer's floor, not the ratio)
-                1366x768    71 / 35
-                1440x900   159 / 79
-                1920x1080  279 / 139
-
-              THE RATIO IS 2:1 AND NOT 1:1 BECAUSE THE BOTTOM EDGE IS NOT A
-              THIRD GROUP. Air between two groups binds them into a composition;
-              air below the last one is just the page ending. Equal shares read
-              as the board floating rather than as the page filling — the same
-              reasoning the portrait's `lg:flex-1` uses one level up.
-
-              THE FLOORS ARE WHAT KEEP 1280x720 HONEST. `min-h-lg` (34px) on the
-              gap and `min-h-md` (21px) below mean the tightest allowed viewport
-              still gets a real interval rather than a hairline, and 21px is the
-              figure that stops the board sitting on the viewport edge. At
-              1280x720 the ratio would have given the bottom 19.3px and the
-              floor overrides it.
-
-              `hidden xl:block`, SO THIS EXISTS ONLY WHERE THE PAGE IS ONE
-              SCREEN. Below `xl` the page scrolls, the container is not
-              `h-full`, and a flex-grow spacer in an auto-height column
-              collapses to its floor — which would be 34px of unexplained air.
-              The board's own `mt-xl` carries the spacing there instead.
+              THE GAP TO THE BOARD IS A FIXED SPINE STEP AGAIN (`mt-2xl`, 89px
+              at `lg`+). It closes because the BOARD grew into it, not because
+              a spacer shrank.
             */}
-            <div aria-hidden="true" className="hidden xl:block xl:min-h-lg xl:flex-[2]" />
-
             {/*
               THE FLIP BOARD, AS A BAND UNDER THE WHOLE ROW.
 
@@ -1140,15 +1124,10 @@ export function AboutScreen() {
               it reverses are all in `AboutFlipBoard.tsx`. Read that before
               changing anything here.
             */}
-            <IntroEntrance className="mt-xl max-w-[34rem] lg:max-w-[963px] xl:mt-0 xl:max-w-[997px]">
+            <IntroEntrance className="mt-xl max-w-[34rem] lg:mt-2xl lg:max-w-[963px] xl:max-w-[997px]">
               <AboutFlipBoard />
             </IntroEntrance>
 
-            {/* The lower spacer — the smaller half of the 2:1 split above. It
-                is what stops the board terminating on the viewport edge, and it
-                is why the composition reads as filling the screen rather than
-                as having been pushed to the bottom of it. */}
-            <div aria-hidden="true" className="hidden xl:block xl:min-h-md xl:flex-[1]" />
           </div>
         </div>
       </div>

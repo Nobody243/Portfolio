@@ -967,6 +967,31 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 > **This is a declared regression on slow hardware, not an assurance.** The lever if it needs to
 > be cheaper is the step count, which is linear in the cost and is named in the file.
 >
+> **Re-measured after the board's tile grew to 21×55 and its glyph to 26px (2026-08-23): 70ms /
+> 6,120ms / 8,495ms** at 1x / 4x / 6x. Still free at 1x; the larger paint area costs ~22% more on
+> throttled hardware.
+>
+> **TWO LEGIBILITY DEFECTS WERE FOUND BY CAPTURING PIXELS RATHER THAN BY REASONING ABOUT SIZE, AND
+> NEITHER WAS A SIZE PROBLEM.** The reported symptom was "the letter E is sometimes misread as a
+> C".
+>
+> 1. **The 1px split line was erasing E's crossbar.** It is painted at 50% of the tile height ON
+>    TOP of the glyph, and at 16px JetBrains Mono's capital E has a 12px cap with a 2px middle arm
+>    at rows 5-6 — dead centre. Captured at 6x zoom the glyph rendered as a C stacked on an L; the
+>    same tile with the line hidden rendered a clean E. Fixed by the glyph growing (the crossbar is
+>    ~3.25px at 26px) and by the line dropping to `bg-base/70`, so it dims the crossbar instead of
+>    removing it.
+> 2. **The resting flap was dimming the bottom half of every character.** The rising half rested
+>    FLAT over the static bottom half showing the same glyph — visually identical, except that it
+>    carries a shading gradient, so every letter on the board had a grey lower half against a white
+>    upper half, permanently. It now rests EDGE-ON at `rotateX(90deg)` with no `fill-mode`, so only
+>    the two clean static halves are ever visible at rest.
+>
+> **The mono tracking was also removed from the tile glyph**, and that is a centring fix rather
+> than a relaxation: `0.08em` is space BETWEEN characters and every cell holds exactly one, so it
+> was adding trailing space inside the flex box and pushing every glyph 1.04px left of its tile's
+> centre. The inter-character spacing a split-flap board wants is the tile pitch.
+>
 > **One structural note for this document specifically: the site now has `@keyframes`, and these
 > are the first.** Moving the flap off Framer means `EASE.ui` and `DURATION.ui` are SPELLED OUT in
 > `app/globals.css` rather than imported, because keyframes cannot read a JS constant. No new

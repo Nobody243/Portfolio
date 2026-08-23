@@ -254,24 +254,34 @@ import { cn } from "@/lib/utils";
  * grid out, the numbers derive the column count, and a drift between them shows
  * up as a board that overflows its band by one tile.
  *
- * Width is `--spacing-md` (21px), height `--spacing-lg` (34px), and the gap is
+ * Width is `--spacing-md` (21px), height `--spacing-xl` (55px), and the gap is
  * the 1px `gap-px` that stands in for the deleted tile borders. So the pitch is
- * 22 x 35 and an N-column board measures `N * 22 - 1`.
+ * 22 x 56 and an N-column board measures `N * 22 - 1`.
  *
- * WIDTH WENT 13px -> 21px WITH THE BAND. At 13px the 1017px content column
+ * WIDTH WENT 13px -> 21px WITH THE BAND. At 13px the ~1000px content column
  * would take 72 columns, and 72 characters per line of a five-line quotation is
- * a paragraph set in mono, not a departure board. 21px gives 46 columns, which
+ * a paragraph set in mono, not a departure board. 21px gives 45 columns, which
  * is inside the 45-75 character measure `docs/03` sets for prose and reads as
  * mechanism rather than as text.
  *
- * A 16px GLYPH IN A 21px TILE FITS WITH ROOM: JetBrains Mono's advance is 0.6em
- * (9.6px) plus 0.08em tracking (1.28px) = 10.88px, leaving ~5px each side.
+ * HEIGHT WENT 34px -> 55px ON 2026-08-23, AND THE WIDTH DELIBERATELY DID NOT.
+ * Saad asked for a bigger board to close the gap to the text block above it.
+ * Height is the half that was free: the band's WIDTH is the content column
+ * (paragraph's left edge to the portrait's right edge) and is fixed by the
+ * composition, so widening the tile only trades columns for rows. Measured:
+ * at a 34px tile the board is 28 columns and the longest entry wraps to NINE
+ * rows — 503px, which does not fit 1920x1080's budget. At 21 x 55 it stays 45
+ * columns and six rows and the board grows 209px -> 335px, which does.
+ *
+ * A 26px GLYPH IN A 21px TILE FITS: JetBrains Mono's advance is 0.6em, so
+ * 15.6px in a 21px tile leaves 2.7px each side. That is the binding check on
+ * the width — it is why the tile could not stay at 13px once the glyph grew.
  */
 const BOARD_TILE = {
   wClass: "w-md",
-  hClass: "h-lg",
+  hClass: "h-xl",
   w: 21,
-  h: 34,
+  h: 55,
   gap: 1,
 } as const;
 
@@ -281,13 +291,13 @@ const PITCH_H = BOARD_TILE.h + BOARD_TILE.gap;
 /**
  * The column count assumed on the server and on the first client render.
  *
- * IT IS NOT A GUESS AND IT MUST NOT BECOME ONE. 46 is the measured `xl`+ case:
- * the content column is 1017px (544 measure + 89 gap + 384 portrait), and
- * `floor((1017 + 1) / 22) = 46`. Rendering the same number on both sides of
+ * IT IS NOT A GUESS AND IT MUST NOT BECOME ONE. 45 is the measured wide case:
+ * the content column is 997px (544 measure + 89 gap + 364 portrait), and
+ * `floor((997 + 1) / 22) = 45`. Rendering the same number on both sides of
  * hydration is the point — the real value lands in `useLayoutEffect`, before
  * paint, so a narrower viewport never shows the wide board.
  */
-const BOARD_SSR_COLS = 46;
+const BOARD_SSR_COLS = 45;
 
 /**
  * Above this many rows the board does not render at all.
@@ -674,8 +684,32 @@ const FlapCell = React.memo(
       return clear;
     }, [target, delay, flip]);
 
+    /**
+     * THE GLYPH, AND BOTH HALVES OF THIS STRING CHANGED ON 2026-08-23 FOR
+     * REASONS THAT ARE NOT "BIGGER IS BETTER".
+     *
+     * `text-[1.625rem]` IS 26px AND IT IS NOT A NEW SIZE STEP. It is exactly
+     * `--text-h4`'s clamp MAXIMUM
+     * (`clamp(1.3125rem, 1.208rem + 0.46vw, 1.625rem)`), pinned rather than
+     * clamped. `text-h4` itself cannot be used here: it is viewport-dependent,
+     * and header item 9 deletes the source's `clamp(6px, 2vw, 22px)` for
+     * exactly that — a fixed tile grid whose glyph changes size with the
+     * window is a different board at every width. `docs/03`'s "do not add a
+     * 20px size" is untouched; no rung was invented.
+     *
+     * THE 0.08em TRACKING IS GONE, AND ITS ABSENCE IS A FIX RATHER THAN A
+     * RELAXATION. Tracking is space BETWEEN characters and every cell here
+     * holds exactly one — so it was adding 2.08px of trailing space inside the
+     * flex box and pushing every glyph 1.04px LEFT of its tile's centre. The
+     * inter-character spacing this board wants is the tile pitch, which it
+     * already has.
+     *
+     * `leading-none` because the line box is centred inside a fixed-height
+     * tile; `text-body`'s 1.6 leading was inflating a box that is then centred
+     * anyway, and at 26px it made the glyph's optical centre drift.
+     */
     const glyph =
-      "absolute inset-x-0 flex select-none items-center justify-center font-mono text-body tracking-[0.08em] text-fg";
+      "absolute inset-x-0 flex select-none items-center justify-center font-mono text-[1.625rem] leading-none text-fg";
 
     // A plain space collapses the line box; the glyph slot has to keep its
     // height, so blanks stay a space inside a fixed-size tile.
@@ -701,13 +735,20 @@ const FlapCell = React.memo(
           </div>
         </div>
 
-        {/* Bottom half of the character now showing. It is covered by the
-            resting rising flap and is revealed only while that flap rotates
-            in, which is exactly when it is wanted. */}
+        {/* Bottom half of the character now showing, and the settle sheen that
+            fades off it once the incoming flap has landed. The sheen lives HERE
+            rather than inside the rising flap because that flap is edge-on at
+            rest — see `app/globals.css` — so a sheen inside it would be cut off
+            mid-fade. Nothing else is painted over this half: the two static
+            halves are the entire resting image. */}
         <div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden">
           <div ref={bottomGlyph} className={cn(glyph, "bottom-0 h-[200%]")}>
             {show}
           </div>
+          <div
+            ref={sheenEl}
+            className="flap-sheen pointer-events-none absolute inset-0 bg-linear-to-b from-base/80 to-transparent to-60%"
+          />
         </div>
 
         {/* The outgoing character's top half, falling. Its resting state is
@@ -724,11 +765,12 @@ const FlapCell = React.memo(
           <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent to-base" />
         </div>
 
-        {/* The incoming character's bottom half, rising. It rests FLAT rather
-            than edge-on, directly over the static bottom half and showing the
-            same character, so at rest the two are indistinguishable — which is
-            what lets the settle sheen live in here, on top, instead of being
-            covered by the flap the moment it lands. */}
+        {/* The incoming character's bottom half, rising. IT RESTS EDGE-ON at
+            `rotateX(90deg)` and is invisible except while it is animating.
+            It used to rest FLAT over the static bottom half — same character,
+            so it looked identical — but it carries a shading gradient, and
+            that gradient was dimming the lower half of every glyph on the
+            board permanently. `app/globals.css` has the capture. */}
         <div
           ref={riseEl}
           className="flap-rise absolute inset-x-0 bottom-0 z-10 h-1/2 origin-top overflow-hidden bg-elevated backface-hidden transform-3d"
@@ -737,15 +779,36 @@ const FlapCell = React.memo(
             {show}
           </div>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-transparent to-base/60" />
-          <div
-            ref={sheenEl}
-            className="flap-sheen pointer-events-none absolute inset-0 bg-linear-to-b from-base/80 to-transparent to-60%"
-          />
         </div>
 
-        {/* The split line. `bg-base` so it reads as the gap between two flaps
-            rather than as a rule drawn on the tile. */}
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-px -translate-y-[0.5px] bg-base" />
+        {/* THE SPLIT LINE, AND IT WAS SILENTLY EATING THE LETTER E.
+            =============================================================
+            REPORTED SYMPTOM: "the letter E is sometimes misread as a C".
+            DIAGNOSED, not assumed to be a size problem — and it is not one.
+
+            This line is 1px of `bg-base` painted at 50% of the tile height,
+            ON TOP of the glyph, so it ERASES a 1px horizontal strip through
+            the middle of every character. At the old 16px, JetBrains Mono's
+            capital E has a 12px cap with its middle arm 2px tall at rows 5-6,
+            i.e. dead centre. MEASURED: the line sat at 48.5% of the 34px tile
+            and the crossbar occupied y=16..18 — the line covered y=16.5..17.5.
+
+            Captured at 6x zoom, the rendered E read as a C stacked on an L.
+            The same tile with this element hidden read as a clean E. That is
+            the whole of the bug: it was never the typeface, the weight or the
+            contrast, and a bigger glyph only helps because the crossbar grows
+            thicker than the 1px cut.
+
+            BOTH HALVES OF THE FIX ARE HERE. The glyph is 26px now, so the
+            crossbar is ~3.25px and survives the cut; and the line is `/70`
+            rather than solid, so it DIMS the crossbar instead of removing it.
+            Either alone is enough at 26px — together they are enough at any
+            size this board is likely to take.
+
+            IT IS STILL `bg-base` AND STILL 1px: it has to read as the gap
+            between two flaps rather than as a rule drawn on the tile, and
+            that is the colour of the gap everywhere else on this board. */}
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-px -translate-y-[0.5px] bg-base/70" />
       </div>
     );
   },

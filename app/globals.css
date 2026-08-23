@@ -1125,12 +1125,25 @@ dialog::backdrop {
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: forwards;
 }
+/* THE RISING HALF RESTS EDGE-ON, NOT FLAT, AND THAT IS A LEGIBILITY FIX RATHER
+   THAN A GEOMETRY PREFERENCE.
+
+   It used to rest at `rotateX(0deg)` with `fill-mode: forwards` — flat, sitting
+   permanently on top of the static bottom half. Both show the same character so
+   it looked identical, EXCEPT that the flap carries a directional shading
+   gradient, and that gradient was therefore painting over the bottom half of
+   every glyph on the board forever. Captured at 6x, the lower half of every
+   letter was visibly grey against a white upper half.
+
+   At 90deg it is invisible at rest and the clean static bottom half shows
+   through. NO `fill-mode`, deliberately: the animation ends and the element
+   snaps back to edge-on, which is invisible precisely because the static half
+   underneath already shows the character it landed on. */
 .flap-rise {
-  transform: rotateX(0deg);
+  transform: rotateX(90deg);
   animation-duration: 0.175s;
   animation-delay: 0.175s;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  animation-fill-mode: forwards;
 }
 .flap-sheen {
   opacity: 0;

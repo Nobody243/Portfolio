@@ -73,12 +73,15 @@ import type { FlipBoardEntry } from "@/components/ui/text-flipping-board";
  * what makes the board read as pointed rather than as decoration.
  *
  * LENGTH IS A HARD CONSTRAINT, NOT A PREFERENCE. The board reserves height for
- * the LONGEST entry, and `/about` does not scroll at `xl`+. At 45 columns — the
- * measured `xl`+ band after the vertical-distribution pass — no entry may
- * exceed SIX rows including its attribution. Currently 3/4/5/5/6/6. A seventh
- * row is 35px and there is not 35px anywhere at 1280x720; it would overflow a
- * page that is not allowed to scroll. Re-run the wrap before adding anything
- * long, and re-run it at 45 rather than at whatever the widest viewport gives.
+ * the LONGEST entry, and `/about` is composed to fit 1920x1080 without
+ * scrolling. At 45 columns — the measured band at that size — no entry may
+ * exceed SIX rows including its attribution. Currently 3/4/5/5/6/6.
+ *
+ * A SEVENTH ROW IS 56px AND THERE ARE ONLY 114px OF SLACK AT 1920x1080, so one
+ * more row still fits and two do not. That is a smaller margin than it sounds:
+ * the row above the board is 364px and the gap is 89px, against a 902px
+ * padding box. Re-run the wrap before adding anything long, and re-run it at
+ * 45 columns rather than at whatever the widest viewport happens to give.
  */
 
 /**
@@ -110,9 +113,9 @@ import type { FlipBoardEntry } from "@/components/ui/text-flipping-board";
 export const FLIP_BOARD_DWELL_MS = 20000;
 
 /**
- * The row count the band reserves at `xl`+ regardless of content, so the
- * composition beneath the row is the same rectangle on every load. Six is the
- * measured longest entry at 46 columns; see the length constraint above.
+ * The row count the band reserves regardless of content, so the composition
+ * beneath the row is the same rectangle on every load. Six is the measured
+ * longest entry at 45 columns; see the length constraint above.
  */
 export const FLIP_BOARD_MIN_ROWS = 6;
 

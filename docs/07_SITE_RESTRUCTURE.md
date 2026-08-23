@@ -684,9 +684,30 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
   > problem, and removing the claim solves it more cleanly than qualifying it. The closing line
   > ("Not a security engineer yet") carries the honesty the qualifier was there to supply.
 
-**Single screen, not scrollable — AT `xl` (1280px) AND UP. Below `xl` the page SCROLLS.**
+**Single screen at 1920×1080 ONLY, and it is a fit outcome rather than an enforced rule. Everywhere
+else the page SCROLLS.**
 Photo + the paragraph above, plus an action row:
 
+> **AND A THIRD TIME, ON 2026-08-23: THE GUARANTEE IS NOW 1920×1080 ONLY, AND THE MECHANISM
+> CHANGED WITH IT.** Saad's reasoning was that 1920×1080 is the realistic majority case and every
+> other viewport was being fought over for pixels it did not need.
+>
+> **What changed is not a breakpoint — it is that there is no longer any enforcement at all.**
+> `xl:h-dvh xl:overflow-hidden` and the `xl:absolute inset-0` stage are DELETED. Nothing clips,
+> nothing is pinned to a viewport height, and no media query decides whether the page scrolls. The
+> composition is simply built to fit 1080px minus its padding, and the page scrolls wherever it
+> does not. **That is strictly safer than what it replaces:** the old rule CLIPPED content that
+> overflowed rather than letting it scroll, so a viewport the matrix did not enumerate lost the
+> bottom of the board silently.
+>
+> Measured on the shipped build: **0.00px of overflow at 1920×1080 in both themes**, and at
+> 1728×1117. Everything narrower or shorter scrolls, which is now correct rather than a failure —
+> 1440×900 by 66px, 1366×768 by 198px, 1280×720 by 246px.
+>
+> **The two earlier moves below are kept because the reasoning still explains the shape of the
+> page**, but their pixel budgets are obsolete: 1280×720 is no longer a binding viewport and must
+> not be optimised for as one.
+>
 > **THE FLOOR MOVED A SECOND TIME, `lg` → `xl`, AND SAAD TOOK THAT DECISION TOO. It is not a drift
 > and it is not the first move restated.** The first move (below) released the page to scroll on
 > PHONES so the portrait could be a full-measure square. This one releases the 1024–1279 band as
@@ -940,6 +961,39 @@ page.
 > from a primary or near-primary source that is named in the entry and was actually read. One
 > candidate — Schneier's "security is a process, not a product" — was refused for failing it, which
 > is the rule doing its job rather than decorating the file.
+>
+> **THE COMPOSITION IS TRULY CENTRED NOW, AND THE BOARD GREW INSTEAD OF THE PAGE SHRINKING —
+> 2026-08-23.** Three things landed together and the order matters:
+>
+> - **The 2:1 flex spacers are gone.** They split the leftover height between the gap and the
+>   bottom margin, so the composition changed proportion with the window — 37px of gap at
+>   1280×720 against 279px at 1920×1080 — instead of being one object sitting in the middle of it.
+>   The spine container now takes `my-auto` inside a `min-h-dvh` flex box. **An auto margin, not
+>   `items-center`, and the difference is the trap this page already fell into once:**
+>   `items-center` on a box taller than its container puts the overflow on BOTH sides and the half
+>   above the top is unreachable by scrolling, while a flex auto margin resolves to 0 against
+>   negative free space. So the same element centres when it fits and sits at the top when it does
+>   not, which is exactly what a page that may or may not scroll needs. MEASURED at 1920×1080:
+>   146px above the mark, 146px below the board.
+> - **The gap to the board is a fixed spine step again** (`mt-2xl`, 89px). It closed because the
+>   board grew into it.
+> - **The board's tile went 21×34 → 21×55 and its glyph 16px → 26px.** The WIDTH deliberately did
+>   not change: the band's width is the content column and is fixed by the composition, so a wider
+>   tile only trades columns for rows. Measured — at a 34px tile the board is 28 columns and the
+>   longest entry wraps to NINE rows (503px), which does not fit; at 21×55 it stays 45 columns and
+>   six rows, and the board grows 209px → 335px, which does.
+>
+> **26px IS NOT A NEW SIZE STEP.** It is `--text-h4`'s clamp maximum, pinned rather than clamped,
+> because a fixed tile grid cannot have a viewport-dependent glyph. `docs/03`'s "do not add a 20px
+> size" is untouched.
+>
+> **A PHOTO/PARAGRAPH SIZE INCREASE WAS TESTED AND SKIPPED, WITH THE NUMBER RATHER THAN A
+> JUDGEMENT.** Saad made it conditional on 1920×1080 still passing. Applied together — portrait to
+> 536px, paragraph to `text-h4` on a 40rem measure — the page **overflowed 1920×1080 by 58px**.
+> Growing the portrait alone fits, but it breaks the derivation this section already records (the
+> square's side equals the text column's height so the two terminate on the same line), so the
+> portrait would have stood 84px taller than the text beside it. Skipped rather than pixel-shaved,
+> which is what the instruction asked for.
 >
 > **Where it does not render at all is decided by FIT, not by a breakpoint.** `TextFlippingBoard`
 > measures its own band and declines past nine rows. At 375px that band is 15 columns and the
