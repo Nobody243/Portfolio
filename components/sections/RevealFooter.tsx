@@ -12,6 +12,7 @@ import {
 } from "@/components/sections/contactContent";
 import { contact } from "@/content/contact";
 import { TextHoverEffect } from "@/components/ui/text-hover-effect";
+import { FONT_SIZE_UNITS } from "@/components/ui/textHoverEffectMetrics";
 
 /**
  * The reveal footer — Phase 5's curtain, and the end of the document.
@@ -495,16 +496,34 @@ const STAMP_MARK_PX = 21;
  *
  * THE ADVANCE IS MEASURED, NOT ESTIMATED. Space Grotesk's own horizontal
  * advances, read out of `public/fonts/space-grotesk-latin.typeface.json` at
- * 1000 units/em: S 613 + A 630 + A 630 + D 663 = 2536, i.e. 2.536em. At
- * `FONT_SIZE_UNITS` = 72 that is 182.59 user units.
+ * 1000 units/em: S 613 + A 630 + A 630 + D 663 = 2536, i.e. **2.536em**. That
+ * em-relative figure is the font fact and it is what is stored below.
+ *
+ * IT USED TO STORE THE PRODUCT, AND THAT WAS A CROSS-FILE COUPLING HELD
+ * TOGETHER BY A COMMENT. Until 2026-08-23 this read
+ * `WORDMARK_ADVANCE_UNITS = 182.6`, annotated "at `FONT_SIZE_UNITS` = 72" — a
+ * constant in THIS file whose correctness depended on a constant in
+ * `text-hover-effect.tsx`. Raising the type size there would have silently
+ * invalidated it: the box's `aspectRatio` would stay at the old ratio and the
+ * wordmark would either grow dead space on its right (a wrong indent off the
+ * spine, which is the failure this whole note exists to prevent) or be squeezed
+ * by `meet`. The em advance is now multiplied by the EXPORTED
+ * `FONT_SIZE_UNITS`, so the box and the glyphs read one number from one place
+ * and cannot drift.
+ *
+ * THE STORED VALUE ALSO GOT 0.008 UNITS MORE ACCURATE AS A SIDE EFFECT, and it
+ * is declared rather than discovered later: 2.536 x 72 = **182.592**, where the
+ * old literal was 182.6 — a round-up of the same derivation. At a 144px render
+ * that is 0.011px of rendered width.
  *
  * CROSS-CHECKED AGAINST THE SHIPPED WEBFONT, because a converted typeface JSON
  * is not the same artefact as the woff2 the browser loads:
- * `getComputedTextLength()` in Chrome returns **182.38** user units. The 0.21
- * unit difference is 0.3px of trailing dead space at a 144px render, i.e. under
- * half a pixel, and 182.6 is kept because it is the value that can be
- * RE-DERIVED from a file in this repo. If the string changes, re-derive from the
- * JSON and re-check in the browser — do not guess from character count.
+ * `getComputedTextLength()` in Chrome returns **182.38** user units at
+ * `FONT_SIZE_UNITS` = 72, i.e. 2.5331em. The 0.0029em difference is 0.3px of
+ * trailing dead space at a 144px render, i.e. under half a pixel, and 2.536 is
+ * kept because it is the value that can be RE-DERIVED from a file in this repo.
+ * If the string changes, re-derive from the JSON and re-check in the browser —
+ * do not guess from character count.
  *
  * WHY NOT IN `contactContent.ts` WITH THE OTHER STRINGS. That file's own rules
  * ban font names and styling from it, and a glyph advance is a font metric.
@@ -514,7 +533,14 @@ const STAMP_MARK_PX = 21;
  * together, here, with the derivation attached.
  */
 const WORDMARK_TEXT = "SAAD";
-const WORDMARK_ADVANCE_UNITS = 182.6;
+const WORDMARK_ADVANCE_EM = 2.536;
+
+/**
+ * The wordmark's `viewBox` width in user units, and the ONLY spelling of it.
+ * Both the box's `aspectRatio` and the component's `viewBox` read this, so
+ * there is one number rather than two that have to be kept equal by hand.
+ */
+const WORDMARK_VIEWBOX_UNITS = WORDMARK_ADVANCE_EM * FONT_SIZE_UNITS;
 
 export function RevealFooter() {
   return (
@@ -954,18 +980,20 @@ export function RevealFooter() {
             with the arithmetic.
 
             THE ASPECT RATIO IS AN INLINE STYLE, NOT AN ARBITRARY TAILWIND
-            VALUE, because it is computed from `WORDMARK_ADVANCE_UNITS` — the
-            same constant the component's `viewBox` takes. Two spellings of one
-            number is how the box and the glyphs drift apart.
+            VALUE, because it is computed from `WORDMARK_VIEWBOX_UNITS` — the
+            same constant the component's `viewBox` takes, itself derived from
+            the em advance and the component's own exported `FONT_SIZE_UNITS`.
+            Two spellings of one number is how the box and the glyphs drift
+            apart.
           */}
           <div
             aria-hidden="true"
             className="mt-md h-2xl w-fit sm:h-3xl"
-            style={{ aspectRatio: `${WORDMARK_ADVANCE_UNITS} / 100` }}
+            style={{ aspectRatio: `${WORDMARK_VIEWBOX_UNITS} / 100` }}
           >
             <TextHoverEffect
               text={WORDMARK_TEXT}
-              viewBoxWidth={WORDMARK_ADVANCE_UNITS}
+              viewBoxWidth={WORDMARK_VIEWBOX_UNITS}
               className="text-hero-fg/70"
             />
           </div>
