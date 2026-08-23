@@ -77,11 +77,19 @@ import type { FlipBoardEntry } from "@/components/ui/text-flipping-board";
  * scrolling. At 45 columns — the measured band at that size — no entry may
  * exceed SIX rows including its attribution. Currently 3/4/5/5/6/6.
  *
- * A SEVENTH ROW IS 56px AND THERE ARE ONLY 114px OF SLACK AT 1920x1080, so one
- * more row still fits and two do not. That is a smaller margin than it sounds:
- * the row above the board is 364px and the gap is 89px, against a 902px
- * padding box. Re-run the wrap before adding anything long, and re-run it at
- * 45 columns rather than at whatever the widest viewport happens to give.
+ * A SEVENTH ROW IS 37px AND THERE ARE 93px OF SLACK IN A REAL 945px BROWSER
+ * VIEWPORT, so two more rows fit and three do not — but SPENDING THAT SLACK IS
+ * NOT FREE, because it is the same slack the page's vertical centring lives on.
+ * At eight rows the composition is 748px against 767px of available height and
+ * `/about` centres inside 19px; at nine it overflows and the page scrolls on
+ * the one viewport that is not supposed to.
+ *
+ * 1920x1080 IS THE DISPLAY AND 945px IS THE VIEWPORT — Chrome maximised over
+ * the Windows taskbar. Budget against 945, not 1080; the older note here
+ * budgeted against 1080 and was 135px optimistic. `AboutScreen.tsx`'s band
+ * note carries the full arithmetic. Re-run the wrap before adding anything
+ * long, and re-run it at 45 columns rather than at whatever the widest
+ * viewport happens to give.
  */
 
 /**

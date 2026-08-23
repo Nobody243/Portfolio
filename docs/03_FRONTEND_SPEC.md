@@ -971,6 +971,14 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 > 6,120ms / 8,495ms** at 1x / 4x / 6x. Still free at 1x; the larger paint area costs ~22% more on
 > throttled hardware.
 >
+> **AND AGAIN AFTER IT SHRANK TO 21×36 / 21px ON 2026-08-24 — the ~22% is more than given back:
+> 0ms / 4,375ms / 6,225ms**, i.e. −29% at 4x and −27% at 6x against the row above, and literally
+> zero frames over 50ms at 1x. The board's paint area fell 335px → 221px and the cost tracked it,
+> which is the same linear relationship the four failed optimisations established: **the cost is
+> (cells in flight) × (steps/sec) × (area), and area is the only one of the three that changed.**
+> Still above the 1,978 / 3,463 pre-scramble baseline, and still a declared cost on slow hardware
+> rather than an assurance.
+>
 > **TWO LEGIBILITY DEFECTS WERE FOUND BY CAPTURING PIXELS RATHER THAN BY REASONING ABOUT SIZE, AND
 > NEITHER WAS A SIZE PROBLEM.** The reported symptom was "the letter E is sometimes misread as a
 > C".
@@ -981,6 +989,18 @@ contrast, size, sharpness or colour. Fully visible implies fully arrived, by con
 >    same tile with the line hidden rendered a clean E. Fixed by the glyph growing (the crossbar is
 >    ~3.25px at 26px) and by the line dropping to `bg-base/70`, so it dims the crossbar instead of
 >    removing it.
+>
+>    **RE-VERIFIED AT 21px ON 2026-08-24, WHEN THE GLYPH CAME BACK DOWN — because half of this fix
+>    was the glyph growing, and a size that moves is a fix that has to be re-earned.** Measured as
+>    a per-row ink profile off an 8× capture, normalised to peak ink: the crossbar reaches **0.92
+>    of peak** at 21px and the split line costs one device-pixel row of it (a 0.08 dip). At 26px it
+>    was 0.92 with the same shape; at the original broken 16px the same row read **0.00**. Against
+>    a real C — whose centre band carries 0.15 — the E carries 0.52, i.e. **3.6× the ink at the one
+>    row that distinguishes them.** The alpha half of the fix is therefore doing more work than it
+>    was at 26px and must not be "tidied" back to a solid rule.
+>    The second defect below is re-verified by the same profile: the E's LOWER arm reaches 1.00 of
+>    peak, level with the upper one, against 0.54 on the broken capture.
+>
 > 2. **The resting flap was dimming the bottom half of every character.** The rising half rested
 >    FLAT over the static bottom half showing the same glyph — visually identical, except that it
 >    carries a shading gradient, so every letter on the board had a grey lower half against a white

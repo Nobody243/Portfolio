@@ -684,8 +684,8 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
   > problem, and removing the claim solves it more cleanly than qualifying it. The closing line
   > ("Not a security engineer yet") carries the honesty the qualifier was there to supply.
 
-**Single screen at 1920×1080 ONLY, and it is a fit outcome rather than an enforced rule. Everywhere
-else the page SCROLLS.**
+**Single screen ON A 1080p DISPLAY — which means 945px of viewport, not 1080. It is a fit outcome
+rather than an enforced rule, and everywhere else the page SCROLLS.**
 Photo + the paragraph above, plus an action row:
 
 > **AND A THIRD TIME, ON 2026-08-23: THE GUARANTEE IS NOW 1920×1080 ONLY, AND THE MECHANISM
@@ -703,6 +703,27 @@ Photo + the paragraph above, plus an action row:
 > Measured on the shipped build: **0.00px of overflow at 1920×1080 in both themes**, and at
 > 1728×1117. Everything narrower or shorter scrolls, which is now correct rather than a failure —
 > 1440×900 by 66px, 1366×768 by 198px, 1280×720 by 246px.
+>
+> **THAT MEASUREMENT WAS TAKEN AGAINST A VIEWPORT THAT DOES NOT EXIST, AND IT IS CORRECTED ON
+> 2026-08-24 RATHER THAN QUIETLY RESTATED.** "1920×1080" is a DISPLAY size. A browser window on a
+> 1080p screen never gets 1080px of `innerHeight`: MEASURED in real Google Chrome, maximised, on
+> the machine this site is developed on — `outerHeight` **1032** (the Windows taskbar takes 48) and
+> `innerHeight` **945** (browser chrome takes another 87). A bookmarks bar takes ~40 more.
+>
+> So the row above passed a headless 1080×viewport check and the shipped page **overflowed a real
+> window by 21px**, which also collapsed the page's vertical centring — an auto margin resolves to
+> 0 against negative free space, so `/about` top-anchored and scrolled. Saad reported it from an
+> actual browser; the matrix had reported clean the whole time. **A DISPLAY RESOLUTION IS NOT A
+> VERIFICATION TARGET. `innerHeight` IS.**
+>
+> The composition was re-cut against 945 instead — the flip board came down from 335px to 221px,
+> see §6's board note — and **RE-MEASURED IN REAL CHROME, NOT HEADLESS: 0.00px of overflow and
+> 135.5px of margin above AND below the composition, in both themes.** The synthetic sweep now runs
+> the realistic browser heights rather than the display height: **0.00px and true centring at 945
+> (no bookmarks bar), 905 (bookmarks bar), 875 (+ an infobar) and 860, both themes** — the
+> arithmetic floor is 852px, i.e. 180px of browser furniture on a 1080p display. Three viewports
+> that used to scroll now fit as a side effect (1440×900, 1536×864, 1600×900), and the ones that
+> still scroll scroll less: 1366×768 by 84px (was 198) and 1280×720 by 132px (was 246).
 >
 > **The two earlier moves below are kept because the reasoning still explains the shape of the
 > page**, but their pixel budgets are obsolete: 1280×720 is no longer a binding viewport and must
@@ -986,6 +1007,34 @@ page.
 > **26px IS NOT A NEW SIZE STEP.** It is `--text-h4`'s clamp maximum, pinned rather than clamped,
 > because a fixed tile grid cannot have a viewport-dependent glyph. `docs/03`'s "do not add a 20px
 > size" is untouched.
+>
+> **BOTH NUMBERS IN THAT PARAGRAPH CAME BACK DOWN ONE DAY LATER — TILE 55 → 36, GLYPH 26 → 21 —
+> AND THE REASON IS NOT THAT THE GROWTH WAS WRONG.** It is that it was sized against 1080px of
+> viewport (see the correction above) and against the leftover gap rather than against the content.
+> Saad's instruction on 2026-08-24 named both faults: the board had become as large as the
+> mark/paragraph/action block it exists to support, which inverts the page's hierarchy, and it had
+> been sized to "close the gap" rather than in any relationship to the primary content.
+>
+> **THE NEW HEIGHT IS DERIVED TWICE AND THE SMALLER ANSWER WINS.** (1) FIT: 945px of viewport,
+> minus 178px of padding, minus the 364px row and the 89px gap, leaves the board a **314px**
+> zero-overflow ceiling — and every pixel of that is a pixel the centring has nothing to centre
+> with. (2) HIERARCHY: the block above is 364px, and **36px is the largest whole-pixel tile for
+> which `board × 1.618 ≤ 364`** — six rows at pitch 37 is 221px and 221 × 1.618 = 357.6, while a
+> 37px tile gives 227px and 367.3, which is over. Board **221px**, 61% of the block above it, with
+> 93px of slack left for the centring to use.
+>
+> **THE GLYPH MOVED TO THE OTHER END OF THE SAME CLAMP: 21px is `--text-h4`'s clamp MINIMUM.** No
+> new rung, same token, and it keeps the glyph-to-tile fill at 58% where 26px in a 36px tile would
+> have been 72% against the 47% both previous sizes sat at.
+>
+> **THE E/C FIX WAS RE-VERIFIED AT THE NEW SIZE RATHER THAN ASSUMED TO SURVIVE IT**, because half
+> of it was the glyph growing. Re-captured at 8× and measured as a per-row ink profile: at 21px the
+> crossbar still reaches **0.92 of peak ink** and the split line costs one device-pixel row of it
+> (a 0.08 dip); at 26px it was 0.92 with the same shape, and at the original broken 16px the same
+> row read **0.00** — the line erased the crossbar outright. Against a real C, whose centre band
+> carries 0.15, the E carries 0.52: **3.6× the ink at the row that tells them apart.** The
+> resting-flap dimming stays fixed too — the lower arm now reaches 1.00 of peak, against 0.54 on
+> the broken capture.
 >
 > **A PHOTO/PARAGRAPH SIZE INCREASE WAS TESTED AND SKIPPED, WITH THE NUMBER RATHER THAN A
 > JUDGEMENT.** Saad made it conditional on 1920×1080 still passing. Applied together — portrait to

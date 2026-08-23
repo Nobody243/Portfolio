@@ -254,9 +254,9 @@ import { cn } from "@/lib/utils";
  * grid out, the numbers derive the column count, and a drift between them shows
  * up as a board that overflows its band by one tile.
  *
- * Width is `--spacing-md` (21px), height `--spacing-xl` (55px), and the gap is
- * the 1px `gap-px` that stands in for the deleted tile borders. So the pitch is
- * 22 x 56 and an N-column board measures `N * 22 - 1`.
+ * Width is `--spacing-md` (21px), height is 36px, and the gap is the 1px
+ * `gap-px` that stands in for the deleted tile borders. So the pitch is 22 x 37
+ * and an N-column board measures `N * 22 - 1` by `rows * 37 - 1`.
  *
  * WIDTH WENT 13px -> 21px WITH THE BAND. At 13px the ~1000px content column
  * would take 72 columns, and 72 characters per line of a five-line quotation is
@@ -264,24 +264,63 @@ import { cn } from "@/lib/utils";
  * is inside the 45-75 character measure `docs/03` sets for prose and reads as
  * mechanism rather than as text.
  *
- * HEIGHT WENT 34px -> 55px ON 2026-08-23, AND THE WIDTH DELIBERATELY DID NOT.
- * Saad asked for a bigger board to close the gap to the text block above it.
- * Height is the half that was free: the band's WIDTH is the content column
- * (paragraph's left edge to the portrait's right edge) and is fixed by the
- * composition, so widening the tile only trades columns for rows. Measured:
- * at a 34px tile the board is 28 columns and the longest entry wraps to NINE
- * rows — 503px, which does not fit 1920x1080's budget. At 21 x 55 it stays 45
- * columns and six rows and the board grows 209px -> 335px, which does.
+ * HEIGHT WENT 34 -> 55 -> 36 IN THREE DAYS, AND THE WIDTH NEVER MOVED WITH IT.
+ * That is not indecision, it is the same constraint being read against two
+ * different numbers, and the third value is the first one derived against a
+ * REAL browser window rather than against a display resolution:
  *
- * A 26px GLYPH IN A 21px TILE FITS: JetBrains Mono's advance is 0.6em, so
- * 15.6px in a 21px tile leaves 2.7px each side. That is the binding check on
- * the width — it is why the tile could not stay at 13px once the glyph grew.
+ *   34px  the original. 209px of board.
+ *   55px  2026-08-23. Saad asked for a bigger board to close the gap to the
+ *         text block; 335px of board, which fits 1080px of viewport.
+ *   36px  2026-08-24. 1080px of viewport DOES NOT EXIST on a 1080p display —
+ *         Chrome maximised over the Windows taskbar measures 945px of
+ *         `innerHeight` (87px of browser chrome, 48px of taskbar), and at
+ *         335px the composition overflowed it by 21px. See below.
+ *
+ * WIDTH IS NOT A LEVER AND NEVER WAS. The band's width is the content column
+ * (the paragraph's left edge to the portrait's right edge) and is fixed by the
+ * composition, so changing the tile's width only trades columns for rows.
+ * Measured at the last change: a 34px-WIDE tile gives 28 columns and wraps the
+ * longest entry to NINE rows, which is taller than the six-row board it was
+ * supposed to replace. Height is the only free dimension here.
+ *
+ * 36 IS DERIVED TWICE OVER AND IT IS THE SMALLER OF THE TWO ANSWERS.
+ *
+ *   1. FIT, IN A REAL WINDOW. 945px of `innerHeight`, minus `pt-2xl` + `pb-2xl`
+ *      (178), minus the 364px row and the 89px gap, leaves the board 314px
+ *      before the page overflows — and every pixel of that is a pixel the
+ *      centring has nothing to centre with. A visitor with a bookmarks bar has
+ *      ~905px and the ceiling drops to 274px.
+ *   2. HIERARCHY. Saad's instruction was that the board must not read as equal
+ *      to the mark/paragraph/action block above it. That block is 364px, and
+ *      the ratio this design system uses to say "secondary" is the same golden
+ *      one its type and spacing scales are built on. 36 IS THE LARGEST WHOLE
+ *      PIXEL TILE FOR WHICH `board * 1.618 <= 364`: six rows at pitch 37 is
+ *      221px and 221 x 1.618 = 357.6; a 37px tile gives 227px and 367.3, which
+ *      is over.
+ *
+ * Board 221px, against 335px before and 209px originally — and the 61% of the
+ * block above it that (2) asks for. It leaves 93px of slack at 945px of
+ * viewport and 53px at 905px, which is what makes `my-auto` on `/about`'s spine
+ * container actually centre anything. `AboutScreen.tsx` has that arithmetic
+ * from the page's side.
+ *
+ * IT IS AN ARBITRARY VALUE AND NOT A SPACING TOKEN, DELIBERATELY. The scale is
+ * Fibonacci — 21, 34, 55 — so there is nothing between `h-lg` and `h-xl`, and
+ * both of those are already known-wrong answers to this constraint (209px is
+ * the board Saad asked to grow; 335px is the board he asked to shrink). The
+ * value is derived above rather than picked, which is the standing bar for an
+ * arbitrary value in this codebase.
+ *
+ * A 21px GLYPH IN A 21px TILE FITS ON WIDTH: JetBrains Mono's advance is 0.6em,
+ * so 12.6px in a 21px tile leaves 4.2px each side. Width was the binding check
+ * at 26px (2.7px each side) and is comfortable now.
  */
 const BOARD_TILE = {
   wClass: "w-md",
-  hClass: "h-xl",
+  hClass: "h-[36px]",
   w: 21,
-  h: 55,
+  h: 36,
   gap: 1,
 } as const;
 
@@ -305,7 +344,7 @@ const BOARD_SSR_COLS = 45;
  * THIS IS THE PHONE ANSWER, AND IT IS A FIT TEST RATHER THAN A WIDTH TEST — see
  * item 1. At 375px the band is ~333px wide, which is 15 columns, and the
  * longest entry wraps to NINETEEN lines there: a 664px wall of tiles carrying a
- * quotation nobody can read across. Nine rows is 314px, which is the last size
+ * quotation nobody can read across. Nine rows is 332px, which is the last size
  * that still reads as a board rather than as a page of its own; it corresponds
  * to roughly a 640px band, so the board appears somewhere in the tablet range
  * and is absent below it, without any breakpoint being named.
@@ -688,14 +727,28 @@ const FlapCell = React.memo(
      * THE GLYPH, AND BOTH HALVES OF THIS STRING CHANGED ON 2026-08-23 FOR
      * REASONS THAT ARE NOT "BIGGER IS BETTER".
      *
-     * `text-[1.625rem]` IS 26px AND IT IS NOT A NEW SIZE STEP. It is exactly
-     * `--text-h4`'s clamp MAXIMUM
+     * `text-[1.3125rem]` IS 21px AND IT IS NOT A NEW SIZE STEP. It is exactly
+     * `--text-h4`'s clamp MINIMUM
      * (`clamp(1.3125rem, 1.208rem + 0.46vw, 1.625rem)`), pinned rather than
      * clamped. `text-h4` itself cannot be used here: it is viewport-dependent,
      * and header item 9 deletes the source's `clamp(6px, 2vw, 22px)` for
      * exactly that — a fixed tile grid whose glyph changes size with the
      * window is a different board at every width. `docs/03`'s "do not add a
      * 20px size" is untouched; no rung was invented.
+     *
+     * IT WAS THE SAME TOKEN'S MAXIMUM (26px) FOR ONE DAY. The tile came down
+     * from 55px to 36px on 2026-08-24 — see `BOARD_TILE` — and a 26px glyph in
+     * a 36px tile is a 72% fill where both previous sizes sat at 47%. Moving to
+     * the other end of the SAME clamp keeps the fill at 58% and keeps this
+     * board off the type scale's untouched rungs, which is the whole reason the
+     * value is written as a pinned clamp end rather than as a round number.
+     *
+     * THE E/C FIX DOES NOT DEPEND ON 26px, AND THAT WAS CHECKED RATHER THAN
+     * ASSUMED WHEN THE SIZE CAME DOWN. The crossbar of a capital E is ~0.125em,
+     * so it is 2.6px at 21px against the 2.0px it had at the original 16px —
+     * and the split line that was eating it is `bg-base/70` now rather than
+     * solid, so it dims the crossbar instead of removing it. Re-captured at 6x
+     * after the change: the E is unambiguous and so is the C.
      *
      * THE 0.08em TRACKING IS GONE, AND ITS ABSENCE IS A FIX RATHER THAN A
      * RELAXATION. Tracking is space BETWEEN characters and every cell here
@@ -709,7 +762,7 @@ const FlapCell = React.memo(
      * anyway, and at 26px it made the glyph's optical centre drift.
      */
     const glyph =
-      "absolute inset-x-0 flex select-none items-center justify-center font-mono text-[1.625rem] leading-none text-fg";
+      "absolute inset-x-0 flex select-none items-center justify-center font-mono text-[1.3125rem] leading-none text-fg";
 
     // A plain space collapses the line box; the glyph slot has to keep its
     // height, so blanks stay a space inside a fixed-size tile.
@@ -799,11 +852,15 @@ const FlapCell = React.memo(
             contrast, and a bigger glyph only helps because the crossbar grows
             thicker than the 1px cut.
 
-            BOTH HALVES OF THE FIX ARE HERE. The glyph is 26px now, so the
-            crossbar is ~3.25px and survives the cut; and the line is `/70`
+            BOTH HALVES OF THE FIX ARE HERE. The glyph is 21px now, so the
+            crossbar is ~2.6px and survives the cut; and the line is `/70`
             rather than solid, so it DIMS the crossbar instead of removing it.
-            Either alone is enough at 26px — together they are enough at any
-            size this board is likely to take.
+            (The glyph was 26px and the crossbar ~3.25px for one day, between
+            the two halves landing and the board being shrunk again. The size
+            half of the fix therefore carries LESS margin than it did — which
+            is why the alpha half is not optional and must not be "tidied" back
+            to a solid rule.) Re-captured at 6x after the glyph came down: the
+            E is unambiguous and so is the C.
 
             IT IS STILL `bg-base` AND STILL 1px: it has to read as the gap
             between two flaps rather than as a rule drawn on the tile, and

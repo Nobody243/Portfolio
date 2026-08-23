@@ -930,12 +930,23 @@ export function AboutScreen() {
               beside a 65-word bio makes this a portrait page with a caption" —
               still binds anything past ~500.
 
-              THE INVARIANT WORTH KNOWING BEFORE EDITING EITHER COLUMN: at `xl`+
-              the TEXT COLUMN governs the row height at every width, because the
-              portrait is capped at 448 and 448 + 68 (the flip board's block) =
-              516 < 556.8. So the portrait's size and the board's presence are
-              both FREE against the height budget, and that is why they could
-              both land in one round.
+              THE INVARIANT WORTH KNOWING BEFORE EDITING EITHER COLUMN: the
+              two columns are the SAME HEIGHT and neither governs. MEASURED on
+              the shipped build at 1920x945: the text column is 364.0px
+              (72 mark + 34 + 179.16 paragraph + 34 + 44.8 action row) and the
+              portrait is a 364px square, so the row is 364px and the square
+              terminates on the text's last line under `lg:items-center` —
+              which is the relationship the cap was derived from and is the one
+              thing to preserve if either column is ever resized.
+
+              IT IS NO LONGER TRUE THAT EITHER IS FREE AGAINST THE HEIGHT
+              BUDGET. This note used to say the row had slack because the text
+              column ran to 556.8px at `xl`; that described a 40rem measure and
+              a `text-h4` paragraph that are not what ships (34rem and
+              `text-body`, at every width). The live budget is in the flip
+              board's note at the bottom of this file, measured against a real
+              945px browser viewport: the row's 364px is fixed input to it, and
+              growing either column comes straight out of the board.
 
               `lg:min-w-[213px]` IS LOAD-BEARING TWICE. It is the floor that
               keeps 544 + 55 + 213 = 812 inside the 846px container at 1024 —
@@ -1057,9 +1068,26 @@ export function AboutScreen() {
               and sits at the top when it does not — which is exactly the
               behaviour a page that may or may not scroll needs.
 
-              THE GAP TO THE BOARD IS A FIXED SPINE STEP AGAIN (`mt-2xl`, 89px
-              at `lg`+). It closes because the BOARD grew into it, not because
-              a spacer shrank.
+              THAT PROPERTY IS ALSO WHAT MADE THE CENTRING LOOK BROKEN ON
+              2026-08-24 WHEN IT WAS NOT. In a real maximised Chrome window on
+              a 1080p display the viewport is 945px, not 1080 — and the
+              composition was 788px tall inside 767px of available space, so
+              free space was NEGATIVE, both auto margins resolved to 0, and the
+              page top-anchored and scrolled exactly as this paragraph says it
+              should. The fix was therefore in the height budget and not here:
+              nothing about this line changed. Read the band's own note below
+              for the arithmetic.
+
+              THE UNITS WERE ALREADY DYNAMIC AND STAY THAT WAY. `min-h-dvh` on
+              the box above, `my-auto` here — no fixed pixel height, no
+              `100vh`, and nothing anywhere that assumes a screen size. What
+              was hardcoded to 1080 was the VERIFICATION, not the CSS.
+
+              THE GAP TO THE BOARD IS A FIXED SPINE STEP (`mt-2xl`, 89px at
+              `lg`+), and it stays one through both of the board's resizings.
+              It closed when the board grew into it and it did not reopen when
+              the board came back down, because 89px between two composed
+              regions is a spine step rather than a leftover.
             */}
             {/*
               THE FLIP BOARD, AS A BAND UNDER THE WHOLE ROW.
@@ -1077,8 +1105,8 @@ export function AboutScreen() {
               THE WIDTH IS DERIVED AND THE TWO CAPS ARE THE TWO GAPS.
               The content column is `measure + gap + portrait`:
 
-                lg  (1024-1279, `gap-xl`)   544 + 55 + 384 = 983px
-                xl+ (1280+,     `gap-2xl`)  544 + 89 + 384 = 1017px
+                lg  (1024-1279, `gap-xl`)   544 + 55 + 364 = 963px
+                xl+ (1280+,     `gap-2xl`)  544 + 89 + 364 = 997px
 
               Below those widths the container is narrower than the cap and the
               band simply takes the container — at 1024 the inner box is 846px
@@ -1092,22 +1120,50 @@ export function AboutScreen() {
               child, so without it the band would run to the container's full
               width and break the spine the rest of the page is set on.
 
-              ITS HEIGHT IS THE PAGE'S BINDING CONSTRAINT NOW, AND THE
-              ARITHMETIC IS IN `content/flipBoard.ts`. Short version, measured
-              at 1280x720 — the tightest viewport that still may not scroll:
-              89 (`pt-2xl`) + 385 (row) leaves 246px, `mt-md` takes 21, and six
-              rows of tiles is 209px, so 16px is left under the board. A
-              seventh row overflows a page that is not allowed to scroll, which
-              is why the content module caps entry length rather than trusting
-              the wrap.
+              ITS HEIGHT IS THE PAGE'S ONE ELASTIC DIMENSION, AND ON
+              2026-08-24 IT WAS RE-DERIVED AGAINST A REAL BROWSER WINDOW
+              RATHER THAN AGAINST A DISPLAY RESOLUTION. That distinction is
+              the whole of this round:
 
-              THE MARGIN IS `mt-md` AND NOT `mt-lg` FOR THAT 16px ALONE. At
-              `mt-lg` the arithmetic still fits — by THREE PIXELS — and a
-              three-pixel margin on a page that may not scroll is not a
-              composition, it is a scrollbar waiting for one font metric to
-              differ on another platform. The 13px buys a 5x safety factor at
-              the binding viewport and costs 13px of air at 1440x900, where
-              there are 195 of them.
+              **1920x1080 IS A DISPLAY, NOT A VIEWPORT.** MEASURED on this
+              machine, in real Google Chrome maximised on a 1080p screen:
+              `outerHeight` 1032 (the Windows taskbar takes 48) and
+              `innerHeight` **945** (browser chrome takes another 87). A
+              bookmarks bar takes ~40 more. So the page had been verified
+              against 135px of viewport that does not exist on the machine it
+              was verified for, and at 1920x945 it overflowed by 21px — which
+              is also why `my-auto` below looked like it had stopped working.
+              It had not; there was simply no free space left to distribute,
+              and an auto margin resolves to 0 against negative free space by
+              design. THE CENTRING MECHANISM WAS NEVER THE BUG. THE HEIGHT
+              BUDGET WAS.
+
+              THE BUDGET, at the real 945px:
+
+                945 - 89 (`pt-2xl`) - 89 (`pb-2xl`)          =  767 available
+                    - 364 (row) - 89 (`mt-2xl` gap)          =  314 for tiles
+
+              314px is the ZERO-OVERFLOW ceiling and every pixel of it is a
+              pixel the centring has nothing to centre with, so the board is
+              sized well under it: six rows at a 36px tile is **221px**, which
+              leaves **93px** of slack — 46.5px above the mark and the same
+              below the board. `text-flipping-board.tsx`'s `BOARD_TILE` carries
+              the other half of that derivation, which is Saad's hierarchy
+              instruction: the board must read as secondary to the block above
+              it, and 364 / 221 = 1.647 is the golden section this design
+              system uses everywhere else to say exactly that.
+
+              IT SURVIVES THE BROWSER CHROME IT WAS PREVIOUSLY BLIND TO.
+              MEASURED, 0.00px of overflow and true centring at 945 (no
+              bookmarks bar), 905 (bookmarks bar), 875 (+ an infobar) and 860
+              — in BOTH themes. The arithmetic floor is 852px of `innerHeight`
+              (674px of composition + 178px of padding), which is 180px of
+              browser furniture on a 1080p display.
+
+              THE GAP IS `mt-2xl` (89px), A SPINE STEP, and it no longer has to
+              be fought for. It was `mt-md` (21px) two rounds ago, for a
+              16px-of-slack budget at 1280x720 that no longer binds anything —
+              1280x720 is free to scroll now, and the board came down 114px.
 
               ITS OWN `IntroEntrance` AT DELAY 0, not a fifth cascade index.
               The cascade is per column (text 0 / 0.10 / 0.20, portrait 0) and
