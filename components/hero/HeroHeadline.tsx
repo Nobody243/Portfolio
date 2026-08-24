@@ -12,6 +12,7 @@
  * the content". Bottom-right stays empty; the negative space is load-bearing.
  */
 
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { useLenis } from "lenis/react";
 
@@ -56,6 +57,36 @@ const INSET_CLASSES = "left-md sm:left-xl lg:left-2xl bottom-lg sm:bottom-xl";
 const TAGLINE_REVEAL_MS = 34;
 const TAGLINE_FLIP_MS = 55;
 
+/**
+ * THE LINE COMES APART AGAIN EVERY 20 SECONDS, AND REASSEMBLES.
+ *
+ * Saad's ticket: "can we do a 20s timer for the effect to go in reverse and
+ * then again in the text that is there". So a cycle is REVERSE THEN FORWARD,
+ * with no pause between the two halves — the line unwinds from its right edge
+ * back into ciphertext and immediately resolves again, which reads as one
+ * gesture rather than as two events with an unreadable gap in the middle.
+ *
+ * 20s IS THE FLIP BOARD'S CADENCE. `content/flipBoard.ts`'s
+ * `FLIP_BOARD_DWELL_MS` is the same number on `/about`, and matching it is
+ * deliberate: this site has one ambient-loop tempo, and two nearby-but-unequal
+ * ones would be a decision nobody made.
+ *
+ * THE REVERSE IS FASTER THAN THE FORWARD — 18ms a character against 34ms — and
+ * that asymmetry is the whole reason it reads as a decrypt rather than as a
+ * wipe running back and forth. The line falls apart in 0.43s and is put back
+ * deliberately over 0.82s. A cycle is therefore ~1.25s including the 0.10s
+ * stagger, which leaves the sentence fully legible **94%** of the time.
+ *
+ * THAT 6% IS THE ONE THING TO WATCH, and it is worth stating plainly because it
+ * is the site's positioning statement: a visitor who happens to look at this
+ * line during a cycle sees ciphertext. If it ever reads as too much, the lever
+ * is `TAGLINE_REPEAT_MS` upward — 30s puts it at 4% — and not the durations,
+ * which are what make the effect legible as an effect. Setting it to 0 would
+ * also be a clean retirement: the component runs the first decrypt and stops.
+ */
+const TAGLINE_REPEAT_MS = 20000;
+const TAGLINE_ENCRYPT_MS = 18;
+
 type HeroHeadlineProps = {
   /**
    * The hand-off is finished — the Intro's plate is gone.
@@ -85,18 +116,57 @@ type HeroHeadlineProps = {
    * restated here.
    */
   fallback: boolean;
-  /** False when the hero is scrolled out of view or the tab is hidden — an
-   *  infinite DOM loop otherwise keeps a rAF alive for the whole page. */
-  cueActive: boolean;
+  /**
+   * False when the hero is scrolled out of view or the tab is hidden.
+   *
+   * IT HAS TWO CONSUMERS NOW, which is why it is no longer called `cueActive`.
+   * The scroll cue's infinite loop was the first: the note here read "an
+   * infinite DOM loop otherwise keeps a rAF alive for the whole page", and that
+   * is the same argument, word for word, against a tagline that re-encrypts
+   * itself every 20 seconds on a hero nobody is looking at.
+   *
+   * A CYCLE ALREADY IN FLIGHT IS NOT INTERRUPTED, deliberately — only the
+   * interval that would start the NEXT one stops. Killing a running cycle would
+   * leave the tagline frozen as half ciphertext for as long as the visitor
+   * stayed away, and the state that fixes that is state this component would
+   * have to invent. Every cycle that starts, finishes; the worst case is ~1.25s
+   * of rAF after the hero leaves the viewport.
+   */
+  heroActive: boolean;
 };
 
 export function HeroHeadline({
   revealed,
   taglineBeat,
   fallback,
-  cueActive,
+  heroActive,
 }: HeroHeadlineProps) {
   const reducedMotion = useReducedMotion();
+
+  /*
+    THE REPEAT'S CLOCK, AND THERE IS EXACTLY ONE OF IT.
+
+    `EncryptedText`'s `cycle` docblock has the arithmetic; the short version is
+    that a cycle's length depends on the string, the two units differ by two
+    characters, and two private intervals would drift ~104ms per cycle until the
+    lines were seconds out of step. One counter here cannot.
+
+    IT STARTS AT THE BEAT, NOT AT MOUNT, so the first repeat lands 20s after the
+    opening decrypt begins rather than 20s after a page load that was still
+    playing the Intro. And it is torn down and rebuilt whenever `heroActive`
+    changes, which means scrolling back to the hero restarts the full 20s rather
+    than firing a cycle on arrival — the tagline should be a thing you notice,
+    not a thing that greets you.
+  */
+  const [cycle, setCycle] = useState(0);
+  useEffect(() => {
+    if (!taglineBeat || !heroActive || reducedMotion) return;
+    const timer = window.setInterval(
+      () => setCycle((n) => n + 1),
+      TAGLINE_REPEAT_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [taglineBeat, heroActive, reducedMotion]);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10">
@@ -193,7 +263,9 @@ export function HeroHeadline({
                     // rather than two.
                     startDelayMs={index * STAGGER.line * 1000}
                     revealDelayMs={TAGLINE_REVEAL_MS}
+                    encryptDelayMs={TAGLINE_ENCRYPT_MS}
                     flipDelayMs={TAGLINE_FLIP_MS}
+                    cycle={cycle}
                     // The unresolved characters are `hero-accent` (#14B8A6,
                     // 8.00:1 on `hero-surface`) and the resolved ones inherit
                     // `text-hero-fg` from the <p>. This is the pinned Tier 1
@@ -246,7 +318,7 @@ export function HeroHeadline({
         <div className={`absolute ${INSET_CLASSES}`}>
           {revealed ? (
             <ScrollCueButton
-              active={cueActive && !reducedMotion}
+              active={heroActive && !reducedMotion}
               reducedMotion={reducedMotion}
             />
           ) : null}

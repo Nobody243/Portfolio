@@ -491,7 +491,7 @@ export function Hero() {
           revealed={introDone}
           taglineBeat={taglineBeat}
           fallback={false}
-          cueActive={inView && tabVisible}
+          heroActive={inView && tabVisible}
         />
       </div>
 

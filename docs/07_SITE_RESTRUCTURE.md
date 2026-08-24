@@ -542,7 +542,11 @@ and a crossfade is a cut with extra steps.
 > `1 + 3(1 - t/3.2)^2`, which is within a tenth of idle at t = 2.616s. The mask reveal is retired with
 > it — the line now arrives as ciphertext and DECRYPTS into place over ~0.85s
 > (`components/ui/encrypted-text.tsx`, a single deliberate placement; do not repeat the effect
-> elsewhere). The arrival has been over for 1.3s by the time any of that starts, so the 14.5px/4.85px
+> elsewhere). **It also cycles**: every 20s — `TAGLINE_REPEAT_MS`, the same cadence as `/about`'s
+> flip board — the line unwinds from its right edge back into ciphertext over 0.43s and resolves
+> again over 0.82s, as one gesture. Both units are driven by ONE counter in `HeroHeadline`, because
+> per-instance timers drift by their string lengths; the cycle is gated on the hero being in view and
+> the tab visible, and is off entirely under reduced motion. The arrival has been over for 1.3s by the time any of that starts, so the 14.5px/4.85px
 > creep figures no longer describe anything shipped and **1.04 rests on the travel-budget argument
 > alone**. They are kept as the record of the overlapping seam, which returns if the tagline ever goes
 > back onto `introDone`. `Hero.tsx`'s `ARRIVAL_SCALE` and `docs/06` carry the same retraction.

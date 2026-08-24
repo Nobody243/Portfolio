@@ -15,7 +15,7 @@
  *      the first frame, so an in-view trigger would fire it during the Intro's
  *      hand-off, which is the exact window the ticket asks it to stay out of.
  *      The trigger is `play`, driven by `Hero.tsx`'s `TAGLINE_BEAT_S`, and it
- *      is an EDGE — see `running`. This also drops the `motion/react` import
+ *      is an EDGE — see `run`. This also drops the `motion/react` import
  *      entirely: `useInView` was the only thing that needed it, and
  *      `motion.span` was being used for a plain ref.
  *
@@ -77,6 +77,13 @@
  *      itself. See `BAND_NARROW` for the screenshot that forced it. The prop is
  *      removed rather than kept as an override because a flat charset is
  *      precisely the defect, and this component has one consumer.
+ *
+ *   8. IT RUNS IN REVERSE TOO. The registry copy resolves once and is finished.
+ *      This one takes a `cycle` counter: bump it and the line comes APART from
+ *      the right, then reassembles from the left, as one continuous gesture.
+ *      Nothing polls between cycles — a settled pass schedules no frame, and
+ *      the counter's next value re-runs the effect. See `cycle` for why the
+ *      clock belongs to the consumer.
  *
  * DO NOT REUSE THIS COMPONENT WITHOUT ASKING. The ticket that introduced it is
  * explicit that it is a single placement: the site already has the Intro's
@@ -150,8 +157,26 @@ type EncryptedTextProps = {
   startDelayMs?: number;
   /** Milliseconds between one character locking in and the next. */
   revealDelayMs?: number;
+  /** Milliseconds between one character coming APART and the next, in reverse. */
+  encryptDelayMs?: number;
   /** Milliseconds between re-randomisations of the unresolved characters. */
   flipDelayMs?: number;
+  /**
+   * THE REPEAT, AND IT IS A COUNTER RATHER THAN AN INTERVAL — bump it and this
+   * runs the reverse pass followed by a fresh forward pass, once.
+   *
+   * THE CLOCK IS THE CONSUMER'S, DELIBERATELY, AND THE REASON IS DRIFT. Given a
+   * `repeatMs` instead, each instance would time its own cycle, and a cycle's
+   * length depends on the string: the tagline's two units are 24 and 22
+   * characters, so at 34ms forward and 18ms back they differ by
+   * `2 x (34 + 18)` = **104ms per cycle**. One shared 20s interval hides that
+   * for exactly one cycle; two private ones accumulate it, and after an hour on
+   * an open tab the two lines are ~19s out of step — one scrambling while the
+   * other sits still. A counter cannot drift, because there is only one of it.
+   *
+   * `startDelayMs` still applies on every run, so the units keep their stagger.
+   */
+  cycle?: number;
   className?: string;
   /** Applied to characters that have not resolved yet. */
   encryptedClassName?: string;
@@ -225,7 +250,9 @@ export function EncryptedText({
   play,
   startDelayMs = 0,
   revealDelayMs = 50,
+  encryptDelayMs = 50,
   flipDelayMs = 50,
+  cycle = 0,
   className,
   encryptedClassName,
   revealedClassName,
@@ -241,16 +268,41 @@ export function EncryptedText({
     component immediately with the corrected state and never commits the frame
     in between, which an effect could not do.
 
-    IT LATCHES ON `reveal < 0` RATHER THAN ON THE EDGE ALONE, so a consumer
-    that lowered and re-raised `play` cannot restart a finished decrypt.
+    IT LATCHES ON `run === 0` RATHER THAN ON THE EDGE ALONE, so a consumer that
+    lowered and re-raised `play` cannot restart a finished decrypt.
   */
   const [seenPlay, setSeenPlay] = useState(play);
-  const [running, setRunning] = useState(false);
+  const [seenCycle, setSeenCycle] = useState(cycle);
+  const [run, setRun] = useState(0);
   if (play !== seenPlay) {
     setSeenPlay(play);
-    if (play && !reducedMotion && progress.reveal < 0 && text.length > 0) {
+    if (play && !reducedMotion && run === 0 && text.length > 0) {
       setProgress({ reveal: 0, scramble: seedScramble(text) });
-      setRunning(true);
+      setRun(1);
+    }
+  }
+
+  /*
+    THE REPEAT EDGE. `run` is both the effect's key and its INSTRUCTION: 1 means
+    "forward only", anything above means "reverse, then forward". Every bump
+    changes the dep, so the effect tears down and restarts with a fresh closure
+    rather than needing a state machine that survives across runs.
+
+    NO SEED HERE, unlike the `play` edge above, and the asymmetry is the point.
+    A cycle STARTS from resolved text — `reveal` is already `total`, which the
+    render below treats as plain text — so the reverse pass has real text to
+    take apart and there is no frame where the wrong thing is on screen. The
+    `play` edge had the opposite problem and needed the seed.
+
+    IT DOES NOT REQUIRE A FIRST DECRYPT. `run === 0 -> 2` is what a client
+    navigation to `/` takes: the sentence was never decrypted there (no Intro,
+    no hand-off, nothing to be a beat against), but the ambient cycle is a
+    property of the SURFACE rather than of the entry, so it still runs.
+  */
+  if (cycle !== seenCycle) {
+    setSeenCycle(cycle);
+    if (!reducedMotion && text.length > 0) {
+      setRun((current) => (current === 0 ? 2 : current + 1));
     }
   }
 
@@ -274,7 +326,7 @@ export function EncryptedText({
     sentence, immediately, which is what that path has always given them.
   */
   useEffect(() => {
-    if (!running || reducedMotion) return;
+    if (run === 0 || reducedMotion) return;
 
     const total = text.length;
     if (total === 0) return;
@@ -283,19 +335,38 @@ export function EncryptedText({
     /* One width band per slot, resolved once. `poolFor` is a few `includes`
        calls, and this runs per character per flip. */
     const pools: string[] = Array.from(text, poolFor);
+    const scatter = (from: number) => {
+      for (let i = Math.max(0, from); i < total; i += 1) {
+        glyphs[i] = text[i] === " " ? " " : randomCharacter(pools[i]);
+      }
+    };
 
     let cancelled = false;
     let frame = 0;
     let origin = 0;
     let opened = false;
     let lastFlip = 0;
-    let reveal = 0;
+
+    /* THE ONE PIECE OF STATE THE TWO PASSES DISAGREE ABOUT IS THE DIRECTION,
+       and `reveal` already expresses it. It counts LEADING REAL CHARACTERS, so
+       the forward pass drives it 0 -> total and the reverse pass drives it
+       total -> 0. The render below needs no idea which is running: ciphertext
+       is simply everything from `reveal` rightwards, and the reverse therefore
+       eats the line from its END, which is what makes it read as an unwind
+       rather than as a second forward wipe. */
+    let encrypting = run > 1;
+    let reveal = encrypting ? total : 0;
+
+    /* Re-applied per PASS, not per cycle: the stagger between the tagline's two
+       units has to survive every repeat, or they converge. Cleared at the
+       hand-over below so the forward pass follows its own reverse immediately. */
+    let delay = startDelayMs;
 
     const step = (now: number) => {
       if (cancelled) return;
       if (origin === 0) origin = now;
 
-      const elapsed = now - origin - startDelayMs;
+      const elapsed = now - origin - delay;
       if (elapsed < 0) {
         frame = requestAnimationFrame(step);
         return;
@@ -307,15 +378,16 @@ export function EncryptedText({
       if (!opened) {
         opened = true;
         lastFlip = now;
-        for (let i = 0; i < total; i += 1) {
-          glyphs[i] = text[i] === " " ? " " : randomCharacter(pools[i]);
-        }
+        scatter(0);
       }
 
-      const nextReveal = Math.min(
+      const moved = Math.min(
         total,
-        Math.floor(elapsed / Math.max(1, revealDelayMs)),
+        Math.floor(
+          elapsed / Math.max(1, encrypting ? encryptDelayMs : revealDelayMs),
+        ),
       );
+      const nextReveal = encrypting ? total - moved : moved;
 
       /* ONE FLIP TICK FOR THE WHOLE STRING, not one per character. Giving each
          character its own phase would shimmer rather than strobe, and it was
@@ -326,9 +398,7 @@ export function EncryptedText({
       if (now - lastFlip >= Math.max(0, flipDelayMs)) {
         lastFlip = now;
         flipped = true;
-        for (let i = nextReveal; i < total; i += 1) {
-          if (text[i] !== " ") glyphs[i] = randomCharacter(pools[i]);
-        }
+        scatter(nextReveal);
       }
 
       if (flipped || nextReveal !== reveal) {
@@ -336,7 +406,22 @@ export function EncryptedText({
         setProgress({ reveal, scramble: glyphs.join("") });
       }
 
-      if (reveal >= total) return;
+      /* THE HAND-OVER, AND THERE IS NO PAUSE IN IT. The reverse pass runs
+         straight into the forward one on the frame it finishes, so a cycle is
+         one gesture — the line comes apart and immediately reassembles —
+         rather than two events with a gap where a fully-encrypted tagline sits
+         on screen being unreadable. `delay` is cleared here because the
+         stagger has already been spent at the top of this cycle. */
+      if (encrypting && reveal <= 0) {
+        encrypting = false;
+        origin = 0;
+        delay = 0;
+      } else if (!encrypting && reveal >= total) {
+        /* Settled. Nothing is scheduled and nothing polls: the next bump of
+           `cycle` re-runs this whole effect with a fresh closure. */
+        return;
+      }
+
       frame = requestAnimationFrame(step);
     };
 
@@ -346,16 +431,18 @@ export function EncryptedText({
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-    /* `play` going false is not a rewind: `running` stays true, the loop keeps
-       going, and `progress` is left where it was. The one consumer never lowers
-       it, and a hero tagline that un-resolved itself would be a defect, not a
-       feature. */
+    /* `play` going false is not a rewind: `run` stays where it is, the loop
+       keeps going, and `progress` is left where it was. The one consumer never
+       lowers it, and a hero tagline that un-resolved itself on a prop change
+       would be a defect, not a feature. The REVERSE pass is a different thing
+       entirely — it is asked for, it is bounded, and it always ends resolved. */
   }, [
-    running,
+    run,
     reducedMotion,
     text,
     startDelayMs,
     revealDelayMs,
+    encryptDelayMs,
     flipDelayMs,
   ]);
 
