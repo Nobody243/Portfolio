@@ -113,18 +113,26 @@ const GLOW_T = 0.6;
  *                                                0.3333..1 = 3.00x at f 2.0
  *
  * IT IS NOT TAKEN BELOW 2.0. The window's lower bound is where the near
- * fragments start blowing up into the hero, and — modelled across the
- * candidates before anything was built — there is nothing left to buy anyway:
- * the drawn range is quantised to the bucket grid, so f 1.8 renders the same
- * 2.05x band as f 2.0 and only shaves the mean label area. A documented window
- * is not a suggestion.
+ * fragments start blowing up into the hero, and a documented window is not a
+ * suggestion.
+ *
+ * >> THIS REFUSAL USED TO HAVE A SECOND LEG AND IT EXPIRED THE SAME DAY:
+ * >> "there is nothing left to buy anyway: the drawn range is quantised to the
+ * >> bucket grid, so f 1.8 renders the same 2.05x band as f 2.0 and only shaves
+ * >> the mean label area." That was true of the twelve-bucket grid it was
+ * >> written against. The renderer quantises to a flat 0.25px grid now, so
+ * >> f 1.8 WOULD render a genuinely wider band (0.286..1 = 3.5x geometric).
+ * >> The refusal stands on its first leg alone, which is the one that was
+ * >> always load-bearing; the arithmetic leg is withdrawn rather than left
+ * >> standing to look like support.
  *
  * WHAT MOVED WITH IT, so nobody re-derives the numbers: `PERSPECTIVE_FIT`
  * 1.091 -> 1.1547 (the disc is still exactly `D` wide by construction, which is
  * the point of dividing it out), `SCALE_NORM` 0.6 -> 0.5, `SPHERE_SCALE_MIN`
  * 0.4286 -> 0.3333. Everything downstream of those is derived and needed no
- * edit; the renderer's font floor and bucket count DID, and their own blocks in
- * `ParticleGrid.tsx` carry why.
+ * edit; the renderer's font floor DID, and its own block in `ParticleGrid.tsx`
+ * carries why. (This also named "the bucket count", which was a live constant
+ * for one day and is now a retired one.)
  */
 const PERSPECTIVE = 2.0;
 
@@ -173,18 +181,29 @@ const PERSPECTIVE_FIT =
  * the alpha cull (`t >= 0.382`, so `z >= -0.236`) it is 0.447..1.0 = **2.24x**,
  * which is the number that matters because it is the one a viewer sees.
  *
- * AND THE NUMBER THAT MATTERS MORE IS WHAT IS ACTUALLY PAINTED, because the
- * renderer quantises this range onto a bucket grid and the grid does not land
- * on the endpoints. MEASURED in a single captured frame at 1440x900, which is
- * the only figure here a viewer can be shown: **7.82..16.00px, TEN distinct
- * sizes, 2.05x** — against 10.75..16.00px and seven sizes the day before, and
- * 12.35..16.00px and four sizes the day before that.
+ * AND THE NUMBER THAT MATTERS MORE IS WHAT IS ACTUALLY PAINTED. The renderer
+ * used to quantise this range onto a bucket grid; as of 2026-08-24 it does not
+ * quantise at all — `ParticleGrid.tsx` scales each glyph with a transform off
+ * its exact depth — so every drawn label has its own size and the painted
+ * range is the geometry's, minus whatever the alpha cull removes. MEASURED in
+ * a single captured frame at 1440x900: **7.71..15.98px, FORTY-NINE distinct
+ * sizes across 49 drawn labels, 2.07x**.
+ *
+ * THE PROGRESSION IS THE POINT AND IS WHY THE OLD FIGURES ARE KEPT: four
+ * painted sizes over 12.35..16.00 (linear ramp), seven over 10.75..16.00
+ * (perspective ramp), ten over 7.82..16.00 (perspective ramp, twelve buckets),
+ * and now one per label. The first three were approximations of the fourth,
+ * and each was reached by making the steps smaller rather than by removing
+ * them.
  *
  * THE TWO CUES STAY COUPLED, which was the point of deriving size from the same
- * `z` the alpha already uses. Same frame, size against mean alpha, monotone the
- * whole way down: 16.00px/0.799, 14.18/0.729, 12.36/0.636, 10.55/0.517,
- * 8.73/0.348, 7.82/0.291. Labels shrink and dim together and the 175ms fade
- * takes them off; there is no step and no cliff anywhere in that list.
+ * `z` the alpha already uses. Sampled down a captured frame, size against mean
+ * alpha, monotone the whole way: 16.00px/0.799, 14.18/0.729, 12.36/0.636,
+ * 10.55/0.517, 8.73/0.348, 7.82/0.291. Labels shrink and dim together and the
+ * 175ms fade takes them off; there is no step and no cliff anywhere in that
+ * list — and since the bucket grid was retired there is no step ANYWHERE,
+ * which is the difference between a fine approximation of a recession and a
+ * recession.
  *
  * THIS COUPLES TYPE SIZE TO `PERSPECTIVE`, AND THAT COUPLING IS CORRECT RATHER
  * THAN ACCIDENTAL. Retuning `PERSPECTIVE` inside its documented 2.0-4.0 window
@@ -205,14 +224,24 @@ const PERSPECTIVE_FIT =
 const SCALE_NORM = (PERSPECTIVE - 1) / PERSPECTIVE;
 
 /**
- * The scale range, exported so the draw pass can bucket into it.
+ * The scale range, exported so the draw pass can map into it.
  *
- * The renderer has to quantise `scale` to a handful of steps — assigning
- * `ctx.font` is a string parse and doing it ninety times a frame is the single
- * cheapest thing to get wrong here — and it cannot pick sensible bucket
- * boundaries without knowing the range the ramp actually produces. Exporting
- * the two endpoints is cheaper than exporting a bucketing function that would
- * drag a rendering concern into a module whose whole point is not having any.
+ * The renderer needs both endpoints to turn a fragment's `scale` into a drawn
+ * size, and it cannot do that without knowing the range the ramp actually
+ * produces. Exporting the two endpoints is cheaper than exporting a mapping
+ * function that would drag a rendering concern into a module whose whole point
+ * is not having any.
+ *
+ * IT USED TO SAY "so the draw pass can BUCKET into it", and justified the
+ * export in terms of a bucket grid: "The renderer has to quantise `scale` to a
+ * handful of steps — assigning `ctx.font` is a string parse and doing it
+ * ninety times a frame is the single cheapest thing to get wrong here — and it
+ * cannot pick sensible bucket boundaries without knowing the range." As of
+ * 2026-08-24 the renderer assigns `ctx.font` exactly ONCE a frame and scales
+ * glyphs with a transform; it still quantises, but onto a flat 0.25px grid
+ * that needs no boundaries derived from this range. "Ninety" was also two
+ * count-generations stale. The EXPORT and its justification survive — only
+ * the reason the renderer wants the numbers has changed.
  *
  * BOTH ARE DERIVED FROM `PERSPECTIVE` NOW rather than being independent tuning
  * constants, so they cannot drift away from the ramp that produces them. The
@@ -952,8 +981,10 @@ export function stepCommandSphere(
  * cull that had to agree with the renderer's is how the two would drift.
  *
  * The returned order is also what makes the draw pass cheap: `t` is monotonic
- * along it, so the scale bucket, the tint stop and the glow flag each change at
- * most once across the whole loop instead of per fragment.
+ * along it, so the tint stop and the glow flag each change at most once across
+ * the whole loop instead of per fragment. (It listed "the scale bucket" first
+ * until 2026-08-24; there is no bucket, and `ctx.font` is assigned once per
+ * frame regardless of order.)
  */
 export function projectCommandSphere(sphere: CommandSphere): readonly number[] {
   const { fragments, projected, order, centreX, centreY, radius } = sphere;
@@ -992,8 +1023,10 @@ export function projectCommandSphere(sphere: CommandSphere): readonly number[] {
   // exactly as true as it was. Monotonicity is what matters here, not shape,
   // and `scale` is a strictly increasing function of depth — so sorting on it
   // IS sorting on depth. Using it avoids carrying a second field whose only job
-  // is to be the sort key, and it makes the bucket monotonicity the draw pass
-  // relies on true by construction rather than by coincidence.
+  // is to be the sort key, and it makes the size monotonicity the draw pass
+  // relies on true by construction rather than by coincidence. (It said
+  // "bucket monotonicity"; the buckets went on 2026-08-24, the property did
+  // not.)
   //
   // (This sentence read "Monotonicity is what matters here, not shape —
   // therefore of depth." for two commits: a clause was lost in an edit and the

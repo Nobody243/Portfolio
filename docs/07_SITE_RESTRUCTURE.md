@@ -1187,9 +1187,14 @@ plus scroll-jacking failure mode.
 **About's CV button** opens the PDF in a new tab directly, skipping the modal (§6).
 
 **Command sphere on mobile:** per the sphere design — no glow, no cursor interaction. The fragment
-count was 44 when this line was written and is **40** as of 2026-08-24, via 44 → 38 → 40. The DESKTOP
-count moved the same day and is **65**, via 90 → 58 → 60 → 65. `SPHERE_COUNT_COMPACT` and
-`SPHERE_COUNT` in `components/hero/ParticleGrid.tsx` carry every step and the measurement behind it.
+count was 44 when this line was written and is **40** as of 2026-08-24, via 44 → 38 → 40 — compact has
+been measured to have no room at any larger value. The DESKTOP count moved the same day and is **80**,
+via 90 → 58 → 60 → 65 → 80. `SPHERE_COUNT_COMPACT` and `SPHERE_COUNT` in
+`components/hero/ParticleGrid.tsx` carry every step and the measurement behind it, including the
+front-face collision metric added alongside the undifferentiated one when the sphere's depth ramp
+stopped being stepped. **80 is an override, not a pass:** it regresses every collision measure in the
+file and breaks two guards recorded there, and it ships because Saad asked for more commands in two
+consecutive tickets after being shown the numbers. `SPHERE_COUNT`'s block carries all of it.
 
 > The `.claude/handoff/hero-sphere-design.md` this section points at has NOT tracked any of those
 > changes and is stale on the depth ramp, the base type size, the bucket count and both fragment

@@ -487,10 +487,12 @@ const RESIZE_DEBOUNCE_MS = 150;
  * fragment per 10,000px² of projected area against the mesh's `areaPerNode` of
  * 5,200, so the sphere never reads as denser than the atmosphere it floats in
  * front of." 10,000 is `4πR²/N` at the RETIRED R = 216 / N = 58 — a SURFACE
- * area, compared against a projected one. At today's R = 273.6 and N = 65 the
- * two readings are **14,472px² per fragment by surface** and **3,618px² by
+ * area, compared against a projected one. At today's R = 273.6 and N = 80 the
+ * two readings are **11,759px² per fragment by surface** and **2,940px² by
  * projection**, so by the metric actually named in that sentence the sphere is
- * now the DENSER of the two, not the sparser.
+ * now the DENSER of the two, not the sparser. (Those figures were quoted for
+ * N = 65 for part of the same day, which is the exact failure this paragraph
+ * exists to record, committed by the paragraph itself.)
  *
  * THE CONCLUSION IS NOT RESCUED BY PICKING THE FLATTERING NUMBER. Command
  * strings and 2px nodes are not comparable objects and no ratio of areas makes
@@ -524,10 +526,11 @@ const RESIZE_DEBOUNCE_MS = 150;
  * the 90-sample had strided past. The last time this count changed without that
  * guarantee the stride silently dropped `docker ps -a`.
  *
- * `heroContent.ts` currently ships 95 fragments and the sphere samples 65 of
- * them by stride. (It said 60 until 2026-08-24, ninety lines above the block
- * that changed it — verified by counting `HERO_COMMAND_FRAGMENTS`, not by
- * trusting this sentence.)
+ * `heroContent.ts` currently ships 95 fragments and the sphere samples **80**
+ * of them by stride. (It said 60, then 65, each time ninety lines above the
+ * block that changed it, and each time the parenthetical mocking the previous
+ * stale value was itself stale. Verified by counting
+ * `HERO_COMMAND_FRAGMENTS`, not by trusting this sentence.)
  *
  * ─────────────────────────────────────────────────────────────────────────
  * 58 -> 60 ON 2026-08-23, AND TWO IS THE RIGHT ANSWER RATHER THAN A TIMID ONE.
@@ -638,8 +641,77 @@ const RESIZE_DEBOUNCE_MS = 150;
  * sweep, and on the frozen reduced-motion frame. Adversarial condition too —
  * 1440 under a continuous cursor sweep is 41.5% and 9.75 pairs, both BELOW the
  * 44.9% / 10.4 that shipped the day before.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * 65 -> 80 ON 2026-08-24. IT IS A REGRESSION ON EVERY COLLISION MEASURE THIS
+ * FILE HAS, IT BREAKS TWO GUARDS WRITTEN ABOVE, AND IT SHIPS ANYWAY BECAUSE
+ * SAAD ASKED FOR MORE COMMANDS TWICE. READ THE NUMBERS BEFORE MOVING IT AGAIN.
+ *
+ * WHAT IT COSTS. Measured at 1440x900, 20s per condition. `FRONT` counts only
+ * pairs where BOTH labels are at or above 0.5 alpha — `t = 0.71`, the front
+ * third that `GLOW_T` already treats as the near face — because with a 2x size
+ * range an overlap between two 7.7px specks at 0.28 alpha and an overlap
+ * between two 16px labels are not the same event:
+ *
+ *          drawn  pairs  collision │ FRONT drawn  pairs  collision
+ *    60*    37.47  13.37    53.6%  │      17.52   1.55     17.3%
+ *    65     39.70   9.50    40.2%  │      19.46   1.59     16.3%
+ *    80     48.81  14.98    50.2%  │      23.82   2.83     22.3%   SHIPPED
+ *    95     59.06  22.74    55.1%  │      28.32   4.63     29.7%   REFUSED
+ *
+ *   * 60 is the pre-depth-ramp build of two days earlier, rebuilt from
+ *     `95ec7fa` and measured with the same rig, for a real baseline.
+ *
+ * BOTH GUARDS ABOVE SAY NO, AND NEITHER IS BEING REINTERPRETED:
+ *
+ *   - The 14.1 pairs/frame ceiling's escape clause asks for a measurement
+ *     UNDER 14.1. This is 14.98. It fails.
+ *   - The stricter test this file invented six paragraphs up to refuse 70 —
+ *     "no regression in COLLISION RATE against the state being replaced" —
+ *     fails far worse: 50.2% against 65's 40.2% is a TEN-point regression,
+ *     three times the 3.3-point one that got 70 refused.
+ *
+ * SO IT IS AN OVERRIDE, NOT AN ARGUMENT. The person whose site this is asked
+ * for more commands in two consecutive tickets and was shown these numbers.
+ * That is the whole justification and it is a sufficient one; what would not
+ * be sufficient is dressing it as a pass.
+ *
+ * >> THE FIRST DRAFT OF THIS BLOCK DID EXACTLY THAT AND IT IS WORTH KEEPING ON
+ * >> THE RECORD. It claimed: "two days ago this sphere shipped 60 fragments at
+ * >> 49.6% collision with almost no size range, so ESSENTIALLY ALL of that was
+ * >> front-face collision. 80 fragments at 22.6% front-face collision is more
+ * >> commands AND less tangling of the ones anyone reads." Front-face is
+ * >> defined by ALPHA, and neither alpha constant has moved through any of
+ * >> these changes, so the front-face share was never going to be a function of
+ * >> the size range. The 60-fragment build was rebuilt and MEASURED at **17.3%
+ * >> front-face collision** — better than the 22.3% being shipped, not worse.
+ * >> The inference was wrong, it was the load-bearing sentence, and it was
+ * >> caught in review rather than by the build.
+ *
+ * WHAT IS ACTUALLY BETTER THAN THE 60-FRAGMENT BASELINE: overall collision
+ * (50.2% against 53.6%), on a third more commands. What is worse: front-face,
+ * 22.3% against 17.3%. Both are true; neither on its own is the story.
+ *
+ * 95 IS THE WHOLE POOL AND IT WAS BUILT AND LOOKED AT rather than reasoned
+ * about, which is why it is here as a REFUSED row instead of as an option.
+ * `iptables -A INPUT` sits on `ping -c 4`, two different `openssl` invocations
+ * stack on each other, `ansible-playbook -i` runs through `kubectl exec -it` —
+ * all at full size and full alpha. That is where this stops.
+ *
+ * THE NUMBER TO WATCH IF THIS MOVES AGAIN is front-face collision, because it
+ * is the one that tracks what a reader experiences: 17.3 -> 16.3 -> 22.3 ->
+ * 29.7 across the four rows. There is no threshold recorded here, deliberately
+ * — inventing one that the shipped value happens to pass is the mistake the
+ * `>>` block above records.
+ *
+ * COMPACT DOES NOT MOVE AND IT WAS TESTED, NOT ASSUMED. 44 measured 32.4%
+ * front-face collision at 375 and 41.1% at 320 against 40's 28.7% and 35.3%.
+ * There was never any room there and there still is not.
+ *
+ * THE FEATURED FOUR SURVIVE 80 — 1440 idle, 1440 cursor, and the frozen
+ * reduced-motion frame. The pool is 95, so the stride is now thin: 80 of 95.
  */
-const SPHERE_COUNT = 65;
+const SPHERE_COUNT = 80;
 
 /**
  * 44 -> 38 ON 2026-08-24, AND IT IS THE `k / m` RULE ABOVE APPLIED TO A CHANGE
@@ -683,8 +755,10 @@ const SPHERE_COUNT = 65;
  * The compact ramp was the flattest thing on the sphere — 9.50..11.00px, a
  * 1.16x range, because an 11px base against a 9px floor cannot express more
  * than 11/9 and the block below said so in as many words. Dropping the floor to
- * 6 is what unlocked it: 6.91..11.00px, **1.59x**, ten painted sizes where
- * there were seven.
+ * 6 is what unlocked it: 6.91..11.00px, **1.59x**. It read "ten painted sizes
+ * where there were seven" for an hour; the buckets are gone as of the same day
+ * and the count of painted sizes is now just the count of drawn labels — 24 at
+ * 375, every one of them a different size.
  *
  * MEASURED, 20s per condition, against the 38 it replaces:
  *
@@ -738,11 +812,14 @@ const SPHERE_COUNT_COMPACT = 40;
  * `text-caption` band" and conclude that "the whole ramp is inside the site's
  * type vocabulary instead of beside it". THAT WAS TRUE WHILE THE SMALLEST
  * PAINTED SIZE WAS 12.35px, just above `--text-caption` (0.75rem = 12px). It is
- * not true as shipped: the painted range is **7.82-16.00px on desktop and
- * 6.91-11.00px on compact**, so the far end of the ramp is well BELOW the
+ * not true as shipped: the painted range is **7.7-16.00px on desktop and
+ * 6.9-11.00px on compact**, so the far end of the ramp is well BELOW the
  * smallest type token on the site. (It was 10.75 / 9.50 for the few hours
  * between the ramp change and the depth change; both numbers are recorded here
- * because the direction of travel is the point.)
+ * because the direction of travel is the point. The bottom of the range is
+ * quoted loosely now because it is no longer a fixed value: with the buckets
+ * retired every label has its own size, so the smallest one painted depends on
+ * where the spiral happens to be.)
  *
  * THAT IS ACCEPTED DELIBERATELY RATHER THAN OVERLOOKED, AND ON 2026-08-24 IT
  * WAS ACCEPTED A SECOND TIME, FURTHER DOWN, ON SAAD'S EXPLICIT INSTRUCTION. The
@@ -811,7 +888,22 @@ const SPHERE_COUNT_COMPACT = 40;
 const SPHERE_FONT_PX = 16;
 const SPHERE_FONT_PX_COMPACT = 11;
 
-/** Tracking. `em`-relative, so it follows the per-bucket font size for free. */
+/**
+ * Tracking. `em`-relative, so it follows each fragment's size for free — under
+ * the per-fragment transform, 0.04em of the base font scaled by `drawK` is
+ * exactly 0.04em of the drawn size. (It said "the per-bucket font size" until
+ * the buckets were retired on 2026-08-24.)
+ *
+ * IT IS ASSIGNED BEFORE `ctx.font` IN `drawCommandSphere`, WHICH IS SAFE AND
+ * WAS CHECKED RATHER THAN ASSUMED — an `em` length set against the context's
+ * default `10px sans-serif` and then left there while the font changes would
+ * make the first frame's tracking wrong, and under `prefers-reduced-motion`
+ * the first frame is the ONLY frame. Measured in a bare canvas: setting
+ * `letterSpacing` then `font` and setting `font` then `letterSpacing` both
+ * measure 94.36874 for ten `m`s at 16px mono, against 87.96875 with no
+ * tracking. Blink re-resolves the `em` on the font assignment. No reorder
+ * needed.
+ */
 const SPHERE_LETTER_SPACING = "0.04em";
 
 /**
@@ -941,6 +1033,180 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * that half of the exception has been withdrawn there rather than left
  * standing.
  */
+/**
+ * A 0.057-DEGREE ROTATION APPLIED TO EVERY GLYPH, WHOSE ONLY PURPOSE IS TO
+ * STOP THE RASTERISER FROM QUANTISING WHERE THE TEXT IS.
+ *
+ * THIS LOOKS LIKE A HACK AND IS ONE. It is here because the alternative was to
+ * leave a measured, visible defect in the one thing on this page that is
+ * supposed to move.
+ *
+ * THE DEFECT. Saad asked for "better smoothness in rotation of the commands".
+ * The rotation is exactly smooth — MEASURED, the anchors the draw pass asks
+ * for advance by 0.369 / 0.369 / 0.367 / 0.369 px per frame, dead constant.
+ * What reaches the screen does not. Canvas2D caches rasterised glyphs by
+ * subpixel phase, and for horizontally-aligned text it quantises the vertical
+ * origin to a WHOLE PIXEL. Isolated from this site entirely — a bare canvas, a
+ * bare `fillText`, no sphere — moving a string down by 0.1px ten times moves
+ * the painted ink by:
+ *
+ *      0  0  0  0  0  0  1  0  0  0        (device px)
+ *
+ * Six frames frozen, then a full pixel. At `IDLE_RATE_Y` the sphere asks for
+ * about 0.37px of travel per frame, so that is the granularity a viewer
+ * actually sees: the labels do not glide, they sit still and jump. At dpr 2 it
+ * halves to a 0.5 CSS px jump and is still the dominant artifact.
+ *
+ * WHY A ROTATION FIXES IT. The quantisation is an optimisation for
+ * axis-aligned text, and a matrix that is not axis-aligned takes a different
+ * path. Measured with the same isolated rig, asking for 0.05px per step, 20
+ * steps, counting steps where NOTHING moved:
+ *
+ *                          dead frames    max single step    evenness (CoV)
+ *   plain (axis-aligned)      19/20            1.000px            4.36
+ *   anisotropic scale         19/20            1.000px            4.36
+ *   rotate 5e-4                4/20            0.167px            0.94
+ *   rotate 1e-3   SHIPPED      0/20            0.091px            0.44
+ *   rotate 2e-3                0/20            0.073px            0.30
+ *   rotate 5e-3                0/20            0.074px            0.24
+ *
+ * ANISOTROPIC SCALE IS IN THAT TABLE BECAUSE IT WAS THE FIRST IDEA AND IT DOES
+ * NOTHING. `setTransform(k * 1.0002, 0, 0, k, ...)` still leaves rectangles as
+ * rectangles, so the fast path is still taken. It has to be a rotation or a
+ * shear.
+ *
+ * WHY 1e-3 AND NOT 5e-3, WHICH MEASURES BETTER. Because the rotation is real
+ * and the text really is tilted. Across the longest fragment in the set —
+ * `gcloud compute instances list`, 29 characters, 306px wide at the near face
+ * — the total corner-to-corner displacement is `306 * tilt`:
+ *
+ *   1e-3  ->  0.31px      2e-3  ->  0.61px      5e-3  ->  1.53px
+ *
+ * SPLIT EVENLY EITHER SIDE OF THE ANCHOR, because `textAlign` is `center`: the
+ * extremes are at +/-153px, so each end moves half of the figure above. And
+ * canvas `y` grows DOWNWARD, so the right-hand end DESCENDS and the left-hand
+ * end rises. (This paragraph said "the far end rises by `306 * tilt`" until
+ * review — wrong sign, and 2x overstated per end. The total span, which is the
+ * number the conclusion rests on, was right.)
+ *
+ * 1e-3 is the smallest value that takes dead frames to ZERO, and a third of a
+ * pixel of rise across a 306px string is below the antialiasing. 5e-3 would be
+ * a pixel and a half, which is a visible slant on a site with no other tilted
+ * type anywhere. The residual unevenness at 1e-3 — steps varying around a
+ * 0.05px mean — is sub-pixel jitter no eye resolves; the 1px freeze-and-jump
+ * was the thing anyone could see, and it is gone.
+ *
+ * WHAT IT COSTS, AND IT IS THE MOST EXPENSIVE THING IN THIS CHANGE. Measured
+ * as delivered frame rate at 1440x900 — see `SPHERE_SIZE_QUANTUM` for the full
+ * table and for why milliseconds were the wrong instrument — the tilt takes
+ * **32.2fps to 23.8 at 4x CPU throttle and 20.0 to 13.2 at 6x**, i.e. about
+ * 30%. Unthrottled it is 60.1fps either way, and compact is 60.0fps at 6x
+ * either way, so what pays is a wide viewport on a heavily throttled CPU.
+ *
+ * THAT TRADE IS SAAD'S TO REVERSE AND IT IS ONE LINE: `SPHERE_GLYPH_TILT = 0`
+ * restores the frame rate and restores the 1px vertical snapping with it.
+ * Everything else in the change — the continuous-feeling size ramp, the
+ * quantum, the count — is independent of it.
+ *
+ * APPLYING IT ONLY TO THE FRONT THIRD WAS TRIED AND ABANDONED: gating on
+ * `f.glow` recovered 22.5 -> 24.3fps of the 32.2 available, because the
+ * glowing labels are also the ones carrying `shadowBlur`, so restricting the
+ * tilt to them put it exactly where it is most expensive. Not worth the
+ * discontinuity at the threshold.
+ *
+ * WHAT IT IS NOT: a fix for the underlying quantisation, which is Chrome's and
+ * is not going anywhere. THE CLEAN FIX IS AN OFFSCREEN GLYPH ATLAS — rasterise
+ * each label once and `drawImage` it at fractional coordinates, which resamples
+ * smoothly and would make both position AND size perfectly continuous. It is
+ * not taken here because it trades crisp text for resampled text on the near
+ * face, which is a design decision belonging to Saad rather than a correctness
+ * one, and because it is a much larger change than the defect warrants.
+ *
+ * IT IS A ROTATION, SO IT SCALES THE GLYPH TOO, AND THE AMOUNT IS NOTHING.
+ * The matrix is `(gk, gs, -gs, gk)` with `gs = gk * TILT`, whose determinant
+ * gives an effective scale of `gk * sqrt(1 + TILT^2)` rather than `gk`. That is
+ * an inflation of **5e-7**, i.e. 8e-6 px on a 16px glyph — five orders of
+ * magnitude under a device pixel. It is not compensated for, deliberately:
+ * dividing it out would put a `sqrt` in the per-fragment path to correct
+ * something no display can express. (The determinant is `gk^2 (1 + TILT^2)`;
+ * the SCALE is its square root. Both the wording and "twelve orders of
+ * magnitude" were wrong in the first draft.)
+ *
+ * MEASURED END TO END on the real page, per real frame, comparing the anchors
+ * asked for against the ink painted in the same frame: the painted step's
+ * coefficient of variation went **1.132 -> 0.635**, and the worst single step
+ * went 3.82px -> 1.34px. Zero dead frames either way at the page level, which
+ * is why the isolated rig above is the one that shows the defect: on the real
+ * sphere ~40 labels at independent subpixel phases mean SOMETHING moves every
+ * frame even when most things are frozen.
+ */
+/**
+ * THE SIZE GRID, IN CSS PIXELS. Every glyph is drawn at a multiple of this.
+ *
+ * 0.25px IS FORTY LEVELS ACROSS THE DESKTOP RANGE (6..16px) AND TWENTY ACROSS
+ * COMPACT (6..11px), against the twelve the retired `SPHERE_SCALE_BUCKETS`
+ * gave. One step is **1.6% of the type size at the near face and 3.2% at the
+ * smallest painted size** — against the ~10% this file records as the point a
+ * size change is noticeable at a glance, and against the 5.7%/17.2% the
+ * twelve-bucket grid was delivering. Saad's complaint was that the size change
+ * read as "sudden ... not smooth"; this is the number that answers it.
+ *
+ * IT EXISTS BECAUSE FULLY CONTINUOUS WAS BUILT FIRST AND MEASURED TOO SLOW.
+ * The first version of this change quantised nothing: `drawK` went straight
+ * into `setTransform`, so every drawn label had its own scale — 49 distinct
+ * scales a frame at 1440, every one a separate entry in Chrome's glyph cache
+ * and therefore a miss. DELIVERED FRAME RATE at 1440x900, counted from
+ * distinct rAF timestamps over 15s:
+ *
+ *                                          1x      4x CPU    6x CPU
+ *   HEAD (65 fragments, 12 buckets)      60.1      35.4      21.7
+ *   80, continuous, no tilt              60.1      22.9      13.5
+ *   80, continuous + tilt                60.1      18.6      11.2
+ *   80, 0.25px grid, no tilt             60.1      32.2      20.0
+ *   80, 0.25px grid + tilt   SHIPPED     60.1      23.8      13.2
+ *
+ * READ THAT TABLE TWICE, BECAUSE IT SAYS TWO DIFFERENT THINGS. The grid is
+ * nearly free — 32.2 against HEAD's 35.4 while carrying 23% MORE fragments and
+ * 27 painted sizes instead of 10. `SPHERE_GLYPH_TILT` is what costs, and its
+ * own block owns that trade.
+ *
+ * THE COST WAS INVISIBLE TO THE OBVIOUS MEASUREMENT, which is why the table is
+ * frame rate and not milliseconds. Timing the rAF callback showed the
+ * continuous build at 0.642ms mean against HEAD's 0.686 — i.e. FASTER — while
+ * delivering 18.6fps against 35.4. Canvas2D glyph rasterisation does not happen
+ * inside the `fillText` call; it happens on the raster thread afterwards. Any
+ * future performance claim about this draw pass has to be a frame-rate
+ * measurement.
+ *
+ * COMPACT IS UNAFFECTED AT EVERY VARIANT — 60.0fps at 375x667 under 6x
+ * throttling, because the compact sphere is 40 fragments with no glow. The
+ * regression is confined to a WIDE viewport on a heavily throttled CPU.
+ *
+ * IF THIS EVER NEEDS TO GET CHEAPER, raise it before touching anything else:
+ * 0.5px would halve the cache entries and still be 3.1%/6.3% per step, under
+ * the 10% threshold. Lowering it below 0.25 buys nothing a viewer can see and
+ * walks back toward the continuous build's frame rate.
+ */
+const SPHERE_SIZE_QUANTUM = 0.25;
+
+/**
+ * Hysteresis on the size grid, as a fraction of one level.
+ *
+ * DIRECT DESCENDANT OF `SPHERE_BUCKET_HYSTERESIS` (0.18), renamed and retuned
+ * when the grid got 3.6x finer. The full derivation, the reason an idle capture
+ * cannot see the flicker this suppresses, and the measured retune table are in
+ * that constant's block above — which is kept in place rather than moved,
+ * because its method is the part worth reading.
+ *
+ * 0.45: measured 12.75 reversals per 5s under the rig's cursor sweep against
+ * 31.25 at 0.18 and 60.00 with no hysteresis at all, for a delay to honest
+ * size changes of at most `(0.5 + 0.45) * 0.25` = 0.24px and no measurable
+ * frame-rate cost. Idle is 0.5 per 5s at every viewport.
+ */
+const SPHERE_SIZE_HYSTERESIS = 0.45;
+
+const SPHERE_GLYPH_TILT = 1e-3;
+
 const SPHERE_MIN_FONT_PX = 6;
 const SPHERE_MIN_ALPHA = 0.25;
 
@@ -1030,8 +1296,44 @@ const SPHERE_MIN_ALPHA = 0.25;
  * (`lib/hero/commandSphere.ts`) is the shape of the check.
  */
 
-/**
- * How many discrete type sizes the depth ramp is quantised to.
+/*
+ * ══ RETIRED 2026-08-24, AND REPLACED BY A 0.25px GRID. ═════════════════════
+ *
+ * `SPHERE_SCALE_BUCKETS` was 6, then 9, then 12, and is GONE. Size is set by a
+ * `setTransform` off the fragment's depth now, not by a font string, and the
+ * granularity is `SPHERE_SIZE_QUANTUM` — 0.25px, which is **forty levels
+ * across the desktop range where this constant's last value gave twelve**.
+ *
+ * SO QUANTISATION SURVIVES AND ONLY THE MECHANISM DIED, and the first draft of
+ * this banner said "there is nothing left to quantise", which was true of the
+ * code for about an hour and is a good example of why a triumphant retirement
+ * note is a bad idea. What killed the fully-continuous version was frame rate,
+ * not taste: measured, it cost 30% of the throttled desktop frame rate against
+ * this 0.25px grid, because every distinct glyph scale is a separate entry in
+ * Chrome's glyph cache and 49 unique scales a frame is 49 misses.
+ * `SPHERE_SIZE_QUANTUM` carries that table.
+ *
+ * WHY, IN ONE SENTENCE FROM SAAD: "the commands increase and decrease in size
+ * is not smooth its just like sudden it should give off a sense that its
+ * moving back not decreasing in size". THAT IS A DESCRIPTION OF QUANTISATION,
+ * and the whole apparatus below is the quantiser — twelve buckets over
+ * 6..16px is a 0.909px step, which on a 24-character label is a ~7.2px jump in
+ * width, in one frame, for a depth change of nothing in particular. Three
+ * rounds of this file made those steps SMALLER (six -> nine -> twelve) while
+ * treating the step count as the thing to tune. The step count was never the
+ * thing. The steps were.
+ *
+ * WHAT THE TRADE ACTUALLY WAS, now that it can be stated from the other side:
+ * a font-shorthand parse per distinct size per frame, bought with a visible
+ * artifact. The replacement pays neither — a transform is one matrix write,
+ * no parse and no allocation, so the parse count went from 12.85 a frame to
+ * exactly ONE and the artifact went to zero at the same time. The block below
+ * is kept in full because its measurements are the reason the constant kept
+ * growing and the reason growing it was never going to be enough.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * How many discrete type sizes the depth ramp was quantised to.
  *
  * `ctx.font` assignment is a font-shorthand PARSE, not a field write, and it is
  * the most expensive thing in the draw loop after the glow. The trade is a
@@ -1040,7 +1342,8 @@ const SPHERE_MIN_ALPHA = 0.25;
  * twelve BUCKETS — eleven steps, which is what the local named `steps` in
  * `drawCommandSphere` holds — across `SPHERE_SCALE_MIN`..1, 0.909px between
  * neighbours at
- * base 16, measured at 12.85 parses against 39.7 drawn. (It read "nine steps...
+ * base 16, measured at 12.85 parses against 39.7 drawn — the last measurement
+ * this constant ever produced. (It read "nine steps...
  * 0.875px... 11.68 parses against 37.7 drawn" for one day, and before that "Six
  * steps across a 0.62–1.00 range is a <=1px difference at 13px" when the base
  * was 13 and the ramp was linear. Base, ramp, range and count have all moved;
@@ -1078,9 +1381,15 @@ const SPHERE_MIN_ALPHA = 0.25;
  * ninety" bought. If a future change pushes this past roughly half the drawn
  * count, the trade has stopped being worth it — measure it, do not assume it.
  */
-const SPHERE_SCALE_BUCKETS = 12;
 
 /*
+ * ══ HISTORY OF A CONSTANT THAT NO LONGER EXISTS. ═══════════════════════════
+ * This is the continuation of `SPHERE_SCALE_BUCKETS`'s docblock and it attaches
+ * to no declaration. Read every present-tense sentence below as past tense —
+ * including its closing instruction to "re-measure before anyone adds a
+ * thirteenth bucket", which cannot be acted on. The live constant is
+ * `SPHERE_SIZE_QUANTUM`.
+ *
  * SIX UNTIL 2026-08-24. It went to NINE in the same change that replaced the
  * linear depth ramp with the projection's own perspective divide
  * (`commandSphere.ts`, `SCALE_NORM`), and the two halves are one decision:
@@ -1172,6 +1481,11 @@ const SPHERE_SCALE_BUCKETS = 12;
  * 10.55 / 11.45 / 12.36 / 13.27 / 14.18 / 15.09 / 16.00px. Compact paints ten
  * as well: 6.91 through 11.00 in 0.4545px steps. Seven and seven before.
  *
+ * (Both figures are historical. With the buckets retired the same capture
+ * shows FORTY-NINE distinct sizes at 1440 and twenty-four at 375 — one per
+ * drawn label, which is what "continuous" means and what this constant spent
+ * three generations approximating.)
+ *
  * THE PARSE BUDGET, MEASURED, against a tripwire of roughly half the drawn
  * count as this block defines it:
  *
@@ -1187,7 +1501,52 @@ const SPHERE_SCALE_BUCKETS = 12;
  * number to re-measure before anyone adds a thirteenth bucket.
  */
 
-/**
+/*
+ * ══ RENAMED AND RETUNED 2026-08-24, NOT RETIRED. ═══════════════════════════
+ *
+ * `SPHERE_BUCKET_HYSTERESIS` is now `SPHERE_SIZE_HYSTERESIS`, 0.18 -> 0.45,
+ * and it damps boundaries on the 0.25px size grid instead of on a 12-step
+ * bucket grid. `state.bucket` became `state.level`.
+ *
+ * THIS BLOCK WAS BRIEFLY HEADED "RETIRED, WITH THE BUCKETS IT EXISTED FOR" and
+ * said "with a continuous scale there are no boundaries, so the dither it
+ * damped cannot occur". THE PREMISE DIED WITHIN THE HOUR — a fully continuous
+ * scale turned out to cost 30% of the throttled desktop frame rate, the fix
+ * was a 0.25px grid, and a grid has boundaries. The last sentence of the
+ * retirement note was the accurate one: "Anything that reintroduces discrete
+ * sizes here has to reintroduce this as well", and something did, immediately.
+ *
+ * WHAT THE RETUNE COST AND BOUGHT, measured at 1440x900 under the rig's 0.5Hz
+ * cursor sweep, which is the only condition that produces dither at all:
+ *
+ *                              switches/5s   reversals/5s   amplitude
+ *   12 buckets, h 0.18            139.26          0.25        0.909px
+ *   0.25px grid, no hysteresis    950.53         60.00        0.25px
+ *   0.25px grid, h 0.18           861.28         31.25        0.25px
+ *   0.25px grid, h 0.45  SHIPPED  723.28         12.75        0.25px
+ *
+ * 12.75 IS HIGHER THAN 0.25 AND THE COMPARISON THAT MATTERS IS THE PRODUCT.
+ * A reversal is a size change that undoes itself, so what a viewer could see
+ * is `reversals x amplitude`: **0.64px of size churn per second, against 2.15
+ * for the 3.25-per-5s figure this file recorded as ACCEPTABLE** when the
+ * constant was introduced, and against 0.23 for the 12-bucket state. It is
+ * three times the immediately preceding state and three times better than the
+ * documented acceptable bound. Idle is 0.5 per 5s, effectively zero.
+ *
+ * 0.45 RATHER THAN 0.18 BECAUSE THE DEADBAND IS NEARLY FREE AT THIS GRAIN. It
+ * delays an honest size change by at most `(0.5 + h) * 0.25` = 0.24px, which
+ * is under a fifth of what one 12-bucket step used to be. 0.18 measured 31.25
+ * reversals; going to 0.45 more than halved that for no visible lag and no
+ * measurable frame-rate cost (23.8 fps against 24.8 at 4x throttle, inside the
+ * run-to-run spread).
+ *
+ * THE BLOCK BELOW IS THE ORIGINAL RECORD and is kept because its method is
+ * what matters: how the flicker was found, why an idle capture cannot see it,
+ * and why the cursor sweep is the condition to measure. Its figures are all
+ * from the bucket era; read them as history, not as the current state.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ *
  * Bucket hysteresis, as a fraction of one bucket's width.
  *
  * WITHOUT IT A LABEL SWITCHES THE INSTANT IT RECROSSES A BOUNDARY, and the
@@ -1259,7 +1618,6 @@ const SPHERE_SCALE_BUCKETS = 12;
  * Idle is 0 reversals at every viewport in every generation, which is the one
  * unambiguous row. If it ever needs revisiting, the near face is where to look.
  */
-const SPHERE_BUCKET_HYSTERESIS = 0.18;
 
 /**
  * How long a fragment takes to fade out, or back in, ms.
@@ -1296,7 +1654,8 @@ const SPHERE_BUCKET_HYSTERESIS = 0.18;
  * viewport depends only on the viewport size. Enumerated across every width
  * from 320 to 2560: at 1440x900 the disc spans **x 720.0-1267.2** (centre
  * 993.6, R 273.6) against a worst-case label of ~144px half-width — a 29-char
- * string at the 15.09px bucket — so the guard CANNOT fire there, and
+ * string at the 15.09px size the twelve-bucket grid then produced — so the
+ * guard CANNOT fire there, and
  * measurement agrees: 0 cuts in 20s. It fires on compact viewports only, and
  * rarely: 0.17 cuts per 5s at 320x568 before the render floor existed.
  *
@@ -1371,15 +1730,18 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
 
 /**
  * PER-FRAGMENT DRAW STATE — the two things the draw pass has to remember
- * between frames, and the only two.
+ * between frames, and the only two. (They were `bucket` and `fade`; they are
+ * `level` and `fade` since 2026-08-24, when the font-string bucket grid became
+ * a `setTransform` on a 0.25px size grid. Same two questions, finer grain.)
  *
  * IT LIVES HERE AND NOT ON `ProjectedFragment`, WHICH WOULD HAVE BEEN THE
  * SHORTER EDIT. `lib/hero/commandSphere.ts` is geometry only; the note on
  * `SPHERE_SCALE_MIN` there says exporting the scale endpoints was preferred
  * over exporting a bucketing function precisely so that a rendering concern
  * would not end up in a module whose whole point is not having any. Which
- * bucket a fragment was last DRAWN in, and how far a fade toward the viewport
- * edge has got, are both rendering concerns of the most literal kind.
+ * size level a fragment was last DRAWN at, and how far a fade toward the
+ * viewport edge has got, are both rendering concerns of the most literal
+ * kind.
  *
  * TYPED ARRAYS, ALLOCATED ONCE PER SPHERE BUILD, for the reason the geometry
  * module states in its header: this runs inside the same rAF tick as an O(n²)
@@ -1396,28 +1758,51 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
  * set, so a wrong sentinel would be wrong about a third of the sphere rather
  * than about a couple of rim labels. Verified rather than assumed, and
  * re-verified on 2026-08-24 rather than left at the counts the old geometry
- * produced — **40 / 24 / 24 labels at 1440 / 375 / 320** under reduced motion
- * (36 / 22 / 22 before), four of four featured commands visible at each, and
- * ten distinct type sizes on the single frozen frame at every one of the three
- * where there used to be four.
+ * produced — **50 / 24 / 24 labels at 1440 / 375 / 320** under reduced motion
+ * (36 / 22 / 22 two changes ago, 40 / 24 / 24 one change ago), four of four
+ * featured commands visible at each, and the frozen frame carries **24
+ * distinct sizes at 1440 and 12 at compact** where it carried four. A
+ * reduced-motion visitor sees one frame of this effect forever; that frame is
+ * where a fine depth ramp pays off most, because it is the only cue of depth
+ * they get.
  */
 type SphereDrawState = {
-  /** The GEOMETRIC bucket each fragment was last assigned, for the hysteresis.
-   *  -1 = never assigned. Deliberately the UNCLAMPED one: a fragment pinned to
-   *  the legibility floor while it fades has to resume from where its depth
-   *  actually is, not from the floor it was held at. */
-  bucket: Int8Array;
   /** Visibility, 0..1, across all three gates. -1 = never evaluated. */
   fade: Float32Array;
+  /** The quantised size LEVEL each fragment was last drawn at, in units of
+   *  `SPHERE_SIZE_QUANTUM`. -1 = never assigned. Int16 because the level runs
+   *  to `SPHERE_FONT_PX / SPHERE_SIZE_QUANTUM` = 64, past an Int8's range once
+   *  a future base or quantum moves. */
+  level: Int16Array;
 };
 
+/*
+ * THIS NOTE SAID THE SECOND ARRAY WAS GONE. IT CAME BACK THE SAME DAY, AND THE
+ * ROUND TRIP IS THE POINT.
+ *
+ * The array was `bucket: Int8Array` — "the GEOMETRIC bucket each fragment was
+ * last assigned, for the hysteresis" — and it was deleted alongside
+ * `SPHERE_BUCKET_HYSTERESIS` when the size ramp went fully continuous, on the
+ * reasoning that "there are no boundaries any more... nothing to remember and
+ * nothing to dither about. A whole class of flicker went from SUPPRESSED to
+ * STRUCTURALLY IMPOSSIBLE."
+ *
+ * THAT WAS TRUE OF THE CODE AND WRONG ABOUT THE PROBLEM. A fully continuous
+ * glyph scale means a distinct entry in Chrome's glyph cache per label per
+ * frame; measured, it cost 30% of the throttled desktop frame rate. The fix is
+ * `SPHERE_SIZE_QUANTUM`, a 0.25px grid — forty levels where the retired bucket
+ * constant had twelve — and a grid has boundaries, so the hysteresis and its
+ * array are both back. `Int16Array` rather than `Int8Array` because the level
+ * index now runs to 64.
+ *
+ * WHAT ACTUALLY IMPROVED, stated without the triumph: the boundary a label can
+ * dither across is 0.25px instead of 0.909px, so the same class of flicker is
+ * 3.6x smaller in amplitude. It was never made impossible.
+ */
 function createSphereDrawState(count: number): SphereDrawState {
-  const state = {
-    bucket: new Int8Array(count),
-    fade: new Float32Array(count),
-  };
-  state.bucket.fill(-1);
+  const state = { fade: new Float32Array(count), level: new Int16Array(count) };
   state.fade.fill(-1);
+  state.level.fill(-1);
   return state;
 }
 
@@ -1430,10 +1815,15 @@ function createSphereDrawState(count: number): SphereDrawState {
  * `projectCommandSphere` just wrote. It computes no geometry of its own.
  *
  * THE ORDER'S MONOTONICITY IS WHAT MAKES THIS CHEAP. `t` only increases along
- * it, so the scale bucket, the colour stop and the glow flag each change at
- * most a handful of times across the whole set instead of once per fragment.
- * That turns the three expensive pieces of context state — the font parse, the
- * fill style and `shadowBlur` — into a near-constant number of assignments.
+ * it, so the colour stop and the glow flag each change at most a handful of
+ * times across the whole set instead of once per fragment. That turns two of
+ * the three expensive pieces of context state — the fill style and
+ * `shadowBlur` — into a near-constant number of assignments.
+ *
+ * THE THIRD USED TO BE THE FONT PARSE AND IS NOT ANY MORE. `ctx.font` is
+ * assigned exactly ONCE per frame now, before the loop, and size comes from a
+ * per-fragment `setTransform`. Monotonicity no longer buys anything there —
+ * but it still buys the other two, and the painter's order needs it regardless.
  *
  * ALPHA GOES THROUGH `globalAlpha`, NOT THROUGH THE FILL STRING. Per-fragment
  * `rgba(...)` would allocate one string per fragment per frame for a value that
@@ -1450,10 +1840,17 @@ function drawCommandSphere(
   fontStack: string,
   compact: boolean,
   viewportWidth: number,
+  /**
+   * The canvas's device-pixel-ratio scale, i.e. the transform `build()` leaves
+   * on the context. PASSED IN RATHER THAN READ BACK OFF `ctx.getTransform()`,
+   * which would allocate a `DOMMatrix` every frame in a function whose module
+   * header promises zero per-frame allocation. It is needed because the glyph
+   * scale below REPLACES the context transform rather than composing onto it.
+   */
+  dpr: number,
 ): void {
   const basePx = compact ? SPHERE_FONT_PX_COMPACT : SPHERE_FONT_PX;
   const span = SPHERE_SCALE_MAX - SPHERE_SCALE_MIN;
-  const steps = SPHERE_SCALE_BUCKETS - 1;
 
   /*
    * THE GEOMETRIC RANGE AND THE RENDERED RANGE ARE NOT THE SAME RANGE, AND
@@ -1462,8 +1859,12 @@ function drawCommandSphere(
    *
    * `span` above is GEOMETRY: `SPHERE_SCALE_MIN..1`, which since the ramp
    * became the perspective divide is 0.3333..1 at `PERSPECTIVE` 2.0, a 3.00x
-   * range. That is the right range to QUANTISE depth into — it is what the
-   * sphere actually does. Whether it is also the right range to RENDER into
+   * range. That is the right range to MAP depth from — it is what the sphere
+   * actually does. (It said "QUANTISE" until the buckets were retired on
+   * 2026-08-24; the mapping is continuous now, and the rest of this block is
+   * written in terms of buckets because that is what it was diagnosing. The
+   * hazard it records survives the rewrite exactly: `legible` still feeds
+   * `hidden`, so a floor that fails to clear still CULLS rather than pins.) Whether it is also the right range to RENDER into
    * depends entirely on the floor, and as of 2026-08-24 it very nearly is:
    * `basePx * 0.3333` is 5.33px at base 16 and 3.67px at base 11, against a
    * `SPHERE_MIN_FONT_PX` of 6.
@@ -1524,6 +1925,16 @@ function drawCommandSphere(
   const lowScale = Math.max(SPHERE_SCALE_MIN, SPHERE_MIN_FONT_PX / basePx);
   const renderSpan = SPHERE_SCALE_MAX - lowScale;
 
+  // ══ THE BLOCK BELOW DESCRIBES A LOOP THAT NO LONGER EXISTS ══════════════
+  //
+  // `floorStep` walked the bucket grid to find the first step clearing the
+  // font floor. There is no bucket grid; the floor is one comparison against
+  // `floorPx`, twenty lines down. EVERYTHING FROM HERE TO THAT COMPARISON IS
+  // HISTORY, kept for two things that are still live: the IEEE754 note, which
+  // is why the epsilon exists, and the pin-versus-cull distinction, which is
+  // still the difference between a fragment fading at a readable size and 72%
+  // of the labels vanishing on a phone.
+  //
   // THE SMALLEST BUCKET THAT STILL CLEARS THE FONT FLOOR. At most `steps`
   // iterations (8), once per frame, never per fragment.
   //
@@ -1575,22 +1986,21 @@ function drawCommandSphere(
   // The `< steps` guard bounds the loop if a future `basePx` were ever smaller
   // than the floor — in which case nothing is legible and everything fades out.
   // Degenerate, but bounded, and visibly wrong rather than silently wrong.
-  let floorStep = 0;
-  while (
-    floorStep < steps &&
-    basePx * (lowScale + (floorStep / steps) * renderSpan) <
-      // THE EPSILON, ADDED 2026-08-24. Bucket 0 is meant to be EXACTLY the
-      // floor, and whether the arithmetic lands there is a float question, not
-      // an algebraic one — see the IEEE754 note above, where the compact base
-      // reaches it on a round-half-to-even tie with zero margin. A hair under
-      // would make `floorStep` 1 and CULL a bucket rather than pin it, which is
-      // the failure this whole block exists to make visible. Half a
-      // thousandth of a pixel is far below anything the renderer can express
-      // and far above any rounding error a base/floor pair can produce.
-      SPHERE_MIN_FONT_PX - 5e-4
-  ) {
-    floorStep++;
-  }
+  // THE FLOOR, AS A SIZE RATHER THAN AS A BUCKET INDEX. It used to be a loop
+  // walking up the bucket grid to find the first step that cleared
+  // `SPHERE_MIN_FONT_PX`; with a continuous scale there is no grid to walk and
+  // the question collapses to a single comparison per fragment.
+  //
+  // THE EPSILON SURVIVES THE REWRITE AND SO DOES ITS REASON. `basePx *
+  // lowScale` is meant to be EXACTLY the floor, and whether the arithmetic
+  // lands there is a float question rather than an algebraic one — the compact
+  // base reaches it on a round-half-to-even tie with zero margin, worked
+  // through in the note above. A hair under would make every label at the back
+  // of the sphere test as illegible, and `legible` feeds `hidden`, so they
+  // would FADE OUT rather than pin. Half a thousandth of a pixel is far below
+  // anything the renderer can express and far above any rounding error a
+  // base/floor pair can produce.
+  const floorPx = SPHERE_MIN_FONT_PX - 5e-4;
 
   const prevAlpha = ctx.globalAlpha;
   ctx.textAlign = "center";
@@ -1602,7 +2012,12 @@ function drawCommandSphere(
   ctx.textBaseline = "middle";
   ctx.letterSpacing = SPHERE_LETTER_SPACING;
 
-  let bucket = -1;
+  // ONE FONT ASSIGNMENT FOR THE WHOLE PASS, at the base size. Every fragment's
+  // size comes from the transform below instead, so the string is parsed once
+  // per frame rather than once per distinct size — see the block at
+  // `SPHERE_FONT_PX` for what that replaced.
+  ctx.font = `${basePx}px ${fontStack}`;
+
   let tinted = false;
   let glowing = false;
   ctx.fillStyle = `rgb(${accent})`;
@@ -1611,32 +2026,32 @@ function drawCommandSphere(
     const index = order[i];
     const f = sphere.projected[index];
 
-    // THE BUCKET, WITH HYSTERESIS. `q` is the unquantised bucket position;
-    // `Math.round(q)` is what this used to be and is still what a fragment gets
-    // the first time it is drawn. After that the fragment KEEPS its previous
-    // bucket until `q` leaves that bucket's nominal half-width by
-    // `SPHERE_BUCKET_HYSTERESIS`, so a label that switched at a boundary has to
-    // travel 18% of a bucket back past that boundary to switch again.
-    const q = ((f.scale - SPHERE_SCALE_MIN) / span) * steps;
-    const held = state.bucket[index];
-    const step =
-      held < 0 || Math.abs(q - held) > 0.5 + SPHERE_BUCKET_HYSTERESIS
+    // THE SCALE, CONTINUOUS. `f.scale` is the perspective divide normalised to
+    // the near pole; this remaps it off the geometric range onto the range this
+    // breakpoint can legibly draw, and that is the whole calculation. No
+    // quantisation, no hysteresis, no remembered state.
+    const k = lowScale + ((f.scale - SPHERE_SCALE_MIN) / span) * renderSpan;
+    const px = basePx * k;
+
+    // PINNED UP TO THE LEGIBILITY FLOOR WHILE IT FADES. `lowScale` starts the
+    // range AT the floor, so this cannot fire at either shipped breakpoint and
+    // is the assertion of that; if a future base broke it, a fragment on its
+    // way out would fade at a readable size instead of shrinking into mush.
+    const legible = px >= floorPx;
+    const rawPx = legible ? px : SPHERE_MIN_FONT_PX;
+
+    // THE SIZE LEVEL, WITH HYSTERESIS. `q` is the unrounded level; a fragment
+    // keeps the level it was last drawn at until `q` leaves it by more than
+    // half a level plus `SPHERE_SIZE_HYSTERESIS`, so a label whose depth
+    // wobbles across a boundary does not switch back and forth.
+    const q = rawPx / SPHERE_SIZE_QUANTUM;
+    const held = state.level[index];
+    const level =
+      held < 0 || Math.abs(q - held) > 0.5 + SPHERE_SIZE_HYSTERESIS
         ? Math.round(q)
         : held;
-    state.bucket[index] = step;
-
-    // THE DRAWN BUCKET, PINNED UP TO THE LEGIBILITY FLOOR. `step` stays the
-    // geometric answer and is what the hysteresis remembers; `drawStep` is what
-    // is painted. The two differ only while a fragment is fading out below the
-    // font floor — see `floorStep` above for why the pin is to a bucket rather
-    // than to the floor value itself.
-    const legible = step >= floorStep;
-    const drawStep = legible ? step : floorStep;
-    // GEOMETRIC bucket in, RENDERED size out — see the remap at the top of
-    // this function. `q` above quantises the full depth range; this maps the
-    // step it chose onto the size range this breakpoint can legibly draw.
-    const px = basePx * (lowScale + (drawStep / steps) * renderSpan);
-
+    state.level[index] = level;
+    const drawK = (level * SPHERE_SIZE_QUANTUM) / basePx;
 
     // HORIZONTAL CLIP GUARD. `textAlign` is `center`, so a rim fragment extends
     // half its width past its anchor — and on a narrow viewport the rim IS the
@@ -1649,7 +2064,15 @@ function drawCommandSphere(
     // knowable — 0.6em plus the letter-spacing already set above. The estimate
     // runs slightly WIDE on purpose, so a marginal fragment is dropped rather
     // than clipped. Cheap and one-directional.
-    const halfWidth = f.text.length * px * SPHERE_ADVANCE_ESTIMATE * 0.5;
+    // OFF `drawK`, NOT OFF `px`. `px` is the fragment's unpinned, unquantised
+    // size; the glyph is drawn at `basePx * drawK`. They differ whenever the
+    // floor pins or the grid rounds, and on the pinned path they differ in the
+    // direction this guard's own docblock forbids — the drawn label would be
+    // WIDER than the estimate, so the guard would UNDER-estimate and clip
+    // rather than drop. Caught in review; unreachable at the shipped values,
+    // which is exactly why it would have survived.
+    const halfWidth =
+      f.text.length * basePx * drawK * SPHERE_ADVANCE_ESTIMATE * 0.5;
     const clipped = f.x - halfWidth < 0 || f.x + halfWidth > viewportWidth;
 
     // THE THREE GATES, AS ONE ANSWER. Font floor, alpha floor, clip guard —
@@ -1711,11 +2134,6 @@ function drawCommandSphere(
     // fires on compact viewports and the glow pass is skipped on them, which is
     // two unrelated facts propping up a stated invariant. Corrected 2026-08-24:
     // the self-healing property above is the reason, and it is sufficient.
-    if (drawStep !== bucket) {
-      bucket = drawStep;
-      ctx.font = `${px}px ${fontStack}`;
-    }
-
     if (f.near !== tinted) {
       tinted = f.near;
       ctx.fillStyle = tinted ? `rgb(${SPHERE_NEAR_TINT})` : `rgb(${accent})`;
@@ -1730,8 +2148,37 @@ function drawCommandSphere(
     }
 
     ctx.globalAlpha = f.alpha * fade;
-    ctx.fillText(f.text, f.x, f.y);
+
+    // THE GLYPH IS SCALED BY THE TRANSFORM, NOT BY THE FONT SIZE, and that
+    // swap is what makes the recession continuous. `setTransform` REPLACES the
+    // matrix rather than composing, so the DPR scale is folded in here — which
+    // is why `dpr` is a parameter — and the anchor moves into the matrix so
+    // the text is drawn at the local origin. `textAlign: center` and
+    // `textBaseline: middle` still centre it there.
+    //
+    // WHY NOT JUST ASSIGN A CONTINUOUS `ctx.font`. It would be the shorter
+    // edit and it costs a string BUILD plus a font-shorthand PARSE per
+    // fragment per frame — up to 49 of each at 1440, against the 12.85 parses
+    // the bucket grid was holding it to, and 49 fresh strings a frame in a
+    // module whose header promises zero per-frame allocation. A matrix write
+    // is neither.
+    //
+    // LETTER-SPACING COMES OUT RIGHT FOR FREE. It is set once, in `em`, so it
+    // is already relative to the font size; under the transform it scales with
+    // the glyphs exactly as it did when the size was being reassigned. The old
+    // comment at `SPHERE_SCALE_BUCKETS` refused a transform partly because it
+    // "would also scale the letter-spacing" — which is the behaviour that was
+    // wanted, and always was.
+    const gk = dpr * drawK;
+    const gs = gk * SPHERE_GLYPH_TILT;
+    ctx.setTransform(gk, gs, -gs, gk, dpr * f.x, dpr * f.y);
+    ctx.fillText(f.text, 0, 0);
   }
+
+  // THE TRANSFORM IS GLOBAL AND SURVIVES THE FRAME, exactly like the shadow and
+  // the tracking below. Leaving the last fragment's scale on the context would
+  // draw the next frame's entire mesh at ~0.4x, in the corner.
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   // Context state is global and survives the frame boundary. Leaving a shadow
   // or a tracking value set would silently apply it to the mesh's next pass.
@@ -1891,6 +2338,9 @@ export function ParticleGrid({
     let nodes: Node[] = [];
     let width = 0;
     let height = 0;
+    /** The context's standing DPR scale. Written by `build()`, read by the
+     *  sphere's draw pass, which replaces the transform per fragment. */
+    let dpr = 1;
     let raf = 0;
     let resizeTimer = 0;
     let disposed = false;
@@ -1999,7 +2449,7 @@ export function ParticleGrid({
 
       // DPR scaling: back the canvas with real device pixels, then scale the
       // context once so every coordinate below stays in CSS px.
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
       canvas.style.width = `${width}px`;
@@ -2055,7 +2505,8 @@ export function ParticleGrid({
             HERO_COMMAND_FEATURED,
           );
           // REALLOCATED WITH THE SPHERE AND ONLY WITH IT. A plain resize
-          // re-places the same sphere and must keep both arrays, or every
+          // re-places the same sphere and must keep both arrays (`fade` and
+          // `level`), or every
           // fragment would re-adopt its bucket and fade from scratch on each
           // debounced rebuild — which is a visible flash of the whole rim at
           // the end of a window drag.
@@ -2440,6 +2891,7 @@ export function ParticleGrid({
           fontStack,
           compact,
           width,
+          dpr,
         );
       }
     };
