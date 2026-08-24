@@ -21,15 +21,59 @@ import {
   HERO_TAGLINE_UNITS,
 } from "@/components/hero/heroContent";
 import { ABOUT_HEADING } from "@/components/sections/aboutContent";
+import { EncryptedText } from "@/components/ui/encrypted-text";
 import { DURATION, EASE, STAGGER } from "@/lib/animation/easing";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
 /** Shared by both layouts so the cue provably does not move between them. */
 const INSET_CLASSES = "left-md sm:left-xl lg:left-2xl bottom-lg sm:bottom-xl";
 
+/**
+ * THE DECRYPT'S TWO CADENCES.
+ *
+ * `TAGLINE_REVEAL_MS` is how long one character waits before the next one locks
+ * in, so a unit's decrypt lasts `length × this`. The two units are 24 and 22
+ * characters, which at 34ms is **816ms and 748ms**; unit 2 starts one
+ * `STAGGER.line` (100ms) later, so the two land 32ms apart and read as one
+ * gesture finishing rather than as two effects. That is the whole reason for
+ * the number: it is solved from the unit lengths, not chosen for feel. Editing
+ * `HERO_TAGLINE_UNITS` changes the arithmetic — the split is fixed at two
+ * units, but their lengths are not.
+ *
+ * `TAGLINE_FLIP_MS` is how fast the unresolved characters churn. 55ms is ~18
+ * changes a second: fast enough to read as ciphertext rather than as a slot
+ * machine, slow enough that the eye can see individual characters land. It also
+ * sets the render rate — `encrypted-text.tsx`'s deviation 6 — at one commit per
+ * flip rather than one per frame, so this is ~18 renders a second of ~46 spans
+ * for under a second, and nothing during the hand-off.
+ *
+ * NEITHER BELONGS IN `lib/animation/easing.ts`. That module is the site's
+ * motion VOCABULARY, and `DURATION.hero`'s removal note is the standing warning
+ * about putting a single sequence's internal timings there: a tuned-sounding
+ * constant with no callers reads as load-bearing forever. These two describe
+ * one effect in one place.
+ */
+const TAGLINE_REVEAL_MS = 34;
+const TAGLINE_FLIP_MS = 55;
+
 type HeroHeadlineProps = {
-  /** The staggered reveal is gated on the camera finishing. */
+  /**
+   * The hand-off is finished — the Intro's plate is gone.
+   *
+   * IT NO LONGER GATES THE TAGLINE. It used to gate everything in this
+   * component; `taglineBeat` took the identity statement off it, and what is
+   * left on this wire is the scroll cue's mount. The two are deliberately not
+   * merged: the ticket that introduced the decrypt asks for it to be "purely
+   * additive on the tagline, not something that shifts other elements", and a
+   * control that only exists once there is something to scroll to is not the
+   * thing being retimed.
+   */
   revealed: boolean;
+  /**
+   * The tagline's own beat, deliberately later than `revealed`. `Hero.tsx`'s
+   * `TAGLINE_BEAT_S` carries the derivation and the lever.
+   */
+  taglineBeat: boolean;
   /**
    * No canvas subject: the <h1> becomes the visible headline and this whole
    * block moves from bottom-anchored to vertically centred.
@@ -48,6 +92,7 @@ type HeroHeadlineProps = {
 
 export function HeroHeadline({
   revealed,
+  taglineBeat,
   fallback,
   cueActive,
 }: HeroHeadlineProps) {
@@ -97,38 +142,72 @@ export function HeroHeadline({
             {HERO_NAME}
           </h1>
 
+          {/*
+            THE IDENTITY STATEMENT DECRYPTS. It used to rise on a mask — each
+            unit in its own `overflow-hidden` line box, travelling 105% of that
+            box over 0.70s — and that mask is GONE rather than layered under
+            this. Two reasons, and the first is the ticket's:
+
+              - The scramble IS the reveal now. Running both would put two
+                motions on one element inside a window whose whole point is to
+                hold ONE beat, which is the pile-up this retiming exists to
+                undo.
+              - `encrypted-text.tsx` gives every character its own
+                absolutely-positioned box while it runs (its deviation 3, so the
+                line cannot reflow mid-scramble). A `y` transform on the line
+                box above that is a second coordinate space moving underneath a
+                set of glyphs that are already being repositioned per frame.
+
+            WHAT SURVIVES OF THE OLD BLOCK: the units are still two stacking
+            block elements and never a <br> — a <br> cannot reflow at 360px,
+            cannot carry per-unit timing, and could not have carried a
+            per-unit `EncryptedText` either. And they still stagger by
+            `STAGGER.line`, in document order, which is the monotonic-delay rule
+            that constant's docblock states.
+
+            The opacity fade is kept at 0.28s: without it the ciphertext would
+            hard-pop into an otherwise settled frame. It is a fade, so it is
+            also what a reduced-motion visitor gets — `MotionConfig`'s
+            `reducedMotion="user"` drops transforms and keeps opacity, and
+            `EncryptedText` independently renders the finished string on that
+            path.
+          */}
           <p className="text-h4 max-w-[34ch] text-hero-fg">
             {HERO_TAGLINE_UNITS.map((unit, index) => (
-              // Each unit gets its own overflow-hidden line box. The reveal is
-              // a MASK — the text emerges from behind a hard edge rather than
-              // floating up from an arbitrary offset, which is what makes it
-              // read as typographic craft instead of a component-library
-              // default. Travel is the line box itself.
-              //
-              // These are two stacking block elements, never a <br>: a <br>
-              // cannot reflow on a narrow phone, cannot carry per-unit stagger
-              // timing, and cannot be wrapped in a mask.
-              <span key={unit} className="block overflow-hidden">
+              <span key={unit} className="block">
                 <motion.span
                   className="block"
-                  initial={{ y: "105%", opacity: 0 }}
-                  animate={
-                    revealed ? { y: "0%", opacity: 1 } : { y: "105%", opacity: 0 }
-                  }
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: taglineBeat ? 1 : 0 }}
                   transition={{
-                    y: {
-                      duration: 0.7,
-                      ease: EASE.hero,
-                      delay: index * STAGGER.line,
-                    },
-                    opacity: {
-                      duration: 0.28,
-                      ease: EASE.hero,
-                      delay: index * STAGGER.line,
-                    },
+                    duration: 0.28,
+                    ease: EASE.hero,
+                    delay: index * STAGGER.line,
                   }}
                 >
-                  {unit}
+                  <EncryptedText
+                    text={unit}
+                    play={taglineBeat}
+                    // The same offset the fade above uses, so a unit's
+                    // ciphertext appears and starts resolving on one schedule
+                    // rather than two.
+                    startDelayMs={index * STAGGER.line * 1000}
+                    revealDelayMs={TAGLINE_REVEAL_MS}
+                    flipDelayMs={TAGLINE_FLIP_MS}
+                    // The unresolved characters are `hero-accent` (#14B8A6,
+                    // 8.00:1 on `hero-surface`) and the resolved ones inherit
+                    // `text-hero-fg` from the <p>. This is the pinned Tier 1
+                    // teal, NEVER `accent-working`: globals.css's hero block
+                    // states the rule for this surface, and the scroll cue's
+                    // focus ring below is the other consumer of it.
+                    //
+                    // The colour is doing work, not decoration. The ciphertext
+                    // reads as the sphere's material — same accent, same
+                    // alphabet — and the sentence resolves OUT of it into the
+                    // page's own ink, which is the positioning of the site in
+                    // one gesture.
+                    encryptedClassName="text-hero-accent"
+                  />
                 </motion.span>
               </span>
             ))}

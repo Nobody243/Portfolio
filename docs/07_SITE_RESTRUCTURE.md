@@ -534,6 +534,19 @@ tail** because `introDone` fires 0.4s earlier — 14.5px of sideways creep under
 1.12, 4.85px at 1.04. **`ARRIVAL_SCALE = 1.0` is rejected:** an opacity-only arrival is a crossfade,
 and a crossfade is a cut with extra steps.
 
+> **THE TAGLINE ARGUMENT ABOVE IS RETIRED AS OF 2026-08-24; THE VALUE IS NOT.** The identity statement
+> no longer reveals on `introDone`. It was the FOURTH thing moving on this seam — navbar slide,
+> plate dissolve, hero arrival and the sphere's 3.2s rotation burst all start on one frame — and
+> Saad's ticket asked for it to land "slightly after those finish, so it reads as its own distinct
+> beat". `Hero.tsx`'s **`TAGLINE_BEAT_S` = 2.6s after `arriving`** does that: the burst decays as
+> `1 + 3(1 - t/3.2)^2`, which is within a tenth of idle at t = 2.616s. The mask reveal is retired with
+> it — the line now arrives as ciphertext and DECRYPTS into place over ~0.85s
+> (`components/ui/encrypted-text.tsx`, a single deliberate placement; do not repeat the effect
+> elsewhere). The arrival has been over for 1.3s by the time any of that starts, so the 14.5px/4.85px
+> creep figures no longer describe anything shipped and **1.04 rests on the travel-budget argument
+> alone**. They are kept as the record of the overlapping seam, which returns if the tagline ever goes
+> back onto `introDone`. `Hero.tsx`'s `ARRIVAL_SCALE` and `docs/06` carry the same retraction.
+
 **What the three components share is the START INSTANT, not the duration**, and `lib/animation/handoff.ts`
 records that from its side. The navbar slides in 0.45s and the hero settles over 1.30s; both begin on
 the same frame — measured 2205ms each. "One coordinated beat" is simultaneity of onset, not of length.

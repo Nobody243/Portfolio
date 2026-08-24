@@ -244,6 +244,16 @@ slide both begin at 2.205s** — within one frame of phase 7's 2.215s.
 > runs entirely inside the arrival's tail (14.5px of sideways creep at 1.12
 > against 4.85px at 1.04).
 >
+> **THE SECOND OF THOSE TWO ARGUMENTS DIED ON 2026-08-24 AND THE VALUE DID NOT.**
+> The tagline no longer reveals on `introDone`: `Hero.tsx`'s `TAGLINE_BEAT_S`
+> moves it to **2.6s after `arriving`**, past the end of the sphere's rotation
+> burst, so it is its own beat rather than the fourth thing moving on the seam.
+> The arrival has been over for 1.3s by then and the residual scale is exactly 1,
+> so there is no creep under a running reveal at any `ARRIVAL_SCALE`. **1.04 now
+> rests on the travel-budget argument alone**, which was always the independent
+> one. The creep arithmetic is kept, not deleted — it is the record of the seam
+> as it was, and moving the tagline back onto `introDone` makes it live again.
+>
 > This box also predicted that *"`Hero.tsx`'s header still describes the
 > contraction it expanded from, and will need the same pass"*. Half right: the
 > constants were fixed in `8875803`, but `ARRIVAL_S`'s own docblock was left

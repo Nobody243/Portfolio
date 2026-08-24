@@ -174,6 +174,22 @@ const ARRIVAL_S = 1.3;
  *               wobble.
  *        1.04 → residual scale 1.0077 → **4.85px**. Sub-perceptual.
  *
+ *      >> ARGUMENT 2's PREMISE IS RETIRED AS OF THE TAGLINE BEAT, AND THE
+ *      >> NUMBER IS NOT. The tagline no longer reveals inside this tween's
+ *      >> tail: `TAGLINE_BEAT_S` moves it to 2.6s, where the arrival ended
+ *      >> 1.3s earlier and the residual scale is exactly 1. There is no
+ *      >> sideways creep under a running reveal any more, at 1.04 or at 1.12,
+ *      >> so this argument neither supports nor opposes the value.
+ *      >>
+ *      >> ARGUMENT 1 IS UNTOUCHED AND STILL DECIDES IT — 25.2px of initial
+ *      >> displacement at the tagline's leading edge against the site's 13px
+ *      >> timed / 21px scrubbed travel budget. 1.04 stands on it alone. The
+ *      >> arithmetic above is kept rather than deleted because it is the
+ *      >> record of what the seam looked like when the two moves overlapped,
+ *      >> and anything that moves the tagline back onto `introDone` makes it
+ *      >> live again. `docs/06` and `docs/07` §3 carried the same claim and
+ *      >> carry the same retraction.
+ *
  * WHAT IS REJECTED, AND WHY IT IS WRITTEN DOWN: `ARRIVAL_SCALE = 1.0`. It makes
  * the arrival opacity-only, i.e. the plate fades out while the hero fades in —
  * **a crossfade is a cut with extra steps**, which is precisely what
@@ -198,6 +214,58 @@ const ARRIVAL_S = 1.3;
  * retirement of the camera is not a reason to go back to it.)
  */
 const ARRIVAL_SCALE = 1.04;
+
+/**
+ * THE TAGLINE'S BEAT — 2.6s after `arriving`, which is 2.05s after `introDone`.
+ *
+ * The tagline used to reveal on `introDone`, i.e. at 0.55s, and it was the
+ * FOURTH thing moving at that instant. Everything else on this seam starts on
+ * the same frame by design, and the identity statement was quietly conscripted
+ * into that pile-up:
+ *
+ *   from `arriving`   what is moving                       ends
+ *   ----------------  -----------------------------------  --------
+ *   0.00 → 0.45       the navbar slides down (`HANDOFF_S`)  0.45s
+ *   0.00 → 0.55       the Intro's plate dissolves           0.55s
+ *   0.00 → 1.30       this section settles (`ARRIVAL_S`)    1.30s
+ *   0.00 → 3.20       the sphere's burst (`SPHERE_BURST_MS`) 3.20s
+ *   0.55 → 1.35       ← THE TAGLINE, in the middle of all of it
+ *
+ * Saad's ticket: "land it slightly after those finish, so it reads as its own
+ * distinct beat rather than one more thing happening simultaneously in an
+ * already-busy moment."
+ *
+ * 2.6 IS THE BURST, NOT A ROUND NUMBER. The burst is the last of the four to
+ * end and the only one whose nominal duration overstates how long it is
+ * VISIBLE: `commandSphere.ts` decays it as `1 + (RATE − 1)·(1 − t/T)²`, so with
+ * RATE 4 and T 3.2s the rotation is
+ *
+ *   t = 1.30s → 2.06×    t = 2.00s → 1.42×    t = 2.40s → 1.19×
+ *   t = 2.60s → 1.11×    t = 2.79s → 1.05×    t = 3.20s → 1.00×
+ *
+ * Solving `3(1 − t/3.2)² = 0.10` gives **t = 2.616s**: the frame the sphere
+ * comes within a tenth of its idle rate, which is where a burst stops reading
+ * as a burst. 2.6s is that number. Waiting for the arithmetic zero at 3.2s buys
+ * a 1.1% speed difference for 0.6s more of a hero with no sentence on it.
+ *
+ * THE COST IS STATED RATHER THAN HIDDEN: the hero carries no visible text for
+ * about two seconds after the plate goes. That is deliberate — the sphere is
+ * the subject of this surface and the tagline is the annotation — but it is the
+ * one thing to look at if the entry ever reads as slow. THE LEVER IS THIS
+ * CONSTANT AND NOTHING ELSE. The natural shorter stop is **1.5s**, just past
+ * `ARRIVAL_S`, which trades the burst overlap (still ~1.8× there) for a hero
+ * that speaks a second sooner. Do not instead shorten `SPHERE_BURST_MS` — that
+ * constant is the answer to a different ticket and carries its own measurement.
+ *
+ * IT DOES NOT APPLY WHEN THERE WAS NO HAND-OFF. `waitedForHandoff` gates it for
+ * the same reason it gates the burst: on a client navigation to `/` there is no
+ * plate, no burst and no arrival to stay out of the way of, and
+ * `IntroProvider`'s header records that seeding the phase from a synchronous
+ * read is what reveals the headline in FRAME 1 on that path. A timer here would
+ * throw that away, so the instant case is DERIVED rather than timed — see
+ * `taglineBeat` below.
+ */
+const TAGLINE_BEAT_S = 2.6;
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -238,6 +306,40 @@ export function Hero() {
     rather than by two things that agree until one of them is retuned.
   */
   const arrivalBurst = useRef(0);
+
+  /*
+    THE TAGLINE'S BEAT. `TAGLINE_BEAT_S` carries the derivation; this is only
+    the wiring, and its shape is load-bearing in two places.
+
+    IT IS DERIVED WHEN THE DELAY IS ZERO, TIMED ONLY WHEN IT IS NOT. Writing
+    `setTimeout(..., 0)` for the instant cases would cost a macrotask and hand
+    back the frame-1 reveal that `IntroProvider` went out of its way to buy on
+    the client-navigation path. Reading `introDone` directly costs nothing and
+    is exactly right: where there is no hand-off to wait out, the beat IS the
+    hand-off.
+
+    REDUCED MOTION TAKES THE INSTANT PATH TOO, and it is not a special case —
+    it is the same statement. There is no arrival tween, no burst and no
+    scramble on that path, so there is nothing for the tagline to stand clear
+    of. `EncryptedText` reads the preference itself and renders the finished
+    string, so this only decides WHEN the line appears, never how.
+
+    The flag is live, so a visitor who turns the preference on mid-delay falls
+    back to `introDone` — already true by then — and the tagline appears at
+    once rather than finishing a countdown for an effect that will not play.
+  */
+  const beatIsInstant = reducedMotion || !waitedForHandoff;
+  const [beatTimerFired, setBeatTimerFired] = useState(false);
+  const taglineBeat = beatIsInstant ? introDone : beatTimerFired;
+
+  useEffect(() => {
+    if (!arriving || beatIsInstant) return;
+    const timer = window.setTimeout(
+      () => setBeatTimerFired(true),
+      TAGLINE_BEAT_S * 1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [arriving, beatIsInstant]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -387,6 +489,7 @@ export function Hero() {
             carried by the navbar's mark; see this file's header. */}
         <HeroHeadline
           revealed={introDone}
+          taglineBeat={taglineBeat}
           fallback={false}
           cueActive={inView && tabVisible}
         />
