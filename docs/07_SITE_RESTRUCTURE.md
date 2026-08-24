@@ -1192,9 +1192,7 @@ been measured to have no room at any larger value. The DESKTOP count moved the s
 via 90 → 58 → 60 → 65 → 80. `SPHERE_COUNT_COMPACT` and `SPHERE_COUNT` in
 `components/hero/ParticleGrid.tsx` carry every step and the measurement behind it, including the
 front-face collision metric added alongside the undifferentiated one when the sphere's depth ramp
-stopped being stepped. As of 2026-08-24 the sphere's labels are **pre-rasterised into an atlas and
-blitted** rather than drawn with `fillText`, which is what makes both the size ramp and the motion
-continuous; `SPHERE_ATLAS_EM_MAX` in that file carries the measurements. **80 is an override, not a pass:** it regresses every collision measure in the
+stopped being stepped. **80 is an override, not a pass:** it regresses every collision measure in the
 file and breaks two guards recorded there, and it ships because Saad asked for more commands in two
 consecutive tickets after being shown the numbers. `SPHERE_COUNT`'s block carries all of it.
 
