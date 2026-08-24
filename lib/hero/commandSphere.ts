@@ -237,11 +237,14 @@ const SCALE_NORM = (PERSPECTIVE - 1) / PERSPECTIVE;
  * handful of steps — assigning `ctx.font` is a string parse and doing it
  * ninety times a frame is the single cheapest thing to get wrong here — and it
  * cannot pick sensible bucket boundaries without knowing the range." As of
- * 2026-08-24 the renderer assigns `ctx.font` exactly ONCE a frame and scales
- * glyphs with a transform; it still quantises, but onto a flat 0.25px grid
- * that needs no boundaries derived from this range. "Ninety" was also two
+ * 2026-08-24 the renderer does not assign `ctx.font` in the draw pass at all:
+ * the labels are pre-rasterised into an atlas and blitted, so the size is
+ * continuous and there is nothing to quantise. "Ninety" was also two
  * count-generations stale. The EXPORT and its justification survive — only
- * the reason the renderer wants the numbers has changed.
+ * the reason the renderer wants the numbers has changed. (For a few hours in
+ * between it read "assigns `ctx.font` exactly ONCE a frame and scales glyphs
+ * with a transform... onto a flat 0.25px grid"; both of those renderers are
+ * recorded in `ParticleGrid.tsx`.)
  *
  * BOTH ARE DERIVED FROM `PERSPECTIVE` NOW rather than being independent tuning
  * constants, so they cannot drift away from the ramp that produces them. The

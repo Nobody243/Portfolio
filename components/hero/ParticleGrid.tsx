@@ -894,19 +894,40 @@ const SPHERE_FONT_PX_COMPACT = 11;
  * exactly 0.04em of the drawn size. (It said "the per-bucket font size" until
  * the buckets were retired on 2026-08-24.)
  *
- * IT IS ASSIGNED BEFORE `ctx.font` IN `drawCommandSphere`, WHICH IS SAFE AND
- * WAS CHECKED RATHER THAN ASSUMED — an `em` length set against the context's
- * default `10px sans-serif` and then left there while the font changes would
- * make the first frame's tracking wrong, and under `prefers-reduced-motion`
- * the first frame is the ONLY frame. Measured in a bare canvas: setting
- * `letterSpacing` then `font` and setting `font` then `letterSpacing` both
- * measure 94.36874 for ten `m`s at 16px mono, against 87.96875 with no
- * tracking. Blink re-resolves the `em` on the font assignment. No reorder
- * needed.
+ * IT IS A BUILD-TIME CONCERN NOW, NOT A DRAW-TIME ONE. Since the labels are
+ * rasterised into an atlas, this is set once per sheet in `buildSphereAtlas`
+ * and the draw pass never touches it — a blit carries whatever tracking was
+ * baked in. Under the transform renderer it was set before `ctx.font` on the
+ * live context every frame, which raised the question below.
+ *
+ * THE ORDER WAS SAFE AND WAS CHECKED RATHER THAN ASSUMED, and the check is
+ * kept because the atlas builder sets these two in the same order: an `em`
+ * length set against the context's default `10px sans-serif` and then left
+ * there while the font changes would bake the wrong tracking into every sheet.
+ * Measured in a bare canvas — setting `letterSpacing` then `font`, and `font`
+ * then `letterSpacing`, both measure 94.36874 for ten `m`s at 16px mono
+ * against 87.96875 with no tracking. Blink re-resolves the `em` on the font
+ * assignment. No reorder needed.
  */
 const SPHERE_LETTER_SPACING = "0.04em";
 
-/**
+/*
+ * ══ RETIRED 2026-08-24. THE GUARD MEASURES INSTEAD OF ESTIMATING. ══════════
+ *
+ * The clip guard needed a label's width and would not pay `measureText` per
+ * fragment per frame to get it. The atlas rasterises every label up front and
+ * keeps its real width, so the guard reads `atlas.sw[index]` and scales it —
+ * exact, free, and still slightly wide, because the atlas cell carries
+ * `SPHERE_ATLAS_PAD` either side.
+ *
+ * The block below is kept for its reasoning about DIRECTION, which outlives
+ * the constant: an over-estimate drops a fragment that would have fitted and
+ * is invisible; an under-estimate clips one and is the bug the guard exists
+ * for. Any future change to how the width is obtained has to preserve that
+ * asymmetry.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ *
  * Estimated horizontal advance per character, as a fraction of font size, used
  * ONLY by the clip guard in `drawCommandSphere`.
  *
@@ -919,7 +940,6 @@ const SPHERE_LETTER_SPACING = "0.04em";
  *
  * NOT a substitute for `measureText` anywhere else — it is only valid for mono.
  */
-const SPHERE_ADVANCE_ESTIMATE = 0.66;
 
 /**
  * THE RENDER FLOOR. A fragment below EITHER of these is DROPPED, and it stays
@@ -1122,6 +1142,20 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * face, which is a design decision belonging to Saad rather than a correctness
  * one, and because it is a much larger change than the defect warrants.
  *
+ * >> THAT PARAGRAPH NAMED THE FIX AND THEN TALKED ITSELF OUT OF IT, AND THE
+ * >> SECOND HALF WAS WRONG. Saad asked for more smoothness again, so the atlas
+ * >> was built and measured, and the objection it rests on does not survive
+ * >> contact: a supersampled sheet blitted down is INDISTINGUISHABLE from
+ * >> native `fillText` at 4x zoom, and by edge energy it measures 111% of
+ * >> native at 0.5 scale and 118% at 0.25 — crisper, not softer. The "much
+ * >> larger change" half was true and was simply the price.
+ * >>
+ * >> THIS CONSTANT IS RETIRED WITH IT. The tilt only ever fixed the VERTICAL
+ * >> axis; measured across every value from 5e-4 to 5e-3 it leaves horizontal
+ * >> untouched (CoV ~2.9 at every tilt, max step 0.44-0.50px), and the
+ * >> sphere's rotation moves labels mostly horizontally. The atlas fixes both
+ * >> axes and gives the 30% frame rate back.
+ *
  * IT IS A ROTATION, SO IT SCALES THE GLYPH TOO, AND THE AMOUNT IS NOTHING.
  * The matrix is `(gk, gs, -gs, gk)` with `gs = gk * TILT`, whose determinant
  * gives an effective scale of `gk * sqrt(1 + TILT^2)` rather than `gk`. That is
@@ -1186,8 +1220,198 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * 0.5px would halve the cache entries and still be 3.1%/6.3% per step, under
  * the 10% threshold. Lowering it below 0.25 buys nothing a viewer can see and
  * walks back toward the continuous build's frame rate.
+ *
+ * >> RETIRED WITHIN THE HOUR, AND THE WHOLE BLOCK ABOVE IS NOW HISTORY. The
+ * >> grid existed to keep Chrome's GLYPH CACHE hitting while `fillText` drew
+ * >> the labels. The labels are bitmaps now — one rasterisation per label per
+ * >> atlas, blitted at whatever scale the depth asks for — so there is no
+ * >> glyph cache in the loop and nothing to quantise FOR. Size is continuous:
+ * >> measured, 47 distinct sizes in a single captured frame at 1440 against
+ * >> the 27 this grid produced and the 10 the bucket constant before it did.
+ * >>
+ * >> The frame-rate table above is kept because it is still the record of what
+ * >> the fillText path cost, and because its last row is the state this change
+ * >> replaced. The atlas measures 60.1 / 24.2 / 14.8 at 1x / 4x / 6x against
+ * >> that row's 60.1 / 25.3 / 13.2 — a wash at 4x, better at 6x — while
+ * >> dropping both the grid and the tilt.
  */
-const SPHERE_SIZE_QUANTUM = 0.25;
+/**
+ * THE LABELS ARE RASTERISED ONCE AND BLITTED, NOT DRAWN AS TEXT — 2026-08-24,
+ * and it is the fourth renderer this sphere has had in three days. Read this
+ * before touching the draw pass.
+ *
+ * WHY. Saad, twice: the size stepped, then "can we make it more smoother in
+ * terms of rotation and the commands moving". The size stepping was the bucket
+ * grid and is fixed. The motion was NOT the motion — measured per frame, the
+ * anchors the draw pass asks for advance 0.369 / 0.369 / 0.367px, dead
+ * constant. It is Canvas2D that quantises where text lands, and it does it on
+ * BOTH axes:
+ *
+ *   isolated bench, ask for 0.05px per step, 20 steps, dpr 1
+ *                       x: dead 5/20, max step 0.499px      y: dead 19/20, max 1.000px
+ *
+ * `SPHERE_GLYPH_TILT` fixed y and could not touch x — measured at every value
+ * from 5e-4 to 5e-3, x stays at CoV ~2.9 with 0.44-0.50px steps. The sphere
+ * spins about Y at three times its X rate, so labels move mostly HORIZONTALLY:
+ * the axis the tilt could not fix is the axis that matters.
+ *
+ * A BITMAP HAS NO GLYPH ORIGIN TO QUANTISE. `drawImage` resamples to a
+ * fractional destination, so the same bench gives:
+ *
+ *   native fillText          dead 5/20   max 0.499px
+ *   blit, 1x sheet           dead 4/20   max 0.075px
+ *   blit, 2x sheet -> 0.5    dead 1/20   max 0.159px   SHIPPED
+ *   blit, 4x sheet -> 0.25   dead 2/20   max 0.198px
+ *
+ * THE OBJECTION THAT KEPT THIS OUT FOR A DAY WAS SOFTNESS, AND IT DID NOT
+ * SURVIVE MEASUREMENT. Rendered side by side at 4x zoom the supersampled blits
+ * are indistinguishable from native text, and by alpha-gradient energy they
+ * measure 111% (0.5 scale) and 118% (0.25 scale) OF native — resampling a
+ * supersampled sheet down is closer to SSAA than to blur. The 1x sheet is the
+ * one that looks soft, at 95%, and it is not what ships.
+ *
+ * WHAT IT COST AND WHAT IT PAID FOR. Frame rate at 1440x900 from distinct rAF
+ * timestamps: **60.1 / 24.2 / 14.8** at 1x / 4x / 6x CPU, against the
+ * fillText-plus-tilt state's 60.1 / 25.3 / 13.2 — a wash under 4x throttling
+ * and better under 6x. Compact is 60.1fps at 6x. In exchange the size grid and
+ * the tilt are both gone, `ctx.font` is assigned ZERO times per frame, and a
+ * single captured frame paints **47 distinct sizes across 48 labels** where
+ * the grid painted 27 and the bucket constant before it painted 10.
+ *
+ * WHAT COULD NOT BE MEASURED, STATED SO NOBODY THINKS IT WAS. The page-level
+ * smoothness rig follows the ink centroid of a crop, and at these amplitudes
+ * it is swamped by labels entering and leaving that crop — it reports the same
+ * number for both renderers and cannot resolve a sub-pixel difference.
+ * Following ONE label instead runs into the mesh drawn behind it. The case for
+ * this change rests on the isolated bench above, which is a direct measurement
+ * of the artifact and not of the page.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * `SPHERE_ATLAS_EM_MAX` — device px per em, capped.
+ *
+ * The sheet is rasterised at `basePx * dpr * SUPERSAMPLE` and capped here, so:
+ * a dpr-1 desktop gets 32px/em and draws its near face at 0.5 (supersampled,
+ * the sharp case); a dpr-2 desktop is capped to 32 and draws at 1.0 (the 1x
+ * row above — slightly softer, and the alternative is quadrupling the memory).
+ * Compact at dpr 1 gets 22px/em uncapped.
+ *
+ * IT IS A MEMORY CEILING AND THAT IS THE ONLY REASON IT EXISTS. Sheet area
+ * scales as the square: 32px/em over eighty labels is ~1.1M px per sheet and
+ * two sheets is ~9MB; 64 would be 36MB for a decorative hero background.
+ */
+const SPHERE_ATLAS_EM_MAX = 32;
+const SPHERE_ATLAS_SUPERSAMPLE = 2;
+
+/**
+ * Sheet width, and the padding around each label inside its cell.
+ *
+ * 2048 IS A SHELF-PACKING WIDTH, NOT A TEXTURE LIMIT. Labels are laid left to
+ * right and wrapped; a single column would make every row as wide as
+ * `gcloud compute instances list` and cost roughly 2.2x the pixels for
+ * nothing.
+ *
+ * THE PAD IS LOAD-BEARING IN TWO PLACES. It keeps the bilinear filter from
+ * sampling a neighbour's ink when a label is blitted at a fractional
+ * destination — without it the leftmost column of every label would bleed the
+ * rightmost column of the one packed before it. And the rig that reads these
+ * sheets back matches a blit to its label by adding it to the source x, so it
+ * is a number two files agree on; the hook in `lib/hookrig.mjs` says so.
+ */
+const SPHERE_ATLAS_SHEET_WIDTH = 2048;
+const SPHERE_ATLAS_PAD = 2;
+
+type SphereAtlas = {
+  /** Device px per em the labels were rasterised at. */
+  em: number;
+  /** [accent, near-tint] — identical layouts, different fill colours. */
+  sheets: readonly [HTMLCanvasElement, HTMLCanvasElement];
+  /** Source rects into the sheets, device px, index-parallel to `fragments`. */
+  sx: Float32Array;
+  sy: Float32Array;
+  sw: Float32Array;
+  sh: Float32Array;
+  /** What this was built for. A change in any of them means rebuild. */
+  key: string;
+};
+
+function buildSphereAtlas(
+  texts: readonly string[],
+  basePx: number,
+  dpr: number,
+  fontStack: string,
+  accent: string,
+  near: string,
+): SphereAtlas | null {
+  const em = Math.min(
+    SPHERE_ATLAS_EM_MAX,
+    Math.max(8, Math.round(basePx * dpr * SPHERE_ATLAS_SUPERSAMPLE)),
+  );
+  const cellH = Math.ceil(em * 1.5);
+  const measure = document.createElement("canvas").getContext("2d");
+  if (!measure) return null;
+  measure.font = `${em}px ${fontStack}`;
+  measure.letterSpacing = SPHERE_LETTER_SPACING;
+
+  const n = texts.length;
+  const sx = new Float32Array(n);
+  const sy = new Float32Array(n);
+  const sw = new Float32Array(n);
+  const sh = new Float32Array(n);
+
+  // SHELF PACKING, left to right and wrap. A single column would be simpler
+  // and would make the sheet as wide as the LONGEST label for all eighty of
+  // them, which is ~2.2x the pixels for nothing.
+  let penX = 0;
+  let penY = 0;
+  let rowH = 0;
+  for (let i = 0; i < n; i++) {
+    const w = Math.ceil(measure.measureText(texts[i]).width) + SPHERE_ATLAS_PAD * 2;
+    if (penX + w > SPHERE_ATLAS_SHEET_WIDTH && penX > 0) {
+      penX = 0;
+      penY += rowH;
+      rowH = 0;
+    }
+    sx[i] = penX;
+    sy[i] = penY;
+    sw[i] = w;
+    sh[i] = cellH;
+    penX += w;
+    if (cellH > rowH) rowH = cellH;
+  }
+  const sheetW = Math.min(SPHERE_ATLAS_SHEET_WIDTH, Math.max(1, penX || 1));
+  const sheetH = penY + rowH;
+
+  const paint = (colour: string): HTMLCanvasElement | null => {
+    const c = document.createElement("canvas");
+    c.width = penY > 0 ? SPHERE_ATLAS_SHEET_WIDTH : sheetW;
+    c.height = sheetH;
+    const g = c.getContext("2d");
+    if (!g) return null;
+    g.font = `${em}px ${fontStack}`;
+    g.letterSpacing = SPHERE_LETTER_SPACING;
+    g.textAlign = "left";
+    g.textBaseline = "middle";
+    g.fillStyle = colour;
+    for (let i = 0; i < n; i++) {
+      g.fillText(texts[i], sx[i] + SPHERE_ATLAS_PAD, sy[i] + cellH / 2);
+    }
+    return c;
+  };
+
+  const a = paint(`rgb(${accent})`);
+  const b = paint(`rgb(${near})`);
+  if (!a || !b) return null;
+
+  return {
+    em,
+    sheets: [a, b],
+    sx,
+    sy,
+    sw,
+    sh,
+    key: `${fontStack}|${basePx}|${dpr}|${n}|${accent}`,
+  };
+}
 
 /**
  * Hysteresis on the size grid, as a fraction of one level.
@@ -1202,11 +1426,16 @@ const SPHERE_SIZE_QUANTUM = 0.25;
  * 31.25 at 0.18 and 60.00 with no hysteresis at all, for a delay to honest
  * size changes of at most `(0.5 + 0.45) * 0.25` = 0.24px and no measurable
  * frame-rate cost. Idle is 0.5 per 5s at every viewport.
+ *
+ * >> RETIRED WITH THE GRID IT DAMPED. Bitmaps have no size boundaries to
+ * >> dither across, so there is nothing left to suppress and no `state.level`
+ * >> to remember it in. This is the SECOND time this constant has been
+ * >> retired; the first lasted about an hour, because "continuous" turned out
+ * >> to mean "one glyph-cache miss per label per frame" and the fix was a
+ * >> grid. It is retired again on a different mechanism, which is not the same
+ * >> as being retired again for the same reason — but anything that puts
+ * >> discrete sizes back in this file puts this back with them.
  */
-const SPHERE_SIZE_HYSTERESIS = 0.45;
-
-const SPHERE_GLYPH_TILT = 1e-3;
-
 const SPHERE_MIN_FONT_PX = 6;
 const SPHERE_MIN_ALPHA = 0.25;
 
@@ -1731,8 +1960,12 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
 /**
  * PER-FRAGMENT DRAW STATE — the two things the draw pass has to remember
  * between frames, and the only two. (They were `bucket` and `fade`; they are
- * `level` and `fade` since 2026-08-24, when the font-string bucket grid became
- * a `setTransform` on a 0.25px size grid. Same two questions, finer grain.)
+ * `level` and `fade` for part of 2026-08-24, and are `fade` ALONE since the
+ * labels became bitmaps later the same day — a blit needs no remembered size,
+ * because there is no size grid to remember a position on. "The two things"
+ * is now one thing; the sentence is left standing because the count has been
+ * two, then one, then two, then one inside three days and the next reader
+ * should distrust it rather than the code.)
  *
  * IT LIVES HERE AND NOT ON `ProjectedFragment`, WHICH WOULD HAVE BEEN THE
  * SHORTER EDIT. `lib/hero/commandSphere.ts` is geometry only; the note on
@@ -1760,8 +1993,8 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
  * re-verified on 2026-08-24 rather than left at the counts the old geometry
  * produced — **50 / 24 / 24 labels at 1440 / 375 / 320** under reduced motion
  * (36 / 22 / 22 two changes ago, 40 / 24 / 24 one change ago), four of four
- * featured commands visible at each, and the frozen frame carries **24
- * distinct sizes at 1440 and 12 at compact** where it carried four. A
+ * featured commands visible at each, and the frozen frame carries **47
+ * distinct sizes at 1440 and 21 at compact** where it carried four. A
  * reduced-motion visitor sees one frame of this effect forever; that frame is
  * where a fine depth ramp pays off most, because it is the only cue of depth
  * they get.
@@ -1769,11 +2002,6 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
 type SphereDrawState = {
   /** Visibility, 0..1, across all three gates. -1 = never evaluated. */
   fade: Float32Array;
-  /** The quantised size LEVEL each fragment was last drawn at, in units of
-   *  `SPHERE_SIZE_QUANTUM`. -1 = never assigned. Int16 because the level runs
-   *  to `SPHERE_FONT_PX / SPHERE_SIZE_QUANTUM` = 64, past an Int8's range once
-   *  a future base or quantum moves. */
-  level: Int16Array;
 };
 
 /*
@@ -1798,11 +2026,23 @@ type SphereDrawState = {
  * WHAT ACTUALLY IMPROVED, stated without the triumph: the boundary a label can
  * dither across is 0.25px instead of 0.909px, so the same class of flicker is
  * 3.6x smaller in amplitude. It was never made impossible.
+ *
+ * >> AND THEN IT WENT AGAIN, LATER THE SAME DAY, ON A DIFFERENT MECHANISM.
+ * >> The labels are bitmaps now — `SPHERE_ATLAS_EM_MAX` carries why — and a
+ * >> blit scales continuously, so there is no grid, no boundary, and no level
+ * >> to remember. `SphereDrawState` is back to `fade` alone.
+ * >>
+ * >> THE COUNT OF ARRAYS IN THAT TYPE HAS NOW BEEN 2, 1, 2, 1 IN THREE DAYS,
+ * >> and this note has been written twice. What is worth carrying forward is
+ * >> not the count but the pattern: every time this file made the size
+ * >> continuous it paid for it somewhere else, and the two times it went back
+ * >> to a grid it was because the renderer underneath had a cache that a
+ * >> continuous scale kept missing. The bitmap path is the first one with no
+ * >> such cache in the loop.
  */
 function createSphereDrawState(count: number): SphereDrawState {
-  const state = { fade: new Float32Array(count), level: new Int16Array(count) };
+  const state = { fade: new Float32Array(count) };
   state.fade.fill(-1);
-  state.level.fill(-1);
   return state;
 }
 
@@ -1821,9 +2061,12 @@ function createSphereDrawState(count: number): SphereDrawState {
  * `shadowBlur` — into a near-constant number of assignments.
  *
  * THE THIRD USED TO BE THE FONT PARSE AND IS NOT ANY MORE. `ctx.font` is
- * assigned exactly ONCE per frame now, before the loop, and size comes from a
- * per-fragment `setTransform`. Monotonicity no longer buys anything there —
- * but it still buys the other two, and the painter's order needs it regardless.
+ * assigned ZERO times per frame in this pass — the labels are pre-rasterised
+ * sheets and every one of them is a `drawImage`. Monotonicity no longer buys
+ * anything there; it still buys the other two, and the painter's order needs
+ * it regardless. (This read "assigned exactly ONCE per frame now, before the
+ * loop, and size comes from a per-fragment `setTransform`" for the few hours
+ * that renderer lasted.)
  *
  * ALPHA GOES THROUGH `globalAlpha`, NOT THROUGH THE FILL STRING. Per-fragment
  * `rgba(...)` would allocate one string per fragment per frame for a value that
@@ -1835,9 +2078,9 @@ function drawCommandSphere(
   sphere: CommandSphere,
   order: readonly number[],
   state: SphereDrawState,
+  atlas: SphereAtlas,
   dtMs: number,
   accent: string,
-  fontStack: string,
   compact: boolean,
   viewportWidth: number,
   /**
@@ -2010,26 +2253,25 @@ function drawCommandSphere(
   // fragment's cap height above that disc and eat the clearance the cap exists
   // to guarantee.
   ctx.textBaseline = "middle";
-  ctx.letterSpacing = SPHERE_LETTER_SPACING;
 
-  // ONE FONT ASSIGNMENT FOR THE WHOLE PASS, at the base size. Every fragment's
-  // size comes from the transform below instead, so the string is parsed once
-  // per frame rather than once per distinct size — see the block at
-  // `SPHERE_FONT_PX` for what that replaced.
-  ctx.font = `${basePx}px ${fontStack}`;
+  // DEVICE PIXELS FOR THE WHOLE PASS. Every blit below is in device px so the
+  // atlas maps 1:1 onto the backing store at the scale it was rasterised for;
+  // going through the CSS-px transform would resample twice.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 
   let tinted = false;
   let glowing = false;
-  ctx.fillStyle = `rgb(${accent})`;
 
   for (let i = 0; i < order.length; i++) {
     const index = order[i];
     const f = sphere.projected[index];
 
-    // THE SCALE, CONTINUOUS. `f.scale` is the perspective divide normalised to
-    // the near pole; this remaps it off the geometric range onto the range this
-    // breakpoint can legibly draw, and that is the whole calculation. No
-    // quantisation, no hysteresis, no remembered state.
+    // THE SIZE, CONTINUOUS AND UNQUANTISED. `f.scale` is the perspective divide
+    // normalised to the near pole; this remaps it off the geometric range onto
+    // the range this breakpoint can legibly draw, and that is the whole
+    // calculation. Nothing is rounded, bucketed or remembered — a blit scales
+    // by an arbitrary factor at no cost, which is the difference between this
+    // and every version of the draw pass before it.
     const k = lowScale + ((f.scale - SPHERE_SCALE_MIN) / span) * renderSpan;
     const px = basePx * k;
 
@@ -2038,20 +2280,7 @@ function drawCommandSphere(
     // is the assertion of that; if a future base broke it, a fragment on its
     // way out would fade at a readable size instead of shrinking into mush.
     const legible = px >= floorPx;
-    const rawPx = legible ? px : SPHERE_MIN_FONT_PX;
-
-    // THE SIZE LEVEL, WITH HYSTERESIS. `q` is the unrounded level; a fragment
-    // keeps the level it was last drawn at until `q` leaves it by more than
-    // half a level plus `SPHERE_SIZE_HYSTERESIS`, so a label whose depth
-    // wobbles across a boundary does not switch back and forth.
-    const q = rawPx / SPHERE_SIZE_QUANTUM;
-    const held = state.level[index];
-    const level =
-      held < 0 || Math.abs(q - held) > 0.5 + SPHERE_SIZE_HYSTERESIS
-        ? Math.round(q)
-        : held;
-    state.level[index] = level;
-    const drawK = (level * SPHERE_SIZE_QUANTUM) / basePx;
+    const drawPx = legible ? px : SPHERE_MIN_FONT_PX;
 
     // HORIZONTAL CLIP GUARD. `textAlign` is `center`, so a rim fragment extends
     // half its width past its anchor — and on a narrow viewport the rim IS the
@@ -2064,15 +2293,15 @@ function drawCommandSphere(
     // knowable — 0.6em plus the letter-spacing already set above. The estimate
     // runs slightly WIDE on purpose, so a marginal fragment is dropped rather
     // than clipped. Cheap and one-directional.
-    // OFF `drawK`, NOT OFF `px`. `px` is the fragment's unpinned, unquantised
-    // size; the glyph is drawn at `basePx * drawK`. They differ whenever the
-    // floor pins or the grid rounds, and on the pinned path they differ in the
-    // direction this guard's own docblock forbids — the drawn label would be
-    // WIDER than the estimate, so the guard would UNDER-estimate and clip
-    // rather than drop. Caught in review; unreachable at the shipped values,
-    // which is exactly why it would have survived.
-    const halfWidth =
-      f.text.length * basePx * drawK * SPHERE_ADVANCE_ESTIMATE * 0.5;
+    // MEASURED, NOT ESTIMATED, SINCE 2026-08-24. The atlas holds each label's
+    // real rasterised width, so the guard no longer has to approximate the
+    // advance — `blitScale` converts that width to the size being drawn. It is
+    // still slightly WIDE, which is the direction this guard wants: the atlas
+    // cell carries `SPHERE_ATLAS_PAD` on each side.
+    const blitScale = (drawPx * dpr) / atlas.em;
+    const drawW = atlas.sw[index] * blitScale;
+    const drawH = atlas.sh[index] * blitScale;
+    const halfWidth = drawW / (2 * dpr);
     const clipped = f.x - halfWidth < 0 || f.x + halfWidth > viewportWidth;
 
     // THE THREE GATES, AS ONE ANSWER. Font floor, alpha floor, clip guard —
@@ -2134,10 +2363,10 @@ function drawCommandSphere(
     // fires on compact viewports and the glow pass is skipped on them, which is
     // two unrelated facts propping up a stated invariant. Corrected 2026-08-24:
     // the self-healing property above is the reason, and it is sufficient.
-    if (f.near !== tinted) {
-      tinted = f.near;
-      ctx.fillStyle = tinted ? `rgb(${SPHERE_NEAR_TINT})` : `rgb(${accent})`;
-    }
+    // WHICH SHEET, rather than which fill style. The two atlases are the same
+    // labels in the two colours; picking between them costs a boolean where it
+    // used to cost a string.
+    tinted = f.near;
     // Skipped entirely on compact viewports: `shadowBlur` is the one call here
     // that a mid-range phone cannot absorb, and it is the cue that reads least
     // at a 223px sphere.
@@ -2149,35 +2378,27 @@ function drawCommandSphere(
 
     ctx.globalAlpha = f.alpha * fade;
 
-    // THE GLYPH IS SCALED BY THE TRANSFORM, NOT BY THE FONT SIZE, and that
-    // swap is what makes the recession continuous. `setTransform` REPLACES the
-    // matrix rather than composing, so the DPR scale is folded in here — which
-    // is why `dpr` is a parameter — and the anchor moves into the matrix so
-    // the text is drawn at the local origin. `textAlign: center` and
-    // `textBaseline: middle` still centre it there.
-    //
-    // WHY NOT JUST ASSIGN A CONTINUOUS `ctx.font`. It would be the shorter
-    // edit and it costs a string BUILD plus a font-shorthand PARSE per
-    // fragment per frame — up to 49 of each at 1440, against the 12.85 parses
-    // the bucket grid was holding it to, and 49 fresh strings a frame in a
-    // module whose header promises zero per-frame allocation. A matrix write
-    // is neither.
-    //
-    // LETTER-SPACING COMES OUT RIGHT FOR FREE. It is set once, in `em`, so it
-    // is already relative to the font size; under the transform it scales with
-    // the glyphs exactly as it did when the size was being reassigned. The old
-    // comment at `SPHERE_SCALE_BUCKETS` refused a transform partly because it
-    // "would also scale the letter-spacing" — which is the behaviour that was
-    // wanted, and always was.
-    const gk = dpr * drawK;
-    const gs = gk * SPHERE_GLYPH_TILT;
-    ctx.setTransform(gk, gs, -gs, gk, dpr * f.x, dpr * f.y);
-    ctx.fillText(f.text, 0, 0);
+    // THE LABEL IS A BITMAP, NOT A GLYPH RUN, and that is the whole of the
+    // smoothness fix. `drawImage` resamples to a FRACTIONAL destination, so a
+    // label that moves 0.37px in a frame moves 0.37px on screen; `fillText`
+    // quantises the glyph origin and moves it 0 or 0.5. See
+    // `SPHERE_ATLAS_EM_MAX` for the measurements.
+    ctx.drawImage(
+      atlas.sheets[tinted ? 1 : 0],
+      atlas.sx[index],
+      atlas.sy[index],
+      atlas.sw[index],
+      atlas.sh[index],
+      dpr * f.x - drawW / 2,
+      dpr * f.y - drawH / 2,
+      drawW,
+      drawH,
+    );
   }
 
-  // THE TRANSFORM IS GLOBAL AND SURVIVES THE FRAME, exactly like the shadow and
-  // the tracking below. Leaving the last fragment's scale on the context would
-  // draw the next frame's entire mesh at ~0.4x, in the corner.
+  // THE TRANSFORM IS GLOBAL AND SURVIVES THE FRAME, exactly like the shadow
+  // below. Leaving the pass in device px would draw the next frame's entire
+  // mesh at 1/dpr scale on a retina display.
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   // Context state is global and survives the frame boundary. Leaving a shadow
@@ -2185,7 +2406,6 @@ function drawCommandSphere(
   ctx.globalAlpha = prevAlpha;
   ctx.shadowBlur = 0;
   ctx.shadowColor = "";
-  ctx.letterSpacing = "0px";
 }
 
 type Node = {
@@ -2352,6 +2572,10 @@ export function ParticleGrid({
      *  it — a stale array against a rebuilt sphere would carry one fragment's
      *  bucket and fade onto a different fragment. */
     let sphereDraw: SphereDrawState | null = null;
+    /** The rasterised labels. Rebuilt whenever anything it was baked against
+     *  moves — the font, the base size, the DPR, the fragment count — which is
+     *  what `SphereAtlas.key` encodes. Null until the first `build()`. */
+    let sphereAtlas: SphereAtlas | null = null;
     /** The last `arrivalBurst.current` this tick acted on.
      *
      *  SEEDED FROM THE REF, NOT FROM 0. This effect re-runs when `reducedMotion`
@@ -2442,6 +2666,34 @@ export function ParticleGrid({
       fontStack = raw ? `${raw}, ui-monospace, monospace` : SPHERE_FONT_FALLBACK;
     };
 
+    /* THE ATLAS, REBUILT ONLY WHEN ITS INPUTS MOVE, AND SEPARATELY FROM
+       `build()`. The key comparison is what keeps a window drag from
+       re-rasterising eighty labels on every debounced resize — but the reason
+       this is its own function rather than four lines inside `build()` is the
+       font: `document.fonts.ready` has to invalidate the sheets, and calling
+       `build()` from there would re-run `Array.from({length: count})` and
+       RE-RANDOMISE EVERY MESH NODE, visibly re-scattering the field the moment
+       the webfont lands.
+
+       `ink` is `--accent-hero`, the same value in both themes, so a theme
+       toggle does not invalidate the sheets either — but it is in the key
+       anyway, because "the sphere's accent is theme-independent" is a fact
+       about today's tokens rather than about this code. */
+    const refreshAtlas = () => {
+      if (!sphere || !ink) return;
+      const base = compact ? SPHERE_FONT_PX_COMPACT : SPHERE_FONT_PX;
+      const key = `${fontStack}|${base}|${dpr}|${sphere.fragments.length}|${ink}`;
+      if (sphereAtlas && sphereAtlas.key === key) return;
+      sphereAtlas = buildSphereAtlas(
+        sphere.fragments.map((f) => f.text),
+        base,
+        dpr,
+        fontStack,
+        ink,
+        SPHERE_NEAR_TINT,
+      );
+    };
+
     const build = () => {
       const rect = container.getBoundingClientRect();
       width = rect.width;
@@ -2496,6 +2748,7 @@ export function ParticleGrid({
       if (!withSphere) {
         sphere = null;
         sphereDraw = null;
+        sphereAtlas = null;
       } else {
         const fragments = compact ? SPHERE_COUNT_COMPACT : SPHERE_COUNT;
         if (!sphere || sphere.fragments.length !== fragments) {
@@ -2505,8 +2758,7 @@ export function ParticleGrid({
             HERO_COMMAND_FEATURED,
           );
           // REALLOCATED WITH THE SPHERE AND ONLY WITH IT. A plain resize
-          // re-places the same sphere and must keep both arrays (`fade` and
-          // `level`), or every
+          // re-places the same sphere and must keep `fade`, or every
           // fragment would re-adopt its bucket and fade from scratch on each
           // debounced rebuild — which is a visible flash of the whole rim at
           // the end of a window drag.
@@ -2518,6 +2770,8 @@ export function ParticleGrid({
         // it would be in a different coordinate space than everything drawn
         // here.
         placeCommandSphere(sphere, width, height, compact);
+
+        refreshAtlas();
       }
     };
 
@@ -2877,7 +3131,7 @@ export function ParticleGrid({
       }
 
       /* --- the sphere, LAST, so it composites in front of the mesh ------- */
-      if (sphere && sphereDraw) {
+      if (sphere && sphereDraw && sphereAtlas) {
         // `ink` is `--accent-hero` here and only here: the sphere is built only
         // when `withSphere`, which is the hero's call site, whose preset names
         // that property in both of its identical theme halves.
@@ -2886,9 +3140,9 @@ export function ParticleGrid({
           sphere,
           sphereOrder,
           sphereDraw,
+          sphereAtlas,
           dt,
           ink,
-          fontStack,
           compact,
           width,
           dpr,
@@ -3006,6 +3260,14 @@ export function ParticleGrid({
      */
     const themeObserver = new MutationObserver(() => {
       readInk();
+      /* THE SHEETS ARE BAKED IN A COLOUR, so a theme change has to be able to
+         invalidate them. It never does today — the sphere paints in
+         `--accent-hero`, which `docs/03` fixes at the same value in both modes
+         — and `refreshAtlas` no-ops on an unchanged key, so this costs one
+         string compare per toggle. It is here so that the day that token stops
+         being theme-independent, the sphere does not silently keep the old
+         colour while the mesh switches. */
+      refreshAtlas();
       wake();
     });
     themeObserver.observe(document.documentElement, {
@@ -3026,7 +3288,20 @@ export function ParticleGrid({
     // way this loop can park — `ambient="settled"` is the other, and the two
     // now share one repaint path instead of one of them carrying a private fix.
     // It costs the hero nothing: `wake()` is a no-op while a frame is queued.
-    if (document.fonts?.ready) void document.fonts.ready.then(wake);
+    if (document.fonts?.ready) {
+      void document.fonts.ready.then(() => {
+        /* THE ATLAS IS RASTERISED TEXT AND THE WEBFONT MAY NOT HAVE ARRIVED
+           WHEN IT WAS BAKED. `readFont()` reads the FAMILY NAME out of a CSS
+           custom property, which is available immediately, so the stack is
+           right from the first frame — but the glyphs behind it are not, and a
+           sphere baked before `fonts.ready` would stay in the fallback mono
+           forever. Dropping the atlas here forces one rebuild on the next
+           `build()`; `wake()` alone would only repaint the stale bitmaps. */
+        sphereAtlas = null;
+        refreshAtlas();
+        wake();
+      });
+    }
 
     // `pointermove` rather than `mousemove`: one event for mouse and pen, and
     // a touch drag reports as a pointer too — harmless here because the
