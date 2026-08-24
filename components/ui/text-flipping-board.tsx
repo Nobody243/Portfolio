@@ -580,6 +580,31 @@ const FlapCell = React.memo(
      */
     const [settled, setSettled] = useState(landedChar);
 
+    /**
+     * KEEP `settled` HONEST WHILE THE BOARD IS NOT FLIPPING.
+     *
+     * `visible` below reads `settled` when `flip` is true and `landedChar`
+     * when it is false, and `settled` only advances inside `landStep` — which
+     * the no-flip branch never reaches. So a `target` that changes while
+     * `flip` is FALSE leaves `settled` pointing at the outgoing character, and
+     * the moment `flip` turns true the cell renders that stale character: the
+     * whole board silently reverts to the previous entry.
+     *
+     * THAT WAS UNREACHABLE UNTIL 2026-08-24 AND IS NOT ANY MORE. `flip` and
+     * the rotation were the same flag — `AboutFlipBoard` passed `rotating` to
+     * both — so the index could not change while `flip` was false. It can now:
+     * the board lands its starting entry with `flip` deliberately still false,
+     * so that syncing to the clock on load does not scramble 276 cells through
+     * `/about`'s entrance. This is what makes that safe.
+     *
+     * ADJUSTED DURING RENDER, NOT IN AN EFFECT. React re-runs this component
+     * immediately with the corrected state and never commits the stale frame;
+     * an effect would paint it first and then fix it. It is also the shape
+     * this repo is required to use — `useHoverCapable` records that Next 16's
+     * `react-hooks/set-state-in-effect` hard-errors on the other one.
+     */
+    if (!flip && settled !== landedChar) setSettled(landedChar);
+
     const tile = useRef<HTMLDivElement | null>(null);
     const topGlyph = useRef<HTMLDivElement | null>(null);
     const bottomGlyph = useRef<HTMLDivElement | null>(null);
@@ -683,6 +708,12 @@ const FlapCell = React.memo(
         // `landedChar` directly (see `visible` below), so the character is
         // already correct on the commit that changed `target` and a setState
         // in an effect body would be both redundant and a cascading render.
+        //
+        // STILL TRUE, AND NO LONGER THE WHOLE STORY. `settled` does have to
+        // keep up, or it goes stale for the frame `flip` turns true — see the
+        // render-time adjustment at its declaration, which is where that now
+        // happens. This branch is unchanged: the correction belongs in render,
+        // not here, for exactly the reason this comment gives.
         paint(normalized, shownRef.current, false);
         return;
       }

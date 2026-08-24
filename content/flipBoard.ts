@@ -121,6 +121,54 @@ import type { FlipBoardEntry } from "@/components/ui/text-flipping-board";
 export const FLIP_BOARD_DWELL_MS = 20000;
 
 /**
+ * WHICH ENTRY A FRESH LOAD OPENS ON, DERIVED FROM THE WALL CLOCK RATHER THAN
+ * FROM ZERO. Added 2026-08-24, because Saad reported that refreshing `/about`
+ * always put the board back on the first quotation.
+ *
+ * THE ROTATION IS UNCHANGED AND THE ORDER IS UNCHANGED. This picks a starting
+ * PHASE, not a shuffle: the entries still run in the authored sequence, the
+ * board simply does not rewind to the top every time the page is opened. Two
+ * loads a second apart open on the same entry, which is the point — the cycle
+ * belongs to the clock rather than to the page load.
+ *
+ * IT IS CACHED FOR THE LIFETIME OF THE MODULE, AND THAT IS A CORRECTNESS
+ * REQUIREMENT RATHER THAN AN OPTIMISATION. `useSyncExternalStore` calls
+ * `getSnapshot` on every render and re-renders when the value changes. An
+ * uncached reading of `Date.now()` returns a NEW index the moment the clock
+ * crosses a dwell boundary, so any render happening near that boundary would
+ * advance the board by one on top of the interval's own step — a double flip,
+ * roughly once every twenty seconds, visible only to whoever was looking.
+ * Reading once and holding it is what makes this a legal snapshot.
+ *
+ * (The first version of this block described the cache and did not implement
+ * it. The function read the clock afresh on every call. Nothing had gone wrong
+ * yet because the store is only read by one component and a bare re-render
+ * near a boundary is rare — which is exactly the kind of latent bug a comment
+ * asserting the opposite would have protected forever.)
+ *
+ * THE SERVER NEVER POPULATES IT. `AboutFlipBoard`'s `getServerSnapshot`
+ * returns 0 without calling this, so the module-level cache cannot leak a
+ * value between requests during prerender.
+ *
+ * THE FLIPS THEMSELVES ARE NOT CLOCK-ALIGNED, and that is a constraint rather
+ * than an omission. `AboutFlipBoard`'s header records that the board authors no
+ * motion during `/about`'s arrival — its first flip is at 20.0s and the
+ * entrance settles at 0.90s — which is the premise the page's deleted route
+ * fade rests on. Aligning the flips to the clock would put the first one
+ * anywhere from 0ms to 20s after load, so the interval still starts at mount.
+ * The PHASE comes from the clock; the CADENCE comes from the visit.
+ */
+let cachedStartIndex: number | null = null;
+
+export function flipBoardStartIndex(count: number): number {
+  if (cachedStartIndex === null) {
+    cachedStartIndex =
+      Math.floor(Date.now() / FLIP_BOARD_DWELL_MS) % Math.max(1, count);
+  }
+  return cachedStartIndex;
+}
+
+/**
  * The row count the band reserves regardless of content, so the composition
  * beneath the row is the same rectangle on every load. Six is the measured
  * longest entry at 45 columns; see the length constraint above.

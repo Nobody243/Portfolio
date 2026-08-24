@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { TextFlippingBoard } from "@/components/ui/text-flipping-board";
 import {
   FLIP_BOARD_DWELL_MS,
   FLIP_BOARD_ENTRIES,
   FLIP_BOARD_MIN_ROWS,
+  flipBoardStartIndex,
 } from "@/content/flipBoard";
 import { useHoverCapable } from "@/lib/hooks/useHoverCapable";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
@@ -37,7 +38,16 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  *   4. The motion-author count on arrival was one, which is the premise on
  *      which `/about`'s 0.35s route fade was DELETED. **That count is still
  *      one**: this board's first flip is at 20.0s and the entrance settles at
- *      0.90s, so nothing here authors motion during arrival. It becomes a
+ *      0.90s, so nothing here authors motion during arrival. RE-VERIFIED IN
+ *      PIXELS ON 2026-08-24, when the starting entry stopped being entry 0 and
+ *      began coming from the clock — the board is blank at 350ms, still
+ *      fading at 900ms, settled by 1400ms, and byte-identical from there to
+ *      3800ms, carrying the clock's entry and never having shown entry 0.
+ *      (Read the TILES' `textContent` instead of their pixels and it looks
+ *      like a full scramble: each cell holds FOUR glyph elements and three of
+ *      them are edge-on, so the outgoing character is still in the DOM long
+ *      after it stopped being visible. That measurement was made, believed,
+ *      and had to be thrown away.) It becomes a
  *      second author AFTER arrival, which is the part that is genuinely new.
  *
  * THE MITIGATIONS ARE NOT OPTIONAL AND EACH ANSWERS A SPECIFIC OBJECTION:
@@ -106,12 +116,84 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
  * `<blockquote>`/`<cite>` pair carries the same text off-screen. It is not a
  * live region: it changes every 20s and announcing that would be hostile.
  */
+/* THE STARTING ENTRY, AS AN EXTERNAL STORE.
+ *
+ * `useSyncExternalStore` rather than `useState` + `useEffect` for the two
+ * reasons `useHoverCapable` gives one file over: Next 16's
+ * `react-hooks/set-state-in-effect` hard-errors on the effect shape, and this
+ * gives a real server snapshot instead of a first-render lie corrected a paint
+ * later. The clock is external state exactly as a media query is.
+ *
+ * IT NEVER NOTIFIES. `subscribe` returns a no-op teardown because the START
+ * does not change while the page is open — the interval below advances from
+ * it. A store that notified on every dwell boundary would drive the flips
+ * themselves off the clock, which `flipBoardStartIndex` explains is refused.
+ *
+ * SERVER SNAPSHOT IS 0, so the prerendered HTML is entry 0 and hydration
+ * matches it exactly. `useHoverCapable`'s header states the invariant this has
+ * to satisfy — "every consumer must keep both branches emitting IDENTICAL
+ * DOM" — and this one does not: the corrected snapshot changes the text. What
+ * makes that legal is that the correction lands as a normal post-hydration
+ * re-render rather than as a hydration mismatch, and `armed` below keeps it
+ * from animating.
+ */
+const subscribeToNothing = () => () => {};
+const readStartIndex = () => flipBoardStartIndex(FLIP_BOARD_ENTRIES.length);
+const startIndexOnServer = () => 0;
+
 export function AboutFlipBoard({ className }: { className?: string }) {
   const reducedMotion = useReducedMotion();
   const hoverCapable = useHoverCapable();
-  const [index, setIndex] = useState(0);
+  const start = useSyncExternalStore(
+    subscribeToNothing,
+    readStartIndex,
+    startIndexOnServer,
+  );
+  const [steps, setSteps] = useState(0);
 
+  /**
+   * THE BOARD LANDS ITS FIRST ENTRY WITHOUT FLIPPING, AND THIS IS THE GATE.
+   *
+   * `start` arrives on the post-hydration commit, in the SAME render that
+   * `useHoverCapable` resolves true — both are `useSyncExternalStore` in this
+   * component, so they settle together. Without a gate, that commit would
+   * change every cell's target with `flip` already true and scramble 276 cells
+   * through `/about`'s entrance, which this file's header point 4 records as
+   * the thing that must not happen: the page's route fade was DELETED on the
+   * premise that nothing here authors motion during arrival.
+   *
+   * With the gate, the starting entry lands on the no-flip path — painted
+   * directly, no scramble — and flipping is armed a frame later, by which time
+   * every cell's target is already correct and its effect early-returns.
+   *
+   * IT KEYS OFF `start` CHANGING, NOT OFF TIME, AND THE FIRST VERSION DID NOT.
+   * That one armed a single frame after mount and assumed the store would have
+   * resolved by then. MEASURED, IT DOES NOT: sampling the tiles every frame
+   * showed entry 0 at 47ms, a half-scrambled mix of entry 0 and entry 4 at
+   * 201ms, and entry 4 settled at 2561ms — hydration finished around 200ms in,
+   * long after the arm, so the board scrambled the whole grid straight through
+   * the entrance. The gate now RE-CLOSES whenever `start` changes, which is
+   * deterministic whenever the store resolves.
+   *
+   * THE RESET IS DURING RENDER, so the commit that carries the new `start`
+   * also carries `armed: false` — React re-runs this component with both and
+   * never commits the frame in between. An effect would commit the scramble
+   * first and disarm afterwards, which is the bug above.
+   */
+  const [seenStart, setSeenStart] = useState(start);
+  const [armed, setArmed] = useState(false);
+  if (seenStart !== start) {
+    setSeenStart(start);
+    setArmed(false);
+  }
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(frame);
+  }, [seenStart]);
+
+  const index = (start + steps) % FLIP_BOARD_ENTRIES.length;
   const rotating = hoverCapable && !reducedMotion;
+  const flipping = rotating && armed;
   const entry = FLIP_BOARD_ENTRIES[index];
 
   useEffect(() => {
@@ -122,7 +204,7 @@ export function AboutFlipBoard({ className }: { className?: string }) {
     const start = () => {
       if (timer !== null) return;
       timer = setInterval(() => {
-        setIndex((n) => (n + 1) % FLIP_BOARD_ENTRIES.length);
+        setSteps((n) => n + 1);
       }, FLIP_BOARD_DWELL_MS);
     };
 
@@ -149,7 +231,7 @@ export function AboutFlipBoard({ className }: { className?: string }) {
       <TextFlippingBoard
         entries={FLIP_BOARD_ENTRIES}
         index={index}
-        flip={rotating}
+        flip={flipping}
         minRows={FLIP_BOARD_MIN_ROWS}
         className={className}
       />
