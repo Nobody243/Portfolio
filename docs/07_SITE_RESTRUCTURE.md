@@ -1186,7 +1186,17 @@ plus scroll-jacking failure mode.
 
 **About's CV button** opens the PDF in a new tab directly, skipping the modal (§6).
 
-**Command sphere on mobile:** per the sphere design — 44 fragments, no glow, no cursor interaction.
+**Command sphere on mobile:** per the sphere design — no glow, no cursor interaction. The fragment
+count was 44 when this line was written and is **40** as of 2026-08-24, via 44 → 38 → 40. The DESKTOP
+count moved the same day and is **65**, via 90 → 58 → 60 → 65. `SPHERE_COUNT_COMPACT` and
+`SPHERE_COUNT` in `components/hero/ParticleGrid.tsx` carry every step and the measurement behind it.
+
+> The `.claude/handoff/hero-sphere-design.md` this section points at has NOT tracked any of those
+> changes and is stale on the depth ramp, the base type size, the bucket count and both fragment
+> counts. Flagged to Saad on 2026-08-24 and unresolved: per `CLAUDE.md`, numbers that govern more
+> than one ticket belong in `/docs` rather than in a gitignored directory that has already been lost
+> mid-task. Until that is settled, `ParticleGrid.tsx` and `lib/hero/commandSphere.ts` are the source
+> of truth for the sphere and the handoff file is not.
 
 ---
 

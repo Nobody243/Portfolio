@@ -482,11 +482,25 @@ const RESIZE_DEBOUNCE_MS = 150;
 /**
  * Fragment counts.
  *
- * DELIBERATELY SPARSER THAN THE FIELD. At the 1440px radius this is roughly one
+ * DELIBERATELY SPARSER THAN THE FIELD, AND THE ARITHMETIC THAT SAID SO WAS
+ * NEVER LIKE-FOR-LIKE. It read: "At the 1440px radius this is roughly one
  * fragment per 10,000px² of projected area against the mesh's `areaPerNode` of
  * 5,200, so the sphere never reads as denser than the atmosphere it floats in
- * front of. The compact count is not a performance concession — a ~232px sphere
- * cannot legibly hold ninety command strings at any readable size.
+ * front of." 10,000 is `4πR²/N` at the RETIRED R = 216 / N = 58 — a SURFACE
+ * area, compared against a projected one. At today's R = 273.6 and N = 65 the
+ * two readings are **14,472px² per fragment by surface** and **3,618px² by
+ * projection**, so by the metric actually named in that sentence the sphere is
+ * now the DENSER of the two, not the sparser.
+ *
+ * THE CONCLUSION IS NOT RESCUED BY PICKING THE FLATTERING NUMBER. Command
+ * strings and 2px nodes are not comparable objects and no ratio of areas makes
+ * them so; what keeps the sphere from reading as denser than the field is that
+ * `commandSphereVoid` tears the mesh out from behind it entirely. That is the
+ * real mechanism and it is unaffected by any count. This paragraph is kept,
+ * corrected, rather than deleted, because the number in it has been quoted.
+ *
+ * The compact count is not a performance concession — a ~232px sphere cannot
+ * legibly hold ninety command strings at any readable size.
  *
  * IT WAS 90, AND 90 WAS TOO MANY BY A WIDE MARGIN — a legibility defect, not a
  * taste call, and it was measured before it was changed. On a 432px-diameter
@@ -510,8 +524,10 @@ const RESIZE_DEBOUNCE_MS = 150;
  * the 90-sample had strided past. The last time this count changed without that
  * guarantee the stride silently dropped `docker ps -a`.
  *
- * `heroContent.ts` currently ships 95 fragments and the sphere draws 60 of
- * them, sampled by stride.
+ * `heroContent.ts` currently ships 95 fragments and the sphere samples 65 of
+ * them by stride. (It said 60 until 2026-08-24, ninety lines above the block
+ * that changed it — verified by counting `HERO_COMMAND_FRAGMENTS`, not by
+ * trusting this sentence.)
  *
  * ─────────────────────────────────────────────────────────────────────────
  * 58 -> 60 ON 2026-08-23, AND TWO IS THE RIGHT ANSWER RATHER THAN A TIMID ONE.
@@ -561,8 +577,69 @@ const RESIZE_DEBOUNCE_MS = 150;
  * of a measured fix wearing that phrase as cover. An argument past 66 has to be
  * a MEASUREMENT showing the collision rate there is under 14.1 overlapping
  * labels per frame, not a preference for a rounder number.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * 60 -> 65 ON 2026-08-24, AND IT IS THE FIRST TIME THIS COUNT HAS GONE UP
+ * WITHOUT COSTING ANYTHING, BECAUSE IT WAS PAID FOR FIRST.
+ *
+ * Saad asked for more depth and added "if that requires increase in the
+ * commands rotating increase them as well". It did not require it — but
+ * `PERSPECTIVE` 2.5 -> 2.0 and the font floor 9 -> 6 shrink every label behind
+ * the near face, and the `k / m` rule above says what that is worth: radius
+ * unchanged (k = 1), mean label size down to m = 0.861 of what it was, so the
+ * collision-neutral count scales by 1 / 0.861 = 1.162 and 60 x 1.162 = 69.7.
+ *
+ * `m` IS MODELLED, NOT MEASURED, and this file does not get to blur that. It is
+ * `sqrt(mean px^2 after / mean px^2 before)` integrated in closed form over `z`
+ * uniform on [-1, 1] with the alpha cull applied — 121.2 against 163.6 of mean
+ * label area. Everything BELOW this paragraph is a browser measurement.
+ *
+ * THE RULE PREDICTED 70 AND THE MEASUREMENT REFUSED IT, WHICH IS WHY THE COUNT
+ * IS 65. Built and measured at 1440x900 idle, 20s each, rather than derived:
+ *
+ *              drawn/frame   collision   pairs/frame
+ *   60, before      37.70       43.5%          9.65    (f 2.5, floor 9)
+ *   60, after       37.36       40.2%          8.67    the depth change alone
+ *   65, SHIPPED     39.71       40.2%          9.50
+ *   70              43.55       46.8%         12.52    predicted by k/m
+ *
+ * So the depth change bought 3.3 points at a fixed count, and 65 spends
+ * exactly that and no more: five more commands on screen at a collision rate
+ * BELOW the one it is replacing, and `pairs/frame` still under the 14.1
+ * ceiling. `k / m` over-predicted by five because mean AREA is not the whole
+ * story once labels are also redistributed toward the rim by a stronger
+ * perspective; the rule stays useful as a first estimate and stays exactly as
+ * unreliable as it was always documented to be.
+ *
+ * THE CEILING OF 66 IS NOT TOUCHED, AND ITS ESCAPE CLAUSE WOULD HAVE ADMITTED
+ * 70 — WHICH IS A PROBLEM WITH THE CLAUSE, RECORDED HERE RATHER THAN QUIETLY
+ * STEPPED AROUND. The clause is stated twice above as "a MEASUREMENT showing
+ * the collision rate there is under 14.1 overlapping labels per frame".
+ * **N=70 measures 12.52 pairs/frame. It passes.** So the gate as written does
+ * not refuse 70 and this block must not pretend it did.
+ *
+ * 70 WAS REFUSED ON A STRICTER TEST, NAMED HERE SO THE NEXT PERSON APPLIES THE
+ * SAME ONE: no regression in COLLISION RATE against the state being replaced.
+ * 70 is 46.8% against 43.5% shipped; 65 is 40.2%. `pairs/frame` is an absolute
+ * count and rises with anything that puts more labels on screen, so it bounds
+ * the worst case but cannot detect a density regression — which is precisely
+ * what 70 is. THE 14.1 CEILING SHOULD BE READ AS A HARD CAP AND NOT AS A
+ * SUFFICIENT CONDITION, and anyone raising this count past 66 owes both
+ * numbers, not one.
+ *
+ * (The ceiling's own arithmetic — "+22.3% against the pre-2026-08-24 baseline",
+ * "roughly a 19% reduction in mean label area" — is anchored one generation
+ * back and does not account for this change's further reduction to m = 0.861.
+ * Left as-is deliberately: re-deriving a refusal to make it stricter is fine,
+ * re-deriving it while raising the number it guards is how a ceiling erodes.)
+ *
+ * VERIFIED AT 65 rather than assumed, the check this constant's own history
+ * demands: all four featured commands present at 1440 idle and under the cursor
+ * sweep, and on the frozen reduced-motion frame. Adversarial condition too —
+ * 1440 under a continuous cursor sweep is 41.5% and 9.75 pairs, both BELOW the
+ * 44.9% / 10.4 that shipped the day before.
  */
-const SPHERE_COUNT = 60;
+const SPHERE_COUNT = 65;
 
 /**
  * 44 -> 38 ON 2026-08-24, AND IT IS THE `k / m` RULE ABOVE APPLIED TO A CHANGE
@@ -598,8 +675,52 @@ const SPHERE_COUNT = 60;
  * this count changed without checking, the stride silently dropped
  * `docker ps -a`. All four present at 375 and at 320, idle and cursor, and on
  * the frozen reduced-motion frame at both.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * 38 -> 40 ON 2026-08-24. TWO COMMANDS, WHICH IS ALL COMPACT HAD ROOM FOR, AND
+ * THE ONLY REASON IT HAD ANY IS THAT `SPHERE_MIN_FONT_PX` STOPPED PINNING IT.
+ *
+ * The compact ramp was the flattest thing on the sphere — 9.50..11.00px, a
+ * 1.16x range, because an 11px base against a 9px floor cannot express more
+ * than 11/9 and the block below said so in as many words. Dropping the floor to
+ * 6 is what unlocked it: 6.91..11.00px, **1.59x**, ten painted sizes where
+ * there were seven.
+ *
+ * MEASURED, 20s per condition, against the 38 it replaces:
+ *
+ *      375x667      drawn/frame   collision   pairs/frame
+ *   38, before          23.20       58.0%         10.86
+ *   40, SHIPPED         24.89       55.2%          9.28
+ *   45                  27.80       60.9%         12.02
+ *
+ *      320x568      drawn/frame   collision   pairs/frame
+ *   38, before             —        68.6%            —
+ *   40, SHIPPED         24.89       66.0%         12.36
+ *   45                  27.80       68.2%         15.23
+ *
+ * 40 IS BETTER THAN 38 ON EVERY NUMBER AT BOTH COMPACT WIDTHS, which is the
+ * only reason it moved at all. 45 is what the `k / m` rule predicted (38 /
+ * 0.841 = 45.2, modelled the same way as desktop's) and it is refused by the
+ * same measurement that refused 70 on
+ * desktop: it puts 320 at 15.23 pairs, OVER the 14.1 ceiling this file records,
+ * on the one breakpoint that has never had room.
+ *
+ * THE `drawn/frame` COLUMN IS IDENTICAL AT 375 AND 320 AND THAT IS NOT A
+ * COPY-PASTE — flagged in review, and worth pinning down because it looks like
+ * one to four significant figures. Which fragments get drawn is decided by
+ * DEPTH (`SPHERE_MIN_ALPHA`) and not by disc size; the sphere is deterministic,
+ * both runs start from the same rest angle and last the same 20s; and the clip
+ * guard, the one gate that IS positional, measured 0 cuts at both. So the two
+ * runs necessarily draw the same set. What differs is where those labels land
+ * — the disc is 232.5px at 375 and 200px at 320 — which is why the collision
+ * and `pairs/frame` columns diverge and the drawn column cannot. The parse
+ * figures are identical for the same reason, and so are the tripwires derived
+ * from them.
+ *
+ * THE FEATURED FOUR SURVIVE 40 — checked at 375 and 320, idle and under the
+ * frozen reduced-motion frame, four of four at each.
  */
-const SPHERE_COUNT_COMPACT = 38;
+const SPHERE_COUNT_COMPACT = 40;
 
 /**
  * Base type size at the near pole, CSS px. Everything else is this times the
@@ -617,18 +738,22 @@ const SPHERE_COUNT_COMPACT = 38;
  * `text-caption` band" and conclude that "the whole ramp is inside the site's
  * type vocabulary instead of beside it". THAT WAS TRUE WHILE THE SMALLEST
  * PAINTED SIZE WAS 12.35px, just above `--text-caption` (0.75rem = 12px). It is
- * not true as shipped: the painted range is 10.75-16.00px on desktop and
- * 9.50-11.00px on compact, so the far end of the ramp is BELOW the smallest
- * type token on the site.
+ * not true as shipped: the painted range is **7.82-16.00px on desktop and
+ * 6.91-11.00px on compact**, so the far end of the ramp is well BELOW the
+ * smallest type token on the site. (It was 10.75 / 9.50 for the few hours
+ * between the ramp change and the depth change; both numbers are recorded here
+ * because the direction of travel is the point.)
  *
- * THAT IS ACCEPTED DELIBERATELY RATHER THAN OVERLOOKED. The far end of this
- * ramp is DEPTH CUEING, not type — a label at 10.75px is not asking to be read
- * at a glance, it is telling you it is at the back of a sphere, and the thing
- * that keeps it honest is the 9px floor rather than a design token. The type
- * vocabulary claim survives where it matters: the near face is `text-body`
- * exactly. Do not "fix" this by raising the floor to 12px — that would delete
- * the back half of the sphere. The whole ramp is inside the site's type vocabulary
- * instead of beside it; 13 sat between two tokens and belonged to neither.
+ * THAT IS ACCEPTED DELIBERATELY RATHER THAN OVERLOOKED, AND ON 2026-08-24 IT
+ * WAS ACCEPTED A SECOND TIME, FURTHER DOWN, ON SAAD'S EXPLICIT INSTRUCTION. The
+ * far end of this ramp is DEPTH CUEING, not type — a label at 7.82px and 0.29
+ * alpha is not asking to be read at a glance, it is telling you it is at the
+ * back of a sphere. What keeps it honest is no longer the FLOOR, which moved to
+ * 6 for exactly this reason; it is that size and alpha fall together, so
+ * nothing is ever small and bright. The type vocabulary claim survives where it
+ * matters and only where it matters: the near face is `text-body` exactly. Do
+ * not "fix" this by raising the floor back to 12px — that would delete the back
+ * half of the sphere, which is the half Saad asked to be able to see receding.
  *
  * 18 IS THE CEILING AND IT IS REFUSED. At 18 the clip guard's clean band moves
  * to vw >= 1163, which puts 1280-wide laptops into the clipping regime, and the
@@ -667,6 +792,17 @@ const SPHERE_COUNT_COMPACT = 38;
  * >> floor is untouched and still does not move; what moved is that the ramp
  * >> now REACHES it instead of stopping 0.9px above it. `SPHERE_FONT_PX` is
  * >> unchanged at 16 and the 18px refusal above still stands.
+ * >>
+ * >> "THE 9px FLOOR IS UNTOUCHED AND STILL DOES NOT MOVE" LASTED ONE DAY. It
+ * >> is 6 as of 2026-08-24, moved by Saad, and its own block carries the
+ * >> reversal. The rest of that paragraph survives the move verbatim: the
+ * >> render floor still fires nowhere, `floorStep` is still 0 at both
+ * >> breakpoints, `legible` is still always true, and the minimum rendered
+ * >> size is still `basePx * lowScale` exactly — 6.00px now rather than 9.00.
+ * >> `SPHERE_FONT_PX` is STILL 16 and the 18px refusal above STILL stands: the
+ * >> depth Saad asked for was bought at the FAR end of the ramp, not by
+ * >> inflating the near face, which is the only end the DOM's reading size has
+ * >> an opinion about.
  *
  * `SPHERE_FONT_PX_COMPACT` STAYS AT 11 for the same reason the compact diameter
  * does: raising it would re-admit the collisions the render floor removed on the
@@ -710,8 +846,9 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * question. A fragment mid-exit fades at a readable size instead of shrinking
  * into the mush on its way out — that was `floorStep`'s pin when this was
  * written and it is the remap in `drawCommandSphere` now: the render range
- * BOTTOMS OUT at 9.00px, so a fragment keeps shrinking honestly as it recedes
- * and simply cannot go under the floor. Same outcome, and it no longer depends
+ * BOTTOMS OUT at `SPHERE_MIN_FONT_PX` (9.00px when this was written, 6.00px
+ * since 2026-08-24), so a fragment keeps shrinking honestly as it recedes and
+ * simply cannot go under the floor. Same outcome, and it no longer depends
  * on a gate that also decides visibility.
  *
  * THE NUMBER THAT DECIDES WHETHER THAT IS HONEST is the share of drawn labels
@@ -741,9 +878,19 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  *
  * THAT IS THE TRIPWIRE, AND IT IS A MEASUREMENT RATHER THAN A JUDGEMENT CALL.
  * If a future edit pushes this into double digits at any viewport, the haze has
- * come back and the fade — or `SPHERE_FADE_MS`, or the count — is wrong. The
- * companion figure is the sub-9px share, which must stay at 0%: it is held
- * there by the `floorStep` pin and not by luck.
+ * come back and the fade — or `SPHERE_FADE_MS`, or the count — is wrong.
+ *
+ * RE-TAKEN AGAIN ON 2026-08-24 AFTER THE DEPTH CHANGE, and it is the number
+ * that licensed that change: neither alpha constant moved, so this boundary is
+ * unchanged, and it reads **0.6% at 1440 idle, 2.3% at 1440 cursor, 0.6% at
+ * 375 and 0.6% at 320** — flat or slightly better than the run before it.
+ *
+ * >> "The companion figure is the sub-9px share, which must stay at 0%: it is
+ * >> held there by the `floorStep` pin and not by luck." THAT COMPANION IS
+ * >> RETIRED, deliberately and by Saad — the floor is 6 now and the sub-9px
+ * >> share is 31.8% on desktop by design. The block at `SPHERE_MIN_FONT_PX`
+ * >> carries why it stopped being a defect metric and what replaces it. THIS
+ * >> tripwire, the sub-0.25-alpha one, is untouched and is now the only one.
  *
  * IT USED TO BE 7px DESKTOP / 6px COMPACT, CHOSEN SO IT WOULD NEVER FIRE. The
  * comment here said so outright — "at the shipped values it never fires — the
@@ -754,7 +901,7 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * was under 9px at 1440, rising to 50.7% under 9px at 375. Half the compact
  * sphere was mush.
  *
- * ONE FONT FLOOR FOR BOTH BREAKPOINTS NOW, NOT A PAIR. 9px is a claim about
+ * ONE FONT FLOOR FOR BOTH BREAKPOINTS NOW, NOT A PAIR. 9px was a claim about
  * what a human can read, and a phone is not the place that gets to be laxer
  * about it. The pair existed only because the two base sizes differ and the
  * guard was designed never to fire; once it is meant to fire, two numbers that
@@ -778,6 +925,14 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * range is anchored to, so deleting it would not remove a cull, it would let
  * the type run to 6.86px.
  *
+ * >> WRONG ON BOTH HALVES AS OF 2026-08-24, AND MISSED BY THE `9 -> 6` BLOCK
+ * >> BELOW, WHICH NAMED ONLY THE SENTENCE FOUR LINES ABOVE IT. The number is
+ * >> **6**, not 9. And 6.86px is `16 x 0.4286`, the floorless minimum at
+ * >> `PERSPECTIVE` 2.5; at 2.0 it is `16/3` = **5.33px**. The load-bearing
+ * >> CLAIM survives the corrections — the floor is still what the render range
+ * >> is anchored to and deleting it still removes no cull — which is why this
+ * >> is annotated rather than rewritten.
+ *
  * THE ALPHA FLOOR IS A PARTIAL BACK-HEMISPHERE CULL, AND `projectCommandSphere`
  * WARNS AGAINST EXACTLY THAT. The warning is not wrong and has not been
  * deleted; it now carries this exception recorded against it. Read it there
@@ -786,8 +941,94 @@ const SPHERE_ADVANCE_ESTIMATE = 0.66;
  * that half of the exception has been withdrawn there rather than left
  * standing.
  */
-const SPHERE_MIN_FONT_PX = 9;
+const SPHERE_MIN_FONT_PX = 6;
 const SPHERE_MIN_ALPHA = 0.25;
+
+/*
+ * THIS BLOCK SITS BELOW THE DECLARATIONS RATHER THAN ABOVE THEM, and that is
+ * not a style choice — a second block comment between the JSDoc and the
+ * `const` would detach the tooltip from both constants.
+ * `SPHERE_SCALE_BUCKETS` already carries its history the same way, for the
+ * same reason.
+ *
+ * 9 -> 6 ON 2026-08-24, ON SAAD'S INSTRUCTION, AND IT REVERSES THE SENTENCE
+ * DIRECTLY ABOVE IT. That sentence — "9px is a claim about what a human can
+ * read, and a phone is not the place that gets to be laxer about it" — is left
+ * standing rather than deleted, because the reversal is not a discovery that it
+ * was wrong. It is a decision that this number had stopped being the claim it
+ * says it is.
+ *
+ * THE ASK. "increase the depth that the commands go like behind and then
+ * appearance from a tiny level so it gives a proper depth sphere vibe".
+ *
+ * WHY THE FLOOR WAS THE THING IN THE WAY, MEASURED BEFORE IT WAS TOUCHED. The
+ * remap in `drawCommandSphere` anchors the rendered range AT this value, so on
+ * desktop the whole nine-bucket ramp was being compressed into 9.00..16.00px —
+ * and what a viewer actually saw, after the alpha cull removed the bottom of
+ * it, was **10.75..16.00px, a 1.49x span**. Lowering `PERSPECTIVE` alone could
+ * not fix that: it widens the GEOMETRIC range and the floor then squeezes the
+ * result straight back down. The two had to move together, and of the two this
+ * is the one that was doing the flattening.
+ *
+ * WHAT 6 IS, AND WHY NOT 7 OR 5 — AND THE FIRST VERSION OF THIS PARAGRAPH WAS
+ * FALSE, WHICH IS WORTH THE SPACE BECAUSE IT WAS FALSE IN THE FLATTERING
+ * DIRECTION. It claimed 6 "is the largest whole pixel at which the remap
+ * becomes a NO-OP on desktop", on the grounds that `6/16 = 0.375` is "at or
+ * below `SPHERE_SCALE_MIN` = 0.3333". 0.375 is ABOVE 0.3333. The inequality was
+ * backwards, the remap is NOT a no-op at 6, and the claim that "below 6 nothing
+ * further is gained" was wrong too.
+ *
+ * THE ACTUAL ARITHMETIC, evaluated across the candidates:
+ *
+ *              lowScale   bucket 0   smallest PAINTED   painted range
+ *   floor 7     0.4375      7.00px        8.64px            1.85x
+ *   floor 6     0.3750      6.00px        7.82px            2.05x   SHIPPED
+ *   floor 5     0.3333      5.33px        7.27px            2.20x   true no-op
+ *
+ * SO 5 IS THE NO-OP POINT, NOT 6, AND IT IS WORTH 0.55px OF DESKTOP RANGE AND
+ * 0.8px OF COMPACT RANGE (6.91 -> 6.09px). It is not taken, and the reason is
+ * the honest one rather than the arithmetic one that was invented for it: the
+ * smallest label a viewer ever sees is set by the ALPHA cull, which lands on
+ * bucket 2 either way, so the whole difference between 5 and 6 is that one
+ * bucket lower — under a pixel, on labels already at 0.29 alpha — bought by
+ * pushing the sub-9px share further up. 6 is one whole step down from 9, it
+ * delivers 2.05x against the 1.49x that prompted the ticket, and 5 remains
+ * available and now documented if Saad wants the last half-pixel.
+ *
+ * SO THE FLOOR NO LONGER CULLS ANYTHING AND STILL IS NOT DEAD CODE. It is what
+ * the rendered range is anchored to, exactly as before, and it is what a
+ * fragment mid-fade is pinned to if a future base size ever breaks the property
+ * above. `floorStep` is 0 at both breakpoints and is kept as the assertion of
+ * that — including the float check the block in `drawCommandSphere` demands of
+ * any new base: `11 * (6/11)` is exactly 6.0, verified, not assumed.
+ *
+ * WHAT IT COSTS, STATED PLAINLY BECAUSE IT IS THE HALF THAT IS EASY TO HIDE.
+ * A THIRD OF THE DESKTOP SPHERE IS NOW UNDER 9px — 31.8% of drawn labels at
+ * 1440 idle, 67.9% at 375 — against a measured 0% the day before, and the old
+ * comment called that share one of "the two numbers this whole change is judged
+ * on". It is no longer a defect metric, and it should not be quietly kept as
+ * one: the number it was standing in for was ILLEGIBLE MUSH, which meant text
+ * too small to read while still bright enough to demand reading. That
+ * combination cannot occur here. Size and alpha are both monotone in `z`, so a
+ * 7.82px label is a 0.29-alpha label, by construction, and the ones under 9px
+ * are the ones a viewer is being told to read as DISTANCE.
+ *
+ * THE METRIC THAT REPLACES IT IS `SPHERE_MIN_ALPHA`'s, WHICH DID NOT MOVE AND
+ * WAS NOT ALLOWED TO. Both alpha constants are untouched by this change —
+ * neither the cull at 0.25 nor `ALPHA_EXPONENT` — so the standing-haze
+ * tripwire is measured against exactly the boundary it was defined at, and it
+ * still reads **0.6% at 1440 idle, 2.3% under the cursor, 0.6% at 375 and
+ * 320**: transit only, nothing parked. Lowering the alpha cull WAS modelled as
+ * a way to reach smaller labels still and was refused for precisely this
+ * reason — it buys one more bucket and puts 13.5% of the sphere permanently
+ * under 0.25 alpha, which is the haze coming back wearing the depth ticket as
+ * cover.
+ *
+ * IF THIS EVER NEEDS RAISING AGAIN, the honest test is not the sub-9px share.
+ * It is whether any label is small AND bright at the same time — i.e. whether
+ * size and alpha have been decoupled — and the frame capture in `SCALE_NORM`
+ * (`lib/hero/commandSphere.ts`) is the shape of the check.
+ */
 
 /**
  * How many discrete type sizes the depth ramp is quantised to.
@@ -796,10 +1037,14 @@ const SPHERE_MIN_ALPHA = 0.25;
  * the most expensive thing in the draw loop after the glow. The trade is a
  * sub-perceptual difference between neighbouring buckets in exchange for a
  * handful of parses a frame instead of one per fragment. AS SHIPPED that is
- * nine steps across `SPHERE_SCALE_MIN`..1 — 0.875px between neighbours at base
- * 16, measured at 11.68 parses against 37.7 drawn. (It read "Six steps across a
- * 0.62–1.00 range is a <=1px difference at 13px" when the base was 13, the ramp
- * was linear and the count was six; all three have since moved.)
+ * twelve BUCKETS — eleven steps, which is what the local named `steps` in
+ * `drawCommandSphere` holds — across `SPHERE_SCALE_MIN`..1, 0.909px between
+ * neighbours at
+ * base 16, measured at 12.85 parses against 39.7 drawn. (It read "nine steps...
+ * 0.875px... 11.68 parses against 37.7 drawn" for one day, and before that "Six
+ * steps across a 0.62–1.00 range is a <=1px difference at 13px" when the base
+ * was 13 and the ramp was linear. Base, ramp, range and count have all moved;
+ * the trade this paragraph describes has not.)
  *
  * Bucketing rather than `ctx.setTransform`: a transform would also scale the
  * letter-spacing and the shadow blur, and it would make the minimum-size rule
@@ -817,14 +1062,23 @@ const SPHERE_MIN_ALPHA = 0.25;
  * at 1440x900 under a continuous 0.5Hz cursor sweep, 3.00 -> 5.28 at 375x812,
  * 3.00 -> 5.19 at 320x568.
  *
+ * THOSE FOUR PAIRS ARE THE SIX-BUCKET, LINEAR-RAMP ERA AND ARE HISTORICAL, not
+ * a second present-tense reading of the same thing the paragraph above just
+ * measured at 12.85. They are kept because the RATIO is what the paragraph is
+ * about — hysteresis roughly doubles the parse count — and that ratio is the
+ * part which has held across all three generations. Nobody has re-run the
+ * hysteresis-off arm since; if the doubling is ever the thing in question, it
+ * has to be re-measured rather than read off here.
+ *
  * IT IS STILL WELL INSIDE THE BUDGET THIS CONSTANT EXISTS TO DEFEND, which is
  * what makes doubling acceptable rather than alarming. The number that matters
- * is the ceiling: one parse per DRAWN fragment, which is 36 at 1440 and 22 at
- * 375. 8.35 against 36 is the same order of saving the original "six against
+ * is the ceiling: one parse per DRAWN fragment, which is 40 at 1440 and 25 at
+ * 375 as shipped (36 and 22 when this was written). 8.35 against 36 is the
+ * same order of saving the original "six against
  * ninety" bought. If a future change pushes this past roughly half the drawn
  * count, the trade has stopped being worth it — measure it, do not assume it.
  */
-const SPHERE_SCALE_BUCKETS = 9;
+const SPHERE_SCALE_BUCKETS = 12;
 
 /*
  * SIX UNTIL 2026-08-24. It went to NINE in the same change that replaced the
@@ -874,19 +1128,71 @@ const SPHERE_SCALE_BUCKETS = 9;
  * still the same claim about what a human can read, and the sub-9px share is
  * still required to measure 0%, which it does BY REMAP now rather than by pin.
  *
+ * >> THAT LAST SENTENCE IS FALSE AS OF LATER THE SAME DAY AND IS THE THIRD
+ * >> PLACE IN THIS FILE THAT SAID IT. The floor is 6, moved by Saad; the
+ * >> sub-9px share is 31.8% at 1440 and 67.9% at 375 BY DESIGN, and it is no
+ * >> longer a defect metric at all. `SPHERE_MIN_FONT_PX`'s own block carries
+ * >> what replaces it. Everything before that sentence — `floorStep` 0 at both
+ * >> breakpoints, nothing pinned, nothing culled by size — is still exactly
+ * >> true, which is why this is corrected in place.
+ *
  * (An intermediate version of this change did put `floorStep` at 2 on desktop
  * and 6 on compact, and the second of those culled 72% of the labels at 375.
  * The `>>` block at `SPHERE_FONT_PX` carries that measurement. It is recorded
  * because "the floor pins" and "the floor culls" look identical in this file
  * until you read `legible` into `hidden`.)
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * NINE -> TWELVE ON 2026-08-24, AND IT IS THE SAME DECISION AS LAST TIME MADE
+ * FOR THE SAME REASON: THE RANGE WIDENED AGAIN, SO THE STEPS HAD TO GET
+ * SMALLER OR THEY WOULD BECOME VISIBLE.
+ *
+ * `PERSPECTIVE` 2.5 -> 2.0 and the font floor 9 -> 6 took the desktop render
+ * range from 9.00..16.00px to 6.00..16.00px. At nine buckets that is a 1.25px
+ * step: 7.8% of the type size at the near face, but **17.2% at the smallest
+ * PAINTED size (7.25px)** — well past the ~10% this block records as the point
+ * a size change is noticeable at a glance. Twelve buckets puts the step at
+ * 0.909px, which is 5.7% near and 11.6% far.
+ *
+ * THE ~10% CRITERION IS NOT FULLY MET AT THE FAR END AND SAYING SO IS THE POINT
+ * OF THIS PARAGRAPH. It holds from 9.1px up — the top ~two thirds of the
+ * painted range — and the two smallest buckets exceed it. They are also the two
+ * dimmest: measured in a captured frame, 7.82px sits at 0.291 alpha and 8.73px
+ * at 0.348. A step is noticeable in proportion to the contrast it steps across,
+ * and buying those two buckets down under 10% costs fifteen buckets and a parse
+ * budget this file will not pay. Judged in a 1440x900 frame capture at review
+ * time rather than argued: the recession reads as continuous, with no visible
+ * banding at any depth. (No file is named here on purpose — the capture lives
+ * in a session scratchpad, not in the repo, and a comment that cites an
+ * artifact nobody else can open is worse than one that cites none.)
+ *
+ * WHAT IS ACTUALLY PAINTED — the number this block cares about, since parses
+ * scale with DRAWN buckets and not with the constant. Measured in a single
+ * captured frame at 1440x900: **ten distinct sizes**, 7.82 / 8.73 / 9.64 /
+ * 10.55 / 11.45 / 12.36 / 13.27 / 14.18 / 15.09 / 16.00px. Compact paints ten
+ * as well: 6.91 through 11.00 in 0.4545px steps. Seven and seven before.
+ *
+ * THE PARSE BUDGET, MEASURED, against a tripwire of roughly half the drawn
+ * count as this block defines it:
+ *
+ *     1440x900 idle      11.68 -> 12.85     tripwire ~19.9  (39.7 drawn)
+ *     1440x900 cursor    10.41 -> 12.74     tripwire ~20.2  (40.4 drawn)
+ *     375x667             8.61 -> 10.28     tripwire ~12.4  (24.9 drawn)
+ *     320x568             8.48 -> 10.28     tripwire ~12.4
+ *
+ * THREE BUCKETS COST ROUGHLY ONE PARSE A FRAME, not three, and the reason is
+ * the one this file learned the hard way the previous day: distinct buckets
+ * among DRAWN fragments is not the bucket count. Compact is still the tight
+ * one — 10.28 against 12.4 is the least headroom on the sphere — and it is the
+ * number to re-measure before anyone adds a thirteenth bucket.
  */
 
 /**
  * Bucket hysteresis, as a fraction of one bucket's width.
  *
  * WITHOUT IT A LABEL SWITCHES THE INSTANT IT RECROSSES A BOUNDARY, and the
- * switch is not subtle: one bucket is 0.875px, so a 24-character label changes
- * width by ~6.9px at each end in a single frame. (It read "~8% of the type
+ * switch is not subtle: one bucket is 0.909px, so a 24-character label changes
+ * width by ~7.2px at each end in a single frame. (It read "~8% of the type
  * size... ~3.3px" at six buckets on the retired ramp. The per-step SIZE change
  * got smaller with nine buckets; the per-step WIDTH change got bigger, because
  * the range it spans roughly doubled.) `Math.round` on
@@ -913,26 +1219,45 @@ const SPHERE_SCALE_BUCKETS = 9;
  * delay honest depth changes AT THE FAR POLE, where the buckets are narrowest
  * in `t`." THAT IS NOW EXACTLY BACKWARDS AND ACTING ON IT WOULD MISLEAD. The
  * buckets were uniform in `t` under the retired linear ramp. Under the
- * perspective divide `dscale/dz = (f-1)/(f-z)^2`, so a bucket spans 0.583
- * z-units at the FAR pole and 0.107 at the NEAR pole — a 5.4x spread, narrowest
- * at the front. The cost of raising this constant now lands on the big, legible
- * near-face labels, which is a worse place for it to land than the back.
+ * perspective divide `dscale/dz = (f-1)/(f-z)^2`, so a bucket spans 0.545
+ * z-units at the FAR pole and 0.061 at the NEAR pole — a **9.0x** spread,
+ * narrowest at the front. The cost of raising this constant now lands on the
+ * big, legible near-face labels, which is a worse place for it to land than
+ * the back. (It was 0.583 / 0.107 and 5.4x at `PERSPECTIVE` 2.5; lowering `f`
+ * to 2.0 for depth widened the spread, so the sentence is MORE true than when
+ * it was written, not less.)
  *
  * THE CONSTANT DID NOT NEED TO SCALE WITH THE BUCKET COUNT — it is expressed as
- * a fraction of a bucket, so "18% of a bucket" means the same thing at nine as
- * at six, and a bucket's width in SCALE units barely moved (0.0762 -> 0.0714).
- * What did change is that the deadband it buys in DEPTH near the front face is
- * ~3.7x smaller than it was.
+ * a fraction of a bucket, so "18% of a bucket" means the same thing at twelve
+ * as at nine as at six, and a bucket's width in SCALE units has barely moved
+ * across all three (0.0760 -> 0.0714 -> 0.0606). What changed is that the
+ * deadband it buys in DEPTH near the front face keeps shrinking.
  *
- * MEASURED AFTER THE RAMP CHANGE rather than reasoned about, because that is
- * what this constant's own history demands. At 1440x900 under the rig's cursor
- * sweep: 33.24 -> 103.05 switches per 5s and 0 -> 0.83 reversals per 5s. The
- * switch rate roughly tripled, as the geometry predicts; the reversal rate is
- * still far under the 3.25 per 5s that was recorded as acceptable when this
- * constant was introduced. Idle is 0 reversals at every viewport, before and
- * after. NO CHANGE TO 0.18 IS WARRANTED ON THIS EVIDENCE — but the review that
- * caught the inverted sentence above predicted 6-7 reversals, so if this ever
- * needs revisiting, the near face is where to look.
+ * MEASURED AFTER EACH CHANGE rather than reasoned about, because that is what
+ * this constant's own history demands. At 1440x900 under the rig's cursor
+ * sweep, across the three generations:
+ *
+ *                        switches/5s   reversals/5s
+ *   linear ramp, 6 buckets     33.24          0
+ *   perspective, 9 buckets    103.05          0.83
+ *   f 2.0, 12 buckets         139.26          0.25
+ *
+ * ALL THREE ROWS ARE HYSTERESIS-ON. The 65.5 switches / 3.25 reversals quoted
+ * further up is the hysteresis-OFF baseline for the first of them, which is
+ * what makes 33.24 / 0 in the same conditions the measure of what this constant
+ * bought. Reading the two as one series is the obvious mistake and it was made
+ * in review, so it is spelled out here.
+ *
+ * THE REVERSAL COLUMN IS AT THE NOISE FLOOR AND MUST NOT BE READ AS A TREND.
+ * Over 20s, 0.83 and 0.25 per 5s are roughly THREE events and ONE. The
+ * mechanism says the opposite should have happened — the deadband is 0.18 of a
+ * bucket, so in `z` at the near pole it went from 0.0193 to 0.0109, a 43%
+ * reduction, exactly where this block says the cost lands. The honest reading
+ * is "no evidence of a regression at three events per twenty seconds", not
+ * "reversals fell". NO CHANGE TO 0.18 IS WARRANTED ON THIS EVIDENCE, and if a
+ * future change needs a real answer it needs a longer capture, not this one.
+ * Idle is 0 reversals at every viewport in every generation, which is the one
+ * unambiguous row. If it ever needs revisiting, the near face is where to look.
  */
 const SPHERE_BUCKET_HYSTERESIS = 0.18;
 
@@ -969,16 +1294,29 @@ const SPHERE_BUCKET_HYSTERESIS = 0.18;
  * invariant under rotation, so neither the spin nor the cursor tilt can move a
  * fragment outside the projected disc, and whether a rim label hangs off the
  * viewport depends only on the viewport size. Enumerated across every width
- * from 320 to 2560: at 1440x900 the disc spans x 777.6-1209.6 against a widest
- * label of ~103px half-width, so the guard CANNOT fire there, and measurement
- * agrees — 0 cuts in 20s, with a flat 90 labels drawn every frame. It fires on
- * compact viewports only, and rarely: 0.17 cuts per 5s at 320x568 before the
- * render floor existed.
+ * from 320 to 2560: at 1440x900 the disc spans **x 720.0-1267.2** (centre
+ * 993.6, R 273.6) against a worst-case label of ~144px half-width — a 29-char
+ * string at the 15.09px bucket — so the guard CANNOT fire there, and
+ * measurement agrees: 0 cuts in 20s. It fires on compact viewports only, and
+ * rarely: 0.17 cuts per 5s at 320x568 before the render floor existed.
  *
- * THE RENDER FLOOR MADE IT MATTER MORE, and that is the reason to fix it now
- * rather than to leave it. Dropping everything under 9px removed exactly the
- * small rim labels that used to fit, so what is left at the rim is bigger: the
- * same measurement at 375x812 went from 0 cuts per 5s to 1.17.
+ * (Those figures read "777.6-1209.6", "~103px half-width" and "a flat 90 labels
+ * drawn every frame" until 2026-08-24. The span was the retired
+ * `D_FRACTION` 0.30 geometry and 90 has not been the count since the 58 cut.
+ * The CONCLUSION was re-derived from scratch at today's numbers and survives at
+ * both 1440 and 1280 — it was right for the wrong reasons for three
+ * generations, which is the failure mode this file exists to make visible.)
+ *
+ * >> "THE RENDER FLOOR MADE IT MATTER MORE, and that is the reason to fix it
+ * >> now rather than to leave it. Dropping everything under 9px removed exactly
+ * >> the small rim labels that used to fit, so what is left at the rim is
+ * >> bigger: the same measurement at 375x812 went from 0 cuts per 5s to 1.17."
+ * >> THAT IS NOW THE INVERSE OF THE TRUTH, twice over. The render floor drops
+ * >> nothing — the remap starts the range AT it — and the depth change makes
+ * >> every label behind the near face SMALLER, so the rim is smaller and the
+ * >> guard fires LESS. Measured: 0 clip cuts per 5s at 1440, 375 and 320. The
+ * >> fade this constant exists for is still correct and still earns its place;
+ * >> the argument that it had become urgent has expired.
  *
  * TIME-BASED, NOT DISTANCE-BASED. A ramp over the last N pixels of travel would
  * be simpler and needs no state, but its duration would then depend on how fast
@@ -1056,9 +1394,12 @@ const SPHERE_FONT_FALLBACK = 'ui-monospace, "JetBrains Mono", monospace';
  * a reduced-motion visitor sees — is the correct still image. It matters more
  * now than when only the clip guard faded: the alpha floor hides ~38% of the
  * set, so a wrong sentinel would be wrong about a third of the sphere rather
- * than about a couple of rim labels. Verified rather than assumed — 36 / 22 /
- * 22 labels at 1440 / 375 / 320 under reduced motion, four of four featured
- * commands visible at each.
+ * than about a couple of rim labels. Verified rather than assumed, and
+ * re-verified on 2026-08-24 rather than left at the counts the old geometry
+ * produced — **40 / 24 / 24 labels at 1440 / 375 / 320** under reduced motion
+ * (36 / 22 / 22 before), four of four featured commands visible at each, and
+ * ten distinct type sizes on the single frozen frame at every one of the three
+ * where there used to be four.
  */
 type SphereDrawState = {
   /** The GEOMETRIC bucket each fragment was last assigned, for the hysteresis.
@@ -1120,10 +1461,12 @@ function drawCommandSphere(
    * the measurement that forced it.
    *
    * `span` above is GEOMETRY: `SPHERE_SCALE_MIN..1`, which since the ramp
-   * became the perspective divide is 0.4286..1, a 2.33x range. That is the
-   * right range to QUANTISE depth into — it is what the sphere actually does.
-   * It is the wrong range to RENDER into, because `basePx * 0.4286` is 6.86px
-   * at base 16 and 4.71px at base 11, both under `SPHERE_MIN_FONT_PX`.
+   * became the perspective divide is 0.3333..1 at `PERSPECTIVE` 2.0, a 3.00x
+   * range. That is the right range to QUANTISE depth into — it is what the
+   * sphere actually does. Whether it is also the right range to RENDER into
+   * depends entirely on the floor, and as of 2026-08-24 it very nearly is:
+   * `basePx * 0.3333` is 5.33px at base 16 and 3.67px at base 11, against a
+   * `SPHERE_MIN_FONT_PX` of 6.
    *
    * WHAT HAPPENED WHEN THEY WERE THE SAME RANGE. `floorStep` below marks every
    * bucket whose rendered size is under the floor as NOT LEGIBLE, and
@@ -1150,17 +1493,33 @@ function drawCommandSphere(
    *
    * WHAT IT COSTS AT EACH BREAKPOINT, and the honest half is the second one:
    *
-   *   base 16 (desktop)  lowScale 0.5625  ->  9.00 .. 16.00px, 1.78x
-   *   base 11 (compact)  lowScale 0.8182  ->  9.00 .. 11.00px, 1.22x
+   *   base 16 (desktop)  lowScale 0.3750  ->  6.00 .. 16.00px, 2.67x
+   *   base 11 (compact)  lowScale 0.5455  ->  6.00 .. 11.00px, 1.83x
    *
-   * 1.22x IS ALL A PHONE CAN HAVE AND IT IS ARITHMETIC, NOT A COMPROMISE
-   * ANYONE CHOSE. An 11px base against a 9px floor cannot express more range
-   * than 11/9. The depth read Saad asked for is a desktop effect; on compact
-   * the cue that carries depth is the alpha ramp, which is unchanged. The two
-   * ways to buy more are both refused elsewhere in this file: raising
-   * `SPHERE_FONT_PX_COMPACT` re-admits collisions on the one breakpoint with
-   * no room for them, and lowering the 9px floor is "a claim about what a
-   * human can read", not a tuning knob.
+   * >> THOSE TWO LINES READ `0.5625 -> 9.00..16.00, 1.78x` AND
+   * >> `0.8182 -> 9.00..11.00, 1.22x` UNTIL 2026-08-24, and the paragraph under
+   * >> them said: "1.22x IS ALL A PHONE CAN HAVE AND IT IS ARITHMETIC, NOT A
+   * >> COMPROMISE ANYONE CHOSE. An 11px base against a 9px floor cannot express
+   * >> more range than 11/9... The two ways to buy more are both refused
+   * >> elsewhere in this file: raising `SPHERE_FONT_PX_COMPACT` re-admits
+   * >> collisions on the one breakpoint with no room for them, and lowering the
+   * >> 9px floor is 'a claim about what a human can read', not a tuning knob."
+   * >>
+   * >> THE ARITHMETIC WAS RIGHT AND THE SECOND REFUSAL WAS NOT MINE TO MAKE.
+   * >> Saad lowered the floor to 6 the next day, which is the one door that was
+   * >> being held shut, and the compact range went 1.22x -> 1.83x on that
+   * >> change alone. `SPHERE_FONT_PX_COMPACT` is still 11 and that refusal
+   * >> stands unchanged. The lesson is narrow and worth keeping: "X is all a
+   * >> phone can have" was true GIVEN a constant that was itself a decision,
+   * >> and stating the constraint without naming the decision inside it made
+   * >> the constraint look like a law.
+   *
+   * ON DESKTOP THE REMAP IS NOW VERY NEARLY A NO-OP, which is the point.
+   * `SPHERE_MIN_FONT_PX / SPHERE_FONT_PX` is 0.375 against a
+   * `SPHERE_SCALE_MIN` of 0.3333, so what is rendered is within a whisker of
+   * the geometry's own range instead of a compressed copy of it. Compact still
+   * compresses, and still must: 6/11 is 0.5455 and there is no floor low
+   * enough to change that without going under 6px.
    */
   const lowScale = Math.max(SPHERE_SCALE_MIN, SPHERE_MIN_FONT_PX / basePx);
   const renderSpan = SPHERE_SCALE_MAX - lowScale;
@@ -1170,7 +1529,8 @@ function drawCommandSphere(
   //
   // IT EVALUATES TO 0 AT BOTH SHIPPED BREAKPOINTS AND IS KEPT AS AN ASSERTION.
   // The remap above starts the render range AT the floor, so bucket 0 is
-  // exactly 9.00px and the loop cannot advance. Everything below is therefore
+  // exactly `SPHERE_MIN_FONT_PX` — 6.00px since 2026-08-24 — and the loop
+  // cannot advance. Everything below is therefore
   // describing a path that is currently unreachable — deliberately, because it
   // is the path that runs if a future `basePx` or floor breaks that property,
   // and because `legible` feeding `hidden` means the difference between "pins"
@@ -1178,11 +1538,23 @@ function drawCommandSphere(
   //
   // "BY CONSTRUCTION" IS TOO STRONG AND THE REVIEW WAS RIGHT TO SAY SO.
   // `basePx * (SPHERE_MIN_FONT_PX / basePx) >= SPHERE_MIN_FONT_PX` is not an
-  // IEEE754 theorem. It holds for both shipped bases — 16 exactly (9/16 is a
-  // dyadic rational), and 11 by half-ulp luck (11 * fl(9/11) rounds to exactly
-  // 9.0) — and it was VERIFIED by measurement rather than by the algebra: the
-  // drawn count at 375 is 23.2, which it could not be if this had come out 1.
-  // A future compact base must re-check it or take an epsilon.
+  // IEEE754 theorem. It holds for both shipped bases and it was RE-CHECKED
+  // when the floor moved 9 -> 6 on 2026-08-24, which is what that block asked
+  // for: `16 * fl(6/16)` is 6 exactly (6/16 is a dyadic rational) and
+  // `11 * fl(6/11)` also evaluates to exactly 6.0, run rather than argued. The
+  // measurement agrees — the drawn count at 375 is 24.9, which it could not be
+  // if this had come out 1.
+  //
+  // BUT THE COMPACT CASE HOLDS BY A TIE-BREAK, NOT BY A MARGIN, and that is
+  // why the comparison below now carries an epsilon instead of an instruction
+  // to future readers to remember one. 6/11 is binary `0.(1000101110)`
+  // repeating with period 10; rounding to 53 bits discards a tail worth exactly
+  // 4/11 of the last place, so `11 * fl(6/11)` is exactly `6 - 2^-51` before
+  // rounding — and `2^-51` is PRECISELY half an ulp at 6. It comes out 6.0 only
+  // because round-half-to-even prefers 6.0's even mantissa. Zero margin. The
+  // previous version of this note said "by half-ulp luck" and then told the
+  // next person to "re-check it or take an epsilon"; taking the epsilon is
+  // strictly better than asking, so it is taken.
   //
   // IT EXISTS SO THAT A FADING FRAGMENT FADES AT A LEGIBLE SIZE. The font floor
   // is a claim about what a human can read; a fragment left to keep shrinking
@@ -1197,7 +1569,7 @@ function drawCommandSphere(
   // the glyph at the moment the fade starts, where pinning to a BUCKET adds no
   // new `ctx.font` value at all. (The figures this paragraph used to quote —
   // "the buckets near it are 8.492 and 9.328 at the compact base" — were the
-  // retired linear ramp's. Compact buckets are 9.00 / 9.25 / 9.50 ... now, none
+  // retired linear ramp's. Compact buckets are 6.00 / 6.45 / 6.91 ... now, none
   // below the floor.)
   //
   // The `< steps` guard bounds the loop if a future `basePx` were ever smaller
@@ -1206,7 +1578,16 @@ function drawCommandSphere(
   let floorStep = 0;
   while (
     floorStep < steps &&
-    basePx * (lowScale + (floorStep / steps) * renderSpan) < SPHERE_MIN_FONT_PX
+    basePx * (lowScale + (floorStep / steps) * renderSpan) <
+      // THE EPSILON, ADDED 2026-08-24. Bucket 0 is meant to be EXACTLY the
+      // floor, and whether the arithmetic lands there is a float question, not
+      // an algebraic one — see the IEEE754 note above, where the compact base
+      // reaches it on a round-half-to-even tie with zero margin. A hair under
+      // would make `floorStep` 1 and CULL a bucket rather than pin it, which is
+      // the failure this whole block exists to make visible. Half a
+      // thousandth of a pixel is far below anything the renderer can express
+      // and far above any rounding error a base/floor pair can produce.
+      SPHERE_MIN_FONT_PX - 5e-4
   ) {
     floorStep++;
   }
@@ -1316,10 +1697,20 @@ function drawCommandSphere(
     // It is safe for a reason worth stating rather than re-deriving. Those two
     // locals are corrected by every drawn fragment — `f.near !== tinted` flips
     // whenever they disagree — so they are self-healing per fragment and can
-    // only cost an extra assignment, never desync. And there is no extra cost to
-    // pay: every fragment any gate can hide sits below `GLOW_T` 0.6 and
-    // `NEAR_TINT_T` 0.75, so it is `near: false, glow: false`, which is the
-    // state those locals already hold.
+    // only cost an extra assignment, never desync. THAT IS THE WHOLE
+    // GUARANTEE, and it does not depend on anything about which fragments the
+    // gates hide.
+    //
+    // IT USED TO SAY MORE THAN THAT AND THE MORE WAS FALSE: "there is no extra
+    // cost to pay: every fragment any gate can hide sits below `GLOW_T` 0.6 and
+    // `NEAR_TINT_T` 0.75, so it is `near: false, glow: false`." True of the
+    // alpha floor, which cuts at t = 0.382, and vacuous for the font floor,
+    // which cuts nothing — but FALSE for the clip guard, which hides RIM
+    // fragments, and the rim is the bulge ring at `z = 1/f`, i.e. `t = 0.75`,
+    // which is `glow: true`. It is harmless today only because the clip guard
+    // fires on compact viewports and the glow pass is skipped on them, which is
+    // two unrelated facts propping up a stated invariant. Corrected 2026-08-24:
+    // the self-healing property above is the reason, and it is sufficient.
     if (drawStep !== bucket) {
       bucket = drawStep;
       ctx.font = `${px}px ${fontStack}`;

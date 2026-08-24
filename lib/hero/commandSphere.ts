@@ -96,21 +96,54 @@ const GLOW_T = 0.6;
 /**
  * Perspective distance, in radius units. Large flattens the sphere toward an
  * orthographic tag-cloud; small blows the near fragments up until they clip the
- * hero. 2.5 is the plan's starting value, tuning window 2.0–4.0.
+ * hero. 2.5 was the plan's starting value, tuning window 2.0–4.0.
+ *
+ * 2.5 -> 2.0 ON 2026-08-24, AT THE BOTTOM OF THAT WINDOW AND NOT PAST IT, on
+ * Saad's instruction that the commands should "go behind and then appear from a
+ * tiny level so it gives a proper depth sphere vibe".
+ *
+ * THIS IS THE ONE KNOB THAT NOW ANSWERS THAT ASK, and it is one knob rather
+ * than three because of the change the day before: since `SCALE_NORM` made the
+ * depth scale BE the perspective divide, `f` sets the size range and the
+ * silhouette bulge together, as one physical fact. Lowering it is the whole of
+ * "more depth" — no curve was invented, no exponent was tuned, and neither
+ * alpha constant was touched.
+ *
+ *   geometric range   (f - 1) / (f + 1) .. 1     0.4286..1 = 2.33x at f 2.5
+ *                                                0.3333..1 = 3.00x at f 2.0
+ *
+ * IT IS NOT TAKEN BELOW 2.0. The window's lower bound is where the near
+ * fragments start blowing up into the hero, and — modelled across the
+ * candidates before anything was built — there is nothing left to buy anyway:
+ * the drawn range is quantised to the bucket grid, so f 1.8 renders the same
+ * 2.05x band as f 2.0 and only shaves the mean label area. A documented window
+ * is not a suggestion.
+ *
+ * WHAT MOVED WITH IT, so nobody re-derives the numbers: `PERSPECTIVE_FIT`
+ * 1.091 -> 1.1547 (the disc is still exactly `D` wide by construction, which is
+ * the point of dividing it out), `SCALE_NORM` 0.6 -> 0.5, `SPHERE_SCALE_MIN`
+ * 0.4286 -> 0.3333. Everything downstream of those is derived and needed no
+ * edit; the renderer's font floor and bucket count DID, and their own blocks in
+ * `ParticleGrid.tsx` carry why.
  */
-const PERSPECTIVE = 2.5;
+const PERSPECTIVE = 2.0;
 
 /**
  * A perspective divide makes the SILHOUETTE bulge past the geometric radius —
  * the widest ring is not the equator but the circle at z = 1/f, and it projects
- * to `f / sqrt(f² − 1)` times the radius (1.091x at f = 2.5).
+ * to `f / sqrt(f² − 1)` times the radius. **1.1547x at f = 2.0**, and it read
+ * "1.091x at f = 2.5" until 2026-08-24: the constant above moved and this
+ * paragraph did not follow it, which is exactly the drift the block up there
+ * lists "WHAT MOVED WITH IT" to prevent. Caught in review, not by the code.
  *
- * THIS IS DIVIDED OUT, NOT IGNORED, and that is not cosmetic. Design §6's
- * navbar cap is stated in terms of the diameter D: `D = min(D, vh − 2(navH +
- * 24))`. If the drawn disc were 9% wider than D the cap would be computing
- * clearance for a sphere that is not the one on screen, and the 1440x560 case
- * the rule exists for would fail by ~17px while the arithmetic still looked
- * right. Dividing here makes "the projected disc is exactly D wide" true.
+ * THIS IS DIVIDED OUT, NOT IGNORED, and that is not cosmetic — and the case for
+ * it got 70% stronger with the same move. Design §6's navbar cap is stated in
+ * terms of the diameter D: `D = min(D, vh − 2(navH + 24))`. If the drawn disc
+ * were **15.5%** wider than D the cap would be computing clearance for a sphere
+ * that is not the one on screen, and the 1440x560 case the rule exists for
+ * would fail by **~29.7px** (D capped to 384, so a 192px radius drawn at
+ * 221.7) while the arithmetic still looked right. It was ~17px at f = 2.5.
+ * Dividing here makes "the projected disc is exactly D wide" true.
  */
 const PERSPECTIVE_FIT =
   PERSPECTIVE / Math.sqrt(PERSPECTIVE * PERSPECTIVE - 1);
@@ -126,26 +159,42 @@ const PERSPECTIVE_FIT =
  * `s = PERSPECTIVE / (PERSPECTIVE - r.z)` is the factor the label's POSITION is
  * multiplied by. Using anything else for its SIZE means the label moves with
  * one perspective and is drawn with another. There is no curve to tune here and
- * no exponent to invent — a fragment at the far pole is 2.33x further from the
- * camera than one at the near pole, so it is drawn 2.33x smaller.
+ * no exponent to invent — a fragment at the far pole is 3.00x further from the
+ * camera than one at the near pole, so it is drawn 3.00x smaller. (2.33x when
+ * this was written, at `PERSPECTIVE` 2.5. See that constant for the move.)
  *
  *   scale = s / s(near pole) = (f - 1) / (f - z)      z in [-1, 1]
  *
  * `SCALE_NORM` is `(f - 1) / f`, so the per-frame cost is one MULTIPLY against
  * the `s` that is already in hand rather than a second divide.
  *
- * RANGE: 0.4286 .. 1.0 at f = 2.5, i.e. **2.33x**, against the retired ramp's
+ * RANGE: 0.3333 .. 1.0 at f = 2.0, i.e. **3.00x**, against the retired ramp's
  * nominal 1.61x and its actual on-screen 1.31x. Over the range that survives
- * the alpha cull (`t >= 0.382`, so `z >= -0.236`) it is 0.548..1.0 = **1.82x**,
+ * the alpha cull (`t >= 0.382`, so `z >= -0.236`) it is 0.447..1.0 = **2.24x**,
  * which is the number that matters because it is the one a viewer sees.
+ *
+ * AND THE NUMBER THAT MATTERS MORE IS WHAT IS ACTUALLY PAINTED, because the
+ * renderer quantises this range onto a bucket grid and the grid does not land
+ * on the endpoints. MEASURED in a single captured frame at 1440x900, which is
+ * the only figure here a viewer can be shown: **7.82..16.00px, TEN distinct
+ * sizes, 2.05x** — against 10.75..16.00px and seven sizes the day before, and
+ * 12.35..16.00px and four sizes the day before that.
+ *
+ * THE TWO CUES STAY COUPLED, which was the point of deriving size from the same
+ * `z` the alpha already uses. Same frame, size against mean alpha, monotone the
+ * whole way down: 16.00px/0.799, 14.18/0.729, 12.36/0.636, 10.55/0.517,
+ * 8.73/0.348, 7.82/0.291. Labels shrink and dim together and the 175ms fade
+ * takes them off; there is no step and no cliff anywhere in that list.
  *
  * THIS COUPLES TYPE SIZE TO `PERSPECTIVE`, AND THAT COUPLING IS CORRECT RATHER
  * THAN ACCIDENTAL. Retuning `PERSPECTIVE` inside its documented 2.0-4.0 window
  * now changes the labels' size range as well as the disc's bulge — because
  * those are the same physical fact. Note the direction: LARGER `f` flattens the
- * sphere toward orthographic and therefore FLATTENS THE SIZE RANGE too (3.0
- * gives 2.0x, 4.0 gives 1.67x). If a future change wants the tag-cloud look
- * back, `PERSPECTIVE` is now the one knob, which is fewer knobs than before.
+ * sphere toward orthographic and therefore FLATTENS THE SIZE RANGE too (2.5
+ * gives 2.33x, 3.0 gives 2.0x, 4.0 gives 1.67x). If a future change wants the
+ * tag-cloud look back, `PERSPECTIVE` is now the one knob, which is fewer knobs
+ * than before — and on 2026-08-24 it was the one knob used, in the other
+ * direction, to buy the depth Saad asked for.
  *
  * `ALPHA_EXPONENT` IS DELIBERATELY NOT REUSED HERE even though the two cues are
  * meant to read together. That constant carries its own rejection criterion
@@ -315,17 +364,110 @@ export const SPHERE_REST_ANGLE_X = 0.18;
  * element that did not participate in the arrival. The burst makes the sphere
  * arrive too.
  *
- * 2.5x AND 1.6s. Both come from Saad's brief (2–3x, easing to idle over
- * 1.5–2s) and the values inside those bands are chosen: 2.5 is the midpoint,
- * and 1.6s is 1.23x `ARRIVAL_S`, so the rotation is the LAST thing to settle.
- * A burst that ended with the scale would put two moves on one frame and read
- * as a single hard stop; ending after it means the sphere carries the beat out.
+ * 4x, 3.2s AND A SQUARED FALLOFF — 2026-08-24. IT WAS 2.5x, 1.6s AND A CUBIC
+ * ONE, AND ALL THREE MOVED TOGETHER FOR ONE REASON.
  *
- * THE FALLOFF IS CUBIC BECAUSE THE ARRIVAL'S IS. `Hero.tsx` uses `power2.out`,
- * and GSAP's Power2 is CUBIC (Power1 is the quadratic) — so `(1 − τ/T)³` is the
- * same curve family, decaying the way the arrival's remaining distance does.
- * It reaches exactly 1.0 at T rather than approaching it, and it is within 5%
- * of idle at 0.678·T = **1.085s**.
+ * THE ASK: "increase the burst's peak and/or extend its duration specifically
+ * so it reads clearly once the Intro's other motion has finished." That last
+ * clause is a TIME, not a taste — `arrivalBurst` is incremented on the same
+ * frame `Hero.tsx` starts its `ARRIVAL_S` tween, so the Intro's other motion is
+ * over at **t + 1.30s**, and the question is only what the sphere is doing then.
+ *
+ * WHAT IT USED TO BE DOING AT THAT INSTANT: **1.010x**. Nothing. The old burst
+ * had spent 99.3% of itself by the time the last other thing stopped moving, so
+ * the beat it carried landed entirely UNDER the dissolve and the scale-in —
+ * which is what the retired paragraph below was deliberately designing for, and
+ * exactly what Saad is asking to change.
+ *
+ * WHAT IT IS NOW: **2.058x at t+1.30s**, i.e. the sphere is still turning at
+ * twice idle at the instant it becomes the only thing on screen still moving,
+ * and it eases from there to idle over the following 1.9s.
+ *
+ * THE THREE NUMBERS, EACH DOING ITS OWN JOB:
+ *
+ *   4x     the peak. The brief still asks for a beat, not a spin: 4x idle is
+ *          24 deg/s, one revolution in 15s, and the labels stay readable at it.
+ *   3.2s   the duration. 2.46x `ARRIVAL_S` — so the rotation is unambiguously
+ *          the LAST thing to settle, rather than the 1.23x that made it merely
+ *          the last thing to settle DURING the arrival.
+ *   ^2     the falloff. THIS IS THE ONE THAT ACTUALLY DELIVERS THE ASK, and it
+ *          is a deliberate reversal of the reasoning kept below.
+ *
+ * WHY THE EXPONENT HAD TO CHANGE AND NOT JUST THE OTHER TWO. Under a cubic
+ * falloff the burst is nearly spent before it is half over — the same 4x/3.2s
+ * curve CUBED reads 1.63x at t+1.30s against the squared curve's 2.06x, and by
+ * t+2.0s it is 1.16x against 1.42x. The cubic was chosen to MATCH `Hero.tsx`'s
+ * `power2.out` (GSAP's Power2 is cubic; Power1 is the quadratic), which was the
+ * right instinct while the goal was for the burst to blend INTO the arrival.
+ * The goal is now for it to be legible AFTER the arrival, and matching the
+ * curve of the thing you are meant to outlast is precisely wrong for that.
+ *
+ * IT STILL REACHES EXACTLY 1.0 AT T rather than approaching it, and it is
+ * within 5% of idle at `T(1 - sqrt(0.05/3))` = **2.787s**.
+ *
+ * >> THE PARAGRAPH THIS REPLACED IS KEPT BECAUSE ITS ARGUMENT WAS SOUND AND ITS
+ * >> PREMISE EXPIRED, NOT BECAUSE IT WAS WRONG: "2.5 is the midpoint [of the
+ * >> 2-3x brief], and 1.6s is 1.23x `ARRIVAL_S`, so the rotation is the LAST
+ * >> thing to settle. A burst that ended with the scale would put two moves on
+ * >> one frame and read as a single hard stop; ending after it means the sphere
+ * >> carries the beat out." That reasoning is unchanged and is why the duration
+ * >> is still expressed as a multiple of `ARRIVAL_S` rather than as a round
+ * >> number of seconds. What changed is how far after the arrival "after" has
+ * >> to be before anyone can SEE it.
+ *
+ * MEASURED AT THE NEW VALUES, BY THE TWO-BUILD RATIO METHOD AND NOT BY A SINGLE
+ * RUN, because the per-label median screen speed this is recovered from carries
+ * a +/-20% wobble with the sphere's orientation that no within-run reference
+ * removes. (The single run reads its own pre-hand-off control at 0.664x where
+ * it should read 1.000, and reports a 2.80x peak for a constant of 4.) Against
+ * a `SPHERE_BURST_RATE = 1` build of the same geometry:
+ *
+ *   pre-hand-off control   0.980x   (should be 1.000)
+ *   peak in [0,150]ms      4.054x   (the constant is 4)
+ *
+ * THE TAIL NEEDS ONE STATED CORRECTION AND IT IS THE BURST'S OWN DOING. The two
+ * builds share an angle history until the hand-off and then separate
+ * PERMANENTLY by the burst's extra travel — **19.2 deg**, against the old
+ * burst's 3.6 — so the wobble stops cancelling and the raw ratio settles above
+ * 1.000x once the burst is over. Dividing by a drift factor that grows with the
+ * SPENT share of that extra angle, `1 + (D-1)*(1-(1-t/T)^3)`, tracks
+ * `1 + 3(1-t/T)^2` closely:
+ *
+ *      t(ms)      0     800    1400    1600    2400    3200
+ *   corrected  4.054   2.667   1.895   1.701   1.156   0.968
+ *   predicted  4.000   2.688   1.949   1.750   1.188   1.000
+ *
+ * `D` IS 1.140, AND WHERE IT COMES FROM MATTERS BECAUSE THE FIRST DRAFT OF THIS
+ * BLOCK GOT IT WRONG. It is the mean raw ratio over the **25 bins from 3.3s to
+ * 4.5s**, i.e. the whole post-burst tail. The sampled bins printed below
+ * (3.2 / 3.4 / 3.6s) average 1.111, and quoting those three as if they were the
+ * source made the correction look like it had been fitted rather than measured.
+ * They are the near end of a tail that drifts a little further out; the window
+ * is the definition.
+ *
+ * THE ERROR FIGURE IS OVER ALL 50ms BINS IN [0, 3200], not over the six
+ * sampled above: **mean absolute error 0.064, max 0.266**. The six samples
+ * average 0.040, which is why they must not be presented as the substantiation.
+ *
+ * The raw ratio is FLAT from 3200ms on (1.104 / 1.102 / 1.128), which is the
+ * independent confirmation that the burst terminates on schedule — a flat tail
+ * cannot contain a decaying excess, whatever level it sits at, and this half of
+ * the evidence needs no correction factor at all.
+ *
+ * UNDER 4x CPU THROTTLING the single-run profile is indistinguishable from the
+ * unthrottled single-run profile at every sample (peak 2.842x vs 2.801x, the
+ * same decay shape) — both under-read by the same wobble, and the point is
+ * that the burst is `dt`-scaled and a starved frame rate does not spend it any
+ * faster.
+ *
+ * WHAT THAT MEASUREMENT CANNOT SEE, stated rather than left implied: the
+ * countdown uses `clampFrameMs`, so frames longer than `MAX_FRAME_MS` (50ms)
+ * advance the burst by 50ms of budget and rather more of wall clock. A tab
+ * starved that badly stretches the burst instead of truncating it, which is the
+ * safe direction, and doubling T from 1.6s to 3.2s doubles the window over
+ * which it can happen. 4x throttling does not push frames past 50ms and so does
+ * not exercise it — the claim above is about `dt` scaling, not about a starved
+ * tab's wall clock.
  *
  * IT IS APPLIED TO THE RENDERED ANGLE, NOT ONLY TO THE IDLE TARGET, AND THAT IS
  * MEASURED RATHER THAN PREFERRED. `angleY` chases `idleY` through `DAMPING`
@@ -341,8 +483,9 @@ export const SPHERE_REST_ANGLE_X = 0.18;
  *
  * IT DOES NOT SNAP, and the file's opening promise is intact: nothing is
  * ASSIGNED to an angle here. This is an integrated advance, in radians per
- * millisecond of real elapsed time, whose coefficient starts at 2.5 and eases
- * to 1. What steps discontinuously is a VELOCITY, once, on the hand-off frame —
+ * millisecond of real elapsed time, whose coefficient starts at
+ * `SPHERE_BURST_RATE` and eases to 1. What steps discontinuously is a
+ * VELOCITY, once, on the hand-off frame —
  * which is also true of the arrival tween it accompanies, since `power2.out`
  * is at its fastest on its first frame.
  *
@@ -351,9 +494,17 @@ export const SPHERE_REST_ANGLE_X = 0.18;
  * the same damping they always did, so "what wins if the visitor moves the
  * mouse during the burst" has the same answer as before: neither — they add.
  */
-export const SPHERE_BURST_RATE = 2.5;
+export const SPHERE_BURST_RATE = 4;
 /** Milliseconds. See `SPHERE_BURST_RATE`. */
-export const SPHERE_BURST_MS = 1600;
+export const SPHERE_BURST_MS = 3200;
+/**
+ * The falloff's exponent. 2, and it was 3 — hard-coded as `r * r * r` — until
+ * 2026-08-24. Named rather than inlined because it turned out to be a TUNING
+ * DECISION with a stated reason rather than an implementation detail of the
+ * multiply, and it was invisible as a decision while it lived in the
+ * arithmetic. See `SPHERE_BURST_RATE` for why the curve family changed.
+ */
+export const SPHERE_BURST_EXPONENT = 2;
 
 /* -------------------------------------------------------------------------
    Types
@@ -605,7 +756,7 @@ export function createCommandSphere(
  *
  * TAKES NUMBERS, NOT ELEMENTS. It must never be handed a `getBoundingClientRect`
  * from inside the hero's stage wrapper: that wrapper carries a live GSAP
- * transform for the arrival's 1.6s, which puts anything measured against it in
+ * transform for the arrival's 1.30s, which puts anything measured against it in
  * a different coordinate space than the canvas. The canvas's own untransformed
  * CSS width and height are the correct source and are already read on rebuild.
  */
@@ -707,7 +858,15 @@ export function stepCommandSphere(
   let burstExcess = 0;
   if (sphere.burstMs > 0) {
     const remaining = sphere.burstMs / SPHERE_BURST_MS;
-    burstExcess = (SPHERE_BURST_RATE - 1) * remaining * remaining * remaining;
+    // `Math.pow` RATHER THAN `r * r`, and the cost is nothing: this runs once
+    // per FRAME for at most 3.2s after a hand-off, not once per fragment. What
+    // it buys is that retuning the curve is a one-line edit to a named constant
+    // instead of an edit to the arithmetic here — which is how it was written
+    // before, and how the exponent came to be a fact about the code rather than
+    // a decision with a reason attached to it.
+    burstExcess =
+      (SPHERE_BURST_RATE - 1) *
+      Math.pow(remaining, SPHERE_BURST_EXPONENT);
     sphere.burstMs = Math.max(0, sphere.burstMs - dt);
   }
 
@@ -830,10 +989,15 @@ export function projectCommandSphere(sphere: CommandSphere): readonly number[] {
   // it since the ramp became the perspective divide, but `d(scale)/dz` is
   // `(f-1)/(f-z)^2 > 0` everywhere on [-1, 1], so the ORDER this produces is
   // identical to a z-order and the near-sortedness this loop relies on is
-  // exactly as true as it was. Monotonicity is what matters here, not shape —
-  // therefore of depth. Using it avoids carrying a second field whose only job
+  // exactly as true as it was. Monotonicity is what matters here, not shape,
+  // and `scale` is a strictly increasing function of depth — so sorting on it
+  // IS sorting on depth. Using it avoids carrying a second field whose only job
   // is to be the sort key, and it makes the bucket monotonicity the draw pass
   // relies on true by construction rather than by coincidence.
+  //
+  // (This sentence read "Monotonicity is what matters here, not shape —
+  // therefore of depth." for two commits: a clause was lost in an edit and the
+  // remainder still parsed as English. Repaired 2026-08-24.)
   for (let i = 1; i < order.length; i++) {
     const index = order[i];
     const key = projected[index].scale;
