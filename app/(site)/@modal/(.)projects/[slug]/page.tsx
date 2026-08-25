@@ -26,7 +26,9 @@ import { getProjectBySlug, projectSlugs } from "@/content/projects";
  *   - Click a card on `/` OR ON `/work` → the URL becomes `/projects/<slug>`,
  *     this renders as an overlay, and the page you came from stays mounted
  *     behind it (which is what gives the morph something to morph FROM). For
- *     CCN and SNA that page is `/work` and only `/work`: they are archive-only
+ *     CCN and SNA that page WAS `/work` and only `/work` until 2026-08-25;
+ *     `/projects` now lists all five, so they are reachable from two
+ *     surfaces like every other project. They remain archive-only
  *     and Home does not link to them, so this path is the ONLY way either of
  *     them is ever seen as an overlay.
  *   - Refresh, or open a shared link, at that URL → no interception, the real

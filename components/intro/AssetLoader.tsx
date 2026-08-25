@@ -224,10 +224,12 @@ export function AssetLoader({ onReady }: AssetLoaderProps) {
       //
       // WHY IT IS NEEDED: `IntroProvider` reads `shouldPlayIntro()` during
       // PRERENDER, where every session flag is false by construction, so it
-      // answers "yes" and THIS PLATE SHIPS IN THE STATIC HTML of `/`, `/work`
-      // and `/about`. With scripting disabled it never advances, never
+      // answers "yes" and THIS PLATE SHIPS IN THE STATIC HTML of every route
+      // inside `(chrome)` — `/`, `/work`, `/about` and, since 2026-08-25,
+      // `/projects`. With scripting disabled it never advances, never
       // dissolves and never unmounts: an opaque `#07090C` cover over the whole
-      // page, measured at 100% of 1440x900 on all three routes.
+      // page, measured at 100% of 1440x900 on the three routes that existed
+      // when that measurement was taken.
       data-intro-plate
       // The plate is up from FIRST PAINT even while the readout is not, and
       // that is deliberate. The Intro's plate follows immediately on the same

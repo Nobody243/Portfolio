@@ -10,7 +10,10 @@
  * it needs is already in.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THE SEQUENCE — seven phases, ONE ENDING, ON ALL THREE ROUTES.
+ * THE SEQUENCE — seven phases, ONE ENDING, ON EVERY ROUTE IT PLAYS ON.
+ * (That read "ON ALL THREE ROUTES" until 2026-08-25, when `/projects` became the
+ * `(chrome)` group's fourth member. There is no route branch anywhere in phases
+ * 1-7, so a count here is a number that goes stale every time the group grows.)
  * `docs/06_INTRO_AND_CHROME.md` §2 and `docs/07_SITE_RESTRUCTURE.md` §3.
  *
  *   1  0.000 → 0.300  HOLD.      "Muhammad Saad", still, long enough to read
@@ -151,8 +154,15 @@ const ZOOM_OUT_SCALE = 0.82;
 const BREATH_S = 0.22;
 
 /**
- * PHASE 7 — the plate's dissolve, and the site's ONE ending on all three
- * routes.
+ * PHASE 7 — the plate's dissolve, and the site's ONE ending on every route
+ * the Intro plays on.
+ *
+ * THIS SAID "ON ALL THREE ROUTES" UNTIL 2026-08-25, when `/projects` made the
+ * `(chrome)` group four. The count was the only thing wrong — the dissolve was
+ * already the single ending on every member, which is the decision this
+ * paragraph exists to record. Four other copies of the phrase in this file were
+ * corrected in the same sweep; this one survived it because it wraps across a
+ * line break and a single-line grep cannot see it.
  *
  * IT WAS `OFF_HOME_DISSOLVE_S` UNTIL 2026-08-22, and it was the EXCEPTION: Home
  * ended on a ×17 camera over 0.95s and this was what `/work` and `/about` got
@@ -171,7 +181,7 @@ const BREATH_S = 0.22;
  *
  *   1. EVERY SHARED CURVE DECELERATES INTO ITS END STATE, which is right for
  *      something ARRIVING and wrong for something LEAVING. The plate is
- *      leaving. This holds on all three routes, on any ground, in any theme,
+ *      leaving. This holds on every route, on any ground, in any theme,
  *      and it is the reason the curve is correct on Home.
  *   2. OFF HOME IT ALSO SHAPES A LIGHTNESS RAMP. In light mode the ground
  *      travels L* 2.41 -> 98.99 across ~93% of the viewport as the plate goes,
@@ -212,7 +222,9 @@ const BREATH_S = 0.22;
  * That correction is also why the onset off Home reads 0.30s and not the 0.20s
  * that shipped first: at 0.20s the entrance measured 87.1% at plate-50%, which
  * is this paragraph's own rejection criterion, met by the configuration it
- * kept. `components/intro/IntroEntrance.tsx` carries the full table.
+ * kept. `components/intro/IntroEntrance.tsx` carries the full table — whose
+ * fourteen-viewport half is dated 2026-08-22 and marked historical there, since
+ * the page it measured was restructured on 2026-08-25.
  *
  * A 128-LINE BLOCK ARGUING "WHY THE CAMERA CANNOT COME ALONG" STOOD HERE, and
  * it is deleted rather than carried over, because two of its three reasons were
@@ -234,7 +246,8 @@ const DISSOLVE_S = 0.55;
  * is the navbar's palette.
  *
  * THE PROBLEM IS THAT NEITHER END OF THIS TWEEN IS USABLE, AND BOTH ENDS WERE
- * TRIED. The bar is fixed over this plate on all three routes. While the plate
+ * TRIED. The bar is fixed over this plate on every route it plays on. While the
+ * plate
  * is opaque the bar must be transparent and carry `--color-hero-fg`; once the
  * plate has gone the bar must carry its own 80% `--color-base` scrim and
  * `--color-fg`. Off Home the swap therefore has to happen DURING the fade:
@@ -348,8 +361,8 @@ const T_SETTLED = T_MORPH + MORPH_S; // 1.395
  * 7 branched between a 0.95s camera and this 0.55s dissolve, and this block
  * carried a paragraph explaining that the entry was deliberately shorter on the
  * routes with no hero to arrive into. The camera is retired, so there is one
- * phase 7, one derivation and one total — and the three routes' plate lifetimes
- * are now expected to match each other rather than to differ by 0.4s.
+ * phase 7, one derivation and one total — and every route's plate lifetime is
+ * now expected to match every other rather than to differ by 0.4s.
  */
 export const INTRO_TOTAL_S =
   T_SETTLED + ZOOM_OUT_S + BREATH_S + DISSOLVE_S; // 2.765
@@ -472,8 +485,10 @@ export function Intro({
       // serves has narrowed. With no camera, the only tween that reads this
       // origin is the zoom-OUT's contraction to 0.82, and `50% 90%` is what
       // makes the mark settle DOWNWARD into the composition's own weight
-      // rather than shrinking about its middle. Two of the three routes have
-      // shipped exactly that for a while; Home now joins them.
+      // rather than shrinking about its middle. Every route off Home had
+      // shipped exactly that for a while; Home joined them on 2026-08-22.
+      // (This read "two of the three routes" until 2026-08-25 — the count moved,
+      // the behaviour did not, because there is no route branch here.)
       //
       // Written here rather than as a Tailwind `origin-` class so that ONE
       // author owns it: GSAP writes this element's `transform`, and a transform

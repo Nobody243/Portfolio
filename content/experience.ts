@@ -38,6 +38,8 @@
  * changes, that is a question to Saad and both files change in the same commit.
  */
 
+import newWebOrderPreview from "@/public/images/experience/new-web-order.png";
+
 import type { Experience } from "./types";
 
 export const experience = [
@@ -63,6 +65,7 @@ export const experience = [
     stack: ["React", "Next.js", "Tailwind CSS", "Supabase"],
     // Verified 2026-08-19: HTTP 200, no redirect.
     url: "https://www.newweborder.us/",
+    urlPreview: newWebOrderPreview,
     // "Two smaller products" is Saad's own framing and it opens the paragraph
     // on purpose: it sets the scale honestly before a reader forms a bigger
     // impression. Do not soften it, and do not pad what follows.

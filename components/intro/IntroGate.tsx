@@ -43,8 +43,11 @@
  * that entered on `/about` left the flag false and the first click to HOME
  * played the Intro on a CLIENT NAVIGATION, which `docs/07_SITE_RESTRUCTURE.md`
  * §3 forbids. The trigger it states — actual document load or browser refresh,
- * on `/`, `/work` and `/about`, never on `/projects/<slug>` — is now enforced
- * by three flags in one module rather than by this component's mount site.
+ * on `/`, `/work`, `/about` and `/projects`, never on `/projects/<slug>` — is
+ * now enforced by three flags in one module rather than by this component's
+ * mount site. (`/projects` joined that list on 2026-08-25; the enforcement did
+ * not change, because it is the `(chrome)` layout's mount that decides, not an
+ * enumeration in code.)
  *
  * WHAT SURVIVES UNCHANGED, because it was never the broken part: no
  * persistence, of any kind, on any route. `sessionStorage` (this used to read
@@ -80,7 +83,12 @@ import { markIntroSettled } from "@/components/intro/IntroSession";
  * `lg` and up — the page is `lg:h-dvh lg:overflow-hidden` there — and real work
  * below `lg`, where it has scrolled since 2026-08-23. On `/work` it is not a
  * no-op at any width: the archive is a long page, and it is held at the scroll
- * position the document loaded at until the gate retires.
+ * position the document loaded at until the gate retires. It reaches
+ * `/projects` too since 2026-08-25, where it is `/work`'s case rather than
+ * `/about`'s: the five strip rows make that page taller than any viewport it
+ * ships at, so it is held at the position it loaded at like the archive is.
+ * (This read "currently holds nothing … once the strip rows land" for the hour
+ * between the route shipping and the rows shipping.)
  */
 const SCROLL_LOCK_ATTR = "data-intro-active";
 

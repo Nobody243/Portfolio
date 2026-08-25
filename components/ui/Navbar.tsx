@@ -10,11 +10,14 @@
  *   right   the email address as a copy control + the LinkedIn mark
  *
  * IT IS SITE CHROME NOW, NOT A HOMEPAGE COMPONENT. It is mounted by
- * `app/(site)/(chrome)/layout.tsx` and renders on `/`, `/about` and `/work` —
- * all three have shipped — but still never on `/projects/<slug>`. Two
- * consequences run through this file: the centre items are real links rather
- * than scroll calls, and the adaptive palette below can no longer assume there
- * is a hero on the page.
+ * `app/(site)/(chrome)/layout.tsx` and renders on `/`, `/about`, `/work` and
+ * `/projects` — all four have shipped — but still never on `/projects/<slug>`,
+ * which sits outside the `(chrome)` group on purpose. (This listed three routes
+ * until 2026-08-25; `/projects` is the index page added by the projects
+ * architecture work, and it is inside the group because it needs the Intro gate
+ * as well as this bar.) Two consequences run through this file: the centre items
+ * are real links rather than scroll calls, and the adaptive palette below can no
+ * longer assume there is a hero on the page.
  *
  * THE CENTRE IS ABSOLUTELY CENTRED, not flex-centred, and that is a
  * requirement rather than a preference: the spec asks for the icon to be "in
@@ -748,16 +751,33 @@ export function Navbar() {
      route change, on resize and once when the webfont resolves. Do not copy
      that pattern here — it was a concession to frequency, not a house style.
 
-     `null` MEANS "DO NOT RENDER THE LINE", and it has two live cases:
+     `null` MEANS "DO NOT RENDER THE LINE", and it has ONE live case (it had two
+     until 2026-08-25 — see below):
        - Before the first measurement. The span is INSERTED already at its final
          width and offset, and an inserted element has no previous value to
          transition from — which is how the entrance is protected. Rendering it
          at zero and then sizing it would slide it in from the far left on every
          single page load.
-       - With a project overlay open, when `pathname` is `/projects/<slug>` and
-         no centre item matches. The overlay is a modal `<dialog>` in the top
-         layer, so the bar is not visible then anyway; this just declines to
-         guess which item to mark.
+     THE SECOND CASE WAS DELETED ON 2026-08-25 AND THE COMMENT IS BEING
+     REWRITTEN RATHER THAN LEFT TO CONTRADICT THE CODE. It read: "With a project
+     overlay open, when `pathname` is `/projects/<slug>` and no centre item
+     matches. The overlay is a modal `<dialog>` in the top layer, so the bar is
+     not visible then anyway; this just declines to guess which item to mark."
+
+     That case no longer occurs. `isActiveRoute` in `navContent.ts` now groups
+     `/projects` and `/projects/<slug>` under WORK (spec §0.4), so an open
+     overlay HAS a matching centre item and the indicator renders. There is
+     exactly ONE live `null` case left: before the first measurement.
+
+     THE VISIBLE CONSEQUENCE, ACCEPTED DELIBERATELY BY SAAD. The overlay's
+     surface fades in over `DURATION.ui` (0.35s), so for roughly the first 175ms
+     the bar is legible through a partly transparent surface — and during that
+     window the indicator is seen sliding from Home's centre icon to WORK. Saad,
+     2026-08-25: "accept it, not worth engineering around. A brief,
+     honestly-disclosed cosmetic side effect of a sensible architectural choice
+     is a fine trade." Do not add a pathname special case here to suppress it;
+     that would put overlay knowledge back into the bar, which is precisely what
+     the `data-over-hero` palette below reads DOM presence to avoid.
 
      `animated` RIDES ALONG IN THE SAME OBJECT ON PURPOSE. CSS starts a
      transition based on the AFTER-change style, so a geometry change committed

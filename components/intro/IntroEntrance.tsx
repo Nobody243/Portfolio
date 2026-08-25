@@ -3,8 +3,26 @@
 /**
  * A destination's own entrance units, re-triggered by the Intro's hand-off.
  *
- * TWO CONSUMERS, ONE MECHANISM: `/about`'s four units (`AboutScreen.tsx`) and
- * `/work`'s `Projects` section (`Projects.tsx`, `motion="reveal"` branch only).
+ * TWO ROUTES, THREE CALL-SITE FILES, ONE MECHANISM:
+ *
+ *   `/about`   `components/about/AboutScreen.tsx` — four units
+ *   `/work`    `components/sections/ProjectDeckSection.tsx` — three units (the
+ *              `<h1>`, the fanned deck as ONE object, and the "Browse as a
+ *              list" exit)
+ *   `/work`    `components/sections/Certifications.tsx` — two units. Added
+ *              2026-08-25 on measurement: its heading sits at 1038.6px and its
+ *              `amount: 0.1` trigger at ~1046px, inside the fold on a
+ *              1440-tall display. That file carries the arithmetic.
+ *
+ * **THIS SAID "TWO CONSUMERS … `/work`'s `Projects` section (`Projects.tsx`,
+ * `motion="reveal"` branch only)" UNTIL 2026-08-25.** Both halves are now
+ * wrong: the `/work` restructure replaced the two-column grid with the fanned
+ * deck, so `Projects` does not render on `/work` at all, and its
+ * `motion="reveal"` branch has **zero call sites anywhere** (it is kept and
+ * labelled, the way `STAGGER.card` is). Every enumeration in this file that
+ * counts units or names `Projects` was falsified by the same change and is
+ * corrected or dated below.
+ *
  * It was `components/about/AboutEntrance.tsx` and served the first alone; that
  * file already predicted the second in as many words — "if `/work`'s units ever
  * want this, the wrapper is reusable as-is for the same structural reason" —
@@ -20,12 +38,15 @@
  * observer tick after mount — at ~t=0, BEHIND AN OPAQUE PLATE that does not
  * start dissolving until ~2.4s.
  *
- * MEASURED before the fix, on a production build at 1440x900, dark:
+ * MEASURED before the fix, on a production build at 1440x900, dark — **on
+ * 2026-08-22, when `/work` carried a two-column five-card grid rather than the
+ * deck. The `/work` row's UNIT NAMES are historical; the defect it describes is
+ * not, and it recurred on the restructured page (see `Certifications.tsx`):**
  *   `/about` — all four units settle at 1.00s (0 / 0.10 / 0.20 / 0.30 +
  *     `DURATION.reveal`), roughly 1.4s before anyone can see the page.
- *   `/work`  — units 0-4 (the "Work" heading and the first four cards) run
- *     131ms to 398ms and are at `y = 0`, `opacity = 1` at the frame the plate
- *     crosses 50%. 100% of the move, spent.
+ *   `/work`  — units 0-4 (that page's "Work" heading and its first four cards)
+ *     run 131ms to 398ms and are at `y = 0`, `opacity = 1` at the frame the
+ *     plate crosses 50%. 100% of the move, spent.
  *
  * The visitor's first sight of either route is a finished page. That is the
  * failure `RevealFooter.tsx` names — a reveal that animates in secret.
@@ -111,14 +132,21 @@
  *     plate.
  *   • `/work`'s below-the-fold scroll penalty grows from 0.20s to 0.30s, because
  *     `arriving` latches. MEASURED **316ms** in-view-to-visible, against 216ms
- *     before. See the scroll-path note further down for why it is the price of
- *     not reading the DOM during render.
+ *     before (2026-08-22, on the five-card grid `/work` carried then; the
+ *     figure is a property of the onset rather than of the page). See the
+ *     scroll-path note further down for why it is the price of not reading the
+ *     DOM during render.
  * ─────────────────────────────────────────────────────────────────────────
  *
  * THE ONSET IS FLAT, WITH NO PER-UNIT STAGGER ADDED HERE, ON EITHER ROUTE.
  * `/about`'s 0 / 0.10 / 0.20 / 0.30 comes from its own call sites and predates
- * this file; `/work` adds none, because `Projects.tsx` refuses an index cascade
- * and the `delay` below is the SAME delay the scroll path uses. A stagger
+ * this file; `/work` adds none. That was originally because `Projects.tsx`
+ * refused an index cascade; with the grid gone the reason is stronger and
+ * simpler — the deck is wrapped as ONE object (a per-card cascade on an
+ * overlapping fan would show cards sliding through each other), so there is
+ * nothing on `/work` for an index to cascade over. The other half of the
+ * argument is unchanged and is the binding one: the `delay` below is the SAME
+ * delay the scroll path uses. A stagger
  * passed here would therefore also land on the scroll-triggered firing of every
  * unit that was below the fold at the hand-off — which is exactly the cascade
  * that file rejects, arriving through the back door. See the scroll-path note
@@ -134,7 +162,7 @@
  * decides `shouldPlay === true` during PRERENDER (every flag is false on the
  * server, by construction), so `arriving` is false in the static HTML, and the
  * page's entire content — `/about`'s paragraph, action row and portrait, or
- * `/work`'s five project cards — would be absent from the prerendered document
+ * `/work`'s heading, deck and exit — would be absent from the prerendered document
  * rather than present at `opacity: 0` with the `<noscript>` net over it.
  * MEASURED: `/about`'s served `<body>` DOM is 15092 bytes; the four units are
  * most of it.
@@ -156,8 +184,12 @@
  * exactly as before. The mechanism self-selects; the call site only has to
  * avoid wrapping units that can never be above the fold at all.
  *
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE TABLE BELOW IS HISTORICAL. IT DESCRIBES A PAGE THAT NO LONGER EXISTS.
+ * ─────────────────────────────────────────────────────────────────────────
  * MEASURED on `/work` at fourteen viewports, 360x640 through 2560x1440, as the
- * intersection ratio `amount: 0.1` actually tests:
+ * intersection ratio `amount: 0.1` actually tests — **on 2026-08-22, against
+ * the two-column five-card `Projects` grid that `/work` carried then**:
  *
  *   360x640, 375x667       units 0-1     (heading, card 1)
  *   390x844, 414x896       units 0-2
@@ -167,20 +199,47 @@
  *   820x1180, 2560x1440    units 0-5     (the whole Projects section)
  *   every one of them      units 6-7 NEVER  (Experience, top >= 1981px)
  *
- * So `/work` wraps `Projects` and does NOT wrap `Experience`.
- * `CurrentlyLearning` renders `null` today and is not wrapped either. IF THE
- * ARCHIVE EVER SHRINKS BELOW THREE CARDS, re-measure: Experience moves up the
- * page and could enter the fold on a tall viewport, and nothing will report it.
+ * **EVERY ROW OF IT IS STALE AS OF 2026-08-25 AND NONE OF IT HAS BEEN RE-RUN.**
+ * The `/work` restructure deleted the grid, so there are no "cards" and no
+ * "units 0-5"; the deck is ONE unit; the page is roughly 1000px shorter, so the
+ * 1981px figure for Experience is wrong by about that much; and the section
+ * order changed (Certifications now sits between the deck and Experience). It
+ * is kept rather than deleted because it is the only real intersection-ratio
+ * measurement anyone has taken here, and because the SHAPE of the result — that
+ * the wrapped set is viewport-dependent and the component must not try to
+ * predict it — is what the paragraph above it depends on, and that is unchanged.
+ *
+ * **WHAT WOULD HAVE TO BE RE-RUN, AND WHAT REPLACED IT IN THE MEANTIME.** A
+ * fresh fourteen-viewport capture of `/work` needs a browser and none was
+ * available in the session this note was written. What exists instead is
+ * arithmetic off the shipped class strings, which is weaker (it cannot see a
+ * font fallback or a rounding) but is at least run: the deck section stacks to
+ * 949.6px, Certifications' heading triggers at ~1046px and Experience's at
+ * ~1370.7px. `Certifications.tsx` shows the full ladder.
+ *
+ * **THE "RE-MEASURE" TRIGGER THIS PARAGRAPH CARRIED HAS ALREADY FIRED.** It
+ * read: *"IF THE ARCHIVE EVER SHRINKS BELOW THREE CARDS, re-measure: Experience
+ * moves up the page and could enter the fold on a tall viewport, and nothing
+ * will report it."* The archive did not shrink — the GRID LEFT THE PAGE
+ * ENTIRELY, which is the same hazard several times over — and nobody
+ * re-measured for the length of a slice. Experience did move up the page — its
+ * section top is now 1274.2px against the ">= 1981px" the table records — and
+ * it was caught only by review. **It remains on `Reveal`**, on the
+ * arithmetic above rather than on a measurement; `CurrentlyLearning` renders
+ * `null` while its data file is empty and is not wrapped either.
  *
  * THE SCROLL PATH IS NOT FREE, AND THE COST IS DECLARED RATHER THAN BURIED.
  * `arriving` latches true and never goes back, so a unit released by the
  * hand-off keeps `INTRO_ONSET_S` on its `delay` for the rest of the page's
- * life. On a hard load of `/work` at 375x667, cards 2-5 are below the fold,
- * were never part of the entrance, and reveal 0.30s later than they do today
- * when scrolled into view — 1.00s from entering the viewport to settled, which
+ * life. On a hard load of `/work` at 375x667, the units below the fold were
+ * never part of the entrance and reveal 0.30s later than they do today when
+ * scrolled into view — 1.00s from entering the viewport to settled, which
  * is exactly the ~1.0s budget `Reveal`'s header states rather than inside it.
- * MEASURED in-view to opacity>0, hard load: **316ms** at 375x667 unit 2 and
- * 317ms at 1440x900 unit 5 (both were 216-217ms at the 0.20s onset), against
+ * MEASURED in-view to opacity>0, hard load, **2026-08-22, on the five-card grid
+ * this page carried then** (the units named are that page's cards 2 and 5, which
+ * no longer exist; the FIGURE is a property of the onset, not of the page, so it
+ * carries over — the identifiers do not): **316ms** at 375x667 and
+ * 317ms at 1440x900 (both were 216-217ms at the 0.20s onset), against
  * 33ms on a CLIENT NAVIGATION, where there is no
  * hand-off, `waitedForHandoff` is false, and the scroll path is byte-identical
  * to before this file existed. That 0.30s is the price of not reading the DOM
@@ -191,14 +250,25 @@
  * NO PATHNAME CHECK, AND NO DOM PREDICATE EITHER. The sanctioned predicate for
  * "is this the route with a hero stage" is a DOM read (`Intro.tsx` uses it to
  * choose between the camera and the dissolve), and a DOM read cannot be done
- * during RENDER without lying on the server. It does not need to be: both call
- * sites are on routes that have no hero stage by construction — `AboutScreen`
- * only renders on `/about`, and `Projects`' `motion="reveal"` branch only
+ * during RENDER without lying on the server. It does not need to be: all three
+ * call sites are on routes that have no hero stage by construction —
+ * `AboutScreen` renders only on `/about`, and `ProjectDeckSection` and
+ * `Certifications` render only on `/work`. That is the same fact the predicate
+ * would report.
+ *
+ * **THE `/work` HALF OF THAT SENTENCE USED TO BE ABOUT A DIFFERENT COMPONENT
+ * AND IS NOW SIMPLER.** It read: *"`Projects`' `motion="reveal"` branch only
  * renders on `/work` (Home passes `motion="scrub"`, which selects `ScrubReveal`
- * and never reaches this file). That is the same fact the predicate would
- * report. And if it ever DID mount on Home, it would be harmless rather than
- * wrong: the Projects section is far below Home's fold, so the released
- * instance would sit at `initial` and reveal on scroll.
+ * and never reaches this file)."* `Projects` no longer renders on `/work` at
+ * all, and its `motion="reveal"` branch renders NOWHERE — so the clause turned
+ * from a true statement about a shared component into a claim about a code path
+ * with no call sites. The two components named above are single-route by
+ * construction rather than by prop, which is a stronger version of the same
+ * guarantee: there is no branch to pass wrongly.
+ *
+ * And if one of them ever DID mount on Home, it would be harmless rather than
+ * wrong: it would land far below Home's fold, so the released instance would
+ * sit at `initial` and reveal on scroll.
  *
  * REDUCED MOTION IS NOT GATED, AND THAT IS HOME'S RULE GENERALISED RATHER THAN
  * AN EXCEPTION TO IT. `Hero.tsx`: "the correct arrival for someone who asked
@@ -224,7 +294,9 @@ const INTRO_ONSET_S = STAGGER.line * 3;
 type IntroEntranceProps = {
   children: ReactNode;
   /** Passed straight through. `/about`'s four units keep 0 / 0.10 / 0.20 /
-   *  0.30; `/work`'s six pass nothing and stay at 0. */
+   *  0.30; `/work`'s five — three in `ProjectDeckSection`, two in
+   *  `Certifications` — pass nothing and stay at 0. (This said SIX, counting
+   *  the retired five-card grid's heading plus cards.) */
   delay?: number;
   className?: string;
   fadeOnly?: boolean;

@@ -32,10 +32,38 @@
  * error instead. The two constants below are exported from this same file so
  * the divergence is readable in one place rather than hidden behind a default.
  *
- * NO `"use client"`, AND THAT IS LOAD-BEARING. All four consumers are server
- * components and `Reveal` is the site's only client boundary. If `motion/react`
- * or a hook ever appears in this file, this refactor has quietly regressed
- * three shipped sections into client components.
+ * NO `"use client"`, AND THAT IS LOAD-BEARING — but the claim it used to make
+ * is now narrower, and the narrowing is the interesting part.
+ *
+ * IT READ "All FIVE consumers are server components and `Reveal` is the site's
+ * only client boundary." **THERE ARE SIX SINCE 2026-08-25 AND THE SIXTH IS A
+ * CLIENT COMPONENT**: `components/sections/ProjectDeck.tsx` renders the deck's
+ * GitHub and Live Site controls through this component, and the deck is
+ * `"use client"` because it owns pointer, keyboard and drag state.
+ *
+ * **THE ABSENCE OF `"use client"` HERE IS STILL LOAD-BEARING, AND FOR EXACTLY
+ * THE SAME REASON.** A module without the directive is usable from BOTH sides:
+ * the five server consumers keep it on the server, and the deck pulls it into
+ * the client bundle it was already shipping. Adding the directive would flip
+ * that — it would drag `AboutScreen`, `CurrentlyLearning`, `Experience`,
+ * `ProjectDetail` and `RevealFooter` across the boundary, which is precisely
+ * the regression the paragraph was written to prevent. So: if `motion/react` or
+ * a hook ever appears in this file, five of the six consumers quietly become
+ * client components. The rule survives; only "all consumers are server
+ * components" did not.
+ *
+ * THE COUNT SAID FOUR UNTIL 2026-08-25 AND WAS WRONG BEFORE `/projects`
+ * EXISTED — that part was not route drift. The five were `AboutScreen`,
+ * `CurrentlyLearning`, `Experience`, `ProjectDetail` and `RevealFooter`; every
+ * one was checked against the repo's `"use client"` list and none carries the
+ * directive, so THE SUBSTANCE OF THAT PARAGRAPH HELD THE WHOLE TIME — only the
+ * number was false. `ProjectDeck` is the sixth, is a real client component, and
+ * is the first consumer that makes the "all server" clause false rather than
+ * merely miscounted. Recorded rather than silently corrected because a header
+ * whose adjacent clause is load-bearing is exactly where a wrong number does
+ * the most damage: it invites the reader to distrust the part that matters.
+ * `components/ui/link-preview.tsx` quotes this sentence and was corrected in
+ * the same change.
  *
  * NOT for internal navigation. `next/link` owns in-app routes; this is for
  * links that leave the site, which is the only case that needs `target`/`rel`

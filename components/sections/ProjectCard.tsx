@@ -33,9 +33,22 @@ import type { Project } from "@/content/types";
  * gallery's tab stops), `description` and `screenshots` (detail-page payload).
  *
  * THE `layoutId` IS SHIPPED — Ticket 6b. It is on the cover wrapper below and
- * NOWHERE ELSE IN THIS FILE. Its value is `project-cover-${slug}` and its only
- * other holder is `<CoverFrame>` on the detail page, so five cards and one open
- * cover can never contend. Do not add a second one anywhere: an unmatched
+ * NOWHERE ELSE IN THIS FILE. Its value is `project-cover-${slug}`.
+ *
+ * **THERE ARE NOW THREE HOLDERS OF THAT ID ACROSS THE SITE, NOT TWO, AND THE
+ * INVARIANT IS UNCHANGED BECAUSE NO TWO OF THEM SHARE A PAGE.** This block said
+ * "its only other holder is `<CoverFrame>` on the detail page, so five cards
+ * and one open cover can never contend", which was true while `/work` rendered
+ * this grid. Since 2026-08-25 the third holder is the expanded panel's cover in
+ * `components/sections/ProjectDeck.tsx`, which took over as `/work`'s morph
+ * source when the deck replaced the grid there. The full picture:
+ *
+ *   `ProjectCard`  Home only, three cards, three distinct slugs
+ *   `ProjectDeck`  `/work` only, and at most ONE panel exists at a time
+ *   `CoverFrame`   the detail page / the overlay, one open cover
+ *
+ * A card and a panel can never be mounted together, because Home and `/work`
+ * are different routes. Do not add a second one anywhere: an unmatched
  * `layoutId` is not free — it still enrols the element in Motion's
  * layout-projection tree and measures it on mount.
  *

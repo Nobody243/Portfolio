@@ -306,8 +306,12 @@ export function ProjectOverlay({ children }: { children: ReactNode }) {
    * `router.back()` RATHER THAN `router.push(...)`: back preserves the
    * gallery's scroll offset AND returns to whichever gallery you came from,
    * which a fixed destination cannot. There are two of them now — Home's
-   * featured set and the full archive at `/work` — and CCN and SNA are only
-   * ever reached from `/work`.
+   * featured set and the full archive at `/work`. CCN and SNA were reachable
+   * ONLY from `/work` until 2026-08-25, when `/projects` shipped and listed all
+   * five; they now have two in-app entry points like everything else, and the
+   * sentence this replaces claimed otherwise. The reasoning around it is
+   * unaffected — it is about which page a morph starts from, and both pages
+   * render a cover that the morph can start from.
    *
    * THE GUARANTEE IS WEAKER THAN IT WAS, AND THE MECHANISM IS UNAFFECTED. This
    * used to say the history was guaranteed to contain `/`. What is still

@@ -43,11 +43,14 @@
 import type { Project } from "./types";
 
 import folioCover from "@/public/images/projects/folio/cover.png";
+import folioGithub from "@/public/images/projects/folio/github.png";
 import folioResults from "@/public/images/projects/folio/results.png";
 import aeroGridCover from "@/public/images/projects/aero-grid/cover.png";
+import aeroGridGithub from "@/public/images/projects/aero-grid/github.png";
 import aeroGridSimulation from "@/public/images/projects/aero-grid/simulation.png";
 import aeroGridResults from "@/public/images/projects/aero-grid/results.png";
 import clashchatCover from "@/public/images/projects/clashchat/cover.png";
+import clashchatGithub from "@/public/images/projects/clashchat/github.png";
 import clashchatHomeDark from "@/public/images/projects/clashchat/home-dark.png";
 import clashchatHomeLight from "@/public/images/projects/clashchat/home-light.png";
 import ccnCover from "@/public/images/projects/ccn-network/cover.png";
@@ -76,6 +79,9 @@ export const projects = [
     ],
     links: {
       github: "https://github.com/Nobody243/FOLIO",
+      // The repo renders as `Nobody243/folio` — GitHub redirects the casing, so
+      // both the link and this screenshot of it are correct.
+      githubPreview: folioGithub,
       // Staging deployment. Verified loading; staging environments do get torn
       // down, so re-check at Ticket 13 and periodically after. If it ever 404s
       // the honest fix is deleting this key, not swapping in another URL.
@@ -124,6 +130,7 @@ export const projects = [
     ],
     links: {
       github: "https://github.com/Nobody243/Aero-Grid",
+      githubPreview: aeroGridGithub,
       live: "https://aerogrid-simulator-ag24303.vercel.app",
     },
     date: "2025-04",
@@ -169,6 +176,7 @@ export const projects = [
     ],
     links: {
       github: "https://github.com/Nobody243/ClashChat",
+      githubPreview: clashchatGithub,
       live: "https://clashchat-54dc0.web.app",
     },
     date: "2025-03",
@@ -293,8 +301,14 @@ export const projectSlugs = projects.map((project) => project.slug);
  *
  * WHICH THREE, AND WHY, per docs/07_SITE_RESTRUCTURE.md §5: the most polished
  * and actually-deployed of the five. CCN and SNA are archive-only — they are
- * real, hands-on coursework and they stay on `/work` in full, which is also the
- * ONLY route that links to their detail pages. Changing this set is Saad's
+ * real, hands-on coursework and they stay off Home's cards.
+ *
+ * THAT LAST CLAUSE READ "which is also the ONLY route that links to their
+ * detail pages" UNTIL 2026-08-25 AND IS NO LONGER TRUE. `/projects` shipped a
+ * strip row per project, so both routes link to all five — and Home reaches
+ * `/projects` in one click via the `Browse as a list` control under its three
+ * cards. "Archive-only" now means "not among Home's three CARDS", which is a
+ * narrower statement than it used to be. Changing this set is still Saad's
  * call, not a layout decision.
  */
 export const FEATURED_SLUGS: ReadonlySet<ProjectSlug> = new Set([

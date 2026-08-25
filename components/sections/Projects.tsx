@@ -1,17 +1,30 @@
+import Link from "next/link";
+
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import { ScrubReveal } from "@/components/ui/ScrubReveal";
 import { ProjectCard } from "@/components/sections/ProjectCard";
+import { PROJECT_BUTTON_NAV } from "@/components/sections/projectButtonStyles";
+import { DECK_BROWSE_AS_LIST_LABEL } from "@/components/sections/projectDeckContent";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
 import type { Project } from "@/content/types";
 
 /**
- * Work — Tier 2. The third section on Home (after Stack, three cards) and the
- * first on `/work` (the full archive, five cards). One component, two pages.
+ * Work — Tier 2. The third section on Home, after Stack: three cards.
+ *
+ * **ONE PAGE, NOT TWO, SINCE 2026-08-25.** This block read "and the first on
+ * `/work` (the full archive, five cards). One component, two pages." That
+ * stopped being true when the projects-architecture restructure replaced
+ * `/work`'s grid with the fanned deck
+ * (`components/sections/ProjectDeckSection.tsx`). Home is now this component's
+ * only caller. Everything below that reasons about "two pages" is kept and
+ * marked rather than deleted, because the arguments are still the reasons this
+ * component has the shape it has — and because the `/work` case is the one a
+ * future second caller would recreate.
  *
  * IT TAKES ITS LIST AS A PROP AND DOES NOT FILTER, SORT OR SLICE — Phase 3,
- * and the rule is the point. Home passes `featuredProjects`, `/work` passes
- * `projects`; both are ordered by `content/projects.ts`'s array, which is the
- * single source of display order for the whole site. A `featured` prop, a
+ * and the rule is the point. Home passes `featuredProjects`; the list is
+ * ordered by `content/projects.ts`'s array, which is the single source of
+ * display order for the whole site. A `featured` prop, a
  * `limit` prop or a `.slice(0, 3)` here would each put a second copy of that
  * decision in a component, where nobody editing the data file would find it.
  * The membership set that picks the three lives in the data file and expresses
@@ -33,11 +46,34 @@ import type { Project } from "@/content/types";
  * because it makes an EMPTY group visible; three or five is not a number that
  * needs announcing.
  *
- * AND STILL NO "VIEW ALL" LINK ON HOME, now that Home shows a subset. The route
- * to the archive is the navbar's WORK entry, which is present on every page and
- * is the site's one answer to "where is everything" — a second, section-local
- * link to the same place would be the template affordance this section has
- * refused since Ticket 6.
+ * **THE "VIEW ALL" REFUSAL WAS REVERSED ON 2026-08-25, AND THIS SECTION NOW
+ * RENDERS AN EXIT.** The superseded wording is quoted rather than deleted,
+ * because it is the argument anyone proposing to delete the control again would
+ * have to answer:
+ *
+ *   "AND STILL NO 'VIEW ALL' LINK ON HOME, now that Home shows a subset. The
+ *    route to the archive is the navbar's WORK entry, which is present on every
+ *    page and is the site's one answer to 'where is everything' — a second,
+ *    section-local link to the same place would be the template affordance this
+ *    section has refused since Ticket 6."
+ *
+ * IT RESTED ENTIRELY ON ITS SECOND SENTENCE, AND THAT SENTENCE STOPPED BEING
+ * TRUE WHEN `/projects` SHIPPED. The navbar's WORK entry goes to `/work`; the
+ * bar has no `/projects` entry and is not getting one —
+ * `components/ui/navContent.ts` keeps three items and handles the new route
+ * with a `ROUTE_GROUP` MATCHING rule, so `/projects` lights WORK up without
+ * being reachable from it. The control below is therefore the only entry on
+ * Home to a route the chrome cannot reach, which is a different object from a
+ * duplicate of a nav item.
+ *
+ * AND THE REFUSAL STILL STANDS AGAINST THE THING IT WAS AIMED AT: there is
+ * still no second link to `/work` in this section, and no "View all", no count,
+ * no arrow glyph, no filter chips and no "click a card" instruction. One
+ * control, one destination the bar cannot reach.
+ *
+ * `/work` CARRIES THE OTHER HALF OF THE PAIR — `ProjectDeckSection`'s exit,
+ * shipped the same day, with the same label, the same dressing and the same
+ * destination.
  *
  * GRID WIDTH IS A DOCUMENTED DEPARTURE FROM THE 34rem MEASURE — the one place
  * this site has two void widths instead of one, and it is deliberate.
@@ -117,8 +153,18 @@ import type { Project } from "@/content/types";
  * not reintroduce it either: a scrub has no `delay` to stagger with, which is
  * why arriving at `#work` by jump renders exactly what arriving by scroll does.
  *
- * THE MOTION OWNER IS THE CALLER'S DECISION — `motion`, below. Home scrubs,
- * `/work` reveals, and this file does not know which page it is on.
+ * THE MOTION OWNER IS THE CALLER'S DECISION — `motion`, below. Home scrubs, and
+ * this file does not know which page it is on.
+ *
+ * **`motion="reveal"` HAS ZERO CALL SITES SINCE 2026-08-25**, and it is kept
+ * rather than deleted — the same in-house label and the same judgement as
+ * `STAGGER.card` in `lib/animation/easing.ts`. `/work` was its only consumer
+ * and `/work` no longer renders this component. Collapsing the union to
+ * "scrub", or deleting the prop and hardcoding `ScrubReveal`, would delete the
+ * one mechanism that stops a second page silently inheriting Home's motion —
+ * and `docs/07` §5's "scroll-scrub is Home only" is a rule about PAGES, so the
+ * guard belongs on the boundary a page crosses. If a second caller never
+ * appears, delete the union then; do not delete it pre-emptively.
  */
 /**
  * `projects` is `readonly Project[]`, not `ProjectSlug[]` and not a filter
@@ -331,6 +377,105 @@ export function Projects({ projects, motion }: ProjectsProps) {
             </li>
           ))}
         </ul>
+
+        {/*
+          THE EXIT TO `/projects` — §5 of the projects-architecture spec. The
+          header above carries the reversal of this section's written refusal of
+          exactly this control; what follows is only how it is built.
+
+          ══════════════════════════════════════════════════════════════════
+          IT IS OUTSIDE THE SCRUB, AND THAT IS THE DESIGN RATHER THAN A GAP
+          ══════════════════════════════════════════════════════════════════
+
+          NO `<Unit>`, NO `ScrubReveal`, NO `IntroEntrance`, NO `Reveal`. It
+          does not animate in; it is simply there. §5 says so in as many words —
+          "treat as a simple static element … it's a navigational exit point,
+          not trajectory content" — and the page already speaks that dialect:
+          Stack sits between two scrubbed sections on `Reveal` precisely so the
+          discrete-versus-continuous difference reads as the tier boundary.
+          Chrome-like affordances do not track the scroll here.
+
+          THIS IS STRUCTURAL, NOT A PROP LEFT OFF. `ScrubReveal` creates one
+          ScrollTrigger per instance with `trigger: el` — the wrapper's own box
+          — so a unit that is never wrapped is never swept into anything. There
+          is no section-level trigger, no `staggerChildren` and no ancestor
+          timeline on this page that could pick the control up implicitly; the
+          `<div>` below is a plain `<div>`. If a future change wants this to
+          move with the cards, that is a design decision, not a missing wrapper.
+
+          IT SHIPS FULLY VISIBLE IN THE PRERENDERED HTML, which is the other
+          half of the same choice. `Reveal` writes `opacity: 0` into the server
+          markup and depends on the `<noscript>` net in `app/layout.tsx` to undo
+          it; an unwrapped control needs neither. With JS blocked this is a real
+          `<a href="/projects">` at full opacity, exactly as it is with JS on.
+
+          ══════════════════════════════════════════════════════════════════
+          PLACEMENT, LABEL, DRESSING
+          ══════════════════════════════════════════════════════════════════
+
+          `mt-xl lg:mt-2xl` MIRRORS THE GRID'S OWN GAP under the heading, so the
+          section's rhythm is heading →(55/89)→ grid →(55/89)→ control. Equal
+          steps are what make the control read as a separate block rather than
+          as a fourth card; a smaller gap would attach it to the orphan card
+          above it.
+
+          ON THE SPINE, LEFT-ALIGNED, INTRINSIC WIDTH — the same leading edge as
+          the `<h2>`, the grid and every other section on the site. Not
+          full-width (that is the template move), not centred (`text-center` is
+          zero on this site and stays zero), no rule above it, no arrow glyph.
+
+          A PLAIN BLOCK `<div>` AND NOT A FLEX ROW, matching
+          `ProjectDeckSection`'s wrapper on `/work` so the two halves of the
+          pair have the same box. The link is `inline-flex` (from
+          `BUTTON_BASE`), so it sits in a line box and the strut's descent gives
+          the brutal shadow's 5px overhang some free clearance; the section's
+          `pb-2xl` covers it many times over regardless.
+
+          THE LABEL IS `DECK_BROWSE_AS_LIST_LABEL`, IMPORTED — NOT A SECOND COPY
+          OF THE STRING. Home and `/work` are one control on two pages, with one
+          destination, so they get one string; two copies would drift the first
+          time the wording was retuned and the drift would be invisible until
+          someone opened both pages side by side. The `DECK_` prefix is now a
+          slight misnomer here and that is recorded at the constant itself.
+
+          "VIEW ALL PROJECTS" WAS THE DESIGN BRIEF'S LABEL AND IS DELIBERATELY
+          NOT USED, EVEN THOUGH IT WOULD BE LITERALLY TRUE FROM HOME (three
+          cards here, five rows there). Two reasons, and the second is the
+          load-bearing one: (1) the same control on `/work` cannot say it —
+          five and five — so keeping both on one string means keeping the one
+          that is true on both surfaces; (2) "View all projects" promises the
+          ARCHIVE, and the archive is `/work`, which is what the navbar already
+          offers. A control that promises the archive and delivers a differently
+          presented list of the same five is the label doing the lying. "Browse
+          as a list" names the affordance difference, which is the thing that is
+          actually different from either surface.
+
+          `PROJECT_BUTTON_NAV` UNCHANGED, and `bg-base` in it is correct here by
+          the same "fill with the surface you are standing on" rule that chose
+          it for `/work`: this section's background is `bg-base` too. 46.8px
+          tall by construction (`BUTTON_BASE`'s `px-md py-sm` + `text-caption`'s
+          16.8px line box + `border-2` twice), so the mobile tap target clears
+          44px at every width with no `min-h` and no mobile variant — §6/§H.4.
+          `BRUTAL_MOTION`'s lift and press ARE the "animated button"; do not add
+          a gradient, a moving border, a shimmer or a glow.
+
+          A PLAIN `<Link>`, NOT AN OVERLAY TRIGGER. `/projects` is a real page
+          with its own heading and its own `Close`; only `/projects/<slug>` is
+          intercepted by `app/(site)/@modal/(.)projects/[slug]/`.
+
+          RENDERED UNCONDITIONALLY, WITH NO PROP TO SUPPRESS IT — unlike
+          `motion`, and the asymmetry is deliberate. `motion` is required
+          because a page that omitted it would render CORRECTLY-LOOKING but
+          silently wrong animation; a second caller inheriting this control
+          would render a visible duplicate link, which is caught by looking at
+          the page once. Machinery is spent on the silent failure and not on the
+          loud one, and today there is no second caller to spend it for.
+        */}
+        <div className="mt-xl lg:mt-2xl">
+          <Link href="/projects" className={PROJECT_BUTTON_NAV}>
+            {DECK_BROWSE_AS_LIST_LABEL}
+          </Link>
+        </div>
       </div>
     </section>
   );

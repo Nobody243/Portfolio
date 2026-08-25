@@ -61,6 +61,9 @@
  * a fourth `kind`, which is the special-casing the paragraph above rejects.
  */
 
+import githubPreview from "@/public/images/contact/github.png";
+import linkedinPreview from "@/public/images/contact/linkedin.png";
+
 import type { ContactLink } from "./types";
 
 export const contact: readonly ContactLink[] = [
@@ -86,6 +89,13 @@ export const contact: readonly ContactLink[] = [
     value: "github.com/Nobody243",
     href: "https://github.com/Nobody243",
     kind: "web",
+    // Captured 2026-08-25, signed in, so the shot includes the owner-only
+    // controls (Edit profile, the settings gear). That is what the page looks
+    // like to Saad and not to a visitor. Kept anyway: the preview's job is to
+    // make the destination RECOGNISABLE at 200px wide, where the profile photo,
+    // the pinned-project grid and the README are what read — and none of those
+    // differ. Recapture signed out if it ever matters.
+    previewImage: githubPreview,
   },
   {
     label: "LinkedIn",
@@ -93,5 +103,10 @@ export const contact: readonly ContactLink[] = [
     value: "linkedin.com/in/muhammad-saad-2911702a3",
     href: "https://www.linkedin.com/in/muhammad-saad-2911702a3",
     kind: "web",
+    // The LOGGED-OUT view, which is what a recruiter following this link
+    // actually gets: the banner, the photo, the headline and the "Join to view
+    // profile" wall. An authenticated capture would have promised a page most
+    // visitors cannot reach, which is the one thing a link preview must not do.
+    previewImage: linkedinPreview,
   },
 ];

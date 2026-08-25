@@ -75,6 +75,47 @@
   --color-accent-working: #14b8a6; /* 7.95:1 on base */
   --color-on-accent: #0a0a0b; /* text ON a filled accent-working surface */
 
+  /* ── RECONSTRUCTED 2026-08-25 ────────────────────────────────────────────
+     A git-filter-repo run reset every tracked file to its committed state and
+     destroyed the uncommitted originals of these seven tokens. Every other
+     tracked file was recovered VERBATIM from `.next` source maps; CSS is not
+     in a JS source map and the CSS maps carry no `sourcesContent`, so this
+     file could not be.
+
+     THE VALUES BELOW ARE NOT GUESSED. Each was read back out of the compiled
+     stylesheet in `.next/static/chunks/*.css`, which still held both themes'
+     emitted custom properties. The PROSE is rewritten from
+     `.claude/specs/projects-architecture-spec.md`, which survived because
+     `.claude/` is gitignored and therefore untouched by the rewrite.
+     ──────────────────────────────────────────────────────────────────────── */
+
+  /* The BRUTAL EDGE — the 2px border and the stacked offset shadow on
+     `/about`'s three controls, and the frame on the link-preview card.
+
+     NOT `--color-fg`. #ededed at 16.90:1 is the site's TEXT ink, and putting
+     text ink on a 2px rule plus five stacked shadow layers made the row shout
+     louder than the words in it. #8f8f8f is 6.12:1 on base — clear of WCAG
+     1.4.11's 3:1 floor for a UI boundary, and deliberately NOT a text value.
+
+     IT IS OPAQUE, AND THAT IS LOAD-BEARING. `BRUTAL_SHADOW` is FIVE
+     box-shadows at 1px through 5px and they overlap; a translucent ink would
+     composite with itself and paint the slab in five visible bands instead of
+     one solid offset. */
+  --color-brutal-edge: #8f8f8f; /* 6.12:1 on base — a RULE colour, never text */
+
+  /* The DECK RAMP — five surfaces for `/work`'s fanned card deck, mapped onto
+     the fan's z-order. A five-step neutral ELEVATION ramp, not five hues:
+     CLAUDE.md allows two accents total, and five distinguishable card faces
+     had to come from neutrals and elevation rather than from new colour.
+     ΔL* ≈ 3.2 between steps. Climbs LIGHTER in dark, the direction
+     `--color-elevated` already climbs. Light mode is tuned independently
+     below, never this ramp at another opacity. */
+  --color-deck-1: #0e1310;
+  --color-deck-2: #141a16;
+  --color-deck-3: #1a211c;
+  --color-deck-4: #202823;
+  --color-deck-5: #262f29;
+
   /* Surfaces. `elevated` is the card background (Ticket 6); the two tints are
      the quiet cyber-green / cloud-blue undertones reserved for skill groups
      (Ticket 5). All three are one small step off base ON PURPOSE — at Tier 2/3
@@ -512,6 +553,25 @@ html.light {
   --color-tint-warm: #f8fbf8;
   --color-accent-working: #0f766e; /* 5.34:1 — passes AA body + UI */
   --color-on-accent: #fdfcfa;
+
+  /* RECONSTRUCTED 2026-08-25 — see the dark block above for why, and for where
+     these values were read back from.
+
+     THE BRUTAL EDGE FLIPS TO THE TEXT INK IN LIGHT MODE. It shipped for
+     several hours with no light override, so light inherited the dark grey at
+     3.16:1 while the docblock claimed otherwise — a quality regression plus a
+     false statement. #151515 is the same ink `border-fg` gave these controls
+     before the token existed, so light is unchanged by its existence.
+
+     THE DECK RAMP CLIMBS DARKER IN LIGHT, its own tuned values at ΔL* ≈ 2.5 —
+     not the dark ramp reused at another opacity. That principle is why
+     `--color-accent-working` is #14b8a6 dark and #0f766e light. */
+  --color-brutal-edge: #151515; /* 17.81:1 — the same ink `border-fg` gave */
+  --color-deck-1: #f7f9f6;
+  --color-deck-2: #eff2ee;
+  --color-deck-3: #e7ebe6;
+  --color-deck-4: #dfe4de;
+  --color-deck-5: #d7ddd6;
   /* --accent-hero is deliberately NOT overridden — see ACCENT POLICY above.
      Neither are --color-hero-surface, --color-hero-fg or --color-hero-accent:
      the hero is a pinned dark context in both themes. Their absence here is

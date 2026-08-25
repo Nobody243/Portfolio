@@ -127,6 +127,22 @@ export const NAV_COPY_ANNOUNCEMENT = "Email address copied to clipboard";
 export const NAV_COPY_FALLBACK = "Press Ctrl/⌘+C";
 
 /**
+ * Hrefs that are active for more than their own pathname. Each value is a list
+ * of BASE PATHS; a base matches itself and anything beneath it.
+ *
+ * ONE ENTRY, AND THE ABSENCE OF `/` IS THE LOAD-BEARING PART — see the
+ * predicate's docblock. Adding `/` here reopens the objection this shape exists
+ * to close.
+ *
+ * `${base}/` WITH THE TRAILING SLASH, NOT `startsWith(base)`. The latter would
+ * also match a future `/projects-archive`, which is a different page that would
+ * silently inherit WORK's underline.
+ */
+const ROUTE_GROUP: Readonly<Record<string, readonly string[]>> = {
+  "/work": ["/projects"],
+};
+
+/**
  * Is this href the page the visitor is currently on?
  *
  * IT LIVES IN THE COPY MODULE BECAUSE IT HAS TWO CONSUMERS AND THEY MUST NOT
@@ -140,9 +156,35 @@ export const NAV_COPY_FALLBACK = "Press Ctrl/⌘+C";
  * imports nothing, and touches no React and no styling. The header calls this
  * file "copy and link selection", and selecting which link is current is that.
  *
- * EXACT EQUALITY, NOT A PREFIX MATCH. The three destinations are `/about`, `/`
- * and `/work`, none of which is a parent of another, so a prefix rule would buy
- * nothing today and would quietly make `/` match everything.
+ * EXACT EQUALITY FIRST, AND A BLANKET PREFIX MATCH IS STILL REFUSED. This
+ * paragraph used to read "EXACT EQUALITY, NOT A PREFIX MATCH. The three
+ * destinations are `/about`, `/` and `/work`, none of which is a parent of
+ * another, so a prefix rule would buy nothing today and would quietly make `/`
+ * match everything." The first sentence of that is now false and the LAST
+ * CLAUSE IS WHY THE REPLACEMENT LOOKS THE WAY IT DOES.
+ *
+ * `pathname.startsWith(href)` is still refused, by name, for the reason given:
+ * `/` is a prefix of every path on the site, so a blanket rule marks Home
+ * active everywhere and puts two `aria-current="page"` attributes in the bar.
+ * What replaced it is a TABLE, not a rule — `ROUTE_GROUP` below — whose only
+ * entry is `/work`, and in which `/` is DELIBERATELY ABSENT. The objection is
+ * therefore closed BY CONSTRUCTION rather than by care: there is no `/` entry
+ * to widen, so `/` can only ever match itself.
+ *
+ * WHY `/work` GAINS A GROUP AT ALL. `.claude/specs/projects-architecture-spec.md`
+ * §0.4: `WORK` is the bar's entry for the site's project surfaces, and those
+ * are now three URLs — `/work`, `/projects` and `/projects/<slug>` — none of
+ * which is under another's path. Exact equality would leave two of the three
+ * with no active item, which is a bar that goes blank on a page it demonstrably
+ * has an entry for.
+ *
+ * THE INVARIANT THE INDICATOR DEPENDS ON, STATED SO IT CAN BE CHECKED: the
+ * three hrefs are `/about`, `/` and `/work`. `/about` and `/` match only
+ * themselves; `/work` additionally matches `/projects` and `/projects/**`. The
+ * three match sets are PAIRWISE DISJOINT, so exactly one centre item is ever
+ * active — which is the property `docs/07_SITE_RESTRUCTURE.md` §1.1 says is what
+ * makes the sliding indicator work at all. Any future entry in the table must
+ * preserve that, and adding `/` to it cannot.
  *
  * A HASH HREF IS NEVER ACTIVE, and that guard is not hypothetical. `About` was
  * `/#trajectory` until Phase 4 and the machinery for the next anchor that
@@ -153,8 +195,13 @@ export const NAV_COPY_FALLBACK = "Press Ctrl/⌘+C";
  * `querySelector` reaches first. Stating "a jump within a page is not a route"
  * here closes that off before it happens.
  */
-export const isActiveRoute = (href: string, pathname: string): boolean =>
-  !href.includes("#") && href === pathname;
+export const isActiveRoute = (href: string, pathname: string): boolean => {
+  if (href.includes("#")) return false;
+  if (href === pathname) return true;
+  return (ROUTE_GROUP[href] ?? []).some(
+    (base) => pathname === base || pathname.startsWith(`${base}/`),
+  );
+};
 
 export const NAV_MENU_OPEN_LABEL = "Open menu";
 export const NAV_MENU_CLOSE_LABEL = "Close menu";

@@ -70,6 +70,34 @@ export interface ProjectLinks {
   readonly github?: string;
   /** Live deployment URL, verified currently loading. Omit if none or dead. */
   readonly live?: string;
+
+  /**
+   * A still of the REPO PAGE, shown in a hover card beside the GitHub link.
+   *
+   * There is deliberately NO `livePreview`: a live link goes to the running
+   * project, and `Project.coverImage` is already a verified screenshot of
+   * exactly that, so `ProjectDetail` passes it straight through. A second
+   * image of the same thing is a second source of truth that will drift.
+   *
+   * A STATIC IMPORT, never a path — the rule at the top of `content/projects.ts`
+   * applies to every image on this site, and it is what makes a missing file a
+   * build error instead of a broken <img> in production.
+   *
+   * OPTIONAL, AND UNSET IS THE NORMAL STATE. With no image the link renders
+   * exactly as it did before previews existed — `LinkPreview` adds no wrapper
+   * element and mounts nothing.
+   *
+   * IT MUST BE A REAL SCREENSHOT OF THAT URL. CLAUDE.md: no fabricated content,
+   * ever. A stock image, a logo, or a shot of a different page is a small lie
+   * about where a link goes, told to someone deciding whether to click it.
+   *
+   * RECONSTRUCTED 2026-08-25 after a git-filter-repo run destroyed the
+   * uncommitted original. `content/types.ts` is type-only, so it is erased at
+   * compile and was the one file the `.next` source maps could not give back —
+   * every other tracked file was recovered verbatim. The FIELD NAMES and their
+   * optionality are certain (they are read by the restored consumers `content/projects.ts + components/sections/ProjectDetail.tsx`); this prose is rewritten from `.claude/specs/`, not recovered.
+   */
+  readonly githubPreview?: StaticImageData;
 }
 
 export interface Project {
@@ -185,6 +213,29 @@ export interface LearningEntry {
    */
   readonly completedDate?: string;
   readonly link?: string;
+
+  /**
+   * A still of the destination, shown in a hover card by `LinkPreview`.
+   *
+   * A STATIC IMPORT, never a path — the rule at the top of `content/projects.ts`
+   * applies to every image on this site, and it is what makes a missing file a
+   * build error instead of a broken <img> in production.
+   *
+   * OPTIONAL, AND UNSET IS THE NORMAL STATE. With no image the link renders
+   * exactly as it did before previews existed — `LinkPreview` adds no wrapper
+   * element and mounts nothing.
+   *
+   * IT MUST BE A REAL SCREENSHOT OF THAT URL. CLAUDE.md: no fabricated content,
+   * ever. A stock image, a logo, or a shot of a different page is a small lie
+   * about where a link goes, told to someone deciding whether to click it.
+   *
+   * RECONSTRUCTED 2026-08-25 after a git-filter-repo run destroyed the
+   * uncommitted original. `content/types.ts` is type-only, so it is erased at
+   * compile and was the one file the `.next` source maps could not give back —
+   * every other tracked file was recovered verbatim. The FIELD NAMES and their
+   * optionality are certain (they are read by the restored consumers `components/sections/CurrentlyLearning.tsx`); this prose is rewritten from `.claude/specs/`, not recovered.
+   */
+  readonly linkPreview?: StaticImageData;
 }
 
 /**
@@ -213,6 +264,29 @@ export interface LearningEntry {
 export interface Experience {
   /** Exact display casing. Content, not styling — never normalised. */
   readonly company: string;
+
+  /**
+   * A still of the company site, shown in a hover card on the company link.
+   *
+   * A STATIC IMPORT, never a path — the rule at the top of `content/projects.ts`
+   * applies to every image on this site, and it is what makes a missing file a
+   * build error instead of a broken <img> in production.
+   *
+   * OPTIONAL, AND UNSET IS THE NORMAL STATE. With no image the link renders
+   * exactly as it did before previews existed — `LinkPreview` adds no wrapper
+   * element and mounts nothing.
+   *
+   * IT MUST BE A REAL SCREENSHOT OF THAT URL. CLAUDE.md: no fabricated content,
+   * ever. A stock image, a logo, or a shot of a different page is a small lie
+   * about where a link goes, told to someone deciding whether to click it.
+   *
+   * RECONSTRUCTED 2026-08-25 after a git-filter-repo run destroyed the
+   * uncommitted original. `content/types.ts` is type-only, so it is erased at
+   * compile and was the one file the `.next` source maps could not give back —
+   * every other tracked file was recovered verbatim. The FIELD NAMES and their
+   * optionality are certain (they are read by the restored consumers `content/experience.ts + components/sections/Experience.tsx`); this prose is rewritten from `.claude/specs/`, not recovered.
+   */
+  readonly urlPreview?: StaticImageData;
   /** The job title, verbatim as it was. See the note above. */
   readonly role: string;
   /** ISO YYYY-MM. Components format it; never `new Date()`, never `Intl`. */
@@ -283,4 +357,33 @@ export interface ContactLink {
    * error.
    */
   readonly kind: "email" | "web";
+
+  /**
+   * A still of the destination, shown by `LinkPreview` in the reveal footer.
+   *
+   * MEANINGLESS FOR `kind: "email"` and deliberately not modelled as
+   * impossible — `RevealFooter` reads it on the `"web"` branch only. The
+   * `/about` GitHub and LinkedIn controls deliberately get no preview: they
+   * are dressed as buttons, and a hover card on a button reads as a tooltip
+   * that failed.
+   *
+   * A STATIC IMPORT, never a path — the rule at the top of `content/projects.ts`
+   * applies to every image on this site, and it is what makes a missing file a
+   * build error instead of a broken <img> in production.
+   *
+   * OPTIONAL, AND UNSET IS THE NORMAL STATE. With no image the link renders
+   * exactly as it did before previews existed — `LinkPreview` adds no wrapper
+   * element and mounts nothing.
+   *
+   * IT MUST BE A REAL SCREENSHOT OF THAT URL. CLAUDE.md: no fabricated content,
+   * ever. A stock image, a logo, or a shot of a different page is a small lie
+   * about where a link goes, told to someone deciding whether to click it.
+   *
+   * RECONSTRUCTED 2026-08-25 after a git-filter-repo run destroyed the
+   * uncommitted original. `content/types.ts` is type-only, so it is erased at
+   * compile and was the one file the `.next` source maps could not give back —
+   * every other tracked file was recovered verbatim. The FIELD NAMES and their
+   * optionality are certain (they are read by the restored consumers `content/contact.ts + components/sections/RevealFooter.tsx`); this prose is rewritten from `.claude/specs/`, not recovered.
+   */
+  readonly previewImage?: StaticImageData;
 }

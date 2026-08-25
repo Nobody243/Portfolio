@@ -1,7 +1,12 @@
 /**
  * Project detail page copy — Ticket 7.
  *
- * SEVEN STRINGS, ALL OF THEM FIXED UI LABELS. Every other word a detail page
+ * NINE STRINGS, ALL OF THEM FIXED UI LABELS. (This line read SEVEN until
+ * 2026-08-25, when `BREADCRUMB_ROOT_LABEL` and `BREADCRUMB_SEPARATOR` were
+ * added for the standalone page's breadcrumb — see the provenance note on the
+ * first of them. Update the count when you add one; a stale arity in a header
+ * is the cheapest kind of lie for a reader to believe.) Every other word a
+ * detail page
  * renders — the title, the description, the credit, the stack entries, the
  * alt texts, the URLs — comes from `content/projects.ts`, which is the
  * collection layer and the file that gets hand-edited for a year. This module
@@ -13,7 +18,11 @@
  * G5 and G8; F-D2 in ticket-7-design.md §9 for `GITHUB_LINK_LABEL`). The
  * seventh, `CLOSE_LABEL`, arrived with Ticket 6b and is specified by
  * ticket-6b-plan.md §4 step 12 rather than approved verbatim — that difference
- * is stated rather than smoothed over, and it is at its own constant below. Do
+ * is stated rather than smoothed over, and it is at its own constant below. The
+ * eighth and ninth, the two breadcrumb strings, have that same provenance one
+ * step removed: they are the literal wording of
+ * `.claude/specs/projects-architecture-spec.md` §4, which Saad ruled on but did
+ * not hand over as approved copy. Do
  * not paraphrase, pluralise, abbreviate or reword any of them to fit a layout.
  * If the layout needs different text, that is a question back to Saad, not an
  * edit here.
@@ -127,3 +136,44 @@ export const GITHUB_LINK_LABEL = "GitHub";
  * relabelling it.
  */
 export const LIVE_LINK_LABEL = "Live site";
+
+/**
+ * The breadcrumb's root segment — the standalone `/projects/<slug>` page only.
+ *
+ * SPECIFIED, NOT APPROVED VERBATIM, and that difference is stated rather than
+ * smoothed over — the same provenance note `CLOSE_LABEL` carries.
+ * `.claude/specs/projects-architecture-spec.md` §4 words the whole control as
+ * `"Projects / [project name]"`, so this string and `BREADCRUMB_SEPARATOR`
+ * below are the spec's own two fixed pieces of it. The third piece is the
+ * project's `title`, which comes from `content/projects.ts` like every other
+ * per-project word on the page.
+ *
+ * IT NAMES A ROUTE, NOT A SECTION. The link goes to `/projects` — the index —
+ * and never to `/work`. That separation is deliberate and was ruled on: the
+ * page's Close affordance is `BACK_LINK_LABEL` → `/work`, and the breadcrumb is
+ * `/projects`, so the two exits do not duplicate each other. Pointing this at
+ * `/work` would collapse them into the same destination twice on one page.
+ *
+ * SEEN BY ONE VISITOR ONLY. Every in-app click on a project opens the overlay
+ * at `app/(site)/@modal/(.)projects/[slug]/`, so this label renders only on a
+ * hard load or a shared link. It is written for someone who arrived cold and
+ * has no history to go back to, which is why it states a place rather than an
+ * action.
+ */
+export const BREADCRUMB_ROOT_LABEL = "Projects";
+
+/**
+ * The breadcrumb's separator.
+ *
+ * A LITERAL SLASH, matching the spec's wording character for character. Not
+ * `›`, not `→`, not `»`, not `|`: the site ships no icon set and
+ * `BACK_LINK_LABEL` already records rejecting glyph affordances on this
+ * surface. A slash also reads as a path, which is what a breadcrumb is.
+ *
+ * IT IS RENDERED `aria-hidden`. A screen reader announcing "slash" between two
+ * names is noise; the `<nav aria-label="Breadcrumb">` landmark and
+ * `aria-current="page"` carry the structure instead. That is a decision of the
+ * consumer, `ProjectBreadcrumb.tsx`, and is noted here so nobody wraps this
+ * string in a label to "fix" the silence.
+ */
+export const BREADCRUMB_SEPARATOR = "/";

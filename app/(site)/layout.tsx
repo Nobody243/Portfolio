@@ -8,9 +8,10 @@
  * unavoidable rather than a design choice.
  *
  * IT RENDERS NO DOM ELEMENT, NO CLASSNAME, AND NO PROVIDER, AND IT MUST NOT
- * GROW ANY. Every route under `(site)` passes through here — `/` and `/work`
- * (both inside the nested `(chrome)` group, which adds the navbar and, being a
- * route group, adds no URL segment) and all five `/projects/<slug>` pages,
+ * GROW ANY. Every route under `(site)` passes through here — `/`, `/work`,
+ * `/about` and `/projects` (all inside the nested `(chrome)` group, which adds
+ * the navbar and, being a route group, adds no URL segment) and all five
+ * `/projects/<slug>` pages,
  * which stay outside it, so a wrapper `<div>` would silently change the
  * DOM of the entire site to hold a slot, and a `flex`/`min-h` class here would
  * fight `<body className="flex min-h-full flex-col">` in `app/layout.tsx`,

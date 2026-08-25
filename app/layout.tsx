@@ -64,10 +64,13 @@ export const metadata: Metadata = {
   // renders. Only the shape changed. Verified 2026-08-22: `/about`, `/work`,
   // `/projects/[slug]` and `not-found` all declare their own `title`, so `/` is
   // the one route this string reaches (plus `app/error.tsx`, which cannot
-  // export metadata at all).
+  // export metadata at all). RE-VERIFIED 2026-08-25 with `/projects` added:
+  // it declares `title: "Projects"` too, so the conclusion is unchanged and
+  // `/` is still the only route reached.
   //
-  // This said "including the one-pager at `/`". The site has been three routes
-  // since the restructure; `/` is Home, not the whole site.
+  // This said "including the one-pager at `/`". The site has been a multi-route
+  // site since the restructure — four content routes as of 2026-08-25 — and `/`
+  // is Home, not the whole site.
   //
   // `template` exists so a page can return the bare thing it is about —
   // `title: project.title` on /projects/[slug] — and get "FOLIO — Saad"
@@ -205,15 +208,24 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           the site, present and future, and for <PageStack>.
 
           IT SAID "the <PageStack> that every route's <main> now renders" AND
-          THAT WAS NEVER TRUE. PageStack renders three of the site's six <main>
-          elements — `/`, `/work` and `/about`. `not-found.tsx`, `error.tsx` and
-          `/projects/[slug]` (through `ProjectDetailFrame as="main"`) render
-          their own, and none of those three fades, so none of them can ship a
-          hidden [data-page-stack] for this net to uncover. The net is correct;
-          the sentence describing its reach was not. Since 2026-08-22 only `/`
-          and `/work` fade at all — `/about` passes `fade={false}` — so the
-          selector currently covers two live consumers and stays for the same
-          insurance reason PageStack's own header gives.
+          THAT WAS NEVER TRUE. PageStack renders four of the site's seven
+          <main> elements — `/`, `/work`, `/about` and `/projects`.
+          `not-found.tsx`, `error.tsx` and `/projects/[slug]` (through
+          `ProjectDetailFrame as="main"`) render their own, and none of those
+          three fades, so none of them can ship a hidden [data-page-stack] for
+          this net to uncover. The net is correct; the sentence describing its
+          reach was not.
+
+          THE COUNT READ "three of the site's six" UNTIL 2026-08-25, when
+          `/projects` shipped inside `(chrome)` with its own PageStack. A
+          paragraph whose entire job is to correct a never-true sentence about
+          this net's reach then acquired the same defect — worth noticing more
+          than the arithmetic is.
+
+          Since 2026-08-22 `/about` passes `fade={false}` and is the only route
+          that does, so the selector currently covers three live consumers —
+          `/`, `/work` and, since 2026-08-25, `/projects` — and stays for the
+          same insurance reason PageStack's own header gives.
 
           Framer Motion writes `initial` styles into the SERVER-RENDERED markup
           — that is how it avoids a flash of unstyled content — so
@@ -238,11 +250,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           REGRESSION WE INTRODUCED. `IntroProvider` reads `shouldPlayIntro()`
           during PRERENDER, where every session flag is false by construction,
           so it answers "yes" and AssetLoader's `fixed inset-0 z-[60]` plate
-          ships in the static HTML of `/`, `/work` and `/about`. With scripting
+          ships in the static HTML of every route inside `(chrome)` — `/`,
+          `/work`, `/about` and, since 2026-08-25, `/projects`. With scripting
           disabled it never advances, never dissolves and never unmounts.
           MEASURED before this rule, 1440x900, scripting off: all three routes
-          were ONE COLOUR — `#07090C` at 100.0% of the viewport, zero rows with
-          content.
+          that existed then were ONE COLOUR — `#07090C` at 100.0% of the
+          viewport, zero rows with content. `/projects` was not measured because
+          it did not exist; it ships the same plate from the same provider, and
+          this rule covers it by attribute rather than by route.
 
           `/work` AND `/about` RENDERED CORRECTLY WITH SCRIPTING DISABLED BEFORE
           THE INTRO'S GATE MOVED INTO THE `(chrome)` LAYOUT. Those two are ours,
@@ -265,11 +280,47 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           about paint. Two reasons, two rules.
 
           WHAT A NO-JS VISITOR GETS AFTER IT, verified with scripting disabled
-          on all three routes at 1440x900: the fully laid-out dark page. Rule 1
-          has already undone every `[data-reveal]` opacity, so `/work` shows all
-          five cards with their covers plus Experience, `/about` shows the mark,
-          the paragraph, the three CTAs and the portrait, and both reach the
-          reveal footer's real Contact links by scrolling. `/` shows the navbar
+          at 1440x900 on the three routes that existed when this was written:
+          the fully laid-out dark page. Rule 1
+          has already undone every `[data-reveal]` opacity, so `/work` shows its
+          project section plus Experience, `/about` shows the mark, the
+          paragraph, the three CTAs and the portrait, and both reach the reveal
+          footer's real Contact links by scrolling.
+
+          **`/work` USED TO SAY "all five cards with their covers" AND THAT IS
+          NO LONGER TRUE** — the fanned deck replaced the two-column grid on
+          2026-08-25, and a deck is five `<button>`s, not five `<a>`s. Read off
+          the prerendered HTML: the fan ships all five cards (numeral, kicker,
+          title — no covers at rest, by design) and all five pager numerals, so
+          every project is NAMEABLE without JS and none is NAVIGABLE from the
+          deck without it; the only project content in the markup is the mobile
+          stack's front card, FOLIO, whose Details / GitHub / Live Site links
+          are real anchors and do work. **The no-JS route to the other four is
+          the `Browse as a list` exit to `/projects`**, which is a plain
+          `<Link>` and lists all five as real anchors — so the page is not a
+          dead end, but the exit is load-bearing in a way nobody designed it to
+          be. Recorded, not fixed: making the deck degrade to five links is a
+          design decision, not a comment correction.
+
+          `/projects` AND THE REBUILT `/work` WERE ADDED TO THIS ON 2026-08-25,
+          FROM THE PRERENDERED HTML RATHER THAN FROM A BROWSER, and the weaker
+          method is stated rather than glossed. What was actually checked, off
+          `.next/server/app/*.html`: every element carrying an inline
+          `opacity: 0` on either page is either a `[data-reveal]` (7 on `/work`,
+          0 on `/projects` — it renders no reveals at all) or sits inside
+          `[data-intro-plate]`, so Rules 1 and 3 between them undo every hidden
+          state that ships. `/projects` emits 5 real
+          `<a href="/projects/<slug>">`, its two `Close` links to `/work` and
+          the navbar's links, with no inline opacity on any of them; its strip
+          rows' hover reveal is pure CSS (`lg:opacity-0
+          lg:group-hover:opacity-100`) and needs no script. The one bare
+          `opacity: 0` on each page is AssetLoader's progress row, inside the
+          plate Rule 3 hides. **Nobody has yet LOOKED at either page in a
+          browser with scripting off** — that is still outstanding, and it is
+          the only thing that can catch a layout failure the markup does not
+          predict.
+
+          `/` shows the navbar
           and every section from Trajectory down — but its FIRST SCREEN is still
           near-empty, because the hero's particle field is a canvas drawn by JS
           and `HeroHeadline` is gated on `introDone`, which is false in the
@@ -287,8 +338,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           animates — that is its module-scope guard, and it is what keeps the
           Intro from fading underneath itself — so `initial` is `false` on every
           prerendered route and, today, NO hidden state actually ships for this
-          attribute. Verified by loading all three routes with scripting
-          disabled. It is listed anyway because the guard is one line: loosen it
+          attribute. Verified by loading all three routes that existed then with
+          scripting disabled, and re-verified 2026-08-25 against the prerendered
+          HTML of all four: every one of them, `/projects` included, emits a
+          bare `data-page-stack="true"` with no inline opacity.
+          It is listed anyway because the guard is one line: loosen it
           and every route becomes a blank page for a no-JS visitor, silently.
 
           A SECOND CAVEAT, ON THE OTHER HALF OF [data-intro-plate], for the same

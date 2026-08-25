@@ -58,8 +58,32 @@ import type { Project } from "@/content/types";
  * happen. As a `ReactNode` the caller owns the control and this file stays a
  * server component; only the overlay's close button is client code.
  *
- * IT IS RENDERED TWICE, top and bottom, and the two instances are the same
- * node. The route's own header explains why the affordance appears twice at
+ * ------------------------------------------------------------------------
+ * `breadcrumb` IS A SECOND, OPTIONAL SLOT — AND IT IS ROUTE-ONLY.
+ * ------------------------------------------------------------------------
+ * Added 2026-08-25 for the projects-architecture spec's §4. When it is
+ * supplied it REPLACES `affordance` in the top row; it never adds a row, and
+ * `n` in the `justify-between` below stays fixed at two. The overlay passes
+ * nothing and is unaffected in structure.
+ *
+ * It is a separate prop rather than a different `affordance` value because the
+ * two slots stopped being interchangeable: the route's top row is now a
+ * breadcrumb and its foot is still `All work`, so "both instances are
+ * identical by construction" is true of `affordance` — which is still rendered
+ * as the same node wherever it appears — and not of the top row as a whole.
+ *
+ * WHY THE FRAME OWNS IT AND NOT THE ROUTE FILE: the breadcrumb is vertical
+ * chrome, and vertical chrome added outside this file is the 106/140px
+ * route-vs-overlay offset this component exists to remove. The route supplies
+ * the NODE (so this file needs no `variant` string and stays a server
+ * component with no branch); this file decides WHERE it sits and what height
+ * the row reserves for it.
+ *
+ * ------------------------------------------------------------------------
+ * `affordance` IS RENDERED TWICE ON THE OVERLAY PATH AND ONCE ON THE ROUTE.
+ * ------------------------------------------------------------------------
+ * (It was twice on both until the breadcrumb landed.) The route's own header
+ * explains why the affordance appears twice at
  * all: a shared-link visitor has no back history, and CCN and SNA would
  * otherwise end on a truncated `Built with` block. It used to cite "no site
  * nav" as a third reason — the navbar is site chrome now, so that clause is
@@ -67,9 +91,11 @@ import type { Project } from "@/content/types";
  * These pages still get no navbar: they sit outside the `(chrome)` route
  * group, deliberately, because this file owns their top strip.
  *
- * DO NOT PASS A NODE THAT NEEDS A UNIQUE `key`, AN `autoFocus`, OR ANY OTHER
- * ONCE-PER-DOCUMENT ATTRIBUTE. Both instances are identical by construction,
- * so a "top instance only" attribute cannot be expressed here — see
+ * DO NOT PASS AN `affordance` NODE THAT NEEDS A UNIQUE `key`, AN `autoFocus`,
+ * OR ANY OTHER ONCE-PER-DOCUMENT ATTRIBUTE. Its instances are identical by
+ * construction, so a "top instance only" attribute cannot be expressed here —
+ * and note this is a statement about `affordance` alone: `breadcrumb` renders
+ * exactly once, so the restriction does not reach it. See
  * `ProjectOverlay.tsx`, which records why its close button therefore has no
  * `autoFocus` and relies on `showModal()`'s own initial-focus rule instead.
  *
@@ -96,14 +122,23 @@ export type ProjectDetailFrameProps = {
   project: Project;
   /** `"main"` on the real route, `"div"` inside the overlay. No default. */
   as: "main" | "div";
-  /** The exit control, rendered above the cover and again at the foot. */
+  /**
+   * The exit control. Rendered at the foot always, and in the top row too
+   * unless `breadcrumb` takes that slot.
+   */
   affordance: ReactNode;
+  /**
+   * OPTIONAL, AND SUPPLIED BY THE STANDALONE ROUTE ONLY. Replaces
+   * `affordance` in the top row. The overlay omits it — see the header.
+   */
+  breadcrumb?: ReactNode;
 };
 
 export function ProjectDetailFrame({
   project,
   as,
   affordance,
+  breadcrumb,
 }: ProjectDetailFrameProps) {
   const Root = as;
 
@@ -118,8 +153,55 @@ export function ProjectDetailFrame({
         this surface's single theme toggle at the mirrored right inset.
         `justify-between` is safe here specifically because n is FIXED AT TWO —
         the reveal footer's link row (the old `Contact.tsx`) bans it for a list
-        whose length can change, which this is not. At 360px both are 12px mono inside a 318px content box; they
-        cannot collide.
+        whose length can change, which this is not. `breadcrumb` does not change
+        that count: it REPLACES the affordance in this row rather than joining
+        it.
+
+        `gap-sm` (13px) IS NEW AND IT IS NOT COSMETIC. This row used to record
+        that "at 360px both are 12px mono inside a 318px content box; they
+        cannot collide" — true of a five-character `Close`, and no longer true
+        of a breadcrumb, which is a flex item whose text fills whatever width is
+        left and therefore ends flush against the toggle. 13px is the site's
+        tightest real gap and it is the second line's own wrap allowance.
+        ON THE OVERLAY PATH IT RENDERS NOTHING: `Close` (40.8px) plus the toggle
+        (40.8px) leaves ~236px of free space at 360px, and `justify-between`
+        distributes free space that is already far larger than the gap. That is
+        why `gap-sm` SURVIVED the removal of the `min-h` it shipped beside (see
+        below): the ruling was "leave the overlay untouched", and a gap that
+        computes to nothing there leaves it untouched in every rendered pixel.
+        The class attribute differs; the layout does not.
+
+        THERE IS NO `min-h` HERE, AND ITS ABSENCE IS A RULING RATHER THAN AN
+        OVERSIGHT. DO NOT "FIX" THIS BY ADDING ONE.
+
+        The design brief (§F.4) specified `min-h-[34px]` on this row — two
+        `text-caption` line boxes, 12px × 1.4 = 16.8, ×2 = 33.6, reserved as 34
+        — to close a Rule S-3 seam: below 482px the route's breadcrumb wraps to
+        two lines while the overlay's single `Close` stays on one, so the cover
+        sits 16.8px lower on the route than in the overlay. It was built that
+        way, measured, and then REMOVED on Saad's call, 2026-08-25.
+
+        WHAT THE MEASUREMENT SHOWED, AND WHY IT CHANGED THE ANSWER. Reserving
+        the height equalises the paths at every width, but it does so by
+        charging the OVERLAY 17.2px of extra whitespace above the cover — also
+        at every width. The overlay is the path essentially every visitor takes
+        (every in-app click into a project is intercepted); the standalone route
+        renders only on a hard load or a shared link. So the fix spent a
+        permanent, universal cost on the primary path to remove a mismatch that
+        exists only below 482px, and only between two renders a single visitor
+        is unlikely to see back to back.
+
+        Saad's ruling: leave the overlay untouched. The residual is declared
+        rather than hidden — **below 482px the standalone route's cover sits
+        16.8px lower than the overlay's.** Above 482px the breadcrumb does not
+        wrap and the two paths are already identical, so there is nothing to
+        equalise there.
+
+        IF A FUTURE PROJECT TITLE FORCES A THIRD LINE the residual grows to
+        33.6px rather than staying at 16.8. `ProjectBreadcrumb` carries the
+        arithmetic and states the character ceiling; that ceiling is now load
+        bearing for this note, not just for the reserved height it used to
+        guard.
 
         IMPORTING A CLIENT COMPONENT DOES NOT MAKE THIS A CLIENT COMPONENT.
         This file, `ProjectDetail` and everything below stay server-rendered;
@@ -135,8 +217,10 @@ export function ProjectDetailFrame({
         accessibility tree. It is a real dependency on `showModal()` rather
         than on an `open` attribute, and `ProjectOverlay` records it.
       */}
-      <div className={`${CONTAINER} mb-lg flex items-center justify-between`}>
-        {affordance}
+      <div
+        className={`${CONTAINER} mb-lg flex items-center justify-between gap-sm`}
+      >
+        {breadcrumb ?? affordance}
         <ThemeToggle className={THEME_TOGGLE_ON_BASE} />
       </div>
 

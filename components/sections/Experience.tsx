@@ -2,6 +2,7 @@ import {
   EXTERNAL_LINK_ON_BASE,
   ExternalLink,
 } from "@/components/ui/ExternalLink";
+import { LinkPreview } from "@/components/ui/link-preview";
 import { Reveal } from "@/components/ui/Reveal";
 import {
   EXPERIENCE_HEADING,
@@ -10,13 +11,18 @@ import {
   STACK_LABEL,
 } from "@/components/sections/experienceContent";
 import { experience } from "@/content/experience";
+import type { Experience as ExperienceEntry } from "@/content/types";
 import { formatMonthYear } from "@/lib/formatMonthYear";
 
 /**
- * Experience — Tier 3. On `/work`, the SECOND section on `bg-base`, directly
- * after the project archive and directly before In Progress. (This said "the
- * fourth section", which it was on the one-page site; the component itself is
- * unchanged and route-agnostic.)
+ * Experience — Tier 3. On `/work`, the THIRD section on `bg-base`: the project
+ * deck, then Certifications, then this, then In Progress.
+ *
+ * (It said "the fourth section" on the one-page site, then "the SECOND section,
+ * directly after the project archive and directly before In Progress" until
+ * 2026-08-25, when the projects-architecture restructure inserted
+ * `Certifications` above it. The component itself has never changed and stays
+ * route-agnostic — only its neighbours have.)
  *
  * DELIBERATELY A SERVER COMPONENT, exactly as About, Skills, Projects and
  * ProjectDetail are. There is no "use client" here and there must not be one:
@@ -176,7 +182,17 @@ export function Experience() {
             one employer have different start months) and it adds no field
             duplicating array position.
           */}
-          {experience.map((entry) => (
+          {/* ANNOTATED AS THE INTERFACE, NOT LEFT AS THE INFERRED LITERAL.
+              `content/experience.ts` ends in `as const satisfies readonly
+              Experience[]`, so the inferred type of `experience` is the exact
+              literal of the one entry that exists — and an OPTIONAL field that
+              entry does not set is therefore absent from that type, not
+              optional in it. Reading `entry.urlPreview` off the raw const is a
+              compile error rather than `undefined`, which is how adding a
+              preview image to the interface first surfaced. Widening to the
+              interface here is the fix; do not `as const`-strip the content
+              file, whose literal types are load-bearing elsewhere. */}
+          {(experience as readonly ExperienceEntry[]).map((entry) => (
             // The <li> sits OUTSIDE the Reveal: Reveal renders a motion.div,
             // and a <div> is not a valid direct child of a <ul>. Same shape as
             // Projects.tsx. No `h-full` — there is no grid here and nothing to
@@ -219,9 +235,11 @@ export function Experience() {
                     // The new-tab note is appended to the visible text by
                     // `ExternalLink`, never as an `aria-label` replacing it —
                     // see that component.
-                    <ExternalLink href={entry.url} className={EXTERNAL_LINK}>
-                      {entry.company}
-                    </ExternalLink>
+                    <LinkPreview preview={entry.urlPreview}>
+                      <ExternalLink href={entry.url} className={EXTERNAL_LINK}>
+                        {entry.company}
+                      </ExternalLink>
+                    </LinkPreview>
                   ) : (
                     entry.company
                   )}

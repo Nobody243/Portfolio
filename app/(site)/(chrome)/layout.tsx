@@ -49,15 +49,20 @@ import { Navbar } from "@/components/ui/Navbar";
  * is still `<body>`. Both stated reasons for the no-DOM rule survive intact.
  *
  * IT IS THE ENTRY GATE'S MOUNT POINT, AND THIS GROUP IS EXACTLY THE RIGHT
- * SCOPE. `(chrome)` contains `/`, `/work` and `/about` and nothing else, which
- * is the set of routes the Intro is meant to play on; `projects/[slug]` sits
- * outside it and keeps its Tier 3 register, for the same reason
- * reason 2 above gives about the navbar.
+ * SCOPE. `(chrome)` contains `/`, `/work`, `/about` and `/projects` and nothing
+ * else, which is the set of routes the Intro is meant to play on. (It listed
+ * three until 2026-08-25. `/projects` — the projects index, not a detail page —
+ * is inside the group precisely BECAUSE its spec requires the Intro on load,
+ * and a per-page provider is refused in capitals by `docs/06` §4.)
+ * `projects/[slug]` sits outside it and keeps its Tier 3 register, for the
+ * same reason that reason 2 above gives about the navbar.
  *
  * IT IS ALSO THE THING THAT MAKES THE "once per document" RULE STRUCTURAL. This
  * layout persists across every navigation inside the group, so the provider
- * never remounts on a `/` <-> `/work` <-> `/about` click and the Intro
- * structurally CANNOT replay — the same safeguard `PageStack.tsx` records for
+ * never remounts on a click between any two of the group's four routes — `/`,
+ * `/work`, `/about`, `/projects` (this named three until 2026-08-25, the same
+ * omission the paragraph above records) — and the Intro structurally CANNOT
+ * replay — the same safeguard `PageStack.tsx` records for
  * the navbar's entrance, and the reason the gate is NOT mounted per page.
  * Before this commit it was mounted by `Hero`, i.e. by Home, and the two
  * failures that produced were one bug: a hard load of `/about` played no Intro,

@@ -2,6 +2,7 @@ import {
   EXTERNAL_LINK_ON_HERO,
   ExternalLink,
 } from "@/components/ui/ExternalLink";
+import { LinkPreview } from "@/components/ui/link-preview";
 import { CopyEmailButton } from "@/components/ui/CopyEmailButton";
 import { MonogramMark } from "@/components/ui/MonogramMark";
 import {
@@ -813,12 +814,28 @@ export function RevealFooter() {
                       typeClassName="text-body font-sans"
                     />
                   ) : link.kind === "web" ? (
-                    <ExternalLink
-                      href={link.href}
-                      className={`${EXTERNAL_LINK_ON_HERO} break-words`}
-                    >
-                      {link.value}
-                    </ExternalLink>
+                    /* THE HOVER PREVIEW, on the two real links only.
+                       `LinkPreview` wraps rather than replaces: `ExternalLink`
+                       still renders the anchor, so `target`, `rel` and the
+                       announced new-tab note are unchanged and still come from
+                       the one component that owns them. With no
+                       `previewImage` set this adds nothing to the DOM at all,
+                       so the `mailto:` branch above and any future entry
+                       without a screenshot are untouched.
+
+                       NOT ON `/about`'s GITHUB AND LINKEDIN, which read the
+                       same two `contact.ts` entries. Saad's call, 2026-08-25:
+                       "it's only for the links not the buttons". Those two are
+                       dressed as brutal buttons; this surface renders them as
+                       prose links, which is what a hover card belongs on. */
+                    <LinkPreview preview={link.previewImage}>
+                      <ExternalLink
+                        href={link.href}
+                        className={`${EXTERNAL_LINK_ON_HERO} break-words`}
+                      >
+                        {link.value}
+                      </ExternalLink>
+                    </LinkPreview>
                   ) : (
                     <a
                       href={link.href}

@@ -2,6 +2,7 @@ import {
   EXTERNAL_LINK_ON_BASE,
   ExternalLink,
 } from "@/components/ui/ExternalLink";
+import { LinkPreview } from "@/components/ui/link-preview";
 import { Reveal } from "@/components/ui/Reveal";
 import {
   IN_PROGRESS_HEADING,
@@ -17,9 +18,21 @@ import {
 import { formatMonthYear } from "@/lib/formatMonthYear";
 
 /**
- * In Progress — Tier 3. On `/work`, the THIRD section on `bg-base`, directly
- * after Experience: the archive, the internship, then what is in progress.
- * (This said "the fifth section", which it was on the one-page site.)
+ * In Progress — Tier 3. On `/work`, the LAST section on `bg-base`, directly
+ * after Experience: the deck, Certifications, the internship, then what is in
+ * progress. (It said "the fifth section" on the one-page site, and "the THIRD
+ * section" until 2026-08-25, when the restructure inserted `Certifications`
+ * above Experience.)
+ *
+ * **ITS PLACEMENT WAS RE-RULED ON 2026-08-25 AND THE OUTCOME WAS "DO NOT
+ * MOVE".** §1 of the projects-architecture spec lists `/work`'s sections as
+ * deck / button / Certifications / Experience / footer and does not mention
+ * this one at all. That omission is not an instruction to delete a shipped
+ * section: deleting real content on an inference is irreversible and keeping it
+ * is not, and CLAUDE.md calls this "the living part of the site". `/work`'s
+ * page file records the open composition question that follows — two near-empty
+ * sections now bracket Experience, and that only becomes visible once this
+ * array is non-empty.
  *
  * IT RENDERS NOTHING TODAY, BY DECISION, AND THAT IS THE WHOLE TICKET.
  * `content/currentlyLearning.ts` is empty — genuinely, confirmed by Saad on
@@ -246,9 +259,11 @@ export function CurrentlyLearning() {
                     // The new-tab note is appended to the visible text by
                     // `ExternalLink`, never as an `aria-label` replacing it —
                     // see that component.
-                    <ExternalLink href={entry.link} className={EXTERNAL_LINK}>
-                      {entry.title}
-                    </ExternalLink>
+                    <LinkPreview preview={entry.linkPreview}>
+                      <ExternalLink href={entry.link} className={EXTERNAL_LINK}>
+                        {entry.title}
+                      </ExternalLink>
+                    </LinkPreview>
                   ) : (
                     entry.title
                   )}

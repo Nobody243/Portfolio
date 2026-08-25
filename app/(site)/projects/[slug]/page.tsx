@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ProjectBreadcrumb } from "@/components/sections/ProjectBreadcrumb";
 import { ProjectDetailFrame } from "@/components/sections/ProjectDetailFrame";
 import { BACK_LINK_LABEL } from "@/components/sections/projectDetailContent";
 import { STANDALONE_NAV } from "@/components/ui/standaloneNav";
@@ -15,9 +16,11 @@ import { getProjectBySlug, projectSlugs } from "@/content/projects";
  * `dynamicParams`, `generateStaticParams`, `generateMetadata`, the
  * `getProjectBySlug`/`notFound()` guard, the back link's destination, and the
  * decision that this path renders as `<main>`. Every pixel — the page
- * background, the vertical padding, the top row, the theme toggle, the two
- * affordance slots and `<ProjectDetail>` itself — is
- * `components/sections/ProjectDetailFrame.tsx`.
+ * background, the vertical padding, the top row and the height it reserves, the
+ * theme toggle, the affordance and breadcrumb slots and `<ProjectDetail>`
+ * itself — is `components/sections/ProjectDetailFrame.tsx`. The breadcrumb NODE
+ * is constructed here, in the sense that this file names the component; where
+ * it sits and how tall its row is are the frame's, deliberately.
  *
  * IT USED TO OWN THE FRAME, AND THAT IS THE CHANGE 6b MADE. The frame moved
  * out because `/projects/<slug>` now has TWO rendering paths — this route, and
@@ -136,31 +139,52 @@ export async function generateMetadata({
 }
 
 /**
- * The back affordance. It is passed to `ProjectDetailFrame` as `affordance`
- * and the frame renders it TWICE — top and bottom, the same node both times.
+ * The back affordance. It is passed to `ProjectDetailFrame` as `affordance`.
  *
- * WHY TWICE. THE SHARED-URL VISITOR IS THE WHOLE ARGUMENT, and it is the half
- * that survived. The original reasoning also cited "there is no
+ * IT USED TO RENDER TWICE — top and bottom, the same node both times. SINCE
+ * 2026-08-25 IT RENDERS ONCE, AT THE FOOT: the projects-architecture spec's §4
+ * puts a breadcrumb in the top row and the frame's `breadcrumb` prop replaces
+ * the affordance there rather than adding a row. The page still has two exits
+ * at two heights, which is what the argument below was actually about — they
+ * are now `Projects` → `/projects` at the top and `All work` → `/work` at the
+ * foot. Two destinations, not one repeated, and that separation is Saad's
+ * ruling: the standalone Close is `/work` "specifically (over `/projects`) to
+ * keep it distinct from the breadcrumb".
+ *
+ * THIS IS THE PAGE'S FIXED CLOSE, and it did not need building — it already
+ * was one. §4's Close is "a fixed destination" because the standalone page has
+ * no entry context by construction, and `BACK_HREF` has been a fixed `/work`
+ * link since Phase 3. The label stays `All work` rather than becoming `Close`:
+ * `projectDetailContent.ts` records that `Close` means dismissing an overlay on
+ * this site and `All work` means navigating, and this control navigates.
+ *
+ * WHY TWO AT ALL. THE SHARED-URL VISITOR IS THE WHOLE ARGUMENT, and it is the
+ * half that survived. The original reasoning also cited "there is no
  * `app/(site)/layout.tsx` and no site nav": the first clause went stale in
  * Ticket 6b, which had to create that layout to receive the `@modal` slot, and
  * the second went stale when the navbar became site chrome. Neither is load
  * bearing, because the navbar still does NOT render on `/projects/<slug>` —
  * these pages are Tier 3 and `ProjectDetailFrame` owns the top strip.
  *
- * So this link and the browser Back button remain the ONLY routes out — and a
- * visitor arriving from a shared URL (detail pages are the site's most
- * shareable ones) has no back history to the gallery at all. For that visitor
- * a single link 2,000px above the fold is not an exit. It is also the fix for the
- * truncated-ending problem: CCN and SNA end on `Built with`, a 12px mono label
+ * So this link, the breadcrumb above it and the browser Back button are the
+ * ONLY routes out — and a visitor arriving from a shared URL (detail pages are
+ * the site's most shareable ones) has no back history to the gallery at all,
+ * which is exactly the visitor the breadcrumb was designed for. For that
+ * visitor a single affordance 2,000px above the fold is not an exit. It is also
+ * the fix for the truncated-ending problem: CCN and SNA end on `Built with`, a 12px mono label
  * over six short words, and a second `All work` gives all five pages the same
  * terminal element regardless of which data block ran last. The page then ends
  * because it has an ending, not because the record ran out.
  *
- * TWO LINKS WITH THE SAME ACCESSIBLE NAME AND THE SAME DESTINATION IS FINE. It
- * is not a WCAG failure and it is genuinely useful in a screen reader's links
- * list on a long page. Do NOT disambiguate them with a hidden suffix — a
- * hand-written accessible name that differs from the visible text is the drift
- * `ProjectCard` already rejected.
+ * THIS PARAGRAPH USED TO DEFEND TWO LINKS WITH THE SAME ACCESSIBLE NAME AND THE
+ * SAME DESTINATION on this route: "not a WCAG failure and genuinely useful in a
+ * screen reader's links list on a long page." That situation no longer exists
+ * here — the top slot is the breadcrumb — but the rule it ended on still binds
+ * and is why the foot link was NOT given a hidden suffix to distinguish it from
+ * the breadcrumb: a hand-written accessible name that differs from the visible
+ * text is the drift `ProjectCard` already rejected. The two-identical-links
+ * case does still ship, unchanged, on the OVERLAY path, where the frame renders
+ * `Close` top and bottom.
  *
  * NO ARROW GLYPH, no pill, no full-width bar, no "Next project ->" pairing, and
  * NO HORIZONTAL RULE above the bottom one: this site ships zero divider rules,
@@ -177,15 +201,18 @@ export async function generateMetadata({
  * had written down. The computed styles are unchanged; the three shipped
  * copies were verified byte-identical before any was deleted.
  *
- * NEITHER IS WRAPPED IN A `Reveal`. The top one is above the fold and is the
- * page's only escape hatch; the bottom one is the same affordance. A
- * navigation exit that fades in is worse than one that is simply there — and
- * if the reveal ever failed, the page would have no exit at all.
+ * NO `Reveal` ON ANY OF THIS — not the foot link, and not the breadcrumb
+ * either. A navigation exit that fades in is worse than one that is simply
+ * there, and if the reveal ever failed the page would have no exit at all. The
+ * breadcrumb inherits the rule for the stronger version of the same reason: it
+ * is the cold arrival's only above-the-fold way off the page.
  *
  * REJECTION CRITERION for the bottom link, to be measured and not assumed: drop
- * it if, at 1440x900, both back links are simultaneously visible in one
+ * it if, at 1440x900, it is simultaneously visible with the breadcrumb in one
  * viewport on any of the five pages. CCN is the shortest page and the one to
- * measure.
+ * measure. (This read "both back links" before the breadcrumb replaced the top
+ * one; the test is the same test, against the control that now occupies that
+ * slot.)
  */
 /**
  * `/work` — the archive page, not `/#work` on Home any more.
@@ -226,6 +253,12 @@ export default async function ProjectDetailPage({
     <ProjectDetailFrame
       as="main"
       project={project}
+      // ROUTE-ONLY, AND THE OVERLAY MUST NEVER PASS IT. The intercepted path
+      // at `app/(site)/@modal/(.)projects/[slug]/page.tsx` omits this prop, so
+      // an in-app visitor keeps `Close` top and bottom and this control does
+      // not exist for them. `ProjectBreadcrumb`'s header carries the reason:
+      // it is written for the cold arrival, who has no history to go back to.
+      breadcrumb={<ProjectBreadcrumb title={project.title} />}
       affordance={
         <Link href={BACK_HREF} className={STANDALONE_NAV}>
           {BACK_LINK_LABEL}

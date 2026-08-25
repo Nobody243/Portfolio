@@ -171,3 +171,115 @@ export const STAGGER = {
    */
   card: 0.09,
 } as const;
+
+/**
+ * THE FOURTH CURVE FAMILY, AND IT IS DELIBERATE. This answers the paragraph
+ * above `EASE` — "Three curves, one per job. Resist adding a fourth without a
+ * real reason" — rather than stepping around it. The resistance was real and it
+ * was overruled on the record.
+ *
+ * WHO DECIDED, AND WHEN: Saad, 2026-08-25, ruling on the projects-architecture
+ * design round (`.claude/specs/projects-architecture-spec.md`, "▸ RULED —
+ * decision round 2", J.3). The deck on `/work` copies the *interaction* of the
+ * Interface Craft reference (`ui.aceternity.com/labs/interface-crafts-cards`),
+ * and its motion is the recognisable half of that interaction: cards that
+ * settle rather than arrive. A cubic-bezier cannot express settle-with-overshoot
+ * at all, so this is not "a fourth ease" — it is a different KIND of curve, and
+ * that is exactly why it is named and scoped here instead of being written
+ * inline at the call site.
+ *
+ * THE VALUE IS THE REFERENCE'S OWN, unchanged: `visualDuration: 0.6`,
+ * `bounce: 0.25`. It is not re-tuned, because the reason it exists is to match
+ * a specific reference and a hand-adjusted approximation of it would be neither
+ * the reference nor a house value. `visualDuration` is Framer Motion's
+ * perceptual duration (time to the first arrival at the target), not the time
+ * to full rest — the tail continues past it.
+ *
+ * SCOPE: `/work`'s fanned deck, and nothing else. If a second consumer ever
+ * appears, that is a motion-system decision to be taken deliberately, the same
+ * way this one was.
+ *
+ * **ONE CONSUMER, AND IT IS REAL AS OF 2026-08-25: `components/sections/
+ * ProjectDeck.tsx`.** It is imported ONCE and applied at three call sites
+ * inside that one component, all of them the same interaction:
+ *
+ *   `FanCard`     the fan's rest/expand/collapse transform choreography
+ *   `DeckPanel`   the expanded panel's scale-and-fade in and out
+ *   `DeckStack`   the mobile stack's swipe settle — the same interaction at
+ *                 another orientation, which is why it is not given a
+ *                 different curve
+ *
+ * **A FOURTH USE EXISTS, IT WAS NOT CHOSEN, AND IT IS ENUMERATED HERE BECAUSE A
+ * SCOPE LIST THAT QUIETLY OMITS A USE IS WORSE THAN A LONGER ONE:**
+ *
+ *   `FanCard`     the RETURN leg of the rest card's hover lift. The lift IN is
+ *                 `DURATION.micro` + `EASE.ui`, per design §C.9 and per the
+ *                 "hover, press" row of `docs/03`'s motion table — that
+ *                 transition is declared on the gesture target. Motion applies
+ *                 a gesture target's own transition on the way IN only; on
+ *                 hover END it re-applies the lower-priority `animate` target,
+ *                 which is the deck's choreography and therefore this spring.
+ *                 "Hover out" and "re-apply the base target" are the same
+ *                 operation, so there is no declarative hook for a different
+ *                 curve on that leg.
+ *
+ * That use is RECORDED rather than sanctioned: it is a consequence of Motion's
+ * gesture model, not a design decision, and it must not be cited as precedent
+ * for springing another hover. The two ways to remove it were weighed and both
+ * were refused in this session because neither could be looked at in a browser
+ * — a React hover state would have to distinguish a hover change from a
+ * COLLAPSE change or it takes the collapse off the spring, and splitting the
+ * card into an outer animated element plus an inner hover target changes both
+ * the lift's axis and its stacking context. `ProjectDeck.tsx`'s `whileHover`
+ * carries the full note.
+ *
+ * THE DECK'S CONTENT ENTRANCES ARE **NOT** SPRUNG and that is deliberate: the
+ * cover, the text column and the index rail fade in on `DURATION.ui` +
+ * `EASE.reveal`, because a fade is not a settle and a bounced opacity is
+ * nothing. The spring is on the boxes only.
+ *
+ * **THE RETRACTION TRIGGER DID NOT FIRE, AND IT IS RECORDED HERE BECAUSE IT WAS
+ * REAL.** This block read "ZERO CONSUMERS TODAY — nothing imports it" from the
+ * moment it shipped in slice 1 (it briefly read "One consumer", which was false
+ * then), and it carried an explicit instruction: if the deck's flat-material
+ * ruling meant the deck never actually sprang, this export and its `docs/03`
+ * entry were to be RETRACTED rather than relabelled. The deck was built and it
+ * springs — the flat ruling governs MATERIAL (radius, shadow, fill) and the
+ * spring is MOTION, so the two never collided. Nothing was retracted.
+ *
+ * `STAGGER.card` above is still at zero and is still kept, and its "if a second
+ * unused entry ever joins it, delete both" rule now has nothing to catch: it is
+ * once again the only unconsumed constant in this file.
+ *
+ * IT DOES NOT RETROACTIVELY LICENSE SPRINGS ANYWHERE ELSE, AND TWO EXISTING
+ * REFUSALS STAND UNCHANGED:
+ *
+ *   `components/sections/CoverFrame.tsx` — "A SPRING WAS REJECTED. Its overshoot
+ *   would push the cover past its final rect — visible against the `<h1>`'s
+ *   fixed left edge one row below."
+ *
+ *   `components/sections/ProjectOverlay.tsx` — "No spring ... a spring's
+ *   overshoot would push the cover past its final rect, visibly, against the
+ *   `<h1>`'s fixed left edge one row below."
+ *
+ * BOTH OF THOSE REFUSALS HAVE TWO REASONS AND ONLY THE SECOND ONE EXPIRED.
+ * Each ends with "and it would add a fourth curve family to a three-ease
+ * system" — that clause is now spent, and this entry is what spent it. The
+ * FIRST reason is a geometric fact about the card → cover morph and is
+ * untouched: an overshoot measured against a fixed reference edge one row below
+ * is a visible error, and the deck has no such edge to be measured against. Do
+ * not read those two files as stale, and do not "unify" the morph onto this
+ * spring. If either comment is ever edited, keep the geometric half.
+ *
+ * TYPED AS DATA, NOT AS FRAMER MOTION'S `Transition`. This file's header states
+ * it must stay dependency-free — importing `motion` here would drag it into a
+ * client bundle it does not belong in. Framer Motion accepts this object
+ * structurally.
+ */
+export const SPRING = {
+  type: "spring",
+  /** Perceived arrival, in seconds. Not the settle time. */
+  visualDuration: 0.6,
+  /** 0 = no overshoot, 1 = very bouncy. The reference's value. */
+  bounce: 0.25,
+} as const;

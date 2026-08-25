@@ -91,7 +91,9 @@
  * was derived independently from ~100px of travel; slowing it to match would
  * make the line worse to fix nothing.
  *
- * IT IS NOT ON EVERY ROUTE. `/` and `/work` fade; `/about` does not, by the
+ * IT IS NOT ON EVERY ROUTE. `/`, `/work` and `/projects` fade — the third
+ * joined on 2026-08-25 and this sentence named two until then; `/about` does
+ * not, by the
  * `fade` prop below. `/about` is the site's one deliberately quiet page and it
  * was running three concurrent motion authors on arrival — a four-unit
  * entrance, this fade, and a canvas that draws continuously. The fade is the
@@ -180,7 +182,8 @@ type PageStackProps = {
    * arrival is the page's decision, and a default would let a future route get
    * one silently.
    *
-   * `/` and `/work` pass `true`. `/about` passes `false`, and that is a
+   * `/`, `/work` and `/projects` pass `true` — this named the first two until
+   * `/projects` shipped on 2026-08-25. `/about` passes `false`, and that is a
    * REVERSAL of a measured decision recorded in `docs/03_FRONTEND_SPEC.md` —
    * see that file, and `app/(site)/(chrome)/about/page.tsx`, for the argument
    * that was reversed and why. The short version: the multiplication with the
@@ -247,7 +250,10 @@ export function PageStack({ children, className, fade }: PageStackProps) {
           does not apply. Framer writes `initial` into the server HTML, but this
           component's first appearance never animates, so `initial` is `false`
           on every prerendered route and no hidden state ships today —
-          VERIFIED by loading all three routes with scripting disabled. The net
+          VERIFIED by loading all three routes that existed then with scripting
+          disabled, and re-verified 2026-08-25 against the prerendered HTML of
+          all four: `/projects` emits a bare `data-page-stack="true"` too, with
+          no inline opacity. The net
           is insurance against the guard above being loosened later: without it,
           the change that makes the first appearance fade also makes every route
           a blank page for a no-JS visitor, and nothing would report it.

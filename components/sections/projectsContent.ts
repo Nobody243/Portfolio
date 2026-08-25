@@ -1,7 +1,11 @@
 /**
  * Work section copy — Ticket 6.
  *
- * ONE STRING. Every other word the gallery renders — five titles, five
+ * TWO STRINGS SINCE 2026-08-25, and the second one is here rather than in its
+ * own module because it is the same section's copy on a second surface. See
+ * `WORK_PAGE_HEADING` below. (This block opened "ONE STRING." until then.)
+ *
+ * ONE STRING PER SURFACE. Every other word the gallery renders — five titles, five
  * one-liners, five stacks, five dates and five alt texts — comes from
  * `content/projects.ts`, which is the collection layer and the file that gets
  * hand-edited for a year. This module exists for the same reason
@@ -41,3 +45,34 @@
  */
 
 export const PROJECTS_HEADING = "Work";
+
+/**
+ * `/work`'s page heading — the visible `<h1>` on that route.
+ *
+ * **"Projects.", WITH THE FULL STOP.** Saad's, ruled 2026-08-25 as part of the
+ * projects-architecture restructure, and it is a HEADING-ONLY change:
+ *
+ *   the navbar label  stays `WORK`   (`components/ui/navContent.ts`)
+ *   the route         stays `/work`
+ *   the `<title>`     stays `PROJECTS_HEADING`, i.e. "Work"
+ *   `#work`           stays Home's anchor, on `Projects`' own `<section>`
+ *
+ * SO THE TWO STRINGS ARE NOT A DUPLICATE OF EACH OTHER. `PROJECTS_HEADING` is
+ * the SECTION heading that `Projects` renders — which, since the deck replaced
+ * the grid on `/work`, now appears on Home and nowhere else — plus `/work`'s
+ * document title, where it keeps the tab, the nav entry and the URL agreeing.
+ * `WORK_PAGE_HEADING` is the `/work` PAGE heading. Changing either one does not
+ * change the other, and that independence is the reason there are two.
+ *
+ * THE MULTI-FILE WARNING ABOVE STILL APPLIES TO `PROJECTS_HEADING` AND NOT TO
+ * THIS ONE. `#work` is derived from `PROJECTS_HEADING`'s value, so renaming
+ * that string is still a commit that touches `Projects.tsx`'s `id` and every
+ * link to `/#work`. This constant is derived from nothing and nothing is
+ * derived from it: it is read once, by
+ * `components/sections/ProjectDeckSection.tsx`.
+ *
+ * TWO PAGES ONE CLICK APART ARE NOW BOTH HEADED "Projects" — this one and
+ * `/projects`. Accepted knowingly on Saad's ruling; the designer proposed "All
+ * Projects" for the other page and the spec's literal wording was kept.
+ */
+export const WORK_PAGE_HEADING = "Projects.";

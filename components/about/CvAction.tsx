@@ -99,6 +99,7 @@ import {
   ABOUT_BUTTON_PRIMARY,
   ABOUT_BUTTON_QUIET,
   ABOUT_BUTTON_SECONDARY,
+  ABOUT_SCRAMBLE_ON_ACCENT,
 } from "@/components/about/aboutButtonStyles";
 import {
   ABOUT_PAGE_CV_CLOSE_LABEL,
@@ -109,6 +110,7 @@ import {
   ABOUT_PAGE_CV_LABEL,
   ABOUT_PAGE_CV_MODAL_TITLE,
 } from "@/components/about/aboutPageContent";
+import { EncryptedButtonLabel } from "@/components/about/EncryptedButtonLabel";
 import { NEW_TAB_NOTE } from "@/components/ui/ExternalLink";
 
 /**
@@ -256,6 +258,17 @@ export function CvModalHost({ children }: { children: ReactNode }) {
 export function CvAction() {
   const { compact, openModal, triggerRef } = useContext(CvModalContext);
 
+  /* BOTH BRANCHES CARRY THE SAME DRESSING, which is the rule the header above
+     already states: "Both elements carry the same class string and the same
+     label, so nothing moves." The branch is decided on hydration, so dressing
+     only one of them would make a window dragged across 768px visibly swap
+     control styles mid-drag.
+
+     THAT INVARIANT IS WHY THIS IS ONE CONSTANT AND NOT TWO. Between 2026-08-24
+     and 2026-08-25 the desktop branch wore a `HoverBorderGradient` and the
+     compact one wore a matching two-part dressing to imitate it; keeping those
+     two in step was a standing cost with no reader. `ABOUT_BUTTON_PRIMARY` is a
+     single string that both branches apply, so they cannot drift. */
   if (compact) {
     return (
       <a
@@ -264,17 +277,28 @@ export function CvAction() {
         rel="noopener noreferrer"
         className={ABOUT_BUTTON_PRIMARY}
       >
-        {ABOUT_PAGE_CV_LABEL}
+        <EncryptedButtonLabel
+          text={ABOUT_PAGE_CV_LABEL}
+          encryptedClassName={ABOUT_SCRAMBLE_ON_ACCENT}
+        />
         <span className="sr-only">{` ${NEW_TAB_NOTE}`}</span>
       </a>
     );
   }
 
   /* THE TRIGGER, AND NOTHING ELSE. The modal is a sibling of the whole action
-     row rather than of this button — see `CvModalHost`. This component is
+     row rather than of this button - see `CvModalHost`. This component is
      therefore free to be destroyed and rebuilt by the entrance's re-key, which
      is exactly what happens at the hand-off, without taking the visitor's open
-     modal with it. */
+     modal with it.
+
+     `ref` GOES STRAIGHT ONTO THE `<button>` AGAIN. While this was a
+     `HoverBorderGradient` the ref had to be forwarded through a wrapper, which
+     the registry component did not support until it was adapted to. That
+     indirection is gone and the focus-return effect in `CvModalHost` finds the
+     element directly. If focus ever stops returning after the modal closes the
+     symptom is SILENT - focus lands on `<body>` - so this ref is not
+     decoration. */
   return (
     <button
       ref={triggerRef}
@@ -283,7 +307,10 @@ export function CvAction() {
       className={ABOUT_BUTTON_PRIMARY}
       onClick={openModal}
     >
-      {ABOUT_PAGE_CV_LABEL}
+      <EncryptedButtonLabel
+        text={ABOUT_PAGE_CV_LABEL}
+        encryptedClassName={ABOUT_SCRAMBLE_ON_ACCENT}
+      />
     </button>
   );
 }

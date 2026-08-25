@@ -4,8 +4,10 @@ import portrait from "@/public/images/about/portrait.jpg";
 import { AboutFlipBoard } from "@/components/about/AboutFlipBoard";
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import { CvAction, CvModalHost } from "@/components/about/CvAction";
+import { EncryptedButtonLabel } from "@/components/about/EncryptedButtonLabel";
 import {
   ABOUT_BUTTON_SECONDARY,
+  ABOUT_SCRAMBLE_ON_BASE,
 } from "@/components/about/aboutButtonStyles";
 import {
   ABOUT_PAGE_GITHUB_LABEL,
@@ -584,10 +586,14 @@ export function AboutScreen() {
             {/*
                 `lg:w-fit lg:mx-auto` — THE COMPOSITION IS CENTRED IN THE SPINE
                 RATHER THAN STARTED ON IT, AND THAT IS A DELIBERATE BREACH OF
-                RULE S-1 ON THIS ROUTE ONLY. `docs/03` names `/about` as the
-                exception, which is the condition this file has always attached
-                to breaking it: "if S-1 is ever broken here it must be broken
-                VISIBLY, with `/about` named in `docs/03`, or not at all."
+                RULE S-1 ON THIS ROUTE ONLY. `docs/03` names `/about` as S-1's
+                FIRST NAMED EXCEPTION, which is the condition this file has
+                always attached to breaking it: "if S-1 is ever broken here it
+                must be broken VISIBLY, with `/about` named in `docs/03`, or
+                not at all." (It read "as THE exception" until 2026-08-25, when
+                `/projects`' full-bleed strip rows became the second and
+                `docs/03` renamed this one. The condition is satisfied either
+                way; the definite article was the only false part.)
 
                 WHAT IT FIXES, MEASURED. Saad reported the block sitting left of
                 centre. The containers were not the cause and neither was a
@@ -949,12 +955,22 @@ export function AboutScreen() {
                         so they take the outlined button dressing rather than the
                         teal underlined treatment that belongs to links inside
                         prose. */}
+                    {/* THE LABEL IS A CLIENT LEAF, THIS FILE IS NOT.
+                        `EncryptedButtonLabel` carries `"use client"` and finds
+                        its own hover by walking up to the anchor, so neither
+                        `AboutScreen` nor `ExternalLink` gains a hook or a prop
+                        and both stay server components. That is the standing
+                        requirement in `ExternalLink`'s header, not a
+                        preference. */}
                     {github ? (
                       <ExternalLink
                         href={github.href}
                         className={ABOUT_BUTTON_SECONDARY}
                       >
-                        {github.label}
+                        <EncryptedButtonLabel
+                          text={github.label}
+                          encryptedClassName={ABOUT_SCRAMBLE_ON_BASE}
+                        />
                       </ExternalLink>
                     ) : null}
                     {linkedin ? (
@@ -962,7 +978,10 @@ export function AboutScreen() {
                         href={linkedin.href}
                         className={ABOUT_BUTTON_SECONDARY}
                       >
-                        {linkedin.label}
+                        <EncryptedButtonLabel
+                          text={linkedin.label}
+                          encryptedClassName={ABOUT_SCRAMBLE_ON_BASE}
+                        />
                       </ExternalLink>
                     ) : null}
                   </div>

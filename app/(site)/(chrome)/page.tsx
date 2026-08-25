@@ -134,9 +134,29 @@ export default function Page() {
             Home's three should appear differently, reorder the array; that
             reorders both pages, which is the right answer.
 
-            CCN and SNA are archive-only and appear only on `/work`, which is
-            therefore the ONLY route that links to their detail pages — and the
-            only place their card -> overlay morph can be tested at all.
+            CCN and SNA are archive-only, meaning they are not featured HERE —
+            that part is unchanged and is `docs/07` §5's locked decision.
+
+            **THIS SAID THEY "appear only on `/work`, which is therefore the
+            ONLY route that links to their detail pages — and the only place
+            their card -> overlay morph can be tested at all" UNTIL 2026-08-25.
+            All three clauses are now false**, and they went false in two steps
+            rather than one. `/projects` shipped a strip row per project, so
+            `/work` stopped being the only route that links to their detail
+            pages; and the deck replaced `/work`'s grid, so `ProjectCard`'s
+            morph — the one this section renders — is now testable ONLY from
+            Home, i.e. only on the three featured slugs. `/work`'s morph source
+            is the deck's expanded panel cover now; `/projects`' strip
+            thumbnails deliberately hold no `layoutId` at all. `ProjectCard.tsx`
+            enumerates all three holders of `project-cover-<slug>` and
+            `ProjectStripRow.tsx` records why it is not a fourth.
+
+            AND HOME NOW REACHES THEM IN TWO CLICKS. The `Browse as a list`
+            control below the three cards goes to `/projects`, which lists all
+            five — so CCN and SNA are no longer off Home's path entirely, they
+            are simply not among the cards. `components/sections/Projects.tsx`
+            carries the control and the reversal of its own written refusal
+            of it.
 
             `motion="scrub"` IS THIS PAGE'S DECISION AND IS REQUIRED — the same
             component on `/work` passes `"reveal"`. `docs/03_FRONTEND_SPEC.md`'s

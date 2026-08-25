@@ -6,6 +6,7 @@ import {
   EXTERNAL_LINK_ON_BASE,
   ExternalLink,
 } from "@/components/ui/ExternalLink";
+import { LinkPreview } from "@/components/ui/link-preview";
 import { Reveal } from "@/components/ui/Reveal";
 import type { Project } from "@/content/types";
 import { formatMonthYear } from "@/lib/formatMonthYear";
@@ -556,15 +557,29 @@ export function ProjectDetail({ project }: { project: Project }) {
           <Reveal className="max-w-[34rem]">
             <h2 className={BLOCK_LABEL}>{LINKS_LABEL}</h2>
             <div className={`${LABEL_GAP} flex flex-wrap gap-x-md gap-y-sm`}>
+              {/* THE LIVE LINK'S PREVIEW IS THE PROJECT'S OWN COVER, not a
+                  second asset. A live link goes to the running project and
+                  `coverImage` is a verified screenshot of exactly that — see
+                  the note on `ProjectLinks` in `content/types.ts` explaining
+                  why there is no `livePreview` field to populate.
+
+                  THE GITHUB LINK HAS NO IMAGE YET, so `LinkPreview` renders it
+                  unchanged and adds nothing to the DOM. Drop a repo screenshot
+                  into `content/projects.ts` as `links.githubPreview` and it
+                  starts working with no change here. */}
               {github ? (
-                <ExternalLink href={github} className={EXTERNAL_LINK}>
-                  {GITHUB_LINK_LABEL}
-                </ExternalLink>
+                <LinkPreview preview={project.links.githubPreview}>
+                  <ExternalLink href={github} className={EXTERNAL_LINK}>
+                    {GITHUB_LINK_LABEL}
+                  </ExternalLink>
+                </LinkPreview>
               ) : null}
               {live ? (
-                <ExternalLink href={live} className={EXTERNAL_LINK}>
-                  {LIVE_LINK_LABEL}
-                </ExternalLink>
+                <LinkPreview preview={project.coverImage.src}>
+                  <ExternalLink href={live} className={EXTERNAL_LINK}>
+                    {LIVE_LINK_LABEL}
+                  </ExternalLink>
+                </LinkPreview>
               ) : null}
             </div>
           </Reveal>
