@@ -1,5 +1,15 @@
 # Technical Architecture Document — Muhammad Saad Portfolio
 
+> **RECONSTRUCTED 2026-08-25 — the `/projects` passages in this file are rewrites, not restored
+> originals.** A `git-filter-repo` run reset every tracked file to its committed state. Source files
+> came back verbatim out of `.next` source maps; **markdown is never bundled, so nothing recovered a
+> line of documentation.** Everything here dated 2026-08-25 — the fourth entry in the folder tree,
+> the `<main>` recount, the `contentinfo` bullet, the `docs/07`-splits-the-site correction — was
+> rewritten from `.claude/specs/projects-architecture-spec.md` (gitignored, and therefore the only
+> survivor) and then **verified against the code**: the tree against `app/`, the `fade` call sites
+> and `<main>` count against `grep`, the route table against a real `npm run build`. Where the spec
+> described intent and the code disagreed, the code won.
+
 ## Tech stack, with reasoning
 
 | Layer | Choice | Why |
@@ -39,14 +49,20 @@ form is added, it posts to a lightweight serverless function or a third-party fo
 ```
 /app
   /(site)
-    /(chrome)                — the three chrome-bearing routes. The group exists so Navbar +
+    /(chrome)                — the FOUR chrome-bearing routes. The group exists so Navbar +
                                IntroGate mount ONCE in its layout instead of per page
       /page.tsx              — Home: Hero, Trajectory, Skills, Projects (featured three)
       /about/page.tsx        — /about, one screen at lg+; scrolls below lg (docs/07 §6, 2026-08-23)
-      /work/page.tsx         — /work: full project archive, Experience, CurrentlyLearning
-    /projects/[slug]/page.tsx — Project detail pages
+      /work/page.tsx         — /work: the fanned deck (all five), Certifications,
+                               Experience, CurrentlyLearning
+      /projects/page.tsx     — /projects, the strip list. INSIDE the group, and the
+                               indent is the whole point: this is the one-segment
+                               INDEX route, and it is a sibling of the [slug] segment
+                               two lines below, which sits OUTSIDE the group
+    /projects/[slug]/page.tsx — Project detail pages. NOT in (chrome): no navbar
     /@modal/(.)projects/[slug] — the intercepted overlay for the same URL
   /not-found.tsx
+  /error.tsx
   /layout.tsx
   /globals.css
 /components
@@ -95,8 +111,12 @@ form is added, it posts to a lightweight serverless function or a third-party fo
 > already changed, and this doc is where someone new starts:
 >
 > - **`/page.tsx — Hero + all sections composed on one scroll (or routed sections, TBD at build
->   time)`.** That was decided long ago and the decision went the other way: `docs/07` splits the
->   site into three routes. The "TBD" outlived the decision by the whole restructure.
+>   time)`.** That was decided long ago and the decision went the other way: `docs/07` split the
+>   site into three routes, and `.claude/specs/projects-architecture-spec.md` §3 added `/projects` as
+>   a fourth on 2026-08-25. The "TBD" outlived the decision by the whole restructure. *(This bullet
+>   read "`docs/07` splits the site into three routes" — present tense, three — until 2026-08-25.
+>   Three at the restructure, four since; the tense is what made it read as a current count rather
+>   than a record of what one spec did.)*
 > - **`/hero — 3D scene, loader, reveal transition`.** There is no 3D scene, and the loader moved to
 >   `/components/intro` in the Loader/Intro split (`docs/06` §1).
 > - **`/projects — ProjectCard, ProjectGallery, ProjectDetail`.** The directory still exists, but it
@@ -154,18 +174,28 @@ and 55 has to move with it.
   sticky, so its rect reports the pinned position rather than the document position; the sentinel
   is the in-flow element `Navbar.tsx` measures to know when the un-occluded plate reaches the bar.
   Its absence on `/about` is what keeps that route's navbar palette correct with no route check.
-- **`/about` has neither the footer nor the page-stack classes, deliberately.** There is no plate
-  to occlude there, and it is the one route with zero `contentinfo` landmarks
-  (`docs/07_SITE_RESTRUCTURE.md` §5–6).
-- **`<main>` is rendered by `components/ui/PageStack.tsx` on `/`, `/work` AND `/about` — all three
-  routes in the `(chrome)` group — and where the route transition runs it fades that component's
-  INNER div, never `<main>` itself.** Added 2026-08-22 with the Home ↔ About ↔ Work transition.
+- **Neither `/about` nor `/projects` has the footer or the page-stack classes, deliberately.** There
+  is no plate to occlude on either, so both have zero `contentinfo` landmarks
+  (`docs/07_SITE_RESTRUCTURE.md` §5–6). *(This bullet named `/about` alone and called it "the one
+  route with zero `contentinfo` landmarks" until 2026-08-25. `/projects` shipped without a footer on
+  a separate ruling — §5 records it — and both pages pass `PageStack` an empty class string for the
+  same Rule S-6 reason.)*
+- **`<main>` is rendered by `components/ui/PageStack.tsx` on `/`, `/work`, `/projects` AND `/about` —
+  all four routes in the `(chrome)` group — and where the route transition runs it fades that
+  component's INNER div, never `<main>` itself.** Added 2026-08-22 with the Home ↔ About ↔ Work
+  transition; `/projects` joined the group on 2026-08-25 and takes the same `<main>` and the same
+  fade.
   (This bullet listed only `/` and `/work` and then added `/about` four bullets later, which read as
-  two different claims about the same component. It is one claim: three routes render it, and since
-  2026-08-22 only `/` and `/work` pass `fade` — see `docs/03_FRONTEND_SPEC.md` for why `/about` does
-  not. It is NOT every route: `not-found.tsx`, `error.tsx` and `/projects/[slug]` render their own
-  `<main>` and do not fade.) Three things about it are load-bearing and one of them was found
-  by measurement rather than by reading:
+  two different claims about the same component. It is one claim: **four** routes render it, and
+  **three of them pass `fade`** — `/`, `/work` and `/projects`. `/about` passes `fade={false}`; see
+  `docs/03_FRONTEND_SPEC.md` for why. It is NOT every route: `not-found.tsx`, `error.tsx` and
+  `/projects/[slug]` render their own `<main>` and do not fade, which makes **four of the site's
+  seven `<main>` elements** the `PageStack` ones. That count is restated in three places —
+  `app/layout.tsx`, `docs/03_FRONTEND_SPEC.md` and this bullet — and every one of them read
+  three-of-six until 2026-08-25, which is the whole argument against restating a count at all.
+  Counted here off `grep -rn "<main" app components` and off the four `PageStack` call sites, not
+  carried over from either of the others.) Three things about it are load-bearing and one of
+  them was found by measurement rather than by reading:
 
   1. **There is no `template.tsx` and there must not be one.** A `motion.div` wrapping
      `{children}` in `app/(site)/(chrome)/template.tsx` is the obvious mechanism and it breaks the

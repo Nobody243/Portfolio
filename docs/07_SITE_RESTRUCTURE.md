@@ -3,6 +3,22 @@
 Saad's spec, 2026-08-21, reproduced as the governing document. Tracked in `/docs` rather than
 `.claude/` per CLAUDE.md's rule: this constrains every remaining ticket, so it is architecture.
 
+> **THIS FILE IS STILL GOVERNING, AND IT IS NO LONGER A SPEC FOR THREE PAGES.** It moved `/`,
+> `/about` and `/work`. A fourth content route, `/projects`, was added on 2026-08-25 under
+> `.claude/specs/projects-architecture-spec.md` §3 — a different spec — and it falsified route
+> enumerations in this file (§1.1's Active-source row, §3's ROUTE SCOPE box) and left §5 without a row
+> for it. Those are corrected in place and **§5.1** was added. `CLAUDE.md`'s reference line called
+> this "the governing spec for the three-page site" for the same reason and takes the same correction.
+
+> **RECONSTRUCTED 2026-08-25 — the passages in this file dated 2026-08-25 are rewrites, not restored
+> originals.** A `git-filter-repo` run reset every tracked file to its committed state. Source files
+> came back verbatim out of `.next` source maps; **markdown is never bundled, so no build artefact
+> held a line of documentation.** The DECISIONS come from
+> `.claude/specs/projects-architecture-spec.md`, which survived only because `.claude/` is gitignored;
+> the wording is new. Every mechanical claim was read back out of the code — the active-route table
+> out of `components/ui/navContent.ts`, the route tree out of `app/`, and §5.1's description of the
+> strip page out of `app/(site)/(chrome)/projects/page.tsx`.
+
 > **Supersedes parts of two earlier docs:**
 > - `docs/06_INTRO_AND_CHROME.md` — its navbar **layout** (left/centre/right content) is still
 >   correct, but its **spacing model** is replaced by the full-bleed decision in §1. The
@@ -12,8 +28,10 @@ Saad's spec, 2026-08-21, reproduced as the governing document. Tracked in `/docs
 >   > merge-to-point sequence in §3."* The merge-to-point sequence was reverted on 2026-08-22 (§3
 >   > records it), which put `docs/06`'s seven-phase table and the scale-17 zoom-in back. Then, later
 >   > the same day, the zoom-in itself was retired in favour of the 0.55s plate dissolve that `/work`
->   > and `/about` already used. **`docs/06` §2 is the live table and it is now correct on all three
->   > routes; this bullet supersedes nothing about the Intro.**
+>   > and `/about` already used. **`docs/06` §2 is the live table and it is correct on every route
+>   > the Intro plays on; this bullet supersedes nothing about the Intro.** *(Said "on all three
+>   > routes" until 2026-08-25; `/projects` is a fourth and takes the same table unchanged, which is
+>   > the point — the table has no route branch in it.)*
 > - `docs/03_FRONTEND_SPEC.md` — **Rule S-1 is reversed for chrome only.** See §1.
 >
 > `.claude/handoff/hero-sphere-design.md` is unchanged and remains the source of truth for the
@@ -58,24 +76,60 @@ any later nav work** — which is why it is here rather than only in
 `.claude/handoff/navbar-indicator-design.md`, per CLAUDE.md's rule.
 
 **A 2px line beneath the active centre item, matching that item's width, sliding and resizing between
-the three.** The layout contract in §1 is unchanged: same three clusters, same order, same full-bleed
-gutter.
+the three.** *(Three ITEMS — ABOUT, the icon, WORK. That has not changed and must not be read as
+three routes: the bar paints on four, and the row below records how the fourth resolves.)* The
+layout contract in §1 is unchanged: same three clusters, same order, same full-bleed gutter.
 
 | Parameter | Value |
 |---|---|
 | Element | one absolutely-positioned `<span aria-hidden="true">` inside the centre cluster |
 | Height · offset | **2px**, **6px** below the cluster's content box |
 | Colour | `var(--nav-accent)` — never a literal; the bar crosses the pinned-dark hero and `bg-base`, which flips |
-| Active source | `usePathname()` → `/` = the centre icon, `/about` = ABOUT, `/work` = WORK |
+| Active source | `usePathname()` → `isActiveRoute(href, pathname)` in `components/ui/navContent.ts`. `/` = the centre icon · `/about` = ABOUT · `/work` **and `/projects` and `/projects/<slug>`** = WORK |
 | Geometry | the active item's `getBoundingClientRect()`, differenced against the cluster's |
 | Transition | `transform` + `width`, **240ms**, `EASE.ui` from `lib/animation/easing.ts` |
 | Reduced motion | **none — it jumps** |
 | Breakpoint | **`md` and up only**; below that the cluster is `hidden` and `NavMobileMenu` navigates |
 | Re-measure on | route change · resize · `document.fonts.ready` |
 
+> **THAT ROW READ "`/` = the centre icon, `/about` = ABOUT, `/work` = WORK" — A FLAT PATHNAME
+> EQUALITY — AND IT WAS FALSE FROM 2026-08-25.** `/projects` shipped and `/projects/<slug>` was
+> regrouped, and neither is literally under `/work`'s path, so exact equality would have left the
+> bar with **no active item on two of its four routes** — a bar going blank on a page it
+> demonstrably has an entry for. The mechanism and its refusals lived only in gitignored `.claude/`
+> until this correction; they belong beside the parameter table they govern.
+>
+> **The mechanism is a TABLE, not a rule.** `ROUTE_GROUP` in `components/ui/navContent.ts` maps
+> hrefs that are active for more than their own pathname. It has exactly one entry —
+> `"/work": ["/projects"]` — and a base matches itself or anything beneath `${base}/`.
+>
+> **`pathname.startsWith(href)` was refused BY NAME**, in that file's own comments: `/` is a prefix
+> of every path on the site, so a blanket rule marks Home active everywhere and puts two
+> `aria-current="page"` attributes in the bar. The trailing slash matters for a second reason — a
+> bare `startsWith("/projects")` would also claim a future `/projects-archive`, a different page
+> silently inheriting WORK's underline.
+>
+> **`/` IS DELIBERATELY ABSENT FROM THE TABLE**, and that absence is the load-bearing part: there is
+> no `/` entry to widen, so `/` can only ever match itself, and the objection is closed by
+> construction rather than by care. Any future entry must preserve pairwise-disjoint match sets.
+>
+> **Declared cost, accepted rather than engineered around.** Grouping `/projects/<slug>` under WORK
+> deletes the documented "overlay open, no item matches" null case, so the indicator is now visible
+> sliding to WORK for ~175ms during the project overlay's fade-in. Saad: *"accept it, not worth
+> engineering around. A brief, honestly-disclosed cosmetic side effect of a sensible architectural
+> choice is a fine trade."* The comment in `Navbar.tsx` that documented the null case was rewritten
+> in the same change rather than left to contradict the code.
+>
+> *(Reconstructed 2026-08-25 after a `git-filter-repo` run destroyed this file's uncommitted edits —
+> markdown is never bundled, so no build artefact held the original. The decision comes from
+> `.claude/specs/projects-architecture-spec.md` §0.4; every mechanical claim above was read back out
+> of `components/ui/navContent.ts`.)*
+
 **THE CENTRE ICON BEING `/` IS WHAT MAKES THIS WORK.** Every page the bar appears on has exactly one
 active item. A two-item version would show nothing on Home. **Do not retarget the icon** without
-resolving what Home's indicator becomes.
+resolving what Home's indicator becomes. Note that "exactly one" is now delivered by two mechanisms
+working together — the icon covering Home, and `ROUTE_GROUP` covering the two project surfaces that
+have no entry of their own.
 
 **`aria-current="page"` on the active link is REQUIRED, and it is the source of truth.** The line is
 decorative and `aria-hidden`; the code finds what to measure *by* that attribute, so the two cannot
@@ -287,11 +341,24 @@ resolving, or to a visited flag, is **removed, not tuned**.
 
 > ### ROUTE SCOPE — added 2026-08-22, because "document load" was silent about WHICH document.
 >
-> **It plays on a document load of `/`, `/work` or `/about`.** Those are exactly the routes in
-> `app/(site)/(chrome)/`, which is where the gate is mounted — one layout above all three, so it
-> mounts once per document and cannot remount on a navigation between them.
+> **It plays on a document load of `/`, `/work`, `/projects` or `/about`.** Those are exactly the
+> routes in `app/(site)/(chrome)/`, which is where the gate is mounted — one layout above all four, so
+> it mounts once per document and cannot remount on a navigation between them.
+>
+> > *This box read "`/`, `/work` or `/about` … exactly the routes in `app/(site)/(chrome)/`" until
+> > 2026-08-25, and **both clauses were false at once** — the list undercounted, and the equivalence
+> > that made the list authoritative was what silently carried the error. `/projects` was placed
+> > inside `(chrome)` **forced rather than chosen**, and this box is one of the two reasons why: the
+> > route's own spec requires the Intro on a hard load, the Intro's gate is `IntroProvider`, and
+> > `IntroProvider` is mounted by that layout. The second reason is §1.1's navbar active state, which
+> > points at the same group independently. The equivalence is restored rather than replaced by a
+> > literal list, because it is the equivalence that makes this box self-maintaining — but it is only
+> > self-maintaining if whoever adds a route to `(chrome)` reads it, which is exactly what did not
+> > happen. (Reconstructed 2026-08-25; the wording is new, the route tree was re-read off `app/`.)*
 >
 > **It never plays on `/projects/<slug>`, `not-found` or `error`,** which sit outside that group.
+> Note the pair carefully: the one-segment INDEX `/projects` is inside and plays it; the `[slug]`
+> detail segment is a sibling one level up, outside, and does not.
 > Detail pages are Tier 3 (`docs/06` §4 reason 2) and a shared project link is the most likely cold
 > entry point a recruiter has; gating it behind 2.765s of spectacle is the opposite of what Tier 3
 > protects.
@@ -481,9 +548,14 @@ they are tuned. This is the shape, not the tuning.
    > **Why.** The camera only existed where a full-viewport hero stage was there to aim it at, i.e.
    > one route in three, and `Intro.tsx` carried 128 lines arguing why it could not travel to the
    > other two. One route's entrance being structurally different — its own ending, its own total, its
-   > own DOM read — cost more than the ×17 bought. **The Intro now has ONE ENDING on all three
-   > routes**, which is the decision this section records and it belongs here rather than in a handoff
-   > file per CLAUDE.md's "where decisions live" rule.
+   > own DOM read — cost more than the ×17 bought. **The Intro now has ONE ENDING on every route it
+   > plays on**, which is the decision this section records and it belongs here rather than in a
+   > handoff file per CLAUDE.md's "where decisions live" rule. *(This clause read "ONE ENDING on all
+   > three routes", present tense, until 2026-08-25. It is four routes now, and the count is
+   > deliberately not restated as "four": there is no route branch left anywhere in the sequence, so
+   > any number here is one that goes stale on the next route. The historical sentence above it —
+   > "one route in three" — is a statement about what was true when the camera was retired and is
+   > left exactly as written.)*
    >
    > **Two of that block's three arguments were never true of Home**, and they are recorded so nobody
    > re-derives them: (1) "the receiving geometry does not exist" — it does on Home, where the hero
@@ -639,7 +711,7 @@ nothing today (renders nothing while its array is empty) and stays correct once 
 a single non-scrolling screen with no room; the reveal-footer's height must stay fixed for its
 ScrollTrigger maths.
 
-**Reveal footer (curtain).** **Home and Work only — not About.** The footer sits fixed beneath the page
+**Reveal footer (curtain).** **Home and Work only — not About, and not `/projects`.** The footer sits fixed beneath the page
 at a lower z-index; the last section's content wipes up off it as the user scrolls past, so it reads as
 having been there behind the screens the whole time. Content reuses existing elements: email (same
 click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detail (mark + year).
@@ -667,6 +739,52 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
 > hydration and dead forever with JS blocked. `CopyEmailButton` now takes an optional `href` and
 > renders a working `mailto:` anchor until it hydrates, so there is no dead control at any point. The
 > navbar adopted the same fallback in the same commit.
+
+### 5.1 `/projects` — the strip list, and why it has no reveal footer (added 2026-08-25)
+
+**`/projects` is a fourth content route and this section did not have it.** It holds the same five
+projects `/work` does, as one full-width strip row each — numeral, title, and the project's cover
+fading in from the right at `lg`+ — reached from the `Browse as a list` control on Home and on
+`/work`. It is **not** in the navbar; `WORK` shows as the active item there (§1.1). It is a different
+PRESENTATION of the same set, not a different set, which is why `/work`'s definition as "the complete
+record" is unchanged by its existence and why the control is not labelled "View all projects" —
+a label promising more projects would be untrue.
+
+**RULED: NO REVEAL FOOTER ON `/projects`.**
+
+The reason is specific to what the page is, and it is not the reason About has none. **`/projects` is
+a list whose whole job is to be scanned and exited, and the spec gave it its own fixed `Close`** —
+one above the rows, one below, both going to `/work`, both deliberately a fixed destination rather
+than a return-to-referrer. A curtain would wipe up under the lower one and put **a second exit
+directly beneath the exit the spec specified**, offering a different destination, at the end of a page
+that has just finished offering exits. That is a competing affordance in the one place the design is
+already answering the question.
+
+**About's absence is a different argument entirely** and the two must not be collapsed. §6 keeps
+`/about` "deliberately the one fully quiet page" — its CTA row already carries GitHub and LinkedIn,
+and a footer there would break the framing to add a landmark nobody asked for. Same outcome, unrelated
+reasoning. **The consequence both share is worth stating plainly: neither route has a `contentinfo`
+landmark.** That is valid HTML and it is a decision on both routes, not an oversight on either.
+
+**A second consequence, mechanical rather than editorial:** `/projects` therefore has no reveal-footer
+sentinel, so it needs none of Rule S-6's page-stack machinery. It passes `PageStack` an empty class
+string — no `relative z-10`, no `bg-base` — exactly as `/about` does, and for the same reason: there
+is no pinned plate beneath it to occlude.
+
+> **THIS RULING WAS AN ARCHITECTURE LEAK BEFORE IT WAS WRITTEN HERE, AND THAT IS THE USEFUL PART.**
+> It was made on 2026-08-25 and lived only in gitignored `.claude/` and in one code comment, while
+> this section still read "Home and Work only — not About" — a sentence that stayed **true in effect**
+> and recorded **nothing about the decision**. CLAUDE.md's "where decisions live" rule is explicit
+> that a decision constraining later work moves to `/docs`; a sentence that happens to remain accurate
+> is not the same as a decision being recorded, and this one went unnoticed for exactly that reason.
+>
+> *(Reconstructed 2026-08-25. This subsection existed and was destroyed with the rest of the
+> documentation by a `git-filter-repo` run — markdown is never bundled, so no build artefact held it.
+> The ruling and its reasoning come from `.claude/specs/projects-architecture-spec.md`; the wording
+> here is new. Everything asserted about the shipped page — two `Close` links to `/work`, no
+> `<RevealFooter />`, the empty `PageStack` class string, the absence from the navbar — was read back
+> out of `app/(site)/(chrome)/projects/page.tsx` and `components/ui/navContent.ts` rather than taken
+> from the spec.)*
 
 ---
 
@@ -849,7 +967,10 @@ moved, all of them widths and one type step:
   new geometry it costs a 42.5px indent off the spine rather than the ~122px refused before, and
   42.5px is the worst of the three options: too small to read as centring, too large to read as
   alignment. **If S-1 is ever broken here it must be broken visibly — fully centred, with `/about`
-  named as the exception in `docs/03` — or not at all.**
+  named as an exception in `docs/03` — or not at all.** *(The condition was met on 2026-08-24 and
+  `/about` is now S-1's **FIRST** named exception rather than its only one — `/projects`' full-bleed
+  strip rows are the second, approved separately and on unrelated grounds. This bullet said "THE
+  exception" until 2026-08-25; only the definite article was ever wrong.)*
 - **`PORTRAIT_SIZES`' `lg` band moved with the cap**, 384px → 448px. 448 is not a `next/image`
   bucket, so the selected derivative jumps one: w=384 → **w=640** at DPR-1 and w=828 → **w=1080** at
   DPR-2. Re-verified rather than assumed — **exactly one image request** at 375 / 640 / 1024 / 1440 ×

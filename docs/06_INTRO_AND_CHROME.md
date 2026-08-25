@@ -1,5 +1,19 @@
 # 06 — Intro, Loader, and Site Chrome
 
+> **RECONSTRUCTED 2026-08-25 — every passage in this file dated 2026-08-25 is a rewrite, not a
+> restored original.** A `git-filter-repo` run reset every tracked file to its committed state.
+> Source files came back verbatim out of `.next` source maps; **markdown is never bundled, so no
+> build artefact held a line of documentation.** The passages concerned are the phase-table counts,
+> §3's ordering-contract branch, the entrance-onset condition, §4's group listing and route scope,
+> §5's toggle table, and the scroll-lock reach. The DECISIONS come from
+> `.claude/specs/projects-architecture-spec.md`, which survived only because `.claude/` is
+> gitignored; the wording is new, and each claim was verified against the code — the route tree
+> against `app/`, the entrance condition against `IntroEntrance.tsx`'s own header and against
+> `/projects`' prerendered HTML, the navbar grouping against `components/ui/navContent.ts`. **No
+> measurement was invented**: the figures still dated 2026-08-22 are qualified as covering the three
+> routes that existed then, and the scrollbar-release run on `/projects` is recorded as NOT DONE
+> rather than assumed.
+
 Decisions in this document govern more than one ticket. Per `CLAUDE.md`, that is
 what makes them architecture rather than working notes, and why they live in
 `/docs` instead of in a handoff file.
@@ -81,9 +95,15 @@ transition. Do not mix the words again.
 > §2), the name is still pre-extracted outlines rather than DOM `<text>`, and
 > `AssetLoader` still gates this component. Only the *sequence* went back.
 
-Seven phases, **2.765s total, on all three routes**. The per-phase split lives in
+Seven phases, **2.765s total, on every route the Intro plays on**. The per-phase split lives in
 `components/intro/Intro.tsx` as named constants, which is where it should be
 tuned.
+
+> *This said "on all three routes" until 2026-08-25. It is four now (`/`, `/work`, `/projects`,
+> `/about`) — but the replacement is deliberately not "four" either: **there is no route branch
+> anywhere in phases 1-7**, so any count here is a number that goes stale on the next route rather
+> than a fact about the sequence. `Intro.tsx` itself was corrected the same way, in five separate
+> places, one of which wrapped a line and survived the first sweep's grep.*
 
 > **AMENDED 2026-08-22 — PHASE 7'S CAMERA IS RETIRED, AND THIS IS THE ONE ROW
 > THAT CHANGED.** This section read *"Seven phases, **3.17s total** (measured:
@@ -181,7 +201,8 @@ material changes while the letters are still closing.
 `ZOOM_OUT_SCALE` 0.82, where phase 5 left it, and the plate's `autoAlpha` goes
 1 -> 0 over `DISSOLVE_S` 0.55s on `power2.in`. The mark takes no tween of its
 own: it is a child of the plate and fades with it, at the same rate. There is
-**no route branch** — this is the ending on `/`, `/work` and `/about` alike.
+**no route branch** — this is the ending on every route the Intro plays on, `/`, `/work`,
+`/projects` and `/about` alike. *(Listed three until 2026-08-25.)*
 
 > **THIS PARAGRAPH DESCRIBED THE x17 CAMERA UNTIL 2026-08-22.** It read:
 > *"`scale: 17` on an HTML ancestor of the SVG — not a `<g>` inside it, because
@@ -311,11 +332,30 @@ It deliberately does **not** own the scroll lock (see §3).
 
 ## 3. The ordering contract
 
-**It has an off-Home branch, and it did not until 2026-08-22.** §3 documents a
+**It has an off-Home branch, and it did not until 2026-08-22.** §3 documented a
 three-route scope everywhere else on this page, but this contract described only
 `/`, so the exit it specified was the one exit that does not happen on two of
 the three routes. `docs/07` §5 already carried the off-Home ending; this is the
 same fact in the contract that is supposed to be the ordered summary of it.
+
+> **THE BRANCH WAS `ON /` vs `OFF HOME (/work, /about)` UNTIL 2026-08-25, AND `/projects` FELL
+> THROUGH THAT TAXONOMY ENTIRELY.** It is not `/`, so the first branch does not apply; it is off
+> Home, so the second one claimed it — and the second branch schedules an `IntroEntrance` re-key on a
+> page that renders no `IntroEntrance` at all. The contract was not merely incomplete: as written it
+> described a step that does not happen on the fourth route.
+>
+> **The branch now tests what actually varies, not where the visitor is.** A route has a hero, or it
+> renders an `IntroEntrance`, or it has neither. That matches §5's rule forty lines below, which was
+> already phrased this way and was already correct — so the fix here is making the contract agree with
+> the rule it summarises, rather than adding a fourth arm to a route list that will go stale again on
+> the fifth route.
+>
+> *(Reconstructed 2026-08-25. The branch existed in this corrected form before a `git-filter-repo` run
+> destroyed this file's uncommitted edits; markdown is never bundled, so nothing recovered the
+> original wording. The three-way split and its justification come from
+> `.claude/specs/projects-architecture-spec.md`; the `/projects` arm was verified against
+> `app/(site)/(chrome)/projects/page.tsx` and against the page's prerendered HTML, which contains no
+> real `[data-reveal]` element.)*
 
 ```
 1. AssetLoader mounts
@@ -325,18 +365,22 @@ same fact in the contract that is supposed to be the ordered summary of it.
 
 2. Intro plays
    - fixed, scripted; never gated on the network again
-   - phases 1-6 are IDENTICAL on all three routes
+   - phases 1-6 are IDENTICAL on every route the Intro plays on
 
-3. Phase 7 -- DISSOLVE, and it is the SAME phase 7 on all three routes.
+3. Phase 7 -- DISSOLVE, and it is the SAME phase 7 on every route it plays on.
    The stage holds at ZOOM_OUT_SCALE 0.82 where phase 5 left it, and the
    plate's own autoAlpha goes 1 -> 0 over 0.55s on power2.in. The mark takes
    no tween of its own; it is a child of the plate and fades with it.
    - onHandoff fires on phase 7's FIRST frame, while the plate is still fully
      opaque, and the navbar entrance starts from it (same tween, same 0.45s)
-   - ON `/`: the hero's arrival starts from the same instant and runs 1.30s
-   - OFF HOME (`/work`, `/about`): the DESTINATION's own above-the-fold
-     entrance is re-triggered at onHandoff + 0.30s by
-     `components/intro/IntroEntrance.tsx`
+   - IF THE ROUTE HAS A HERO (`/` only): the hero's arrival starts from the
+     same instant and runs 1.30s
+   - IF THE ROUTE RENDERS AN `IntroEntrance` (`/work`, `/about`): the
+     DESTINATION's own above-the-fold entrance is re-triggered at
+     onHandoff + 0.30s by `components/intro/IntroEntrance.tsx`
+   - IF NEITHER (`/projects`): nothing else is scheduled. The plate dissolves
+     off a page that is already fully painted and static, which is the correct
+     outcome rather than a missing branch
    - total 2.765s, on every route
 
 4. IntroGate unmounts
@@ -356,7 +400,7 @@ same fact in the contract that is supposed to be the ordered summary of it.
 > which is amended rather than deleted for the same reason.
 
 **The two seams are arranged in OPPOSITE ORDERS, and that is not an
-inconsistency — even now that the plate leaves identically on all three.** On
+inconsistency — even now that the plate leaves identically on every route.** On
 `/` the incoming half is long and back-loaded (the hero's **1.30s**
 `power2.out`), so it can afford to start on the same frame the plate does. Off
 Home the incoming half is short and front-loaded (`EASE.reveal` over 0.70s), so
@@ -372,9 +416,31 @@ the hand-off with no onset, an off-Home entrance is 98.7% finished at that frame
 and animates in secret. `IntroEntrance.tsx` carries the table and the measured
 figures.
 
-**Which routes take the 0.30s entrance onset:** `/work` and `/about` — the other two members of the
-`(chrome)` group. `projects/[slug]` sits outside the group and shows no Intro at
-all, so it has no branch here.
+**Which routes take the 0.30s entrance onset:** `/work` and `/about` — **the routes that render an
+`IntroEntrance`.** `projects/[slug]` sits outside the `(chrome)` group and shows no Intro at all, so
+it has no branch here. `/projects` IS inside the group and DOES play the Intro, and it still takes no
+onset, because nothing on it is wrapped in a `Reveal`.
+
+> **THE LIST WAS RIGHT AND THE REASON WAS WRONG, AND THE REASON IS THE PART THAT MATTERS.** This
+> paragraph said `/work` and `/about` were "the other two members of the `(chrome)` group" until
+> 2026-08-25 — i.e. it derived the onset from GROUP MEMBERSHIP. `/projects` joined the group that day
+> and the list did not change, which proves membership was never the condition. **The condition is
+> "renders an `IntroEntrance`"**, and it always was; group membership merely happened to coincide
+> with it while the group had three routes.
+>
+> The onset exists because `Reveal` is `whileInView` at scroll 0, so an above-the-fold unit on a hard
+> load fires on the first observer tick and finishes behind a plate that is still opaque — it animates
+> in secret. A route with no `Reveal` above the fold has no such unit and therefore nothing to delay.
+> **Verified off the build rather than reasoned:** `/projects`' prerendered HTML contains **zero real
+> `[data-reveal]` elements** — the only occurrence is the `<noscript>` block's selector text — against
+> four on `/`. Its heading, both `Close` affordances and all five strip rows are static.
+>
+> `IntroEntrance.tsx`'s own header states the scope as **"TWO ROUTES, THREE CALL-SITE FILES"** —
+> `AboutScreen`, `ProjectDeckSection` and `Certifications` — which is the same fact counted the other
+> way, and it is the count to trust because the component is what defines the condition.
+> `app/(site)/(chrome)/projects/page.tsx` carries the standing instruction that if a reveal is ever
+> wanted on that page, this line, the wrapper and `IntroEntrance`'s route/consumer header all reverse
+> **together**.
 
 `components/intro/IntroGate.tsx` is the **single owner** of the
 `html[data-intro-active]` scroll lock, for the whole gate — both plates.
@@ -395,9 +461,23 @@ child touches it. Two components setting and clearing one attribute with
 overlapping lifetimes is how a document ends up permanently unscrollable, and it
 is also what keeps `Intro` safe to reuse elsewhere: a transition that is not
 covering the whole page has no business locking it. **The lock now reaches
-`/about` and `/work` too** — close to a no-op on `/about` at `lg` and up, real
+`/about`, `/work` and `/projects` too** — close to a no-op on `/about` at `lg` and up, real
 work on `/about` below `lg` where it scrolls, and never a no-op on `/work`, which is held at the scroll position it loaded at until the
 gate retires.
+
+**`/projects` takes the same lock and it does real work there**, which was not true for about an
+hour on 2026-08-25 and is worth recording as an example rather than quietly corrected. When the route
+first shipped it held only a heading and a fixed `Close`, so four files — `app/globals.css`,
+`components/intro/IntroGate.tsx`, `docs/01_PRD.md` and this one — said it "holds nothing under the
+scroll lock … until the strip rows land". **The rows landed the same day.** The page is now roughly
+1280px tall at 1440 and scrolls at every shipped viewport. *A sentence that names its own trigger is
+the easiest kind to leave stale*, and this build demonstrated that twice.
+
+**What has NOT been done on `/projects`: the scrollbar-release measurement.** The 53-element figure
+above was taken on 2026-08-22 against the three routes that existed then. `/projects` is absent from
+it because nobody ran it, **not because it scored zero** — and it cannot be run here, for the reason
+this paragraph already gives: headless Chromium uses overlay scrollbars, so `innerWidth - clientWidth`
+is zero and the compensation never fires. **No number was invented for it.**
 
 The Intro plays **once per page load** — an **in-memory module-scope flag**, not
 `sessionStorage`. **This reverses what this section used to say.** The old rule
@@ -445,8 +525,26 @@ renders on `/` and only on `/`", and while the site was one page that was
 correct. It is not any more: WORK is a route now, and a bar whose entries point
 at pages it does not itself appear on is unusable.
 
+**THE BAR PAINTS ON FOUR ROUTES AND STILL CARRIES ONLY TWO CENTRE LINKS, AND THAT IS DELIBERATE.**
+`/projects` joined this group on 2026-08-25 and inherited the bar, the toggle and the Intro gate with
+it. Nothing in the chrome links to `/projects` — it is reached only from the `Browse as a list`
+control on `/` and on `/work`. `WORK` shows as active there instead, through a one-entry
+`ROUTE_GROUP` table in `components/ui/navContent.ts` (`"/work": ["/projects"]`), which also covers
+`/projects/<slug>` via a trailing-slash prefix test rather than a bare `startsWith`. A bare prefix
+match is refused **by name** in that file — `/` is a prefix of every path on the site — and `/` is
+deliberately absent from the table, so the three centre match sets stay pairwise disjoint and the
+"exactly one active item" invariant the sliding indicator depends on holds by construction rather
+than by care.
+
+**Declared cost, accepted rather than engineered around:** grouping `/projects/<slug>` under WORK
+deletes the old "overlay open, no item matches" null case, so the indicator is now visible sliding to
+WORK for roughly 175ms during the overlay's fade-in. Saad's call — *"accept it, not worth engineering
+around."*
+
 It is mounted in **`app/(site)/(chrome)/layout.tsx`**, a nested route group
-holding `page.tsx`, `work/` and — from Phase 4 — `about/`. It renders before
+holding `page.tsx`, `work/`, `about/` (from Phase 4) and `projects/` (from
+2026-08-25 — the strip-list INDEX, not the `[slug]` detail segment, which is a
+sibling one level up and outside the group). It renders before
 `{children}` and as a sibling of the page's `<main>`, so `<header>`'s nearest
 ancestor is still `<body>` and it is still the `banner` landmark. Route groups
 contribute no URL segment, so no URL changed and — the part that mattered — the
@@ -481,8 +579,13 @@ the provider does not remount and there is no guard clause to keep in sync. It i
 the same safeguard `PageStack.tsx` records for the navbar's entrance.
 
 **The gate's route scope is exactly this group, and that is the point of putting
-it here:** `/`, `/work` and `/about` play the Intro on a document load;
+it here:** `/`, `/work`, `/projects` and `/about` play the Intro on a document load;
 `/projects/<slug>`, `not-found` and `error` sit outside the group and never do.
+*(This sentence listed three routes until 2026-08-25. `/projects` was placed inside `(chrome)`
+FORCED rather than chosen, and this line is one of the two reasons: its spec requires the Intro on a
+hard load, the Intro's gate is `IntroProvider`, and `IntroProvider` is mounted by this layout. The
+other reason is the navbar's active state — see the `ROUTE_GROUP` note in §4's opening. The
+paragraph below the table in §5 is the same claim about the toggle and moved with it.)*
 Reason 2 above — Tier 3 is where recruiters evaluate substance — rules the detail
 routes out for the gate exactly as it rules them out for the bar, and a shared
 project link is the single most likely cold entry point on the site.
@@ -507,8 +610,14 @@ must not be "fixed" later by someone who reads either state as an oversight.
 | Homepage, mobile (`<768px`) | yes — inside the menu (`NavMobileMenu`) |
 | `/about` (Phase 4) | yes — the same navbar, same two instances |
 | `/work` (Phase 2) | yes — the same navbar, same two instances |
+| `/projects` (2026-08-25) | yes — the same navbar, same two instances. **It required no change to `ThemeToggle` and none to `Navbar`**: the route was added inside `(chrome)`, and the bar and both toggle instances came with the layout. That is the property this table is really recording |
 | `/projects/<slug>` (Tier 3) | yes — `ProjectDetailFrame` |
 | `/404`, error page | yes |
+
+*(The `/projects` row was added 2026-08-25 and is a reconstruction: the row existed before a
+`git-filter-repo` run destroyed this file's uncommitted edits, and markdown is never bundled, so no
+build artefact held the original wording. The fact was re-verified against
+`app/(site)/(chrome)/projects/page.tsx`'s position in the route tree, not taken from the spec.)*
 
 **Exactly one is ever visible.** Two instances exist in the markup on any page
 that renders `<Navbar />`, and they are mutually exclusive by construction: the

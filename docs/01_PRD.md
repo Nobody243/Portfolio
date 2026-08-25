@@ -3,8 +3,16 @@
 > ## AMENDED 2026-08-22 — this file describes a site shape that no longer exists.
 >
 > `docs/07_SITE_RESTRUCTURE.md` is the governing spec and it turned **one scrolling page with seven
-> sections into three routes** — `/`, `/about`, `/work`. This document predates it by a wide margin
-> and nobody had reconciled the two. The amendment blocks below do that, section by section, in place.
+> sections into four routes** — `/`, `/about`, `/work` and `/projects`. This document predates it by a
+> wide margin and nobody had reconciled the two. The amendment blocks below do that, section by
+> section, in place.
+>
+> > **That sentence read "into three routes — `/`, `/about`, `/work`" until 2026-08-25**, and it was
+> > right when it was written: `docs/07` moved three. `/projects` arrived later, under
+> > `.claude/specs/projects-architecture-spec.md` §3, which is a different spec — so this line was
+> > describing `docs/07`'s scope accurately and describing the site inaccurately at the same time. It
+> > now names all four and says which spec moved which, because the ambiguity is the whole reason the
+> > count went stale unnoticed.
 >
 > **Nothing is deleted and nothing is silently rewritten.** Every superseded claim is kept in its
 > original wording with the correction beside it. This is a decision record; its value is showing what
@@ -19,6 +27,26 @@
 >
 > Every "as built" statement below was checked against the repo at `23d890d` on branch
 > `hero-rebuild`, not inferred from the other docs.
+>
+> ---
+>
+> ### RECONSTRUCTED 2026-08-25 — read this before trusting a diff of this file
+>
+> A `git-filter-repo` run reset every tracked file to its committed state and destroyed an
+> uncommitted week of work. Source files were recovered verbatim from `.next` source maps; **markdown
+> is never bundled, so no build artefact contained a single line of documentation.** Every amendment
+> in this file dated **2026-08-25** is a rewrite from
+> `.claude/specs/projects-architecture-spec.md` — which survived only because `.claude/` is
+> gitignored — and not a restored original. The decisions are the spec's; the *wording* is new, and
+> where the spec quotes a superseded sentence that quote is used verbatim and where it does not, the
+> superseded sentence is quoted from this file's own committed state.
+>
+> **Every claim carrying a number or a route was verified against the code before being written
+> here**, not taken from the spec: the 17/17 page count off a real `npm run build`, the route list
+> off `app/`, the navbar grouping off `components/ui/navContent.ts`, `/work`'s section order off
+> `app/(site)/(chrome)/work/page.tsx`. Where the spec described something as finished and the code
+> disagrees, the code won — see the fanned deck, which the spec plans in full and which ships
+> mid-rebuild as `components/sections/FannedDeckPhase1.tsx`.
 
 ## What this is
 A scrollable, cinematic personal portfolio site for Muhammad Saad — an IT undergraduate transitioning
@@ -26,22 +54,41 @@ from full-stack/mobile development toward Cybersecurity, Cloud Infrastructure, a
 functions as a first impression before any recruiter, collaborator, or fellow engineer ever talks to him
 directly — "make myself the product."
 
-> **AMENDED 2026-08-22 — "a scrollable, cinematic site" is now three routes, not one page.**
-> The paragraph above is otherwise accurate and stays as written: the audience, the framing and
-> "make myself the product" are unchanged. What changed is the shape.
+> **AMENDED 2026-08-22, EXTENDED 2026-08-25 — "a scrollable, cinematic site" is now four routes, not
+> one page.** The paragraph above is otherwise accurate and stays as written: the audience, the
+> framing and "make myself the product" are unchanged. What changed is the shape.
+>
+> > **This headline read "is now three routes" until 2026-08-25.** The fourth is `/projects`; its row
+> > is below.
 >
 > | Route | What it carries |
 > |---|---|
 > | `/` | The cinematic narrative: Hero → Trajectory → Stack → **three** featured projects → reveal footer. Scroll-scrubbed, desktop only. |
 > | `/work` | The complete record: all five projects, Experience, Currently Learning. Normal scroll, no pinning, no scrubbing. Reveal footer. |
-> | `/about` | One screen that **deliberately does not scroll at `lg` and up**; it scrolls below `lg`. The one page with no footer at all. |
+> | `/projects` | The same five projects as a **full-bleed strip list** — one row each, numeral plus title, the cover fading in from the right at `lg`+. Two `Close` links, above and below, both fixed to `/work` rather than returning to the referrer. Normal scroll. **No reveal footer.** |
+> | `/about` | One screen that **deliberately does not scroll at `lg` and up**; it scrolls below `lg`. No footer at all. |
+>
+> > **That `/about` cell read "The one page with no footer at all" until 2026-08-25, and it is no longer the only one.** `/projects` has no reveal footer either — ruled separately, for a different reason. About's absence is about keeping one page fully quiet (`docs/07` §6); `/projects`' absence is that the page is a list which already ends in its own fixed `Close`, and a curtain would put a second exit under the one the spec asked for. Same outcome, two unrelated arguments, and collapsing them into "the one page" would lose both. `docs/07` §5 now carries the `/projects` ruling.
 >
 > > **That cell read "One screen that deliberately does not scroll" until 2026-08-23.** One screen that does not scroll AT `lg` (1024px) AND UP; it SCROLLS below `lg`, so the portrait can take the full measure as a square. `docs/07` §6 carries the split, the 252.7px shortfall that forced it and what it does not change. The no-footer half is unchanged and is not a consequence of the scroll rule.
 > | `/projects/<slug>` ×5 | Tier 3 detail pages, reachable as a real route or as an intercepted overlay. |
 >
-> Entry is an asset **Loader** followed by the choreographed **Intro**, whose `scale: 17` zoom-in *is*
-> the transition into the Hero — two separate things with two separate jobs, split in
-> `docs/06_INTRO_AND_CHROME.md` §1 and sequenced in its §2.
+> Entry is an asset **Loader** followed by the choreographed **Intro**, whose **phase 7 — a 0.55s
+> dissolve of the plate out from under the settled mark — *is* the transition into whatever route was
+> loaded** — two separate things with two separate jobs, split in `docs/06_INTRO_AND_CHROME.md` §1 and
+> sequenced in its §2.
+>
+> > **This said "whose `scale: 17` zoom-in *is* the transition into the Hero" until 2026-08-25, and
+> > the camera it named had already been retired for three days.** `CLAUDE.md` took that correction on
+> > 2026-08-22; this file never got it, which is precisely the "invisible-because-unlisted" failure the
+> > header above exists to prevent — the amendment pass that rewrote everything around this sentence
+> > left the sentence. Two things were wrong with it. The ×17 zoom-in was **Home's** phase 7 only —
+> > `/work` and `/about` already ended on the dissolve — so it described one route out of three and
+> > named the Hero as the destination on all of them. And the zoom-in is now retired outright:
+> > `docs/07` §3 step 7 has the reasoning, `docs/06` §2 has the phase table (phase 7, `DISSOLVE_S`
+> > 0.55s, `power2.in`), and the retired camera is preserved on branch `intro-zoom-in-backup` / tag
+> > `intro-zoom-in`. `Hero.tsx`'s arrival was re-derived against it — `ARRIVAL_S` 1.6 → 1.30s,
+> > `ARRIVAL_SCALE` 1.12 → 1.04.
 
 ## Who it's for
 - **Primary:** recruiters and hiring managers evaluating him for internships/entry roles, especially in
@@ -79,10 +126,10 @@ what the overwhelming majority of dev portfolios currently look like.
 > | Hero with "a signature 3D moment (Tier 1 motion)" | Shipped on `/`, and **it is not 3D**. The scene is a single Canvas2D context plus SVG (`components/hero/ParticleGrid.tsx`, `lib/hero/commandSphere.ts`). **No source module in `app/`, `components/`, `lib/` or `content/` imports `@react-three/fiber`, `@react-three/drei` or `three`** — and the packages themselves were **uninstalled on 2026-08-22**, together with the `"overrides"` block that pinned them. This line read "the three packages are still declared in `package.json` dependencies and are no longer used by anything" until 2026-08-22: `docs/02` recorded the removal and this sentence did not. `package.json` now declares four runtime dependencies plus React — `gsap`, `lenis`, `motion`, `next`, `react`, `react-dom`. The "cinematic load-in" is the Loader/Intro split, not a preloader. |
 > | About/Trajectory section | **Split in two.** The dev-foundation → coursework → pivot narrative is the `Trajectory` section on `/`; the 65-word first-person paragraph is `/about`, a separate route (`docs/07` §6). |
 > | Skills, three groups | Shipped on `/` as Stack, reading `content/skills.ts`. **"Currently Building Toward" ships with zero entries on purpose** and renders a designed empty state rather than being hidden. |
-> | Projects gallery (FOLIO, Aero-Grid, ClashChat) | `/` renders exactly those three, from `featuredProjects`. **`/work` renders all five**, adding the CCN and SNA builds — which are archive-only and are linked from no other route. |
+> | Projects gallery (FOLIO, Aero-Grid, ClashChat) | `/` renders exactly those three, from `featuredProjects`. **`/work` renders all five** as a fanned card deck, adding the CCN and SNA builds; **`/projects` renders the same five** as a strip list. *(This cell said the CCN and SNA builds "are archive-only and are linked from no other route" until 2026-08-25. They now have TWO in-app entry points. `/projects` did that, and it falsified the same sentence in three other places — `ProjectOverlay.tsx`, the `@modal` interceptor page, and `content/projects.ts`.)* |
 > | Experience section | **Moved off `/` onto `/work`.** |
 > | Currently Learning | **Moved off `/` onto `/work`, after Experience.** `content/currentlyLearning.ts` is an empty array, so the component returns `null` and no section, heading or "last updated" note reaches the HTML. That is the honest state, not a gap. |
-> | Contact/close section | **Absorbed into the reveal footer** (`components/sections/RevealFooter.tsx`), on `/` and `/work` only. `components/sections/Contact.tsx` no longer exists. **`/about` has no footer and zero `contentinfo` landmarks**, which `docs/07` §6 decided outright. |
+> | Contact/close section | **Absorbed into the reveal footer** (`components/sections/RevealFooter.tsx`), on `/` and `/work` only. `components/sections/Contact.tsx` no longer exists. **`/about` and `/projects` each have no footer and zero `contentinfo` landmarks** — About because `docs/07` §6 keeps it deliberately quiet, `/projects` because `docs/07` §5 ruled a curtain would put a second exit under the fixed `Close` the page already ends on. Two routes, two different arguments, same outcome. |
 > | Light/dark theme toggle | Shipped, and **it lives in the navbar** — a reversal recorded in `docs/06` §5. The Hero is a pinned dark plate in *both* themes by design (`docs/07` §9.4); that is not a half-built light mode. |
 > | Fully responsive | Unchanged as a requirement. Home's scroll-scrub becomes Intersection-Observer reveals below `md` (`docs/07` §7). |
 
@@ -127,16 +174,22 @@ what the overwhelming majority of dev portfolios currently look like.
 > more.** The primary path as built:
 >
 > 1. Land on `/` → `AssetLoader` resolves the two above-the-fold webfaces → the seven-phase `Intro`
->    plays → its zoom-in hands off into the Hero, with the navbar sliding down on the same frame.
+>    plays → **its phase-7 plate dissolve** hands off into the Hero, with the navbar sliding down on
+>    the same frame. *(This step said "its zoom-in hands off" until 2026-08-25 — the second of two
+>    references in this file to a camera retired on 2026-08-22. See the entry amendment above.)*
 > 2. Scroll into **Trajectory** — the same narrative step 2 above describes, scroll-scrubbed on desktop.
 > 3. Scroll into **Stack** — the three groups, with "Currently Building Toward" visibly empty.
 > 4. Scroll into the **three featured cards** → click → the overlay morph into project detail → leave
 >    by a real link, or close back to the gallery at the same scroll position.
 > 5. Scroll past the last section → the **reveal footer** wipes up from behind the page: click-to-copy
 >    email, LinkedIn, the MS mark and a year stamp. This is where the old step 7 went.
-> 6. **WORK** in the navbar → `/work`: all five projects, then Experience, then Currently Learning
->    (which currently renders nothing).
-> 7. **ABOUT** in the navbar → `/about`: the paragraph, the static mark, and View CV / GitHub /
+> 6. **WORK** in the navbar → `/work`: the fanned card deck holding all five projects, a
+>    `Browse as a list` exit, Certifications ("Coming soon."), then Experience, then Currently
+>    Learning (which currently renders nothing).
+> 7. **`Browse as a list`**, from Home's featured row or from `/work` → `/projects`: the same five as
+>    full-width strip rows, `Close` back to `/work`. The navbar does not link here and `WORK` stays
+>    the active item; this control is the only way in.
+> 8. **ABOUT** in the navbar → `/about`: the paragraph, the static mark, and View CV / GitHub /
 >    LinkedIn. No footer.
 >
 > **What that costs, recorded rather than glossed: Experience and Currently Learning are no longer on
@@ -152,9 +205,13 @@ All seven sections from the site structure, real content throughout (no placehol
 fabricated stats/testimonials), light/dark toggle working, responsive on mobile/tablet/desktop, deployed
 live on Vercel with a real domain or vercel.app URL, all links real and working.
 
-> **AMENDED 2026-08-22.** "All seven sections from the site structure" is no longer the shape. v1 is
-> **three routes plus five project detail pages**, and every one of them is prerendered — `next build`
-> reports **16/16 static pages generated**, with no route falling back to server rendering. Every
+> **AMENDED 2026-08-22, RECOUNTED 2026-08-25.** "All seven sections from the site structure" is no
+> longer the shape. v1 is **four routes plus five project detail pages**, and every one of them is
+> prerendered — `next build` reports **17/17 static pages generated**, with no route falling back to
+> server rendering. *(Was "three routes … 16/16" until 2026-08-25; `/projects` is the seventeenth
+> page. Re-run, not inferred: the route table still lists all five `(.)projects/<slug>` interceptor
+> entries and all five `/projects/<slug>` pages, so adding an index route beside `[slug]` did not
+> shadow the interception.)* Every
 > other clause in the paragraph binds unchanged, and each is still true: real content throughout, no
 > Lorem Ipsum, no fabricated stats or testimonials, light/dark working, responsive, deployed, all
 > links real.
@@ -174,11 +231,12 @@ Since this isn't a product with signups/revenue, success is qualitative + a few 
 > - **Time-on-site and scroll depth** — **unmeasured, because no analytics is installed** (see the
 >   should-have amendment above). The metric is not wrong; it is switched off. It stays on the list
 >   as the thing Ticket 16 turns on. Note also that "scroll depth" meant one page when this was
->   written and now spans three routes, so whatever gets installed has to be read per route.
+>   written and now spans four routes, so whatever gets installed has to be read per route.
 > - **Click-through from Projects gallery into detail pages** — **still valid, now ambiguous.** There
->   are two galleries (`/`'s featured three, `/work`'s five) and the same click can land as an
->   intercepted overlay or, on a hard load, as the real route. Anything measuring this has to count
->   both surfaces and both arrival paths, or it will undercount.
+>   are three surfaces (`/`'s featured three, `/work`'s deck of five, `/projects`' strip list of the
+>   same five) and the same click can land as an intercepted overlay or, on a hard load, as the real
+>   route. Anything measuring this has to count all three surfaces and both arrival paths, or it will
+>   undercount. *(Was "two galleries" until 2026-08-25.)*
 > - **Direct outcome signals** and **the subjective "this is different" bar** — unchanged, and still
 >   the actual bar being aimed for.
 >

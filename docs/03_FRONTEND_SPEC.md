@@ -1,5 +1,22 @@
 # Frontend Specification Document — Muhammad Saad Portfolio
 
+> **RECONSTRUCTED 2026-08-25 — four passages in this file are rewrites, not restored originals.**
+> A `git-filter-repo` run reset every tracked file to its committed state and destroyed an
+> uncommitted week of work. Source files were recovered verbatim out of `.next` source maps;
+> **markdown is never bundled, so no build artefact contained a single line of documentation.** The
+> passages rewritten here are: Rule S-1's **second** named exception (`/projects`, full-bleed at the
+> chrome gutter), the **fourth curve family** (`SPRING`), the S-1 mechanical sweep count, and the
+> `PageStack` / theme-toggle / theme-sweep route enumerations.
+>
+> The DECISIONS come from `.claude/specs/projects-architecture-spec.md`, which survived only because
+> `.claude/` is gitignored. **The wording is new.** Every number in the rewritten passages was
+> re-derived from the code rather than copied from the spec — the S-1 count by script with comments
+> stripped, the `mx-auto` and `text-center` census the same way, the `<main>` count and the `fade`
+> call sites by `grep`, the route table off a real `npm run build`. **Two of those re-derivations
+> disagree with the spec, and both are called out where they appear**: `SPRING` has zero live
+> consumers rather than one, and `/work`'s fanned deck is centred rather than left-anchored. The code
+> wins in both cases, and the disagreement is recorded rather than smoothed over.
+
 ## Color system
 
 **Dark mode (default):**
@@ -275,12 +292,28 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > `aria-hidden` does not exempt anything here: it hides an element from screen readers, while 1.4.3
 > exists for low-vision users looking straight at it.
 
-> ### The whole-site theme sweep — measured 2026-08-22, both themes, all four route shapes
+> ### The theme sweep — SPLIT BY METHOD, because it is no longer whole-site
+>
+> **This heading read "The whole-site theme sweep — measured 2026-08-22, both themes, all four route
+> shapes" until 2026-08-25, and both halves of that stopped being true on the same day.** There are
+> **five** route shapes now — `/`, `/about`, `/work`, `/projects` and `/projects/<slug>` — and
+> **`/projects` has never been through this sweep, nor through the no-JS pass, nor through the
+> scrollbar-release measurement.** Neither has the rebuilt `/work`. The heading is split by METHOD
+> rather than re-dated, so what was actually checked stays separable from what was not, and nothing
+> here is quietly extended to cover a route nobody ran it against.
 >
 > The claim this section makes — *"components should NOT need `dark:` variants: every token flips"* —
-> is now a measured result rather than an intention. Run against `/`, `/about`, `/work` and
-> `/projects/folio`, at 1440×900, each page scrolled top to bottom so every `Reveal` and scrub unit
-> had settled, in both themes.
+> is a measured result rather than an intention **on the four route shapes named below**. Run against
+> `/`, `/about`, `/work` and `/projects/folio`, at 1440×900, each page scrolled top to bottom so every
+> `Reveal` and scrub unit had settled, in both themes. **`/work`'s capture predates the fanned deck**,
+> which replaced the archive grid on 2026-08-25 and brought five new surfaces (`--color-deck-1` …
+> `-5`) with it; the deck's own contrast figures were measured separately and live with the ramp in
+> `app/globals.css`.
+>
+> | Row | Status |
+> |---|---|
+> | The two STATIC scans — hex literals, `dark:` variants, sub-`/70` opacities | **Re-runnable at any time, and cheap.** Nothing about them is route-scoped |
+> | The two BROWSER rows — 348 text nodes against a size-aware floor, 1340 property-instances diffed dark-vs-light | **Still the 2026-08-22 run over four route shapes.** Extending them to `/projects` and to the rebuilt `/work` needs a real browser capture, and no number is invented here in place of one |
 >
 > | Check | Method | Result |
 > |---|---|---|
@@ -540,7 +573,7 @@ The hero established this deliberately — its wordmark is an object in a space 
 annotation anchored to the frame. Re-centring any later section would retroactively demote that to an
 artefact of the 3D layout rather than a compositional claim.
 
-**S-1's ONE NAMED EXCEPTION: `/about`, 2026-08-24, on Saad's instruction.** `AboutScreen.tsx` has
+**S-1's FIRST NAMED EXCEPTION: `/about`, 2026-08-24, on Saad's instruction.** `AboutScreen.tsx` has
 carried the terms of this since the page was built — *"if S-1 is ever broken here it must be broken
 VISIBLY, with `/about` named in `docs/03`, or not at all"* — and this paragraph is that naming. On
 `/about` only, the composition is **centred horizontally inside the spine rather than started on
@@ -570,9 +603,59 @@ spine-aligned on the other is the actual inconsistency. **This does not license 
 else**, and in particular not on `/` or `/work`, where the sweep above shows there is nothing to
 centre — their sections already reach both edges.
 
-**S-1 swept mechanically, 2026-08-22.** Every occurrence of `max-w-[1440px]` in `app/` and
-`components/`, comment-stripped, with each container's *full* class string diffed against the spine:
-**twelve containers, ten byte-identical, two known deviations and no third.**
+*(This heading read "S-1's ONE NAMED EXCEPTION" until 2026-08-25. There are two now — the second is
+below — and the two are unrelated: `/about` is centred INSIDE the spine, `/projects` has no spine at
+all. Neither generalises to the other, and "two exceptions" is not a trend. `docs/07` §1077 and
+`AboutScreen.tsx` both point here for the `/about` exception and both were corrected in the
+same window — `AboutScreen.tsx` now reads "FIRST NAMED EXCEPTION" verbatim, and `docs/07`'s
+"named as THE exception" became "an exception". Verified in both files rather than assumed.)*
+
+**S-1's SECOND NAMED EXCEPTION: `/projects`, 2026-08-25, approved by Saad IN ADVANCE of the build.**
+On `/projects` only, there is **no spine at all** — no `mx-auto`, no `max-w-[1440px]`, and none of
+the 21 / 55 / 89 sequence. Every block on the page takes the **chrome gutter** instead: `px-md`
+(21px) below 640px, `px-lg` (34px) at 640 and above, which are the two values `components/ui/Navbar.tsx`
+uses. Verified on disk: `app/(site)/(chrome)/projects/page.tsx` declares no `max-w-[1440px]`, and
+three blocks carry `px-md sm:px-lg` — the `Close`/`<h1>` block, the closing `Close` block, and the
+row's own inner div in `components/sections/ProjectStripRow.tsx`. The `<ul>` itself has no padding,
+which is what lets the dividers touch both viewport edges.
+
+**WHY, in Saad's own words:** *"The whole point of the strip layout is full-width rows; that's not
+incidental, it's the design."* The rows are the page. A strip list whose rules stop 89px short of
+each edge is a table with margins, not a list — and a spine-aligned `<h1>` above full-bleed rows
+would put **two different leading edges on one page**, which is a worse violation of what S-1 is
+actually protecting than the deviation itself. So the page has one leading edge, and it is the
+chrome's: the heading, both `Close` affordances and every row start on the same 21/34px inset.
+
+**THE EXCEPTION IS SCOPED TO `/projects` AND DOES NOT GENERALISE.** It is not a licence for
+full-bleed elements anywhere else, it is not a licence for a second gutter scale in a spine-aligned
+page, and it is not a precedent for "sections may go edge-to-edge when the design wants it." It was
+raised and approved *before* the strip list was built rather than discovered afterwards, which is the
+only reason it is a decision instead of a drift — the same handling `/about`'s exception got, and
+deliberately so.
+
+*(Reconstructed 2026-08-25. This passage existed and was destroyed with the rest of the
+documentation by a `git-filter-repo` run; markdown is never bundled, so no build artefact held a copy.
+The DECISION is quoted from `.claude/specs/projects-architecture-spec.md`, which survived because
+`.claude/` is gitignored; the WORDING here is a rewrite, and every geometric claim in it was checked
+against `projects/page.tsx` and `ProjectStripRow.tsx` rather than taken from the spec.)*
+
+**S-1 swept mechanically, 2026-08-22; RE-RUN 2026-08-25.** Every occurrence of `max-w-[1440px]` in
+`app/` and `components/`, comment-stripped, with each container's *full* class string diffed against
+the spine: **fourteen containers across fourteen files, twelve byte-identical, the same two known
+deviations and no third.**
+
+> **The count moved three times on 2026-08-25 and it is stated once, with the history, rather than
+> adjusted three times.** It was twelve. `/projects` shipped spine-aligned first, making thirteen.
+> It then moved to the chrome gutter under the second named exception above and dropped back out,
+> making twelve. Then `/work`'s restructure added `Certifications.tsx` and `ProjectDeckSection.tsx`,
+> making **fourteen**. A number that oscillates inside one day is exactly the number to re-run rather
+> than reason about, and this one was: comments stripped, `app/` and `components/`, fourteen hits in
+> fourteen files. **`/projects` is deliberately not among them** — that absence is the second
+> exception being in force, and if a `max-w-[1440px]` ever appears in `projects/page.tsx` the
+> exception has been quietly reverted.
+>
+> *(Recounted 2026-08-25 during the documentation reconstruction, by script rather than by grep, and
+> not copied from the spec — which independently reports the same fourteen.)*
 
 | Deviation | Class string | Verdict |
 |---|---|---|
@@ -585,13 +668,33 @@ so the right inset only caps the measure and the leading edge still lands exactl
 recorded because "S-1 holds here" and "this container is symmetric" are different claims and a future
 sweep will otherwise re-derive the difference.*
 
-Also swept in the same pass: **zero** `text-center` anywhere in `app/` or `components/`, and every one
-of the twelve `mx-auto` occurrences is a spine container rather than a centred text block — which is
-the mechanical form of *"nothing on this site is ever a centred content column."*
+Also swept in the same pass: **zero** `text-center` anywhere in `app/` or `components/` — re-run
+2026-08-25, still zero — and every `mx-auto` occurrence that is not accounted for below is a spine
+container rather than a centred text block, which is the mechanical form of *"nothing on this site is
+ever a centred content column."*
+
+**THE `mx-auto` HALF OF THAT SENTENCE NO LONGER STANDS ON ITS OWN, AND THE FULL ACCOUNTING IS NOW
+WORTH MORE THAN THE CLAIM.** Re-run 2026-08-25, comment-stripped: **20 occurrences.** Fourteen are
+the spine containers above. Four are `/about`'s composition boxes (the first named exception; the
+paragraph below already covers them). One is `components/ui/wobble-card.tsx`, an **untracked
+Aceternity vendor file that nothing imports** and which is not part of the site. **And one is new and
+is not covered by anything already written here: `components/sections/FannedDeckPhase1.tsx`'s
+positioning wrapper is `relative mx-auto … max-w-5xl … justify-center`, so `/work`'s fanned deck is
+CENTRED inside the spine rather than left-anchored on it.**
+
+That last one is recorded here rather than ruled on, because it is a real disagreement between a
+decision and the code. The projects-architecture design round ruled the deck *"left-anchored, not
+centred. Forced by Rule S-1"* — and then the deck was rebuilt from the vendor component in three
+phases and the vendor's own centred wrapper came with it. The deck is mid-rebuild
+(`FannedDeckPhase1.tsx` is still its filename), the centring has been in front of Saad in a real
+browser at every phase gate, and it is not a text block, so it is not the failure `text-center`
+guards against. **It is nonetheless a third centred thing on a site whose spine rule says there are
+none, and it should be settled deliberately — as a decision or as a fix — rather than left to be
+rediscovered by the next sweep.**
 
 **THAT SECOND HALF NEEDS RE-READING AFTER 2026-08-24, AND IT SURVIVES.** `/about` added four
 `mx-auto` occurrences that are NOT spine containers — the row, the text column, the portrait and the
-flip-board band. They centre **boxes whose widths are set by the composition** (a 34rem measure, a
+flip-board band. (These are the four counted in the accounting above.) They centre **boxes whose widths are set by the composition** (a 34rem measure, a
 square portrait, a tile grid), not a text block inside a wider column: every line of prose on the
 page still begins on the left edge of its own 544px measure and is ragged-right. **`text-center` is
 still zero and must stay zero** — that is the half of the rule that was always doing the work, and a
@@ -904,6 +1007,69 @@ the page"; `sticky` produces the identical effect and is what ships.
 - Card → detail transition: shared-element morph (Framer Motion `layoutId`) — the card itself
   visually expands/settles into the detail page rather than a hard route cut
 
+### Curve vocabulary, and the fourth family
+
+`lib/animation/easing.ts` is the source of truth and this section describes it; where the two
+disagree the code is right. It exports three cubic-beziers — `EASE.hero` (Tier 1 only, long
+front-loaded tail), `EASE.reveal` (the Tier 2/3 scroll-reveal workhorse) and `EASE.ui` (hover, press,
+toggles, near-symmetric) — with the standing instruction above them: *"Three curves, one per job.
+Resist adding a fourth without a real reason — a motion system with seven eases reads as inconsistent,
+not as expressive."*
+
+**A FOURTH FAMILY WAS ADDED ON 2026-08-25, DELIBERATELY, AND IT IS SAAD'S DECISION RATHER THAN AN
+IMPLEMENTATION DETAIL.** `SPRING` — `{ type: "spring", visualDuration: 0.6, bounce: 0.25 }`, exported
+from the same file. It is not a fourth *ease*: a cubic-bezier cannot express settle-with-overshoot at
+all, which is exactly why it is named and scoped in the shared module instead of written inline at a
+call site. The value is the reference's own (Aceternity's `interface-crafts-cards`, the deck's model)
+and is deliberately **not** re-tuned — the reason it exists is to match a specific reference, and a
+hand-adjusted approximation would be neither the reference nor a house value. `visualDuration` is
+Motion's *perceptual* duration, the time to first arrival at the target, not the time to rest; the
+tail continues past it.
+
+**SCOPE: `/work`'s fanned deck, and nothing else.** A second consumer is a motion-system decision to
+be taken as deliberately as this one was.
+
+**ITS CONSUMER COUNT ON DISK, AS OF 2026-08-25, IS ZERO — AND THIS IS THE THIRD DIFFERENT ANSWER THIS
+ENTRY HAS GIVEN, SO THE HISTORY IS STATED RATHER THAN THE NUMBER ALONE.** It read "one consumer" when
+there were none, then "ZERO CONSUMERS" while the deck was unbuilt, then "one consumer:
+`ProjectDeck.tsx`" when the first deck landed. **`grep -rn "SPRING" app components lib` today returns
+exactly one import — `components/sections/ProjectDeck.tsx:22` — and `ProjectDeck.tsx` is not imported
+by anything.** `/work` renders `components/sections/ProjectDeckSection.tsx`, which imports
+`components/sections/FannedDeckPhase1.tsx`, and that file declares its **own local** `SPRING` constant
+with the same two values rather than importing this one. `ProjectDeck.tsx` was retired to disk,
+unimported, when Saad ordered the deck rebuilt from the vendor component in three phases; its header
+says so, and salvaging from it was the plan.
+
+So the shipped deck springs, on the reference's exact numbers, and the shared export it was created
+for is currently reaching nothing. **A curve family's consumer count is the one number that decides
+whether it should exist at all**, which is why this is recorded plainly instead of rounded to "one".
+Two ways out and both are Saad's call, not an implementer's: point `FannedDeckPhase1.tsx` at the
+shared export and delete its local copy — a one-line import that makes the entry true again — or
+retract the export with the retired component. **Do neither silently.** The fourth curve was his
+explicit design-system decision and unwinding it is not a tidy-up.
+
+**IT DOES NOT RETROACTIVELY LICENCE SPRINGS ANYWHERE ELSE, AND TWO REFUSALS ON RECORD STILL STAND.**
+`components/sections/CoverFrame.tsx` and `components/sections/ProjectOverlay.tsx` each refuse a spring
+for the card → cover morph. **Each refusal carries TWO reasons and only ONE of them expired:**
+
+> `CoverFrame.tsx` — *"A SPRING WAS REJECTED. Its overshoot would push the cover past its final rect —
+> visible against the `<h1>`'s fixed left edge one row below — and it would add a fourth curve family
+> to a three-ease system."* `ProjectOverlay.tsx` makes the same argument in the same words.
+
+The **systemic** clause — "a fourth curve family to a three-ease system" — is now spent, and this
+entry is what spent it. The **geometric** clause is untouched and is sufficient on its own: an
+overshoot measured against a fixed reference edge one row below is a visible error, and the deck has
+no such edge beneath it to be measured against. That difference is the whole reason one surface may
+spring and the other may not. **Do not read those two files as stale, and do not "unify" the morph
+onto this spring.** If either comment is ever edited, keep the geometric half.
+
+*(Reconstructed 2026-08-25. This subsection was written when `SPRING` shipped and was destroyed with
+the rest of the documentation by a `git-filter-repo` run — markdown is never bundled, so no build
+artefact held it. The decision and the two quoted refusals come from
+`.claude/specs/projects-architecture-spec.md` and from the code respectively; the consumer-count
+paragraph is **not** from the spec, which records one consumer. It was re-derived from `grep` on
+2026-08-25 and disagrees with the spec, and the code wins.)*
+
 ### Scroll-scrub — Home only, and the vocabulary it uses
 
 Added 2026-08-22. This section had no scrub vocabulary at all, which is how Home's scrub reached an
@@ -1158,10 +1324,14 @@ next pass does not re-derive them:
   `Reveal`'s private `TRAVEL_PX`, which is the one value in `ScrubReveal.tsx` that can silently
   drift. At 768 the same units measure 21px, so the breakpoint resolves where it claims to.
 
-### Route transition — Home ↔ About ↔ Work
+### Route transition — Home ↔ About ↔ Work ↔ Projects
 
-Added 2026-08-22. Navigating between the three routes read as a default App Router swap: the
+Added 2026-08-22. Navigating between the routes read as a default App Router swap: the
 indicator slid and the document changed between one frame and the next.
+
+*(This heading named three routes and the sentence said "the three routes" until 2026-08-25.
+`/projects` joined the `(chrome)` group and inherited the transition with no change to this
+component — which is the point of the fade living in `PageStack` rather than in a `template.tsx`.)*
 
 | | |
 |---|---|
@@ -1172,7 +1342,7 @@ indicator slid and the document changed between one frame and the next.
 | First load | **No animation.** Module-scope boolean, the same idiom the Intro's session flags use (`components/intro/IntroSession.tsx`), inverted. It said "`IntroGate`'s `played`" until 2026-08-22; that flag was deleted when the gate moved to the `(chrome)` layout |
 | While the Intro runs | **No animation either**, on any route. The guard also consumes `introDone`. `arrived` alone stopped being sufficient the moment a route other than `/` could play an Intro: hard-load `/about`, reach `/` by keyboard or Back before the sequence ends, and `/`'s stack would fade in under the running plate. Measured before the fix: page-stack opacity 0.000 under a >50%-opaque plate. After: 1.000 |
 | Reduced motion | **Instant swap, not a shorter fade** |
-| Where | `components/ui/PageStack.tsx`. It renders THREE of the site's six `<main>` elements — `/`, `/work` and `/about` — and only the first two fade. `not-found.tsx`, `error.tsx` and `/projects/[slug]` (through `ProjectDetailFrame as="main"`) render their own and do not. That is fine; "every route's `<main>`" was not |
+| Where | `components/ui/PageStack.tsx`. It renders **FOUR of the site's SEVEN `<main>` elements** — `/`, `/work`, `/projects` and `/about` — and **three of the four fade**: `/`, `/work` and `/projects` pass `fade`, `/about` passes `fade={false}`. `not-found.tsx`, `error.tsx` and `/projects/[slug]` (through `ProjectDetailFrame as="main"`) render their own and do not fade. That is fine; "every route's `<main>`" was not. *(This cell read "THREE of the site's six … only the first two fade" until 2026-08-25. `/projects` shipped inside `(chrome)` with its own `PageStack` and moved both numbers at once. Recounted by `grep -rn "<main" app components` and by reading the four call sites, not adjusted from the old figure — and the same count is restated in `app/layout.tsx` and `docs/02`, all three of which were wrong together.)* |
 
 **240ms leading 350ms is the correct ordering and must not be "synced".** The chrome confirms the
 destination before the content resolves, which is what makes a click feel answered. `INDICATOR_MS`
@@ -1259,7 +1429,17 @@ who have that OS setting enabled.
 >
 > **Focus.** Verified by TABBING each route end to end and reading the computed outline at every stop,
 > not by grepping class strings: `/`, `/work`, `/about` and a project detail page at 1440×900, plus the
-> three chrome routes at 375×667, in both themes. **112 tab stops. Zero problems.**
+> then-three chrome routes at 375×667, in both themes. **112 tab stops. Zero problems.**
+>
+> > **DATED 2026-08-22, AND THE PAGE IT COUNTED IS NOT THE PAGE THAT SHIPS.** The figure predates
+> > `/projects` and predates `/work`'s fanned deck. Home gained one stop (the `Browse as a list`
+> > control), and that one settles by identity rather than needing a re-run — it takes `BUTTON_BASE`'s
+> > ring, the same constant this sweep verified on `/about`, at 7.95:1 dark / 5.34:1 light on
+> > `bg-base`. **`/projects` and the deck are NOT settled and need a real tabbing pass**, and the deck
+> > in particular is mid-rebuild: it currently ships with no `focus-visible` ring, no focus
+> > management, no Escape handler, and inactive cards that stay tabbable after being dropped. **112 is
+> > therefore a historical count, not a current one**, and it is kept dated rather than adjusted,
+> > because the only honest replacement is another tabbing run.
 >
 > Every stop resolves a ≥ 2px outline with a token colour, and every ring measures **≥ 3:1 against the
 > pixel immediately outside it**, sampled from a real screenshot at `left − outline-offset − 3`.
@@ -1339,8 +1519,12 @@ who have that OS setting enabled.
   > three surface contexts on `/`, and at 360px an opaque fixed chip occludes body text on every
   > route."* Both were reversed in Phase 0 and this file did not catch up.** `THEME_TOGGLE_IN_NAV`
   > shipped as a third constant (`ThemeToggle.tsx:170`), and the toggle now lives **inside the fixed
-  > navbar** on all three chrome routes (`Navbar.tsx:869`, `hidden md:block`), with
-  > `NavMobileMenu`'s `THEME_TOGGLE_ON_BASE` instance covering below `md`.
+  > navbar** on **all four chrome routes** — `/`, `/work`, `/projects` and `/about` (`Navbar.tsx`,
+  > `hidden md:block`) — with `NavMobileMenu`'s `THEME_TOGGLE_ON_BASE` instance covering below `md`.
+  > *(This clause said "all three chrome routes" until 2026-08-25. The bar is mounted by
+  > `app/(site)/(chrome)/layout.tsx`, so `/projects` inherited the toggle by joining the group, with
+  > no change to `ThemeToggle` or to `Navbar`. `docs/06` §5's equivalent surface table takes the same
+  > correction; this file carries a mirror of the claim, which is why both went stale together.)*
   >
   > **The old rule's reasoning was not wrong — the bar answers it.** A fixed control crossing three
   > surfaces would need a plate of its own, and that plate would put the pinned hero surface on

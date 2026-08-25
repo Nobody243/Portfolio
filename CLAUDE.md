@@ -12,13 +12,22 @@ Full planning documents live in `docs/`. Read the relevant one before working on
   not just the first. It was the only one of the seven docs missing from this list until
   2026-08-22 — the same invisible-because-unlisted failure recorded against `docs/07` below,
   and worse, because the omitted doc was the security one.
-- `docs/07_SITE_RESTRUCTURE.md` — **the governing spec for the three-page site.** Read it before any
+- `docs/07_SITE_RESTRUCTURE.md` — **the governing spec for the site's route structure.** Read it before any
   work on the navbar, the Intro, the MS mark, Home's structure, `/work`, `/about`, the scroll-scrub or
   the reveal footer — which is nearly everything. It reverses Rule S-1 for chrome, retires the
   four-category Stack grid, locks the featured three, defines `/about`, and scopes the scrub to Home.
   It was absent from this list until 2026-08-22, which meant the spec governing the entire restructure
   was invisible to any agent that read only this file — precisely the failure the section below exists
   to prevent.
+
+  > **This line said "the governing spec for the three-page site" until 2026-08-25.** It was written
+  > when three was the whole count. `/projects` was added under
+  > `.claude/specs/projects-architecture-spec.md` and makes four content routes, so a doc titled for a
+  > count now undercounts itself in its own reference line. `docs/07` is still governing — §5 was
+  > extended to cover the fourth route and its no-reveal-footer ruling — it simply is not a spec for
+  > "three pages" any more. *(Reconstructed 2026-08-25 after a `git-filter-repo` run destroyed the
+  > uncommitted documentation sweep; the wording here is rewritten from the spec's record of the
+  > decision, not restored from the original edit.)*
 - `docs/06_INTRO_AND_CHROME.md` — the Loader/Intro split and the Intro's confirmed sequence;
   the navbar's scope, its legibility escalation, and where the theme toggle lives now.
   Read it before touching anything named "loader", "intro", "nav", or the theme toggle.
@@ -120,20 +129,54 @@ for contrast):**
 
 ## Site structure
 
-**THE SITE IS THREE PAGES, NOT ONE SCROLL.** `docs/07_SITE_RESTRUCTURE.md` is the governing spec and
+**THE SITE IS FOUR PAGES, NOT ONE SCROLL.** `docs/07_SITE_RESTRUCTURE.md` is the governing spec and
 this summary is downstream of it. The numbered list below keeps its original numbering because the
 *content* and its tier assignments did not change — only which route each lands on:
+
+> **This read "THE SITE IS THREE PAGES" until 2026-08-25.** `/projects` — the strip list — shipped
+> under `.claude/specs/projects-architecture-spec.md` §3 and made every route enumeration in this
+> repo false at once, in eleven places that the spec's own review round had to go and find. The
+> count is four CONTENT routes plus `/projects/<slug>`, which has never been counted here because it
+> is a detail surface rather than a page of the site's own structure. *(Reconstructed 2026-08-25
+> after a `git-filter-repo` run destroyed the uncommitted documentation sweep. The sweep's original
+> wording is not recoverable — markdown is never bundled, so no build artefact contains it — and
+> this is a rewrite from the spec's record, verified against the code rather than copied from it.)*
 
 | Route | Sections, in order |
 |---|---|
 | `/` | Hero · Trajectory · Skills · Projects (**the featured three only**) · reveal footer |
-| `/work` | The full five-project archive · Experience · Currently Learning · reveal footer |
+| `/work` | `<h1>` **"Projects."** · the fanned card deck (all five, `components/sections/FannedDeckPhase1.tsx`) · a **"Browse as a list"** `<Link>` to `/projects` · Certifications (heading + "Coming soon.", a visible placeholder) · Experience · Currently Learning · reveal footer. The navbar label stays `WORK` and the route stays `/work` — the heading changed, nothing else did. A card's `Details` opens the intercepted overlay, not the standalone page |
+| `/projects` | The same five projects as a **full-bleed strip list** — one row each, numeral + title, cover fading in from the right at `lg`+ — between two `Close` affordances that both go to `/work`, fixed rather than return-to-referrer. A row opens the same intercepted overlay a card does. **No reveal footer**, deliberately. It is Rule S-1's second named exception: no spine, the chrome gutter instead. The navbar does **not** link here |
 | `/about` | **Composed to fit a REAL browser window on a 1080p display — 945px of `innerHeight`, not 1080 — without scrolling; scrolls anywhere it does not fit.** There is no CSS enforcing a single screen any more — no `h-dvh`, no `overflow-hidden` — so the non-scroll outcome is a property of the composition rather than a rule, and nothing is ever clipped. The guarantee narrowed twice on 2026-08-23 (`lg`+ → `xl`+ → 1080p only, each time on Saad's call) and its TARGET was corrected on 2026-08-24: a display resolution is not a viewport, and verifying against 1080 shipped a page that overflowed a real window by 21px. Verify `/about` in a real browser, or against 945/905/875 — never against the display height. `docs/07` §6 carries all of it. No reveal footer, deliberately, at any width — see `docs/07` §5–6 |
 | `/projects/<slug>` | Tier 3 detail, plus an intercepted overlay at the same URL. **No navbar** |
 
-0. **Chrome** — a fixed, transparent navbar on `/`, `/work` and `/about` (MS mark + location,
-   ABOUT/[icon]/WORK, theme toggle, copy-to-clipboard email + LinkedIn). It is permanently visible
-   and carries an active-route indicator. Entry is a real asset Loader followed by the choreographed
+> **`/work`'S DECK IS MID-REBUILD AND MUST NOT BE TREATED AS FINISHED.** It ships as
+> `components/sections/FannedDeckPhase1.tsx` — the filename is the status. Saad ordered it rebuilt
+> from the vendor component in three sequenced phases after the first, fully-adapted attempt failed
+> in a way nobody could diagnose (*"this isolates 'is the integration broken' from 'does our content
+> fit' — the two got conflated last round"*). Phases 1, 1b, 2 and 3 are done and each was looked at
+> in a real browser; the earlier purpose-built component is kept on disk, unimported, as
+> `components/sections/ProjectDeck.tsx`.
+>
+> **Verified against the code on 2026-08-25, not carried from a plan — every one of these is still
+> open:** a `<Link>` (an `<a>`) nested inside the card's `<button>`, which is invalid HTML; **no
+> mobile treatment at all below 1024px** — there is not one `sm:` or `md:` utility in the file, so a
+> phone gets the desktop fan at 220×300 with 70px of each card exposed, and the governing spec's §6
+> asks for a real mobile version of the interaction; no `prefers-reduced-motion` branch; no Escape
+> handler; no focus management and no `focus-visible` ring; inactive cards that stay tabbable after
+> being dropped to `opacity: 0`, with no `pointer-events` gate. **And `/work` prerenders ZERO
+> `/projects/<slug>` anchors**, so with JavaScript off no project is navigable from that page — the
+> only route onward is the single `Browse as a list` link, which is load-bearing in a way nobody
+> designed it to be. Counted off `.next/server/app/work.html` against `projects.html`, which emits
+> all five. Making the deck degrade to links is a design decision, not a cleanup.
+>
+> *(This note is new on 2026-08-25 and is part of the documentation reconstruction described below.
+> It is written from the code, not from the spec — the spec describes a deck with a mobile swipe
+> stack and per-card GitHub / Live Site anchors, and that component is the retired one.)*
+
+0. **Chrome** — a fixed, transparent navbar on `/`, `/work`, `/projects` and `/about` (MS mark +
+   location, ABOUT/[icon]/WORK, theme toggle, copy-to-clipboard email + LinkedIn). It is permanently
+   visible and carries an active-route indicator. Entry is a real asset Loader followed by the choreographed
    Intro, whose **final phase — a 0.55s dissolve of the plate out from under the settled mark —
    *is* the transition into whatever route was loaded**. Both are specified in
    `docs/06_INTRO_AND_CHROME.md` — do not re-derive either.
@@ -146,6 +189,19 @@ this summary is downstream of it. The numbered list below keeps its original num
    > table, and the retired camera is preserved on branch `intro-zoom-in-backup` / tag
    > `intro-zoom-in`. `Hero.tsx`'s arrival was re-derived against it — `ARRIVAL_S` 1.6 → 1.30s,
    > `ARRIVAL_SCALE` 1.12 → 1.04.
+
+   > **The bar paints on FOUR routes and carries only TWO centre links, and that is not a gap to be
+   > closed.** This bullet listed three routes until 2026-08-25. The bar is mounted by
+   > `app/(site)/(chrome)/layout.tsx` and `/projects` lives inside that group, so it paints there
+   > too — but nothing in the chrome links to `/projects`. `WORK` shows active on it instead, via the
+   > one-entry `ROUTE_GROUP` table in `components/ui/navContent.ts` (`"/work": ["/projects"]`, which
+   > also covers `/projects/<slug>` through the trailing-slash prefix test). `NAV_ITEMS` is
+   > fixed-arity by design — the centre cluster is balanced AROUND the icon, so a third entry is a
+   > layout change, not a data change — and the table is the alternative to widening it. `/` is
+   > deliberately absent from the table: it is a prefix of every path on the site, so an entry for it
+   > would mark Home active everywhere and put two `aria-current="page"` attributes in the bar.
+   > *(Reconstructed 2026-08-25 from `.claude/specs/projects-architecture-spec.md` §0.4 and verified
+   > against `navContent.ts`; the destroyed sweep's original wording is not recoverable.)*
 
    > **This bullet said "a fixed, transparent navbar on `/` only" and "NO theme toggle in it,
    > deliberately". Both were reversed in Phase 0 (2026-08-21).** `docs/07` §1 put the bar on all
@@ -189,6 +245,33 @@ directly into components.
 4. Tier 3 sections (Project detail, Skills, Experience, Currently Learning)
 5. Polish pass: easing curves, loading states, responsiveness, accessibility, light/dark toggle
 6. Populate real content last
+
+## The 2026-08-25 documentation reconstruction (read this before trusting a `git log` on the docs)
+
+**A `git-filter-repo` run reset every tracked file to its committed state and destroyed an
+uncommitted week of work.** Thirty-three source files were recovered verbatim out of `.next` source
+maps and restored in commit `d6b7331`. **Markdown is never bundled, so no build artefact contained a
+single line of documentation** — every documentation edit from that week was unrecoverable and was
+rewritten by hand on 2026-08-25.
+
+**The source of truth for the rewrite was `.claude/specs/projects-architecture-spec.md`**, which
+survived only because `.claude/` is gitignored. It records the decisions, the rulings and — usefully —
+most of the superseded wording quoted alongside its replacement.
+
+**The rewritten passages are marked as such, in place, in every file.** They are in `CLAUDE.md`,
+`README.md`, `docs/01`, `docs/02`, `docs/03`, `docs/06` and `docs/07`. Three things about them:
+
+- **They are rewrites, not restored originals.** Where the prior wording could not be known it says
+  so rather than implying continuity.
+- **Every claim was verified against the code before being written**, not taken from the spec. The
+  spec is a record of *intent* across a build that is still unfinished; the code is what ships.
+  Where the two disagree the code won and the disagreement is stated — see the fanned deck (planned
+  in full, shipping mid-rebuild), `SPRING`'s consumer count (spec says one, `grep` says zero live),
+  and the deck's centring (ruled left-anchored, ships centred).
+- **No measurement, date or figure was invented.** Dated browser measurements that predate
+  `/projects` are qualified as covering "the routes that existed then" rather than silently extended;
+  runs that were never done — `/projects`' theme sweep, its no-JS look, the scrollbar-release
+  measurement — are recorded as NOT DONE.
 
 ## Where decisions live (read before writing any planning doc)
 

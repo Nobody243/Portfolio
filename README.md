@@ -25,14 +25,19 @@ No backend, no database, no auth. Everything is statically prerendered.
 
 | Route | What's on it |
 |---|---|
-| `/` | Hero, Trajectory, Skills, the three featured projects, reveal footer |
-| `/work` | All five projects, Experience, Currently Learning, reveal footer |
-| `/about` | One screen, doesn't scroll. Portrait, longer bio, CV link |
-| `/projects/<slug>` | Project detail. Also renders as an intercepted overlay from a card click, at the same URL |
+| `/` | Hero, Trajectory, Skills, the three featured projects, a "Browse as a list" link, reveal footer |
+| `/work` | Headed "Projects." — a fanned card deck of all five, a "Browse as a list" link to `/projects`, Certifications ("Coming soon."), Experience, Currently Learning, reveal footer |
+| `/projects` | The same five as a full-bleed strip list, one row each, between two `Close` links back to `/work`. No reveal footer |
+| `/about` | Portrait, longer bio, CV link. Composed to fit a 945px browser window without scrolling, and scrolls anywhere it doesn't |
+| `/projects/<slug>` | Project detail. Also renders as an intercepted overlay from a card or strip-row click, at the same URL |
 
 Five projects: FOLIO, Aero-Grid, ClashChat, and two academic infrastructure builds — a multi-floor
 call-center network design and a Windows Server enterprise infrastructure. The first three are
-featured on `/`; all five are on `/work`.
+featured on `/`; all five are on `/work` and on `/projects`, which hold the same set in two different
+presentations rather than two different sets.
+
+The navbar has two centre links, not four. `/projects` is reached from the "Browse as a list" control
+on `/` and on `/work`; `WORK` shows as the active item while you are there.
 
 ## Running it locally
 
@@ -46,7 +51,7 @@ npm run dev      # http://localhost:3000
 Other scripts:
 
 ```bash
-npm run build    # production build — currently 16 prerendered pages
+npm run build    # production build — currently 17 prerendered pages
 npm start        # serve the production build
 npm run lint     # eslint
 npx tsc --noEmit # typecheck
@@ -84,3 +89,13 @@ the reasons that were later reversed.
 > the design system rules it out). Recorded rather than quietly replaced, because "the docs described
 > something that isn't true" is this project's recurring failure and the front page of the repo was
 > the worst place for it.
+
+> **The Routes table and the page count were reconstructed on 2026-08-25.** A `git-filter-repo` run
+> reset every tracked file to its committed state and destroyed an uncommitted week of work; source
+> files were recoverable from `.next` source maps, but markdown is never bundled, so no build
+> artefact contained any of it. This table's `/projects` row, its `/work` row and the "17 prerendered
+> pages" line are rewrites verified against the code and against a real `npm run build`, not restored
+> originals. The `/about` row said "One screen, doesn't scroll" for far longer than that — it
+> contradicted `CLAUDE.md` and `docs/07` §6, both of which record that no CSS enforces a single
+> screen and that the page scrolls wherever the composition does not fit. That is now corrected here
+> too.

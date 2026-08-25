@@ -52,7 +52,27 @@ next-env.d.ts
 # until 2026-08-22; `06_INTRO_AND_CHROME.md` and `07_SITE_RESTRUCTURE.md` were
 # added after this line was written. Count it, don't restate it.)
 # This also covers .claude/settings.local.json, which may hold machine-local config.
-.claude/
+#
+# `.claude/specs/` IS AN EXCEPTION AND IS TRACKED, since 2026-08-25. Governing
+# specs handed down for a piece of work are architecture, not working state, and
+# CLAUDE.md's "where decisions live" rule already says a decision constraining a
+# later ticket belongs in git. It took a real incident to act on it: a
+# git-filter-repo run reset every tracked file and destroyed an uncommitted
+# week's work, and `.claude/specs/projects-architecture-spec.md` survived ONLY
+# because this rule kept it out of git's reach. The one thing that saved the
+# record was the same thing that had kept it unprotected. Not twice.
+#
+# THE PATTERN IS `.claude/*`, NOT `.claude/`, AND THE DIFFERENCE IS LOAD-BEARING.
+# Git cannot re-include a path whose PARENT DIRECTORY is excluded, so `.claude/`
+# followed by `!.claude/specs/` silently does nothing — the negation never gets
+# a chance to match. Excluding the CONTENTS instead leaves the directory itself
+# eligible, which is what makes the exception work. Verified with
+# `git check-ignore -v` rather than assumed.
+#
+# `handoff/` stays ignored deliberately: it is 63MB of per-ticket working state
+# and screenshots against 144K of specs.
+.claude/*
+!.claude/specs/
 HANDOFF_CONTEXT.md
 
 # MCP server config — may carry credentials if one is ever configured.

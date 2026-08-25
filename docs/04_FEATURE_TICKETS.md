@@ -653,8 +653,10 @@ beyond standard anonymous analytics.
 > rather than implying the numbers exist.
 >
 > **One thing the restructure changed about this ticket's scope:** "page views and scroll depth" was
-> written for one page. It is three routes now, plus five detail routes reachable either as a real
-> navigation or as an intercepted overlay — and an overlay changes the URL without a document load.
+> written for one page. It is **four** routes now — `/`, `/work`, `/projects`, `/about` — plus five
+> detail routes reachable either as a real navigation or as an intercepted overlay, and an overlay
+> changes the URL without a document load. *(Said "three routes" until 2026-08-25; `/projects` is the
+> fourth, and it adds a second surface from which the same overlay opens.)*
 > Whatever is installed has to be told about that, or the site's most shareable surfaces undercount.
 
 ---
