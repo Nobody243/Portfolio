@@ -57,8 +57,30 @@ export const CONTACT_HEADING = "Contact";
  * register this replaces: no "let's build something amazing together", no
  * "always open to new opportunities", no "feel free to reach out".
  */
-export const CONTACT_CLOSING_LINE =
-  "I read everything that arrives here. Email is fastest.";
+export const CONTACT_CLOSING_LINE = "Reach out. I read everything myself.";
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ * THE LINE ABOVE WAS "I read everything that arrives here. Email is fastest."
+ * UNTIL 2026-08-27. SAAD SUPPLIED THE REPLACEMENT VERBATIM IN THE FOOTER
+ * REDESIGN BRIEF, AS HE SUPPLIED THE ORIGINAL.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * EVERY TEST THE DOCBLOCK ABOVE APPLIES STILL PASSES, checked rather than
+ * assumed: it repeats nothing `aboutContent.ts` says, it makes no availability
+ * claim, and it is nowhere near the generic register CLAUDE.md bans by name.
+ *
+ * ONE THING IT DROPS ON PURPOSE — "Email is fastest." The old line ranked the
+ * three channels; the new one does not. That ranking is not lost, it MOVED:
+ * the redesign stacks the three links vertically with Email first, and array
+ * order is display order (`content/contact.ts`). Position now says what the
+ * sentence used to.
+ *
+ * "Reach out" IS AN IMPERATIVE, which the old line was not, and that is the
+ * one register shift. It is not the banned kind — "feel free to reach out" is
+ * the padded version and this is not it — but if it ever reads as pushy the
+ * fix is Saad's wording, not a re-edit here.
+ */
 
 /**
  * The stamp's year. FOUR DIGITS, AND NOTHING ELSE — this is deliberately NOT a
@@ -100,4 +122,53 @@ export const CONTACT_EDITION_YEAR = "2026";
  * has no reveal footer, so it has no sentinel, so no trigger is created there.
  * Never render this id anywhere the plate is not directly beneath it.
  */
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * THE COPYRIGHT LINE — AND IT REVERSES A BAN THIS FILE AND `RevealFooter.tsx`
+ * BOTH STATED IN AS MANY WORDS. ADDED 2026-08-27 ON SAAD'S INSTRUCTION.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `CONTACT_EDITION_YEAR` above says the year is "deliberately NOT a copyright
+ * line, which `RevealFooter.tsx` bans outright", and that file's stamp comment
+ * spelled the ban out: "It is four digits and nothing else. No `©`, no name, no
+ * 'All rights reserved', no range, no separator glyph." It gave a reason —
+ * "nothing on this surface may state a fact Saad has not stated, and a
+ * copyright assertion is a claim."
+ *
+ * **THE REASON IS RETIRED BY THE INSTRUCTION ITSELF.** The brief asks for a
+ * bottom status bar with "© 2026 MS" in it, in those characters. The rule was
+ * never that copyright is wrong — it was that nobody but Saad may assert it on
+ * his behalf. He asserted it. The claim is now his, which is exactly the
+ * condition the rule was protecting.
+ *
+ * THE YEAR IS INTERPOLATED, NOT RETYPED. `CONTACT_EDITION_YEAR` stays the one
+ * source; a literal "2026" here would be a second one, and the two would drift
+ * the first time either was updated — which is the whole failure mode that
+ * constant's own docblock was written to prevent.
+ *
+ * ===========================================================================
+ * IT SAYS "(c) 2026" AND NOT "(c) 2026 MS", AND THE MS IS NOW THE DRAWN MARK.
+ * ===========================================================================
+ * IT SHIPPED AS "(c) 2026 MS" ON 2026-08-27 and lost the two letters the same
+ * day. Saad, on seeing it: "the MS 2026 and (c) 2026 MS there are two things
+ * keep the MS (designed one logo) keep that."
+ *
+ * THE DUPLICATION WAS FLAGGED WHEN IT SHIPPED and this is the resolution. The
+ * plate carried the same fact twice a few pixels apart - a `MonogramMark` beside
+ * a bare year, then a rule, then a typed "MS" beside the same year. The two
+ * rows are ONE ROW now: the drawn mark, then this line. The mark is the "MS",
+ * so setting it in type as well would be captioning a logo with its own name.
+ *
+ * A FULL NAME WAS NEVER THE ALTERNATIVE. "Muhammad Saad" here would be the
+ * third announcement of it in one document - the navbar's mark and the page's
+ * `<h1>` already carry it.
+ *
+ * IT IS THE LAST THING ON THE PLATE, WHICH IS THE POSITION THE STAMP COMMENT
+ * ARGUED WAS RESERVED FOR A SIGNATURE. That argument turned on the wordmark
+ * being the closing beat; the redesign moves the wordmark BEHIND the content as
+ * an ambient watermark, so the closing slot was vacated by the same brief that
+ * filled it. `RevealFooter.tsx` carries the full record.
+ */
+export const CONTACT_COPYRIGHT_LINE = `© ${CONTACT_EDITION_YEAR}`;
+
 export const REVEAL_FOOTER_SENTINEL_ID = "reveal-footer-top";

@@ -1,5 +1,5 @@
 import {
-  EXTERNAL_LINK_ON_HERO,
+  EXTERNAL_LINK_ON_HERO_MUTED,
   ExternalLink,
 } from "@/components/ui/ExternalLink";
 import { LinkPreview } from "@/components/ui/link-preview";
@@ -7,7 +7,7 @@ import { CopyEmailButton } from "@/components/ui/CopyEmailButton";
 import { MonogramMark } from "@/components/ui/MonogramMark";
 import {
   CONTACT_CLOSING_LINE,
-  CONTACT_EDITION_YEAR,
+  CONTACT_COPYRIGHT_LINE,
   CONTACT_HEADING,
   REVEAL_FOOTER_SENTINEL_ID,
 } from "@/components/sections/contactContent";
@@ -262,52 +262,90 @@ import { FONT_SIZE_UNITS } from "@/components/ui/textHoverEffectMetrics";
  *      1 of the below-768 carve-out. A box that is exactly one viewport tall
  *      can by definition always be seen whole.
  *
- *      MEASURED COMPOSED CONTENT, 2026-08-23: **775.98px** at every width from
- *      1280 up (the composition is width-invariant there), **867.58px** at
- *      1024x600 where the link row wraps, 833.58px at 768x1024 and 811.36px at
- *      360x640. All four are under 900. The old composition measured 793px at
- *      1440, so the plate's CONTENT got 17px SHORTER even as its box got taller
- *      — the `<h2>` demotion and the smaller stamp between them paid for most
- *      of the wordmark.
+ *      MEASURED COMPOSED CONTENT. The plate was reworked twice on 2026-08-27
+ *      and every figure below is a real capture, not arithmetic:
+ *
+ *      | viewport   | 08-23  | redesign | +h2, merged stamp | vs 900 | vs 768 |
+ *      |------------|-------:|---------:|------------------:|-------:|-------:|
+ *      | 1440x900   | 775.98 |   732.58 |        **681.78** | 218.22 |  86.22 |
+ *      | 1280x800   | 775.98 |   732.58 |        **681.78** | 218.22 |  86.22 |
+ *      | 1024x600   | 867.58 |   732.58 |        **681.78** | 218.22 |  86.22 |
+ *      | 768x1024   | 833.58 |   866.97 |        **850.91** |  49.09 | -82.91 |
+ *      | 360x640    | 811.36 |   782.56 |        **752.38** | 147.62 |  15.62 |
+ *      | 1366x768   | 775.98 |   732.58 |        **681.78** | 218.22 |  86.22 |
+ *      | 1280x720   | 775.98 |   732.58 |        **681.78** | 218.22 |  86.22 |
+ *      | 2560x1440  | 775.98 |   732.58 |        **681.78** | 218.22 |  86.22 |
+ *
+ *      **THE `<h2>` WENT BACK TO `text-h2` AND COST THE PLATE 0px.** That is
+ *      not luck and it is the one number worth understanding here. The heading
+ *      grew 19.2 -> 74.8px, +55.6px — but it lives in the LEFT column of a
+ *      two-column grid, and at 1440 the left column measures 158.39px against
+ *      the link stack's 261.78px. The row's height is the taller of the two, so
+ *      the heading spent 55.6px of slack that was already being paid for.
+ *      **A grid row is only as tall as its tallest child, so growth in the
+ *      shorter column is free until it overtakes the other one** — there is
+ *      103.39px of that headroom left at 1440, and the moment it runs out the
+ *      next pixel costs a pixel.
+ *
+ *      THE 50.8px THAT DID COME OFF is the stamp merge: a `mt-2xl` block with a
+ *      21px mark row, then a rule, then a 17px copyright line, became one rule
+ *      and one row. `contactContent.ts` carries why.
+ *
+ *      768x1024 IS STILL THE BINDING CASE and still the only one that stacks
+ *      the columns, so it is the only one where the heading's 55.6px would be
+ *      real — and it fell anyway, by 16.06px, because the merge is worth more.
+ *      It sits 49.09px under the ceiling. **If anything is added to this plate,
+ *      measure 768x1024 first.**
+ *
+ *      IT SHIPPED OVER THE CEILING ONCE, EARLIER THE SAME DAY: the redesign's
+ *      first version used a flat `gap-2xl` between the columns and measured
+ *      900.97px at 768x1024 — 0.97px over — in all four route/theme cases. The
+ *      gap is `gap-xl lg:gap-2xl` now, 55px stacked and 89px side by side,
+ *      which are the values the composition already used on each axis. Nothing
+ *      was cut to fix it.
  *
  * -------------------------------------------------------------------------
- * KNOWN, ACCEPTED RESIDUAL: 775.98px DOES NOT FIT A 768-TALL VIEWPORT.
+ * THE 768-TALL RESIDUAL IS RESOLVED. THIS SECTION USED TO RECORD IT AS
+ * "KNOWN, ACCEPTED".
  * -------------------------------------------------------------------------
- * The design brief budgeted 763.4px and called 1366x768 the binding case with
- * 4.6px of headroom. MEASURED IT IS 775.98px — **7.98px OVER** — so at 1366x768
- * (and 55.98px over at 1280x720) the plate is taller than the scrollport and
- * pins with its top cut off. THIS IS RECORDED AS ACCEPTED, NOT FIXED, and it is
- * not folded into any passing total.
+ * IT READ: "KNOWN, ACCEPTED RESIDUAL: 775.98px DOES NOT FIT A 768-TALL
+ * VIEWPORT. The design brief budgeted 763.4px and called 1366x768 the binding
+ * case with 4.6px of headroom. MEASURED IT IS 775.98px — 7.98px OVER — so at
+ * 1366x768 (and 55.98px over at 1280x720) the plate is taller than the
+ * scrollport and pins with its top cut off."
  *
- * THE 12.58px THE BRIEF MISSED, itemised so nobody re-derives it: the link list
- * takes `lg:mt-2xl` (89px) at these widths, not the 55px the budget assumed;
- * the closing line sets on ONE line, not the two it budgeted; and
- * `text-caption`'s line-height is 1.4, not the 1.6 it assumed. Two of those cut
- * the other way, and the net is +12.58.
+ * **AT 681.78px IT FITS, WITH 86.22px OF HEADROOM AT 1366x768** and it clears
+ * 1280x720 too. It first cleared at 732.58px / 35.4px earlier the same day; the
+ * stamp merge took it further. That was not the goal of the 2026-08-27 redesign — Saad asked
+ * for a two-column layout and an ambient watermark — and it is recorded as a
+ * consequence rather than claimed as a fix. The lever that did it is the one
+ * the old section did NOT name: taking the wordmark out of flow. The two levers
+ * it did name are both still unspent and still available:
  *
- * WHY IT IS ACCEPTED. The 7.98px that cannot be on screen at once is `pt-3xl`
- * padding — blank plate. Measured at 1366x768, the cyan bar sits at y = 136 and
- * the entire composition, bar to signature, is visible. The rule this brushes
- * against exists to stop CONTENT becoming unseeable; no content is unseeable.
- *
- * THE TWO LEVERS, NAMED SO THE NEXT READER DOES NOT HAVE TO FIND THEM — and
- * NEITHER WAS APPLIED, deliberately:
  *   1. `pb-3xl` -> `pb-2xl` saves 55px. This file already names that exact edit
- *      as the sanctioned fix for a DIFFERENT symptom (144px of empty plate
- *      reading as nothing in dark mode). Spending it here would retune a value
- *      against a problem it was not chosen for.
- *   2. `STAMP_MARK_PX` 21 -> 17 saves 4px, which is not enough on its own, and
- *      it would shrink a mark that was just demoted and put it exactly on the
- *      17px legibility floor.
- * If the plate ever has to fit 768 exactly, take lever 1 and re-record BOTH
- * symptoms against it.
+ *      as the sanctioned fix for a DIFFERENT symptom (empty plate reading as
+ *      nothing in dark mode). Spending it here would retune a value against a
+ *      problem it was not chosen for.
+ *   2. `STAMP_MARK_PX` 21 -> 17 saves 4px, and it would shrink a mark that was
+ *      demoted once already and put it exactly on the 17px legibility floor.
+ *
+ * IF THE COMPOSITION EVER GROWS AGAIN, 768 IS THE NUMBER TO CHECK FIRST, and
+ * the 12.58px the original brief mis-budgeted is worth keeping: the link list
+ * took `lg:mt-2xl` (89px) rather than the 55px assumed, the closing line sets
+ * on ONE line rather than two, and `text-caption`'s line-height is 1.4 rather
+ * than 1.6. Two of those cut the other way; the net was +12.58.
  *
  * THE SEPARATE NUMBER, DECLARED HERE RATHER THAN DISCOVERED LATER: the document
  * DOES get taller. `min-h-dvh` grows `document.scrollHeight` by
- * `max(0, viewportHeight − composedContentHeight)` — MEASURED at **+124px** at
- * 1440x900, **+24px** at 1280x800, **+190px** at 768x1024, **+664px** at
- * 2560x1440, and **0px** at 1024x600, 1366x768, 1280x720 and 360x640, where the
- * content is already taller than the viewport (or the `md:` gate is off). That
+ * `max(0, viewportHeight − composedContentHeight)`. RE-DERIVED 2026-08-27
+ * against the redesigned composition, because the shorter the content the MORE
+ * the floor grows: **+167px** at 1440x900, **+67px** at 1280x800, **+157px** at
+ * 768x1024, **+707px** at 2560x1440, **+35px** at 1366x768, and **0px** at
+ * 1024x600, 1280x720 and 360x640, where the content is already taller than the
+ * viewport (or the `md:` gate is off). It was +124 / +24 / +190 / +664 / 0
+ * against the 775.98px composition. **`document.scrollHeight` at 1440x900 is
+ * unchanged to the pixel either way** — 5621 before, 5621 after, on `/` —
+ * because the floor absorbs exactly what the content gave up. That
  * growth lands entirely AFTER `<main>`'s last child, so no section's own
  * top/bottom moves and every `end: "bottom bottom"` (which is element-relative
  * — `ScrubReveal.tsx`) resolves where it did. The only geometric effect is
@@ -560,6 +598,123 @@ const WORDMARK_ADVANCE_EM = 2.536;
  */
 const WORDMARK_VIEWBOX_UNITS = WORDMARK_ADVANCE_EM * FONT_SIZE_UNITS;
 
+/**
+ * THE WATERMARK'S RESTING STROKE ALPHA, passed to `TextHoverEffect` in place of
+ * its own `RESTING_STROKE_ALPHA` default of 0.45.
+ *
+ * Saad's brief: "Idle state: faint (near-invisible, not a clearly readable
+ * outline like the current version)."
+ *
+ * MEASURED ON THIS PLATE, not chosen by eye. `text-hero-fg` is #E8EAEC and the
+ * surface is #07090C, so the composite and its contrast are:
+ *
+ *     0.45  (what shipped)   #6c6e71   3.90:1   readable as a word
+ *     0.20                   #343639   1.64:1
+ *     0.12                   #222427   1.28:1
+ *     0.10  (this)           #1e2022   1.22:1   texture, not text
+ *     0.06                   #141619   1.10:1   gone
+ *
+ * 1.22:1 IS DELIBERATELY BELOW EVERY WCAG FLOOR AND THAT IS NOT A DEFECT HERE.
+ * 1.4.3 governs text and 1.4.11 governs UI components and graphics that convey
+ * INFORMATION. This layer is `aria-hidden`, carries no information that is not
+ * already in the accessibility tree twice, and is not a control — it is the
+ * paper's watermark. **It is also why the hover reveal exists**: the same
+ * glyphs paint at full strength under the cursor, so the name is legible on
+ * demand rather than never.
+ *
+ * DO NOT REUSE THIS NUMBER FOR THE SIGNATURE FORM of the component if one ever
+ * returns. `RESTING_STROKE_ALPHA`'s docstring carries the 3.91:1 arithmetic for
+ * that case and the two are answering opposite questions.
+ */
+const WATERMARK_RESTING_ALPHA = 0.1;
+
+/**
+ * THE ALPHA THE WATERMARK'S ARRIVAL DRAW PLAYS AT, before it recedes to
+ * `WATERMARK_RESTING_ALPHA`.
+ *
+ * Saad, 2026-08-27: "I want the text to be outlined first time when you go to
+ * the footer and then it reverses". Without this the four-second draw ran at
+ * 0.10 and 1.22:1 - an animation nobody could see, spending the plate's one
+ * arrival beat on nothing.
+ *
+ * 0.45 IS `RESTING_STROKE_ALPHA`'s OWN VALUE and it is the same number for the
+ * same reason: #6c6e71 on #07090C is 3.90:1, which is where an outlined
+ * wordmark stops being texture and starts being a word. It is deliberately NOT
+ * full strength - the name announcing itself is a beat, not a headline, and the
+ * three links a few pixels away are the things on this plate meant to be read.
+ *
+ * THE TWO ALPHAS ARE 4.5x APART, which is what makes the recede legible AS a
+ * recede rather than as a dimmer. `RECEDE_SECONDS` in the component carries the
+ * timing and what "reverses" was taken to mean.
+ */
+const WATERMARK_DRAW_ALPHA = 0.45;
+
+/**
+ * The outbound arrow on GitHub and LinkedIn — Saad's brief: "a small
+ * directional arrow (↗) appended, subtly shifting further up-right on hover —
+ * these are the two links that take someone away from the site, so the arrow
+ * correctly signals that."
+ *
+ * NOT THE `↗` CHARACTER (U+2197), AND THAT IS THE ONE DEVIATION FROM THE BRIEF
+ * AS WRITTEN. Neither Space Grotesk nor JetBrains Mono ships that codepoint, so
+ * it would fall through to whatever the visitor's system happens to substitute
+ * — a different weight, a different optical size and a different baseline on
+ * every OS, next to type this site controls to the pixel. An inline SVG renders
+ * identically everywhere and inherits `currentColor`, so it takes the link's
+ * muted-to-accent step for free.
+ *
+ * `1em` SQUARE, NOT A PIXEL SIZE, so it scales with `text-body` here and with
+ * anything else a future caller sets. `DetailsArrowIcon` in
+ * `FannedDeckPhase1.tsx` is the site's other inline arrow and this borrows its
+ * stroke vocabulary exactly — `strokeWidth` 1.75, round caps and joins,
+ * `fill="none"` — so the two read as one hand.
+ *
+ * THE TRAVEL IS 1px UP AND 1px RIGHT, which is "subtly" taken literally. It is
+ * a `translate`, so it costs no layout and cannot reflow the line;
+ * `motion-reduce:transition-none` collapses it to an instant step, matching
+ * `BRUTAL_MOTION`'s idiom.
+ *
+ * `aria-hidden` AND `shrink-0`: it duplicates information the anchor already
+ * announces — `ExternalLink` appends "(opens in a new tab)" to the accessible
+ * name — so announcing it again would be the third statement of one fact.
+ *
+ * `align-middle` AND A `ml-2xs` (5px) GAP: the SVG is inline, so without the
+ * alignment it sits on the text baseline with descender space beneath it and
+ * rides visibly low against the value it follows.
+ */
+function OutboundArrow() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      // `select-none` — AND IT IS NOT DECORATION-FOR-ITS-OWN-SAKE. The arrow
+      // is the LAST thing inside the anchor, so a drag across the URL that
+      // releases on it put the range's end point inside an `<svg>` and Chrome
+      // COLLAPSED THE WHOLE SELECTION: measured 2026-08-28, "" when the drag
+      // ended on the arrow, the full URL when it ended 3px earlier. Marking it
+      // unselectable makes the range end at the last selectable position
+      // instead, so the sweep people actually perform — label to line end —
+      // returns the address.
+      //
+      // It is also just the policy: an icon is chrome, and `docs/03`'s
+      // selection section keeps chrome locked everywhere. This is the only
+      // place on the site where that rule has a behavioural consequence rather
+      // than a cosmetic one.
+      className="ml-2xs inline-block shrink-0 align-middle transition-transform duration-200 select-none group-hover:-translate-y-px group-hover:translate-x-px motion-reduce:transition-none"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 16 16 8" />
+      <path d="M9.5 8H16v6.5" />
+    </svg>
+  );
+}
+
 export function RevealFooter() {
   return (
     <>
@@ -618,473 +773,593 @@ export function RevealFooter() {
             21 / 55 / 89px inside a 1440px centred container. */}
         <div className="mx-auto w-full max-w-[1440px] px-md sm:px-xl lg:px-2xl">
           {/*
-            THE ONE CYAN MARK — the site's only DOM path to `--accent-hero`, and
-            the only cyan anywhere outside the hero's WebGL canvas.
+            ═══════════════════════════════════════════════════════════════════
+            THE POSITIONING CONTEXT FOR THE WATERMARK, AND THE ONE THING THAT
+            MAKES THE 2026-08-27 REDESIGN DIFFERENT FROM WHAT WAS HERE BEFORE.
+            ═══════════════════════════════════════════════════════════════════
 
-            Three authorities license it here and nowhere else: CLAUDE.md
-            ("Tier 1 ONLY — hero glow/particles/lighting, and sparingly in the
-            Contact close beat"), `app/globals.css`'s TIER 1 ACCENT block, and
-            .claude/handoff/ticket-3-design.md 11.6.
+            The wordmark used to be the LAST BLOCK IN FLOW — `mt-md h-2xl
+            sm:h-3xl w-fit`, a real box contributing 178px to the plate. It is
+            now an absolutely-positioned layer inside this wrapper, spanning the
+            whole composition and painting behind it.
 
-            READ VIA AN INLINE `var()`, BY DESIGN — NOT A CLASS, NOT A UTILITY,
-            NOT A NEW TOKEN. `--accent-hero` is registered OUTSIDE Tailwind's
-            `--color-*` namespace precisely so no utility can exist for it, and
-            globals.css says in so many words: DO NOT "fix" this by moving it
-            into that namespace. The guard's intent is that reaching cyan in the
-            DOM is a deliberate, visible, greppable act —
-            `grep -rn "accent-hero" components/` returns the hero's
-            `outline-hero-accent` (a DIFFERENT token) plus this one line, and a
-            reviewer can audit the whole rule in one command.
-
-            THAT ONE COMMAND IS NO LONGER THE WHOLE AUDIT, and this is the one
-            place worth saying so. It audits the DOM path, which is what it
-            claims and all it ever claimed. It does NOT audit the JS path:
-            `ParticleGrid` reads the token by name and is mounted on two routes,
-            so when it was generalised from hero-only on 2026-08-22 the cyan
-            reached `/about` — a Tier 2 page — while this grep kept returning
-            two hits and kept reporting clean. Closed by giving each field
-            preset its own property name (`QUIET_FIELD` takes `--field-ink`),
-            but the lesson is the count: audit RENDER SITES, not code paths, and
-            run `grep -rn "ParticleGrid" components/` beside this one.
-
-            `aria-hidden` and carrying no text: it is a marker of the beat, not
-            an affordance. Cyan TEXT was rejected on a stronger ground than
-            contrast — a coloured short string reads as something to click, and
-            a second link colour would break the locked rule that teal, and only
-            teal, means "activate this". #00E5FF on #07090C is 12.96:1, against
-            a 3:1 non-text floor.
-
-            `h-3xs` is 3px from `--spacing-3xs`, NOT a literal: in Tailwind v4
-            the `--spacing-*` namespace generates size utilities as well as
-            spacing ones, and `w-lg` on the same element is the proof.
-
-            IT STAYS EXACTLY ONE 34x3px MARK. The curtain does not license a
-            second one, and globals.css's hard constraint is satisfied by the
-            SURFACE rather than the size: cyan is ~1.5:1 on `bg-base` and must
-            never be a rule or hairline drawn there, but this sits on
-            `bg-hero-surface` at 12.96:1, which is the "its own dark surface"
-            the rule requires.
+            THAT IS A LAYOUT CHANGE AND A HEIGHT CHANGE AT ONCE. Taking 178px
+            out of flow and putting a divider and a copyright line back in is
+            why the plate's composed content moved; the header's KNOWN RESIDUAL
+            section carries the re-measured numbers and the one long-standing
+            defect this incidentally fixed.
           */}
-          <span
-            aria-hidden="true"
-            className="mb-md block h-3xs w-lg"
-            style={{ backgroundColor: "var(--accent-hero)" }}
-          />
-
-          {/*
-            IT IS STILL A REAL `<h2>`, AND IT IS NOW A MONO CAPTION.
-
-            DEMOTED FROM `text-h2` ON 2026-08-23 (~68px x 1.2 = 81.6px down to
-            12px x 1.6 = 19.2px, a 62.4px saving) so the wordmark at the bottom
-            of the plate can be the largest element without the plate carrying
-            two large elements. `aria-labelledby="contact-heading"` keeps
-            working, the `contentinfo` landmark keeps its accessible name, and
-            nothing invented enters the a11y tree — a heading is allowed to be
-            small. Inverting the hierarchy (a 12px mono label above a 144px
-            wordmark) reads as deliberate typographic direction rather than as a
-            missing heading.
-
-            FULL OPACITY, NOT `/70`. The three link LABELS below are
-            `text-caption font-mono text-hero-fg/70`; if the heading took the
-            same string it would be indistinguishable from a fourth label. The
-            colour decision this element already carried is the one that is
-            kept; only the size and the family changed.
-
-            Weight left at the inherited 400, as in every shipped section: the
-            type scale carries the size.
-          */}
-          <h2
-            id="contact-heading"
-            className="text-caption font-mono text-hero-fg"
-          >
-            {CONTACT_HEADING}
-          </h2>
-
-          {/* Full opacity — this is primary content, not metadata. `34rem` is
-              the site's reading measure, used by every shipped section, and it
-              is also what bounds the plate's height against a longer line. */}
-          <p className="mt-lg max-w-[34rem] text-body text-hero-fg">
-            {CONTACT_CLOSING_LINE}
-          </p>
-
-          {/*
-            A REAL LIST, so a screen reader announces the honest current count
-            ("list, 3 items") and n = 4 needs zero markup change.
-
-            THE GAP UNDER THE HEADING IS LARGER THAN THE GAP BETWEEN ITEMS
-            (55/89 > 34), so "Contact" does not read as a peer item.
-
-            `flex-wrap` IS THE WHOLE n-SAFETY STORY: one item is one block, four
-            items wrap, and nothing balances only at a particular count. 89px
-            horizontal at 640px and up is wide enough that the items read as
-            separate blocks rather than as a nav bar; 34px vertical when it
-            wraps, and 34px between items in the column below 640px, where every
-            item sits on the spine.
-          */}
-          <ul className="mt-xl flex flex-col gap-lg sm:flex-row sm:flex-wrap sm:gap-x-2xl sm:gap-y-lg lg:mt-2xl">
+          <div className="relative">
             {/*
-              ARRAY ORDER IS DISPLAY ORDER. No sort, no filter, no reverse.
-              `content/contact.ts` states that rule; a sort here would be a
-              second source of truth for an order the file already shows.
+              ═════════════════════════════════════════════════════════════════
+              THE WATERMARK. INERT, FAINT, AND BEHIND EVERYTHING.
+              ═════════════════════════════════════════════════════════════════
 
-              THE EMAIL IS NOT PROMOTED OUT OF THIS LIST into a large primary
-              line, and that was considered. It would require partitioning
-              `contact` by `kind` in the consumer, which `content/contact.ts`
-              forbids by name, and a partition reintroduces a count-sensitive
-              layout: an empty primary block still occupies a flex box and
-              leaves a stray 55px gap, so avoiding THAT would need a `.length`
-              read — the exact rule the file exists to protect. One list, array
-              order, `kind` selects the item's presentation, no branch on count
-              anywhere.
+              `pointer-events-none` IS A REQUIREMENT, NOT A PRECAUTION — Saad's
+              words: "this is required, not optional, so cursor movement over it
+              never blocks clicks on the links in front of it." A full-bleed
+              absolute layer under live content is exactly the thing that
+              silently eats clicks the first time someone adds a control without
+              checking the stack, and `z-index` alone would not prevent that.
 
-              `key` is the href: unique by construction — two links to the same
-              destination would be the bug, not the collision.
+              THE HOVER STILL WORKS, AND THAT IS NOT A CONTRADICTION. The
+              component stopped using element handlers in the same change and
+              tracks `window`'s pointer instead — its own header carries the
+              full reasoning, including why a rect test is the right semantics
+              for a background layer and where it would be the wrong ones.
 
-              `min-w-0` because at 640px and up this is a `flex-row`, and a flex
-              item refuses to shrink below its longest word without it. The
-              LinkedIn value is 39 characters and is the one that needs it.
+              `inset-0` PLUS `meet` IS WHAT MAKES "FULL-WIDTH, CENTRED" SAFE.
+              The SVG fills this wrapper exactly; `preserveAspectRatio="xMidYMid
+              meet"` (via `align="center"`) then scales the glyphs to the
+              LARGEST size that fits INSIDE it and centres them on both axes. So
+              the watermark is as big as the composition allows and can never
+              overflow the plate — no measured height, no magic number, and it
+              re-fits itself when the content above it reflows.
+
+              `align="center"` IS A DOCUMENTED OPT-OUT FROM RULE S-1, not a
+              violation of it. That rule governs where BLOCKS begin; this layer
+              is not in flow and has no leading edge to put on the spine. The
+              prop's own docblock carries the argument.
+
+              `aria-hidden` IS UNCHANGED AND THE REASON IS UNCHANGED: the name
+              is already in the accessibility tree twice on this page — the
+              navbar's mark and the page's `<h1>` — and the `MonogramMark` below
+              passes `label={null}` for exactly this reason. A third
+              announcement inside `contentinfo` is redundancy, not access.
             */}
-            {contact.map((link) => (
-              <li key={link.href} className="min-w-0">
-                {/* The same mono caption atom the shipped sections use as
-                    META / BLOCK_LABEL, retargeted to the pinned foreground. */}
-                <span className="text-caption font-mono text-hero-fg/70">
-                  {link.label}
-                </span>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 select-none"
+            >
+              <TextHoverEffect
+                text={WORDMARK_TEXT}
+                viewBoxWidth={WORDMARK_VIEWBOX_UNITS}
+                align="center"
+                restingStrokeAlpha={WATERMARK_RESTING_ALPHA}
+                drawStrokeAlpha={WATERMARK_DRAW_ALPHA}
+                className="text-hero-fg"
+              />
+            </div>
+
+            {/* Everything real, above the watermark. `relative z-10` is the
+                whole stacking story — one layer up from the `z-0` above it, and
+                both inside this wrapper rather than competing with the plate's
+                own `z-0` against the page stack's `z-10`. */}
+            <div className="relative z-10">
+              {/*
+                ═══ TWO COLUMNS AT `lg`, ONE BELOW IT ═══
+
+                Saad's brief: identity on the left, the three channels stacked
+                on the right. The stated reason for the split is not symmetry —
+                it is that the old horizontal three-column link row left the
+                watermark nowhere to sit, because a name behind three separate
+                columns is fighting all three for the same width.
+
+                `lg:` AND NOT `sm:`, unlike the row it replaces. Two columns of
+                prose at 640px would give the closing line a ~280px measure,
+                which is far narrower than the 34rem this site sets everywhere.
+                The one-column stack below `lg` is the same order, top to
+                bottom.
+
+                `gap-xl lg:gap-2xl` — 55px STACKED, 89px SIDE BY SIDE, and the
+                two numbers are the ones this composition already used on each
+                axis. 89px is the old `sm:gap-x-2xl` between link items
+                horizontally; 55px is the `mt-xl` the closing line used to take
+                from the `<ul>` beneath it vertically.
+
+                **IT SHIPPED AS A FLAT `gap-2xl` AND THAT BROKE THE 900px
+                CONTENT CEILING BY 0.97px AT 768x1024** — measured, 900.97, in
+                all four route/theme cases at that viewport. The ceiling is a
+                tracked rule (`docs/03` Rule S-6, and this file's header): it
+                exists to stop content growing until the reveal becomes a crawl
+                over something that can never be seen whole. Nothing was cut to
+                fix it; the vertical gap was simply wrong at 89px, because 89 is
+                the horizontal value. 866.97px now, with 33px of headroom.
+              */}
+              <div className="grid gap-xl lg:grid-cols-2 lg:items-start lg:gap-2xl">
+                {/* ── LEFT: the identity block ─────────────────────────── */}
+                <div>
+                  {/*
+                    THE ONE CYAN MARK — the site's only DOM path to
+                    `--accent-hero`, and the only cyan anywhere outside the
+                    hero's canvas.
+
+                    Three authorities license it here and nowhere else:
+                    CLAUDE.md ("Tier 1 ONLY — hero glow/particles/lighting, and
+                    sparingly in the Contact close beat"), `app/globals.css`'s
+                    TIER 1 ACCENT block, and .claude/handoff/ticket-3-design.md
+                    11.6.
+
+                    READ VIA AN INLINE `var()`, BY DESIGN — NOT A CLASS, NOT A
+                    UTILITY, NOT A NEW TOKEN. `--accent-hero` is registered
+                    OUTSIDE Tailwind's `--color-*` namespace precisely so no
+                    utility can exist for it, and globals.css says in so many
+                    words: DO NOT "fix" this by moving it into that namespace.
+                    Reaching cyan in the DOM is meant to be a deliberate,
+                    visible, greppable act.
+
+                    THAT GREP IS NOT THE WHOLE AUDIT. It audits the DOM path,
+                    which is all it ever claimed. It does NOT audit the JS path:
+                    `ParticleGrid` reads the token by name, so when it was
+                    generalised on 2026-08-22 the cyan reached `/about` while
+                    the grep kept reporting clean. Audit RENDER SITES, not code
+                    paths, and run `grep -rn "ParticleGrid" components/` beside
+                    it.
+
+                    `aria-hidden` and carrying no text: it is a marker of the
+                    beat, not an affordance. Cyan TEXT was rejected on a
+                    stronger ground than contrast — a coloured short string
+                    reads as something to click, and a second link colour would
+                    break the locked rule that teal, and only teal, means
+                    "activate this". #00E5FF on #07090C is 12.96:1, against a
+                    3:1 non-text floor.
+
+                    `h-3xs` is 3px from `--spacing-3xs`, NOT a literal: in
+                    Tailwind v4 the `--spacing-*` namespace generates size
+                    utilities as well as spacing ones, and `w-lg` on the same
+                    element is the proof.
+
+                    IT STAYS EXACTLY ONE 34x3px MARK. Cyan is ~1.5:1 on
+                    `bg-base` and must never be a rule drawn there; this sits on
+                    `bg-hero-surface` at 12.96:1, which is the "its own dark
+                    surface" the rule requires.
+                  */}
+                  <span
+                    aria-hidden="true"
+                    className="mb-md block h-3xs w-lg"
+                    style={{ backgroundColor: "var(--accent-hero)" }}
+                  />
+
+                  {/*
+===============================================
+                    IT IS `text-h2` AGAIN, WHICH IS WHERE IT STARTED.
+                    ===============================================
+
+                    Saad, 2026-08-27: "I want the contact heading bigger."
+
+                    THE FULL ROUND TRIP, because both moves had reasons and the
+                    second one repealed the first:
+
+                      Phase 5      `text-h2`         ~81.6px line box
+                      2026-08-23   `text-caption`     19.2px   (-62.4)
+                      2026-08-27   `text-h2`         ~74.8px   (+55.6)
+
+                    The demotion existed "so the wordmark at the bottom of the
+                    plate can be the largest element without the plate carrying
+                    two large elements". THE WORDMARK IS NOT IN FLOW ANY MORE -
+                    it is an ambient watermark behind this text at 1.22:1 - so
+                    there is no longer a second large element to compete with.
+                    The reason lapsed with the layout it was written for.
+
+                    I ARGUED AGAINST THIS ONE DAY AGO, in this comment, on the
+                    grounds that "a 68px heading over a faint 400px outline is
+                    two large letterforms in one place". Looked at rather than
+                    reasoned about, that is wrong: at 1.22:1 the watermark is
+                    texture, and a section heading set at the site's own heading
+                    size is what every other section here does.
+
+                    `font-mono` IS GONE WITH IT. Every heading on the site is
+                    Space Grotesk; JetBrains Mono is for labels, stats and tags
+                    (CLAUDE.md's type rule). The mono was part of the caption
+                    dressing, not part of the heading.
+
+                    IT COSTS 55.6px AND THE PLATE HAS IT. Composed content was
+                    732.58px with 35.4px of headroom under the 768 fit, and the
+                    stamp merge below returns ~51px of that. Re-measured, not
+                    assumed - the header's table carries the numbers.
+
+                    STILL A REAL `<h2>` AND STILL THE LANDMARK'S NAME.
+                    `aria-labelledby="contact-heading"` is untouched, and
+                    nothing invented enters the a11y tree.
+
+                    FULL OPACITY, NOT `/70`. It was never at real risk of
+                    reading as a fourth link label, and at this size it is not.
+                  */}
+                  <h2 id="contact-heading" className="text-h2 text-hero-fg">
+                    {CONTACT_HEADING}
+                  </h2>
+
+                  {/* Full opacity — this is primary content, not metadata.
+                      `34rem` is the site's reading measure, used by every
+                      shipped section. The line itself changed on 2026-08-27 and
+                      `contactContent.ts` carries what it was and why. */}
+                  <p className="mt-lg max-w-[34rem] text-body text-hero-fg">
+                    {CONTACT_CLOSING_LINE}
+                  </p>
+                </div>
 
                 {/*
-                  8px binds the label to its value as ONE unit — the same 8px
-                  Experience uses to bind company to role.
+                  ── RIGHT: the three channels, stacked ───────────────────
 
-                  `break-words` because a future `value` is an unknown-length
-                  string: 360px minus `px-md` twice leaves 318px, and a wrapped
-                  string is ugly while a horizontally scrolling page is a
-                  defect.
+                  A REAL LIST, so a screen reader announces the honest current
+                  count ("list, 3 items") and n = 4 needs zero markup change.
 
-                  `kind` DRIVES THE PRESENTATION, NOT THE COLOUR. All three
-                  branches are teal at `text-body`, so the items read as peers
-                  and only the semantics differ. A `mailto:` does NOT open a new
-                  tab, so it must not carry `target`, `rel` or the new-tab note
-                  — announcing a tab that never opens is a lie, which is exactly
-                  why `ContactLink.kind` is an explicit discriminant rather than
-                  a `href.startsWith("http")` sniff.
+                  A COLUMN AT EVERY WIDTH NOW. It used to be `sm:flex-row
+                  sm:flex-wrap`, and `flex-wrap` was carrying the whole n-safety
+                  story: one item is one block, four items wrap. A COLUMN IS
+                  STRICTLY SAFER THAN THAT — nothing balances at a particular
+                  count because nothing is balanced at all, and a fourth entry
+                  appends without touching a class.
 
-                  THE EMAIL RENDERS THE COPY CONTROL, which is `docs/07` §5's
-                  "same click-to-copy as the navbar" and which the old
-                  `Contact.tsx` refused. Its objection — a control that is inert
-                  until hydration, or forever with JS blocked — was correct and
-                  is RETIRED rather than overruled: `CopyEmailButton` now takes
-                  an `href` and renders a working `mailto:` anchor until it
-                  hydrates. There is no dead control at any point.
+                  `gap-lg` (34px) IS THE SAME 34px the old layout used between
+                  wrapped rows and between items in its own mobile column, so
+                  the item rhythm is unchanged; only the axis is.
 
-                  If in review the copy control is not discoverable AS A
-                  CONTROL, the fix is a mono caption hint rendered for
-                  `kind === "email"` only, sourced from a new constant in
-                  `contactContent.ts` — NOT from `content/contact.ts`, which
-                  holds links rather than copy, and NOT by giving the email a
-                  different size. If a hint is still not enough, the conclusion
-                  is that the control does not belong on this plate at all and
-                  the plain `mailto:` stands — not that the list was wrong.
+                  `lg:pt-md` NUDGES THE STACK DOWN so its first label sits near
+                  the heading's line rather than level with the 3px cyan bar
+                  above it, which would read as the top of a shared row.
                 */}
-                <p className="mt-xs text-body">
-                  {link.kind === "email" ? (
-                    <CopyEmailButton
-                      value={link.value}
-                      href={link.href}
-                      // Matches its two siblings exactly. The underline is not
-                      // decoration: `EXTERNAL_LINK_ON_HERO` carries a permanent
-                      // one because colour alone must not be a link's only
-                      // signal, and neither it nor this has a hover colour step
-                      // — `hero-accent` at /70 on #07090C computes to 4.34:1
-                      // and fails AA.
-                      //
-                      // `valueClassName` AND NOT `className`, and that is not
-                      // a style preference. On the button, `className` lands on
-                      // the `<button>`, and the label sits inside an
-                      // `overflow: hidden` mask — a new block formatting
-                      // context, which a text decoration does not cross. The
-                      // email rendered un-underlined beside two underlined
-                      // siblings. Verified by screenshot, not by reasoning.
-                      valueClassName="underline underline-offset-4"
-                      // NOT appended to the control's own `text-caption
-                      // font-mono` — REPLACING it. Tailwind resolves
-                      // equal-specificity conflicts by stylesheet source order,
-                      // not by class-attribute order, so appending would be a
-                      // coin flip that looks right in dev.
-                      typeClassName="text-body font-sans"
-                    />
-                  ) : link.kind === "web" ? (
-                    /* THE HOVER PREVIEW, on the two real links only.
-                       `LinkPreview` wraps rather than replaces: `ExternalLink`
-                       still renders the anchor, so `target`, `rel` and the
-                       announced new-tab note are unchanged and still come from
-                       the one component that owns them. With no
-                       `previewImage` set this adds nothing to the DOM at all,
-                       so the `mailto:` branch above and any future entry
-                       without a screenshot are untouched.
+                {/*
+                  ═══════════════════════════════════════════════════════
+                  `lg:text-right` — THE COLUMN'S TRAILING EDGE, AND IT IS
+                  THE SPINE'S RIGHT INSET, NOT A NEW FOOTER MARGIN.
+                  ═══════════════════════════════════════════════════════
 
-                       NOT ON `/about`'s GITHUB AND LINKEDIN, which read the
-                       same two `contact.ts` entries. Saad's call, 2026-08-25:
-                       "it's only for the links not the buttons". Those two are
-                       dressed as brutal buttons; this surface renders them as
-                       prose links, which is what a hover card belongs on. */
-                    <LinkPreview preview={link.previewImage}>
-                      <ExternalLink
-                        href={link.href}
-                        className={`${EXTERNAL_LINK_ON_HERO} break-words`}
-                      >
-                        {link.value}
-                      </ExternalLink>
-                    </LinkPreview>
-                  ) : (
-                    <a
-                      href={link.href}
-                      className={`${EXTERNAL_LINK_ON_HERO} break-words`}
-                    >
-                      {link.value}
-                    </a>
-                  )}
+                  Saad, 2026-08-28: "each link's right edge lands wherever
+                  that link's text happens to end — three different lengths,
+                  three different ragged right edges ... one column has a true
+                  edge, the other doesn't."
+
+                  Three labels and three values of unequal length, all
+                  left-aligned, produced SIX ragged right edges against a left
+                  column that has one clean one. `text-align: right` inherits,
+                  so this one class squares the labels and the values together
+                  — they are one unit by construction (the 8px below binds
+                  them) and they must stay one unit under alignment too.
+
+                  IT LANDS ON THE SPINE FOR FREE, WHICH IS THE WHOLE REASON
+                  THIS IS ONE CLASS. The grid's second column ends exactly at
+                  the spine container's content-box right edge, because
+                  `lg:grid-cols-2` splits the padded box and nothing here sets
+                  a width or a max-width. So the new edge IS `px-2xl` (89px)
+                  in from `max-w-[1440px]` — `docs/03` Rule S-1's recorded
+                  value, the same one this footer's own container already uses
+                  on the left. **No footer-specific margin was invented, and
+                  none should be**: if this ever needs to move, the spine moves.
+
+                  `lg:` ONLY, DELIBERATELY. Below 1024px the grid is a single
+                  stacked column and there is no second column to mirror.
+                  Right-aligning there would set the links flush right while
+                  the heading and punchline above them stayed flush left — a
+                  split with nothing on the other side of it, which is a
+                  different composition rather than the same one narrower.
+                  Verified at 768 and 360: unchanged, still left.
+
+                  IT IS ALIGNMENT ONLY. `text-align` moves no box and changes
+                  no height, so Rule S-6's 900px content ceiling and the
+                  sticky `scrollHeight` guarantee cannot be affected by it —
+                  re-measured anyway, because that assumption is exactly the
+                  kind this file has been wrong about before.
+
+                  NOT `lg:items-end` ON THE FLEX COLUMN, which would have
+                  looked equivalent. That shrinks each `<li>` to its content
+                  width, and the `<li>` carries `min-w-0` while the anchors
+                  carry `break-words` — i.e. the wrapping behaviour depends on
+                  the item being full-width. `text-right` keeps every box
+                  where it is and only moves the glyphs.
+                */}
+                <ul className="flex flex-col gap-lg lg:pt-md lg:text-right">
+                  {/*
+                    ARRAY ORDER IS DISPLAY ORDER. No sort, no filter, no
+                    reverse. `content/contact.ts` states that rule; a sort here
+                    would be a second source of truth for an order the file
+                    already shows. THE ORDER NOW CARRIES A FACT THE PROSE USED
+                    TO — the closing line said "Email is fastest" until
+                    2026-08-27, and Email being first in the stack is what says
+                    it now. See `contactContent.ts`.
+
+                    THE EMAIL IS STILL NOT PROMOTED OUT OF THIS LIST. It would
+                    require partitioning `contact` by `kind` in the consumer,
+                    which `content/contact.ts` forbids by name, and a partition
+                    reintroduces a count-sensitive layout.
+
+                    `key` is the href: unique by construction — two links to the
+                    same destination would be the bug, not the collision.
+                  */}
+                  {contact.map((link) => (
+                    <li key={link.href} className="min-w-0">
+                      {/* The same mono caption atom the shipped sections use as
+                          META / BLOCK_LABEL, retargeted to the pinned
+                          foreground. `/70` is 8.17:1 on this plate. */}
+                      <span className="text-caption font-mono text-hero-fg/70">
+                        {link.label}
+                      </span>
+
+                      {/*
+                        8px binds the label to its value as ONE unit — the same
+                        8px Experience uses to bind company to role.
+
+                        `kind` DRIVES THE PRESENTATION, NOT THE COLOUR. A
+                        `mailto:` does NOT open a new tab, so it must not carry
+                        `target`, `rel` or the new-tab note — announcing a tab
+                        that never opens is a lie, which is exactly why
+                        `ContactLink.kind` is an explicit discriminant rather
+                        than a `href.startsWith("http")` sniff.
+
+                        THE EMAIL RENDERS THE COPY CONTROL, which is `docs/07`
+                        §5's "same click-to-copy as the navbar". Saad's brief
+                        keeps it exactly as it was — "it's copy-to-clipboard,
+                        not an outbound link; keep its existing click-to-copy
+                        behavior and visual treatment as-is, just repositioned
+                        into the vertical stack" — so this branch is untouched
+                        by the redesign and takes NEITHER the arrow NOR the new
+                        hover treatment. That asymmetry is the point: the arrow
+                        means "this leaves the site", and copying an address
+                        does not.
+                      */}
+                      {/*
+                        ═════════════════════════════════════════════════════
+                        `select-text` ON THE `web` BRANCH ONLY — THE VISIBLE
+                        TEXT THERE IS A URL, AND A URL ON SCREEN IS AN
+                        INVITATION TO COPY IT.
+                        ═════════════════════════════════════════════════════
+
+                        `content/contact.ts` sets `value` to
+                        "github.com/Nobody243" and
+                        "linkedin.com/in/muhammad-saad-2911702a3", so this is
+                        the only place on the site where an ADDRESS is rendered
+                        as readable text rather than as a label. Saad,
+                        2026-08-28: "same reasoning as the email `mailto:`
+                        fallback fix". `<body>` carries `select-none`; see
+                        `docs/03`'s selection section for the whole policy.
+
+                        ON THE `<p>` AND NOT ON THE ANCHOR, AND THAT IS A
+                        MEASURED CHOICE RATHER THAN A TIDIER ONE. It shipped on
+                        the anchor first and the URL still would not
+                        drag-select: **Chrome will not START a selection inside
+                        a `user-select: none` region**, so a sweep beginning in
+                        the whitespace left of the right-aligned URL died before
+                        it reached the selectable island. Moving the class one
+                        level up makes the whole value line the island, and the
+                        drag has somewhere to begin.
+
+                        THE LABEL IS NOT COVERED. `<span>{link.label}</span>` is
+                        a SIBLING of this `<p>`, not a child, so "Email",
+                        "GitHub" and "LinkedIn" stay locked exactly as the
+                        policy requires. That the two are separate elements is
+                        what makes this the narrowest root that works.
+
+                        THE `email` BRANCH TAKES IT TOO, AND IT HAD TO. That
+                        was the second measurement of the day: with JavaScript
+                        blocked the control is a `mailto:` `<a>`, `select-text`
+                        on the anchor alone left it UNSELECTABLE by every real
+                        gesture, and a triple-click only takes a line when the
+                        CONTAINING BLOCK is selectable. So the exception Saad
+                        asked for — "the email address remains manually
+                        selectable/copyable in the no-JS fallback state" — needs
+                        this `<p>`, not just the anchor.
+                        Its one hazard is handled at the source: the swap-in
+                        confirmation ("Copied", "Press Ctrl/⌘+C") shares a grid
+                        cell with the address, so it carries `select-none` in
+                        `CopyEmailButton` and cannot land in a clipboard.
+
+                        WHAT THIS DOES NOT BUY, STATED. A drag that STARTS on an
+                        `<a>` drags the link rather than selecting it, and a
+                        double-click on one does not take the word. That is
+                        universal browser behaviour, not a consequence of this
+                        policy — verified against the detail page, where the
+                        whole surface is `select-text` and its GitHub link
+                        behaves identically. Triple-click and select-all both
+                        take the URL cleanly, and the copied string is exactly
+                        the address.
+                      */}
+                      <p className="mt-xs text-body select-text">
+                        {link.kind === "email" ? (
+                          <CopyEmailButton
+                            value={link.value}
+                            href={link.href}
+                            // UNCHANGED FROM WHAT SHIPPED, deliberately — see
+                            // the comment above. The underline is not
+                            // decoration: colour alone must not be a link's
+                            // only signal, and this control has no hover colour
+                            // step because `hero-accent` at /70 on #07090C is
+                            // 4.31:1 and fails AA.
+                            //
+                            // `valueClassName` AND NOT `className`: on the
+                            // button, `className` lands on the `<button>`, and
+                            // the label sits inside an `overflow: hidden` mask
+                            // — a new block formatting context, which a text
+                            // decoration does not cross. The email rendered
+                            // un-underlined beside two underlined siblings.
+                            // Verified by screenshot, not by reasoning.
+                            valueClassName="underline underline-offset-4"
+                            // NOT appended to the control's own `text-caption
+                            // font-mono` — REPLACING it. Tailwind resolves
+                            // equal-specificity conflicts by stylesheet source
+                            // order, not by class-attribute order, so appending
+                            // would be a coin flip that looks right in dev.
+                            typeClassName="text-body font-sans"
+                          />
+                        ) : link.kind === "web" ? (
+                          /* THE HOVER PREVIEW, on the two real links only.
+                             `LinkPreview` wraps rather than replaces:
+                             `ExternalLink` still renders the anchor, so
+                             `target`, `rel` and the announced new-tab note are
+                             unchanged and still come from the one component
+                             that owns them. With no `previewImage` set this
+                             adds nothing to the DOM at all.
+
+                             NOT ON `/about`'s GITHUB AND LINKEDIN, which read
+                             the same two `contact.ts` entries. Saad's call,
+                             2026-08-25: "it's only for the links not the
+                             buttons". */
+                          <LinkPreview preview={link.previewImage}>
+                            <ExternalLink
+                              href={link.href}
+                              className={`${EXTERNAL_LINK_ON_HERO_MUTED} break-words`}
+                            >
+                              {link.value}
+                              <OutboundArrow />
+                            </ExternalLink>
+                          </LinkPreview>
+                        ) : (
+                          <a
+                            href={link.href}
+                            className={`${EXTERNAL_LINK_ON_HERO_MUTED} break-words`}
+                          >
+                            {link.value}
+                          </a>
+                        )}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/*
+                ===================================================
+                THE STAMP AND THE STATUS BAR ARE ONE ROW, NOT TWO.
+                ===================================================
+
+                Saad, 2026-08-27, on seeing them shipped separately: "the MS
+                2026 and (c) 2026 MS there are two things keep the MS (designed
+                one logo) keep that."
+
+                WHAT WAS THERE FOR ONE DAY, and why it was wrong: a
+                `MonogramMark` beside a bare `2026`, then a rule, then a typed
+                "MS" beside the same `2026`. **The same fact twice, in two
+                typographic registers, separated by a divider** - which is the
+                arrangement that makes a reader look for the difference between
+                them and not find one. It shipped flagged rather than resolved,
+                because both halves had been asked for by name in the same
+                brief and the resolution was not mine to pick.
+
+                THE RESOLUTION KEEPS THE DRAWN MARK AND DROPS THE TYPED ONE.
+                `contactContent.ts` carries the `(c) 2026` string and the reason:
+                the mark IS the "MS", so setting it in type beside itself is
+                captioning a logo with its own name.
+
+                WHAT THIS COSTS, STATED. The 2026-08-23 comment defended the
+                year on the ground that "A copyright line is the last thing in a
+                document by definition; this one is not" - it was a DATE STAMP
+                on a signed piece. It is now literally the last thing on the
+                plate and it carries a `(c)`, so that defence is spent, not
+                weakened. The compensating fact is the one that was always
+                load-bearing: **Saad asserted the copyright himself**, so the
+                claim is his. Nothing here states a fact he has not stated.
+
+                IT IS ALSO ~51px SHORTER than the two-row version, which is what
+                pays for the `<h2>` going back to `text-h2` above. The two
+                changes arrived in the same instruction and they fund each
+                other; the header's table has the measured totals.
+              */}
+              {/*
+                THE DIVIDER. Saad's brief: "a thin, faint horizontal divider
+                (site's real border/divider token, not an arbitrary `white/10`
+                value) spanning the section width, sitting above the copyright
+                line".
+
+                `hero-fg/15` IS THE REAL TOKEN, AND `brutal-edge` WOULD HAVE
+                BEEN THE WRONG ONE - worth stating, because `brutal-edge` is the
+                site's named rule colour and is the obvious pick. It is #8f8f8f
+                in dark and #151515 in light, i.e. IT FLIPS WITH THE THEME. This
+                plate does not: `bg-hero-surface` is pinned #07090c in both
+                themes, so a `brutal-edge` rule here would be a 6.12:1 grey line
+                in dark and a near-invisible 1.2:1 line in light, on the same
+                surface, for no reason anyone chose. That is the exact trap
+                `ExternalLink` documents for `accent-working` vs `hero-accent`
+                on this surface.
+
+                `hero-fg/15` composites to #292b2e on the plate = 1.40:1, which
+                is "faint" as asked. It is a decorative separator rather than a
+                UI boundary - 1.4.11 governs components and their states, and a
+                divider is neither. The nearest precedent on a theme-flipping
+                surface is `ProjectStripRow`'s `border-fg/25`; this is the same
+                construction, one step lighter, on the plate's own foreground
+                token.
+
+                A `<div role="separator">` RATHER THAN `<hr>`. An `<hr>` is a
+                thematic break in CONTENT, and this is a rule between a block
+                and its footnote. `role="separator"` with no `aria-orientation`
+                defaults to horizontal, and it carries no text so nothing is
+                announced.
+
+                `mt-2xl` (89px) ABOVE, `mt-md` (21px) BELOW, deliberately
+                ASYMMETRIC. The rule belongs to the row beneath it - it is the
+                top edge of the status bar, not a gap between two equal things -
+                and equal spacing would read as a divider between peers. 89px is
+                the same block separation the stamp row took when it was its own
+                block above this rule.
+              */}
+              <div
+                role="separator"
+                className="mt-2xl h-px w-full bg-hero-fg/15"
+              />
+
+              <div className="mt-md flex items-center gap-xs">
+                {/*
+                  `variant="nav"` - the settled mark, static, no third dressing.
+                  Decided upstream and not reopened.
+
+                  `text-hero-fg` AT FULL OPACITY: the mark is `currentColor`. It
+                  is the smaller of the two elements in this row, but it is
+                  still the solid one - the line beside it carries the
+                  recession, which is what builds hierarchy inside the stamp.
+
+                  `label={null}` - DECORATIVE, DELIBERATELY, and passed
+                  explicitly rather than left to the default so the choice is on
+                  the record. The navbar's mark already carries the accessible
+                  name on the same page, and a second labelled instance
+                  announces "Muhammad Saad" twice inside one document. **This
+                  matters more now that the mark is the only "MS" on the plate**:
+                  the temptation is to label it because it is carrying meaning.
+                  Do not. The `<h2>` names the landmark and the links are a real
+                  `<ul>` with an honest count.
+
+                  `block` because an `<svg>` is inline by default and would sit
+                  on a text baseline with descender space under it, which would
+                  throw the row's vertical centring off by the descender.
+
+                  NO HOVER AND NO LETTER-PART GESTURE. `Navbar.tsx` reaches
+                  `<g data-ms-letter>` for its hover micro-motion; nothing here
+                  touches those hooks. This instance is inert.
+                */}
+                <MonogramMark
+                  variant="nav"
+                  size={STAMP_MARK_PX}
+                  label={null}
+                  className="block text-hero-fg"
+                />
+
+                {/* THE COPYRIGHT LINE. `contactContent.ts` carries the ban this
+                    reverses, the reason the ban lapsed, why the year is
+                    interpolated from `CONTACT_EDITION_YEAR` rather than
+                    retyped, and why the "MS" that used to follow it is gone.
+
+                    `text-caption font-mono text-hero-fg/70` - the brief asks
+                    for "the site's existing monospace treatment", and this is
+                    the exact string the link labels already use on this plate.
+                    8.17:1. It is also what the bare year used when it sat here,
+                    so the row's own typography did not change at all; only its
+                    content did.
+
+                    `gap-xs` is 8px - the same 8px that binds each link's label
+                    to its value as ONE unit above, used here for the same job. */}
+                <p className="text-caption font-mono text-hero-fg/70">
+                  {CONTACT_COPYRIGHT_LINE}
                 </p>
-              </li>
-            ))}
-          </ul>
-
-          {/*
-            THE STAMP, AND WHY THE COMPOSITION ENDS BOTTOM-HEAVY.
-
-            THE CURTAIN IS REVEALED BOTTOM-UP, WHICH INVERTS READING ORDER, and
-            that is the single fact the arrangement has to answer. The first
-            sliver of plate to appear is its bottom edge, and whatever lives
-            there is read first, out of sequence, in a band a few dozen pixels
-            tall. A heading or a sentence cannot survive being read that way. A
-            STAMP CAN — it is not a sentence, it has no order, and it is
-            complete at any size. So the reveal reads as a signature emerging
-            from under the page: the wordmark, then the mark and year, then the
-            links, then the sentence, then the heading, as the page lifts. By
-            the time the plate is fully exposed the composition re-reads
-            correctly top-down. Both passes are coherent, which is the only
-            arrangement of this content for which that is true.
-
-            THE WORDMARK INHERITED THIS SLOT ON 2026-08-23 AND THE ARGUMENT CAME
-            WITH IT, RATHER THAN BEING DELETED. A wordmark is a stamp: it
-            satisfies every clause above, and it satisfies the DARK MODE clause
-            better than a 34px monogram did. The occlusion edge measures 1.01:1
-            in dark mode and is invisible, so the reveal is carried entirely by
-            content entering the strip — and the strongest element in the
-            composition is now the first thing the strip contains.
-
-            THE ALTERNATIVE REJECTED: the stamp as a letterhead at the TOP of
-            the plate. It composes well statically and it kills the copyright
-            reading outright. It fails twice — the first sliver would then be
-            empty plate, which in dark mode is nearly indistinguishable from
-            `bg-base`, so the curtain would open on a band of apparent nothing;
-            and THE NAVBAR'S OWN MS MARK IS FIXED AT TOP-LEFT, so a second mark
-            at the plate's top-left puts two identical marks in one vertical
-            line on every scroll-up. The bottom placement has no collision.
-
-            `mt-xl` (55px) RATHER THAN THE OLD `mt-2xl sm:mt-3xl`. The stamp is
-            no longer the plate's closing beat — the wordmark is — so it takes
-            the same 55px separation the link list takes from the closing line
-            rather than a terminal-sized gap. The 89/144px it used to take is
-            what the wordmark's own slot is built out of.
-          */}
-          <div className="mt-xl flex items-center gap-xs">
-            {/*
-              `variant="nav"` — the settled mark, static, no third dressing.
-              Decided upstream and not reopened.
-
-              `text-hero-fg` AT FULL OPACITY: the mark is `currentColor`. It is
-              the smaller of the two stamp elements now, but it is still the
-              solid one — the year beside it carries the recession, which is
-              what builds hierarchy inside the stamp itself.
-
-              `label={null}` — DECORATIVE, DELIBERATELY, and passed explicitly
-              rather than left to the default so the choice is on the record.
-              The navbar's mark already carries the accessible name on the same
-              page, and a second labelled instance announces "Muhammad Saad"
-              twice inside one document. A screen-reader user entering
-              `contentinfo` wants the links, which are a real `<ul>` with an
-              honest count.
-
-              `block` because an `<svg>` is inline by default and would sit on a
-              text baseline with descender space under it, which would throw the
-              row's vertical centring off by the descender.
-
-              NO HOVER AND NO LETTER-PART GESTURE. `Navbar.tsx` reaches
-              `<g data-ms-letter>` for its hover micro-motion; nothing here
-              touches those hooks. This instance is inert.
-            */}
-            <MonogramMark
-              variant="nav"
-              size={STAMP_MARK_PX}
-              label={null}
-              className="block text-hero-fg"
-            />
-
-            {/*
-              THE YEAR — AND IT IS STILL NOT A COPYRIGHT LINE, BUT ONE OF THE
-              THREE THINGS THAT KEPT IT ON THE RIGHT SIDE OF THAT LINE CHANGED
-              ON 2026-08-23 AND IS REPLACED RATHER THAN QUIETLY DROPPED.
-
-              IT USED TO READ: "1. It sits BELOW the mark, left-aligned to the
-              mark's left edge, not beside it. Every copyright line ever written
-              is horizontal; a vertical mark-over-date stack is a stamp." That
-              was true and it is now false — mark and year sit on ONE ROW, which
-              is exactly the horizontal arrangement that sentence warned about.
-
-              WHAT REPLACES IT: the row is no longer the last thing on the
-              plate. It sits ABOVE a signature, which makes it a DATE STAMP on a
-              signed piece rather than legal furniture appended after the
-              content. A copyright line is the last thing in a document by
-              definition; this one is not. The demotion to a 21px mark is part
-              of the same reading — legal furniture is set at body size, a stamp
-              is set small.
-
-              THE OTHER TWO ARE UNCHANGED AND STILL BINDING:
-                - It is four digits and nothing else. No `©`, no name, no "All
-                  rights reserved", no range, no separator glyph.
-                - Nothing on this surface may state a fact Saad has not stated,
-                  and a copyright assertion is a claim.
-
-              `gap-xs` is 8px — the same 8px that binds each link's label to its
-              value as ONE unit a few lines above, used here for the same job.
-
-              IF IN REVIEW THIS STILL READS AS A COPYRIGHT LINE, THE FIX IS TO
-              DELETE THE YEAR and leave the mark alone. It is not to add a
-              label, a rule, a border or an explanatory caption — every one of
-              those makes it more like legal furniture, not less. A bare mark is
-              a perfectly good signature and `docs/07` §5's "stamp/signature
-              detail" is satisfied by the mark alone.
-            */}
-            <p className="text-caption font-mono text-hero-fg/70">
-              {CONTACT_EDITION_YEAR}
-            </p>
-          </div>
-
-          {/*
-            THE SIGNATURE. Saad's request, 2026-08-23: the name "sized and
-            positioned as the dominant visual element of the footer", with the
-            MS mark and year demoted above it into a smaller, secondary detail.
-
-            `aria-hidden`, AND THAT IS NOT AN OVERSIGHT. The name is already in
-            the accessibility tree twice on this page — the navbar's mark
-            carries it, and the page's `<h1>` carries it — and the
-            `MonogramMark` directly above passes `label={null}` at this very
-            call site for exactly this reason. A third announcement inside
-            `contentinfo` is redundancy, not access. The `<h2>` still names the
-            landmark "Contact" and the links are still a real `<ul>` with an
-            honest count; the wordmark is invisible to a screen reader and
-            nothing is lost by that.
-
-            IT DOES NOT OUT-WEIGH THE THREE LINKS, AND THAT IS ARITHMETIC RATHER
-            THAN REASSURANCE — RE-STATED AT THE NEW SIZE ON 2026-08-23, because
-            a comment whose conclusion survives while its arithmetic rots is a
-            class of defect this repo has already shipped six of.
-
-            Stroke length scales linearly with the type size at a fixed 1.5px
-            non-scaling stroke, so the outlined wordmark's ink went from
-            ~1,860px at F=72 to ~2,584px at F=100 — where this note previously
-            claimed parity with the three link values' ~1,860px. THE EFFECTIVE
-            INK WENT DOWN ANYWAY, because the resting alpha fell in the same
-            change:
-
-                before   1,860px x 0.70 = 1,302px
-                after    2,584px x 0.45 = 1,163px      (-11%)
-
-            The enlargement is PAID FOR by the lightening; they are one change,
-            not two competing ones. Solid-filled it would still carry roughly
-            five times the outlined figure, which is why it is outlined — not
-            because outlined display type looks good. Three more things hold the
-            hierarchy independently of the ink:
-            it is LAST in the DOM and last on the plate, so at full exposure the
-            read is heading, sentence, links, mark+year, signature; it is
-            NEUTRAL and un-underlined where the links are teal and permanently
-            underlined, so it cannot be mistaken for something to activate; and
-            it is invisible to assistive technology.
-
-            THE BOX IS THE WORDMARK, not a full-measure band. `w-fit` plus an
-            aspect ratio derives the width from the height and the string's own
-            advance, which does three things at once: the leading edge sits on
-            the spine (Rule S-1), ~999px of void is left to its right at 1440
-            (also Rule S-1 — the void is the site's grammar and this is the
-            site's LAST surface), and the hover target is the wordmark rather
-            than a 1262px-wide invisible strip across the bottom of the plate.
-
-            THE 2026-08-23 ENLARGEMENT DID NOT TOUCH THIS CLASS, AND THAT IS
-            THE WHOLE POINT OF WHERE IT WAS SPENT. Saad asked for a bigger
-            signature; the lever taken was `FONT_SIZE_UNITS` 72 -> 100 in
-            `textHoverEffectMetrics.ts`, which grows the glyphs INSIDE the
-            100-unit viewBox and costs the plate 0px of height. The box class
-            below is unchanged, so the "DO NOT RAISE IT WITHOUT RE-MEASURING"
-            warning was not triggered — and the plate was re-measured anyway:
-            composed content still 775.98px at every width from 1280 up, in 24
-            of 24 cases. The wordmark's rendered box went 262.93 x 144 to
-            365.18 x 144; only the WIDTH moved.
-
-            `h-2xl sm:h-3xl` — 89px below 640, 144px at 640 and up, and THE SIZE
-            IS BOUNDED BY THE SHORTEST SUPPORTED VIEWPORT, NOT THE TALLEST. The
-            plate's composed content has to fit inside a 768px-tall laptop
-            viewport or the curtain there becomes a crawl over something that
-            can never be seen whole — which is reason 1 of the below-768
-            carve-out, applied to a laptop. A larger `sm:h-4xl` (233px) was
-            available and was declined by Saad on exactly that trade: "accept
-            the constrained size, don't spend more of the footer's height budget
-            chasing a bigger wordmark." DO NOT RAISE IT WITHOUT RE-MEASURING THE
-            PLATE AT 1366x768 AND 1280x720.
-
-            `text-hero-fg` — FULL STRENGTH, AND IT USED TO BE `/70`. The class
-            sets `color` for both of the component's layers through
-            `currentColor`. The resting outline's recession is now a
-            `strokeOpacity` of 0.45 set INSIDE the component (3.91:1 on
-            #07090C), not an alpha modifier on a text token out here; that
-            constant's docstring carries the arithmetic and the reason the
-            mechanism is not interchangeable. The reveal layer paints at full
-            strength, so the parent has to BE full strength.
-
-            `revealAccent` IS PASSED, AND CYAN IS LICENSED HERE SPECIFICALLY.
-            The standing refusal in `text-hover-effect.tsx` computed cyan at
-            ~9,300px of ink against this plate's one licensed 34x3px bar
-            (102px) — 91x, "which is not sparingly". THAT WAS COMPUTED AGAINST A
-            SOLID RESTING FILL this component does not paint and is forbidden
-            from painting. What ships is a stroke ramp inside a masked disc, on
-            hover only: ~42px of effective cyan, against the bar's 102px, and
-            transient where the bar is permanent. Both of CLAUDE.md's conditions
-            — "sparingly" and "on its own dark surface" — are met, on the plate
-            CLAUDE.md licenses by name.
-
-            TEAL IS STILL REFUSED, AND MORE FIRMLY ON HOVER THAN AT REST. That
-            half of the refusal was never about area: teal means "activate this"
-            and nothing else on this site, so a 365px neutral wordmark that
-            turns teal UNDER THE CURSOR is the canonical signal of an
-            interactive control, on an `aria-hidden` non-link. At rest a teal
-            wordmark is a static mistake; on hover it is an active lie. Do not
-            "harmonise" this to teal later.
-
-            THIS IS THE SECOND DOM CONSUMER OF `--accent-hero`, and `docs/03`'s
-            count was amended from ONE to TWO in the same commit. Both are on
-            this plate, both `aria-hidden`, both non-interactive; the bar is
-            34x3px and permanent, this one is pointer-transient.
-            `grep -rn "accent-hero" components/` now returns three hits instead
-            of two, which is the audit still working rather than failing.
-
-            THE ASPECT RATIO IS AN INLINE STYLE, NOT AN ARBITRARY TAILWIND
-            VALUE, because it is computed from `WORDMARK_VIEWBOX_UNITS` — the
-            same constant the component's `viewBox` takes, itself derived from
-            the em advance and the component's own exported `FONT_SIZE_UNITS`.
-            Two spellings of one number is how the box and the glyphs drift
-            apart.
-          */}
-          <div
-            aria-hidden="true"
-            className="mt-md h-2xl w-fit sm:h-3xl"
-            style={{ aspectRatio: `${WORDMARK_VIEWBOX_UNITS} / 100` }}
-          >
-            <TextHoverEffect
-              text={WORDMARK_TEXT}
-              viewBoxWidth={WORDMARK_VIEWBOX_UNITS}
-              revealAccent
-              className="text-hero-fg"
-            />
+              </div>
+            </div>
           </div>
         </div>
       </footer>

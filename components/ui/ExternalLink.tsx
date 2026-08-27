@@ -132,6 +132,89 @@ export const EXTERNAL_LINK_ON_BASE =
 export const EXTERNAL_LINK_ON_HERO =
   "text-hero-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hero-accent";
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * THE FOOTER'S LINK TREATMENT — MUTED AT REST, ACCENT ON HOVER, WITH A RULE
+ * THAT WIPES IN. ADDED 2026-08-27 ON SAAD'S FOOTER-REDESIGN BRIEF.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * **THIS IS THE FIRST HOVER COLOUR STEP ON A LINK ANYWHERE ON THIS SITE, AND
+ * BOTH CONSTANTS ABOVE REFUSE ONE BY NAME.** `EXTERNAL_LINK_ON_BASE` says "The
+ * only permitted hover device anywhere on this site is `hover:decoration-2`
+ * (underline thickness): never a colour change, never a background, never a
+ * transform." `EXTERNAL_LINK_ON_HERO` says "NO HOVER STATE, for the same reason
+ * as above and it holds on dark too."
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE REFUSAL WAS DIRECTIONAL, AND THIS GOES THE OTHER WAY.
+ * ─────────────────────────────────────────────────────────────────────────
+ * Read the stated reason rather than the conclusion: "any hover step that DIMS
+ * THE TEAL needs a value below full `accent-working`", and the arithmetic given
+ * is `hero-accent` at /70 over #07090C = 4.34:1, which fails AA. That is an
+ * argument against ONE construction — teal at rest, dimmer teal on hover — and
+ * it is still correct. Re-measured here: **4.31:1**, confirmed.
+ *
+ * This inverts it. Neutral at rest, FULL teal on hover, so neither endpoint is
+ * a partial teal and neither is near the floor:
+ *
+ *     rest   text-hero-fg/70   #a4a6a9 on #07090c   =  8.17:1
+ *     hover  text-hero-accent  #14b8a6 on #07090c   =  8.01:1
+ *
+ * Both clear AA for body text (4.5:1) with roughly 3.5x the margin, in BOTH
+ * THEMES — this surface is pinned dark, which is why `hero-accent` is the
+ * correct token here and `accent-working` is not; that rule is unchanged and is
+ * stated above. **The arithmetic that forbade the old hover permits this one.**
+ * That is a real distinction and not a loophole, but it IS a deviation from the
+ * letter of a site-wide rule, and it is recorded as one.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE UNDERLINE IS TWO PSEUDO-ELEMENTS, AND THE FIRST ONE IS NOT OPTIONAL.
+ * ─────────────────────────────────────────────────────────────────────────
+ * `before:` is a PERMANENT hairline at `hero-fg/30` (2.31:1). `after:` is the
+ * accent rule, `scale-x-0` at rest and `scale-x-100` on hover or focus, wiping
+ * from `origin-left`. They are coincident, so only one is ever visible.
+ *
+ * THE PERMANENT ONE IS WHAT KEEPS THE RULE THE CONSTANTS ABOVE STATE: "the
+ * underline is not decoration — colour alone must not be a link's only signal."
+ * With the value muted to `hero-fg/70` at rest, colour is no longer carrying
+ * the affordance AT ALL, so removing the rule as well would have left these
+ * three links indistinguishable from body text. An expanding underline alone —
+ * nothing at rest, a rule on hover — is exactly that failure. Do not delete
+ * `before:` to "clean up the duplication"; the two rules are not duplicates,
+ * they are the affordance and the response.
+ *
+ * NOT `text-decoration`, WHICH IS WHAT THE TWO CONSTANTS ABOVE USE. A
+ * text-decoration cannot be scaled, and the two devices cannot coexist: on a
+ * one-line link an `underline` and an `after:` rule sit at slightly different
+ * offsets and read as two rules. Pseudo-elements give one geometry for both
+ * states. THE COST IS REAL AND IS ACCEPTED: an `inline-block` box draws ONE
+ * rule across the block's bottom, so a value that wraps to two lines is
+ * underlined once rather than per line. The LinkedIn value is 39 characters and
+ * does wrap below ~400px. Verified at 360px that it reads as one link.
+ *
+ * `-bottom-0.5` IS 2px AND IS SANCTIONED: `app/globals.css` reserves the 0.5
+ * step "for 1-2px hairlines only (e.g. `p-px`, `top-0.5`)". This is one.
+ *
+ * `motion-reduce:transition-none` ON BOTH, matching `BRUTAL_MOTION`'s idiom.
+ * Under the preference the colour and the rule both switch instantly; nothing
+ * is removed, so a reduced-motion visitor gets the same affordance with no
+ * travel. `docs/07` §8 requires a branch of all motion.
+ *
+ * NO SIZE CLASS, like its two siblings — the caller appends one.
+ */
+export const EXTERNAL_LINK_ON_HERO_MUTED =
+  // `group` IS LOAD-BEARING, not decoration: `RevealFooter`'s `OutboundArrow`
+  // is a child of this anchor and takes its travel from `group-hover:`.
+  // Removing it does not break the build or the colour step — it silently
+  // freezes the arrow.
+  "group relative inline-block text-hero-fg/70 transition-colors duration-200 " +
+  "hover:text-hero-accent focus-visible:text-hero-accent " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hero-accent " +
+  "before:pointer-events-none before:absolute before:inset-x-0 before:-bottom-0.5 before:h-px before:bg-hero-fg/30 " +
+  "after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-left after:scale-x-0 after:bg-hero-accent " +
+  "after:transition-transform after:duration-200 hover:after:scale-x-100 focus-visible:after:scale-x-100 " +
+  "motion-reduce:transition-none motion-reduce:after:transition-none";
+
 type ExternalLinkProps = {
   /** Absolute URL. This component always opens a new tab, so an in-app route
    *  does not belong here. */
@@ -156,7 +239,25 @@ export function ExternalLink({ href, className, children }: ExternalLinkProps) {
       className={className}
     >
       {children}
-      <span className="sr-only">{` ${NEW_TAB_NOTE}`}</span>
+      {/* `select-none` — THE NOTE IS FOR ANNOUNCEMENT, NEVER FOR THE
+          CLIPBOARD. It is `sr-only`, so nobody can see it, and until
+          2026-08-28 nobody had checked what happened when it was COPIED:
+          selecting the footer's GitHub link produced
+          "github.com/Nobody243(opens in a new tab)". Measured on a live page,
+          not reasoned about.
+
+          THIS IS A GLOBAL FIX, NOT A FOOTER ONE. Every detail page is fully
+          selectable (`ProjectDetailFrame` carries `select-text`), so its links
+          row has been copying "GitHub (opens in a new tab)" and
+          "Live Site (opens in a new tab)" for as long as the row has existed —
+          before any selection policy shipped. One class on the one component
+          that owns the note fixes every call site at once, which is the same
+          reason the note lives here rather than being retyped per link.
+
+          IT CHANGES NOTHING FOR ASSISTIVE TECH. `user-select` governs
+          selection only; the accessible name is untouched and still reads
+          "GitHub (opens in a new tab)". */}
+      <span className="sr-only select-none">{` ${NEW_TAB_NOTE}`}</span>
     </a>
   );
 }
