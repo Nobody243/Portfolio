@@ -12,6 +12,17 @@ import { useHoverCapable } from "@/lib/hooks/useHoverCapable";
  * until now was the hero tagline. Nothing about it is re-implemented here: this
  * file is the TRIGGER, and the trigger is the whole problem.
  *
+ * **IT LIVED IN `components/about/` UNTIL 2026-08-27 AND WAS MOVED HERE WHEN
+ * `/work` AND HOME BECAME CONSUMERS.** Nothing about the component changed in
+ * the move. `aboutButtonStyles.ts`'s header carries a standing note that its
+ * shared atoms are in the wrong directory and that a `components/ui/` primitive
+ * reaching into `components/about/` is "the wrong way round"; adding
+ * `ProjectDeckSection` and `Projects` as importers would have made a SECTION
+ * reach into `/about` for a generic control, which is the same defect one level
+ * up. Four consumers now, on three routes, none of which is more entitled to
+ * own the file than the others. The `ABOUT_SCRAMBLE_*` inks did NOT move with
+ * it — see `encryptedClassName` below.
+ *
  * ─────────────────────────────────────────────────────────────────────────
  * WHY `cycle` AND NOT `play`.
  * ─────────────────────────────────────────────────────────────────────────
@@ -94,11 +105,21 @@ export function EncryptedButtonLabel({
 }: {
   text: string;
   /**
-   * REQUIRED, AND DELIBERATELY WITHOUT A DEFAULT - pass
-   * `ABOUT_SCRAMBLE_ON_BASE` or `ABOUT_SCRAMBLE_ON_ACCENT` from
-   * `aboutButtonStyles.ts`. Those two constants carry the contrast arithmetic
-   * and the reason there are two of them. Omission is a type error rather than
-   * an invisible scramble on the filled control.
+   * REQUIRED, AND DELIBERATELY WITHOUT A DEFAULT - pass the scramble ink that
+   * belongs to the SURFACE the control sits on:
+   *
+   *   `ABOUT_SCRAMBLE_ON_BASE`   / `ABOUT_SCRAMBLE_ON_ACCENT`   (`/about`)
+   *   `PROJECT_SCRAMBLE_ON_BASE`                                (`/work`, Home)
+   *
+   * Each carries its own contrast arithmetic at its own definition. Omission is
+   * a type error rather than an invisible scramble on a filled control.
+   *
+   * **THE `PROJECT_` AND `ABOUT_` ON-BASE INKS ARE THE SAME STRING AND ARE
+   * STILL TWO CONSTANTS**, for the reason `projectButtonStyles.ts` already
+   * states about the button dressings it duplicates: they are equal by
+   * coincidence of surface rather than by intent, and importing an `ABOUT_*`
+   * name into `/work` would make `/about` the definition of a control on a page
+   * it has nothing to do with. Do not "deduplicate" them.
    */
   encryptedClassName: string;
 }) {
@@ -108,8 +129,8 @@ export function EncryptedButtonLabel({
 
   useEffect(() => {
     if (!hoverCapable) return;
-    /* The nearest interactive ancestor IS the control — see the header. Both
-       consumers put this directly inside a `<button>` or an `<a>`, so this is
+    /* The nearest interactive ancestor IS the control — see the header. Every
+       consumer puts this directly inside a `<button>` or an `<a>`, so this is
        one hop; the query is written defensively anyway because a null host has
        to mean "no effect", never a crash. */
     const host = markerRef.current?.closest("a,button");

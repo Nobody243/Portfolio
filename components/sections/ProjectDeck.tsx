@@ -915,7 +915,7 @@ function FanCard({
  * Three, mirroring Rule S-4's discipline: `Escape`, this `Close`, and a click on
  * the deck container's own background. **There is no document-level `mousedown`
  * listener** — the reference has one, and here it would fire on the navbar and
- * on the "Browse as a list" button too. The `Escape` handler is scoped to the
+ * on the "Browse All" button too. The `Escape` handler is scoped to the
  * deck's own subtree for the same class of reason: a document listener would
  * collapse the deck behind an open project overlay, and the panel is the
  * mounted holder of `project-cover-<slug>` that the overlay's reverse morph
@@ -1029,7 +1029,7 @@ function DeckPanel({
  * which is worse than either alternative because it LOOKS browsable and is not.
  *
  * The reference drops its inactive cards `y: 400`. In our 540px container that
- * puts four cards on top of the "Browse as a list" control 55px below, or
+ * puts four cards on top of the "Browse All" control 55px below, or
  * requires `overflow-hidden`, which would then clip the fan.
  *
  * ═══ WHAT THIS IS INSTEAD ═══

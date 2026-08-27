@@ -110,7 +110,7 @@ import {
   ABOUT_PAGE_CV_LABEL,
   ABOUT_PAGE_CV_MODAL_TITLE,
 } from "@/components/about/aboutPageContent";
-import { EncryptedButtonLabel } from "@/components/about/EncryptedButtonLabel";
+import { EncryptedButtonLabel } from "@/components/ui/EncryptedButtonLabel";
 import { NEW_TAB_NOTE } from "@/components/ui/ExternalLink";
 
 /**

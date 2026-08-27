@@ -184,9 +184,9 @@ what the overwhelming majority of dev portfolios currently look like.
 > 5. Scroll past the last section → the **reveal footer** wipes up from behind the page: click-to-copy
 >    email, LinkedIn, the MS mark and a year stamp. This is where the old step 7 went.
 > 6. **WORK** in the navbar → `/work`: the fanned card deck holding all five projects, a
->    `Browse as a list` exit, Certifications ("Coming soon."), then Experience, then Currently
+>    `Browse All` exit, Certifications ("Coming soon."), then Experience, then Currently
 >    Learning (which currently renders nothing).
-> 7. **`Browse as a list`**, from Home's featured row or from `/work` → `/projects`: the same five as
+> 7. **`Browse All`**, from Home's featured row or from `/work` → `/projects`: the same five as
 >    full-width strip rows, `Close` back to `/work`. The navbar does not link here and `WORK` stays
 >    the active item; this control is the only way in.
 > 8. **ABOUT** in the navbar → `/about`: the paragraph, the static mark, and View CV / GitHub /

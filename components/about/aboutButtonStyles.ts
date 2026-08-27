@@ -31,7 +31,7 @@
  * NAME LIES ABOUT THAT. As of 2026-08-25 `BUTTON_BASE`, `BRUTAL_SHADOW` and
  * `BRUTAL_MOTION` are exported and imported by
  * `components/sections/projectButtonStyles.ts`, which dresses `/work`'s deck
- * panel controls, and the "Browse as a list" exit that renders on BOTH `/work`
+ * panel controls, and the "Browse All" exit that renders on BOTH `/work`
  * and Home. They were module-private until then.
  *
  * SO THE TREATMENT NOW PAINTS ON THREE ROUTES (`/about`, `/work`, `/`) THROUGH

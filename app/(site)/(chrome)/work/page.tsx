@@ -24,7 +24,7 @@ import { projects } from "@/content/projects";
  * ═══════════════════════════════════════════════════════════════════════════
  *
  *   1. `ProjectDeckSection`  the `<h1>`, the fanned deck of all five, and the
- *                            "Browse as a list" exit to `/projects`
+ *                            "Browse All" exit to `/projects`
  *   2. `Certifications`      a heading and one line, visibly present
  *   3. `Experience`          unchanged content, reordered to sit after (2)
  *   4. `CurrentlyLearning`   unchanged; renders nothing while its data is empty

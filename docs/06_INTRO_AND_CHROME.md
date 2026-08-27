@@ -527,7 +527,7 @@ at pages it does not itself appear on is unusable.
 
 **THE BAR PAINTS ON FOUR ROUTES AND STILL CARRIES ONLY TWO CENTRE LINKS, AND THAT IS DELIBERATE.**
 `/projects` joined this group on 2026-08-25 and inherited the bar, the toggle and the Intro gate with
-it. Nothing in the chrome links to `/projects` — it is reached only from the `Browse as a list`
+it. Nothing in the chrome links to `/projects` — it is reached only from the `Browse All`
 control on `/` and on `/work`. `WORK` shows as active there instead, through a one-entry
 `ROUTE_GROUP` table in `components/ui/navContent.ts` (`"/work": ["/projects"]`), which also covers
 `/projects/<slug>` via a trailing-slash prefix test rather than a bare `startsWith`. A bare prefix

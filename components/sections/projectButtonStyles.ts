@@ -18,7 +18,7 @@ import {
  *
  * WHY A SEPARATE MODULE AND NOT CONSTANTS IN `ProjectDeck.tsx`. Two reasons,
  * and the first is the same structural one `/about` has. `ProjectDeckSection`
- * is a SERVER component (it renders the heading and the "Browse as a list"
+ * is a SERVER component (it renders the heading and the "Browse All"
  * exit) while `ProjectDeck` is a client one, and a server component cannot
  * import a plain value out of a `"use client"` module — the bundler hands it a
  * client reference proxy and the failure is a class name rendering as
@@ -71,8 +71,7 @@ import {
  * 2px it lands on the panel's `bg-elevated`, where `accent-working` holds
  * 7.5:1 in dark per `app/globals.css`.
  */
-export const PROJECT_BUTTON_PRIMARY =
-  `${BUTTON_BASE} border-2 border-brutal-edge bg-accent-working text-on-accent ${BRUTAL_SHADOW} ${BRUTAL_MOTION}`;
+export const PROJECT_BUTTON_PRIMARY = `${BUTTON_BASE} border-2 border-brutal-edge bg-accent-working text-on-accent ${BRUTAL_SHADOW} ${BRUTAL_MOTION}`;
 
 /**
  * **GitHub** and **Live Site** — the panel's two conditional secondaries.
@@ -96,11 +95,11 @@ export const PROJECT_BUTTON_PRIMARY =
  * dressing is what differs, which is exactly the split that component was built
  * for.
  */
-export const PROJECT_BUTTON_SECONDARY =
-  `${BUTTON_BASE} border-2 border-brutal-edge bg-elevated text-fg ${BRUTAL_SHADOW} ${BRUTAL_MOTION}`;
+export const PROJECT_BUTTON_SECONDARY = `${BUTTON_BASE} border-2 border-brutal-edge bg-elevated text-fg ${BRUTAL_SHADOW} ${BRUTAL_MOTION}`;
 
 /**
- * **Browse as a list** — the exit to `/projects`.
+ * **Browse All** — the exit to `/projects`. (Labelled "Browse as a list"
+ * until 2026-08-27; see `projectDeckContent.ts` for the rename.)
  *
  * **TWO CALL SITES SINCE 2026-08-25, NOT ONE.** `ProjectDeckSection` renders it
  * on `/work` below the deck, and `Projects` renders it on Home below the three
@@ -131,6 +130,49 @@ export const PROJECT_BUTTON_SECONDARY =
  * instruction on 2026-08-25; reintroducing that family days later, on a
  * NAVIGATION control, would be drift. `components/ui/moving-border.tsx` is in
  * the same category and is refused by name in the design brief.
+ *
+ * **THE LABEL SCRAMBLE ADDED ON 2026-08-27 IS NOT A COUNTER-EXAMPLE TO THAT
+ * PARAGRAPH.** Saad asked for it by name, and it is a different KIND of thing
+ * from the four refused above: those are decorations applied to the button's
+ * CHROME — its border, its fill, a light sweeping across it — whereas this
+ * happens to the label's own glyphs and is the device `/about`'s controls and
+ * the hero tagline already share. It adds no layer, no gradient and no moving
+ * geometry; `BRUTAL_MOTION` remains the only thing that moves. It is also
+ * width-stable by construction: `BUTTON_BASE` is `font-mono`, so every
+ * substituted glyph has the same advance and the button's box cannot change
+ * mid-scramble.
  */
-export const PROJECT_BUTTON_NAV =
-  `${BUTTON_BASE} border-2 border-brutal-edge bg-base text-fg ${BRUTAL_SHADOW} ${BRUTAL_MOTION}`;
+export const PROJECT_BUTTON_NAV = `${BUTTON_BASE} border-2 border-brutal-edge bg-base text-fg ${BRUTAL_SHADOW} ${BRUTAL_MOTION}`;
+
+/**
+ * THE SCRAMBLE INK for `PROJECT_BUTTON_NAV`'s label — what an UNRESOLVED
+ * character is painted in while `EncryptedButtonLabel` is running on the
+ * `Browse All` control. Added 2026-08-27 on Saad's instruction ("add the
+ * encrypted text effect on browse as a list").
+ *
+ * `accent-working` ON `bg-base` IS 7.95:1 IN DARK AND 5.34:1 IN LIGHT, so the
+ * ciphertext clears AA as text in both themes even though it is `aria-hidden`
+ * and never read aloud. That is the same relationship `/about`'s row measured;
+ * the control sits on the same surface, so the arithmetic transfers rather than
+ * being re-derived.
+ *
+ * ONLY THE UNSETTLED STATE IS TINTED. There is no `PROJECT_REVEALED_*` to go
+ * with it, deliberately: a character that has landed should be
+ * indistinguishable from one that was never scrambled, which means inheriting
+ * the control's own `text-fg` rather than being told what it is.
+ *
+ * **BYTE-IDENTICAL TO `ABOUT_SCRAMBLE_ON_BASE`, AND STILL A SEPARATE
+ * CONSTANT** — the same call this file already makes for `PROJECT_BUTTON_NAV`
+ * itself, which equals `ABOUT_BUTTON_SECONDARY` today. The two are equal by
+ * coincidence of surface, not by intent, and importing an `ABOUT_*` name into
+ * `/work` and Home would make `/about`'s row the definition of a control on two
+ * pages it has nothing to do with. If `/about` ever retunes its ciphertext
+ * colour, this one must not move with it silently.
+ *
+ * THIS IS NOT A LICENCE FOR THE OTHER TWO DRESSINGS. `PROJECT_BUTTON_PRIMARY`
+ * and `PROJECT_BUTTON_SECONDARY` have no scramble ink because nothing scrambles
+ * on them yet. Add one when a call site needs it, measured against ITS surface
+ * — `text-accent-working` on a filled accent is the failure
+ * `ABOUT_SCRAMBLE_ON_ACCENT` exists to prevent.
+ */
+export const PROJECT_SCRAMBLE_ON_BASE = "text-accent-working";

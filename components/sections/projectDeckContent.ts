@@ -1,12 +1,15 @@
 /**
  * `/work`'s deck copy — the fixed-arity prose the fanned deck renders.
  *
- * **ONE EXPORT LEAVES `/work`, AS OF 2026-08-25.** `DECK_BROWSE_AS_LIST_LABEL`
- * is read by `components/sections/Projects.tsx` too, which renders on Home —
- * so the `DECK_` prefix is a slight misnomer on that one constant. See its own
- * docstring for why the string is shared rather than copied, and for the
- * relocation this file would want if a third surface ever reads from it. Every
- * other constant here is still the deck's alone.
+ * **ONE EXPORT LEAVES `/work`, AS OF 2026-08-25.** `BROWSE_ALL_LABEL` is read
+ * by `components/sections/Projects.tsx` too, which renders on Home. It was
+ * `DECK_BROWSE_AS_LIST_LABEL` until 2026-08-27, when the label became "Browse
+ * All" and the constant was renamed with it — the `DECK_` prefix had been
+ * recorded as a misnomer here since Home became the second reader, and the rest
+ * of the name had stopped describing the string. See its own docstring for why
+ * the string is shared rather than copied, and for the relocation this file
+ * would want if a third surface ever reads from it. Every other constant here
+ * is still the deck's alone.
  *
  * Everything the deck draws that VARIES per project — five titles, five
  * one-liners, five stacks, five covers, five link sets — comes from
@@ -83,27 +86,51 @@ export const DECK_CLOSE_LABEL = "Close";
  * reads this string, that is the point to move it** — the same rule
  * `components/about/aboutButtonStyles.ts` states for its brutal atoms.
  *
- * The label is unchanged on Home even though "View All Projects" would be
- * literally true there (three cards vs five rows). `Projects.tsx` carries that
- * reasoning at its call site; the short version is that the archive is `/work`,
- * which the navbar already offers, so a control promising the archive and
- * delivering `/projects` would be the label lying on the surface where the
- * arithmetic happens to let it get away with it.
+ * The label is the same on both surfaces even though Home shows three cards
+ * and `/projects` shows five rows. `Projects.tsx` carries that reasoning at its
+ * call site; the short version is that the archive is `/work`, which the navbar
+ * already offers, so a control promising the archive and delivering `/projects`
+ * would be the label lying on the surface where the arithmetic happens to let
+ * it get away with it.
  *
- * **"Browse as a list", NOT "View All Projects".** The spec's original label was
- * the second one and it was changed on Saad's ruling of 2026-08-25 for a reason
- * that is worth keeping next to the string: the deck holds all five projects
- * and `/projects` holds the same five, so the list adds a different
- * PRESENTATION, not a different set. A label promising more projects would be
- * untrue, and "every claim on the site must be true and specific" is
- * CLAUDE.md's rule, not a preference. This label names the affordance
- * difference, which is the thing that is actually different.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * **"Browse All" SINCE 2026-08-27, ON SAAD'S INSTRUCTION. IT WAS "Browse as a
+ * list", AND THE ARGUMENT THAT CHOSE THAT WORDING IS RECORDED HERE BECAUSE THE
+ * NEW ONE DOES NOT SATISFY IT.**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * The spec's original label was "View All Projects". It was changed on Saad's
+ * ruling of 2026-08-25 for a reason worth keeping next to the string: the deck
+ * holds all five projects and `/projects` holds the same five, so the list adds
+ * a different PRESENTATION, not a different set — and a label promising MORE
+ * projects would be untrue. "Browse as a list" named the affordance difference,
+ * which is the thing that is actually different.
  *
- * NO COUNT. "Browse all 5 as a list" is volume-as-achievement, the one register
- * CLAUDE.md bans by name, and `projectsContent.ts` already refused a count on
- * the gallery for the same reason.
+ * **"Browse All" IS TRUE FROM HOME AND NOT FROM `/work`.** Home features three
+ * and the control leads to five, so "all" is exactly right there. `/work`
+ * already renders all five in the deck, so on that page the control offers the
+ * same five again in a different presentation, and "All" describes the set
+ * rather than the difference. This is the identical objection that retired
+ * "View All Projects", stated so that nobody re-derives it and quietly reverts
+ * the label: **it is Saad's call, it is deliberate, and it is not an oversight
+ * to be corrected.**
+ *
+ * THE FIX IF IT EVER MATTERS IS NOT TWO STRINGS. One control, one destination,
+ * two pages — two labels would drift the first time either was retuned, and the
+ * drift would be invisible until someone opened both pages side by side. If the
+ * `/work` instance ever needs to say something different, it needs its own
+ * NAMED constant with its own reason, not a second copy of this one.
+ *
+ * NO COUNT. "Browse all 5" is volume-as-achievement, the one register CLAUDE.md
+ * bans by name, and `projectsContent.ts` already refused a count on the gallery
+ * for the same reason. "All" without a number is not that.
+ *
+ * THE CONSTANT WAS RENAMED WITH THE STRING — `DECK_BROWSE_AS_LIST_LABEL` ->
+ * `BROWSE_ALL_LABEL`. Both halves of the old name had gone wrong: `DECK_`
+ * because Home reads it too (recorded as a misnomer since 2026-08-25), and
+ * `BROWSE_AS_LIST` because that is no longer what it says. A constant named
+ * after wording it no longer carries is a trap for the next `grep`.
  */
-export const DECK_BROWSE_AS_LIST_LABEL = "Browse as a list";
+export const BROWSE_ALL_LABEL = "Browse All";
 
 /**
  * The rail's / pager's accessible group name.

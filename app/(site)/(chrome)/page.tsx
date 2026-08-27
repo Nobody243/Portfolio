@@ -151,7 +151,7 @@ export default function Page() {
             enumerates all three holders of `project-cover-<slug>` and
             `ProjectStripRow.tsx` records why it is not a fourth.
 
-            AND HOME NOW REACHES THEM IN TWO CLICKS. The `Browse as a list`
+            AND HOME NOW REACHES THEM IN TWO CLICKS. The `Browse All`
             control below the three cards goes to `/projects`, which lists all
             five — so CCN and SNA are no longer off Home's path entirely, they
             are simply not among the cards. `components/sections/Projects.tsx`

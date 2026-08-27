@@ -4,7 +4,7 @@ import portrait from "@/public/images/about/portrait.jpg";
 import { AboutFlipBoard } from "@/components/about/AboutFlipBoard";
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import { CvAction, CvModalHost } from "@/components/about/CvAction";
-import { EncryptedButtonLabel } from "@/components/about/EncryptedButtonLabel";
+import { EncryptedButtonLabel } from "@/components/ui/EncryptedButtonLabel";
 import {
   ABOUT_BUTTON_SECONDARY,
   ABOUT_SCRAMBLE_ON_BASE,
@@ -653,7 +653,7 @@ export function AboutScreen() {
                 distribute — the layout at 1024 is byte-identical to before.
             */}
             <div className="lg:mx-auto lg:flex lg:w-fit lg:items-center lg:gap-xl xl:gap-2xl">
-            {/*
+              {/*
               THE MEASURE IS 34rem TO `xl` AND 40rem ABOVE IT, AND THE TWO
               HALVES OF THAT ARE ONE DECISION WITH THE PARAGRAPH'S SIZE.
 
@@ -694,7 +694,7 @@ export function AboutScreen() {
               media query would be a new CLASS of one. `xl` is an existing step;
               the site still ships zero custom breakpoints.
             */}
-            {/* `mx-auto lg:mx-0` — the same centring, for the single-column
+              {/* `mx-auto lg:mx-0` — the same centring, for the single-column
                 half of the page. Below `lg` this box, the portrait and the band
                 are three stacked siblings all capped at the 34rem measure, so
                 wherever the container is WIDER than 544px the same residual
@@ -708,8 +708,8 @@ export function AboutScreen() {
                 runs. There is no free space in that row, so the class is inert
                 either way; it is written out so the interaction is visible
                 rather than latent. */}
-            <div className="mx-auto max-w-[34rem] lg:mx-0 lg:shrink-0">
-              {/*
+              <div className="mx-auto max-w-[34rem] lg:mx-0 lg:shrink-0">
+                {/*
                 THE MARK IS `variant="nav"` AT A LARGER SIZE — NOT A THIRD
                 VARIANT. `MonogramMark.tsx`'s own header says it: "the navbar
                 renders it at 17px and the About page will render the same thing
@@ -737,21 +737,21 @@ export function AboutScreen() {
                 `lg`; the mark is alone at every width now, and the `Reveal` is
                 a plain block again with no flex classes to pass through.
               */}
-              {/* UNIT 1 of the entrance, delay 0. `Reveal` renders this unit's
+                {/* UNIT 1 of the entrance, delay 0. `Reveal` renders this unit's
                   own `<div>` rather than adding one around it — its
                   `className` is passed straight to the `motion.div`, so the
                   revealed box IS the element the layout sees and the resting
                   geometry is unchanged. It takes no `className` now that the
                   row is gone; `Reveal` handles that, and the omission is
                   deliberate rather than a dropped class. */}
-              <IntroEntrance>
-                <MonogramMark
-                  variant="nav"
-                  label={ABOUT_PAGE_MARK_LABEL}
-                  className="h-[56px] w-auto text-fg sm:h-[72px]"
-                />
+                <IntroEntrance>
+                  <MonogramMark
+                    variant="nav"
+                    label={ABOUT_PAGE_MARK_LABEL}
+                    className="h-[56px] w-auto text-fg sm:h-[72px]"
+                  />
 
-                {/*
+                  {/*
                   THE IN-ROW PORTRAIT IS GONE, AND WITH IT THIS PAGE'S ONLY
                   TWO-ARTIFACT ROW.
 
@@ -774,9 +774,9 @@ export function AboutScreen() {
                   `shrink-0` and the 2:1 ratio go with it. Do not reintroduce
                   either as a "guard": there is no row left to guard.
                 */}
-              </IntroEntrance>
+                </IntroEntrance>
 
-              {/*
+                {/*
                 THE HEADROOM IS NOT OPTIONAL, AND EVERY FIGURE IN IT IS PER
                 BAND. 65 words at `text-body` (16px, 1.6 line-height = 25.6px)
                 on a 34rem measure wraps to 5-6 lines. The reserve is SEVEN
@@ -834,7 +834,7 @@ export function AboutScreen() {
                 future growth against a budget that is already the binding
                 constraint at 1024x600.
               */}
-              {/* UNIT 2, delay `STAGGER.line`. The `<p>` keeps its own
+                {/* UNIT 2, delay `STAGGER.line`. The `<p>` keeps its own
                   `mt-md` / `sm:mt-lg` rather than moving them onto the
                   `Reveal`: the wrapper has no border, padding or inline
                   content, so the paragraph's top margin collapses through it
@@ -842,13 +842,29 @@ export function AboutScreen() {
                   `transform` does not establish a block formatting context
                   that would stop it. Measured: the paragraph's top is
                   unchanged to the hundredth of a pixel. */}
-              <IntroEntrance delay={STAGGER.line}>
-                <p className="mt-md min-h-[230px] text-body text-fg sm:mt-lg sm:min-h-[179px]">
-                  {ABOUT_PAGE_PARAGRAPH}
-                </p>
-              </IntroEntrance>
+                <IntroEntrance delay={STAGGER.line}>
+                  {/* `select-text` — the site's `select-none` (set on
+                    `<body>` in `app/layout.tsx`) exempts long-form prose, and
+                    this paragraph is the whole of `/about`'s read content. See
+                    `docs/03`'s selection section for the four exceptions and
+                    what stays locked.
 
-              {/*
+                    ON THE `<p>` ITSELF, which IS the narrowest root here —
+                    there is exactly one paragraph on this page. It deliberately
+                    does NOT go on the `IntroEntrance` wrapper above: that
+                    wrapper is a motion primitive used all over the page, and a
+                    selection policy on it would leak to the heading, the
+                    action row and the flip board the next time it is reused.
+
+                    THE PORTRAIT IS A SIBLING, NOT A CHILD, so no image
+                    override is needed — verified against the tree below, not
+                    assumed. */}
+                  <p className="mt-md min-h-[230px] text-body text-fg select-text sm:mt-lg sm:min-h-[179px]">
+                    {ABOUT_PAGE_PARAGRAPH}
+                  </p>
+                </IntroEntrance>
+
+                {/*
                 THE ACTION ROW — one primary, two secondary, in that order.
 
                 BELOW 640 IT IS 1-UP + 2-UP: View CV full width on row one,
@@ -888,7 +904,7 @@ export function AboutScreen() {
                 one of them is rendered by a different component and takes no
                 `className`.
               */}
-              {/* `fadeOnly` — THE ONE CALL SITE ON THE SITE. Its original
+                {/* `fadeOnly` — THE ONE CALL SITE ON THE SITE. Its original
                   justification was the clip budget: this row was the
                   bottom-most unit on a page that could not scroll at any
                   width, and at 360x640 it had 5.14px of resting slack against
@@ -908,7 +924,7 @@ export function AboutScreen() {
 
                   It is no longer the bottom-most unit anyway: the portrait
                   follows it below `lg`. */}
-              {/* `CvModalHost` WRAPS THE ENTRANCE RATHER THAN SITTING INSIDE
+                {/* `CvModalHost` WRAPS THE ENTRANCE RATHER THAN SITTING INSIDE
                   IT, and the order is the whole fix. `IntroEntrance`'s only
                   mechanism is a `key` that flips at the hand-off, which
                   unmounts everything below it — including, until 2026-08-22,
@@ -919,14 +935,14 @@ export function AboutScreen() {
                   the dialog it renders is `position: fixed` in the top layer,
                   so this row's geometry is byte-identical. DO NOT MOVE IT
                   BACK INSIDE. */}
-              <CvModalHost>
-                <IntroEntrance
-                  delay={STAGGER.line * 2}
-                  fadeOnly
-                  className="mt-lg flex flex-col items-stretch gap-sm sm:flex-row sm:flex-wrap sm:items-center"
-                >
-                  <CvAction />
-                  {/* THE 2-UP PAIR. `grid-cols-2` rather than two `flex-1`
+                <CvModalHost>
+                  <IntroEntrance
+                    delay={STAGGER.line * 2}
+                    fadeOnly
+                    className="mt-lg flex flex-col items-stretch gap-sm sm:flex-row sm:flex-wrap sm:items-center"
+                  >
+                    <CvAction />
+                    {/* THE 2-UP PAIR. `grid-cols-2` rather than two `flex-1`
                       children, so the halves are equal by construction and
                       neither secondary needs a width class of its own — the
                       dressing constants stay pure box-and-voice.
@@ -946,8 +962,8 @@ export function AboutScreen() {
                       missing contact entry renders nothing at all, never a
                       placeholder, and a lone secondary at half width still
                       reads as a secondary. */}
-                  <div className="grid grid-cols-2 gap-sm sm:contents">
-                    {/* `ExternalLink` for the semantics only — `target`, `rel`
+                    <div className="grid grid-cols-2 gap-sm sm:contents">
+                      {/* `ExternalLink` for the semantics only — `target`, `rel`
                         and the announced new-tab note, which is the whole reason
                         it exists. The dressing is this page's, passed in,
                         exactly as that component's header requires: colour and
@@ -955,41 +971,41 @@ export function AboutScreen() {
                         so they take the outlined button dressing rather than the
                         teal underlined treatment that belongs to links inside
                         prose. */}
-                    {/* THE LABEL IS A CLIENT LEAF, THIS FILE IS NOT.
+                      {/* THE LABEL IS A CLIENT LEAF, THIS FILE IS NOT.
                         `EncryptedButtonLabel` carries `"use client"` and finds
                         its own hover by walking up to the anchor, so neither
                         `AboutScreen` nor `ExternalLink` gains a hook or a prop
                         and both stay server components. That is the standing
                         requirement in `ExternalLink`'s header, not a
                         preference. */}
-                    {github ? (
-                      <ExternalLink
-                        href={github.href}
-                        className={ABOUT_BUTTON_SECONDARY}
-                      >
-                        <EncryptedButtonLabel
-                          text={github.label}
-                          encryptedClassName={ABOUT_SCRAMBLE_ON_BASE}
-                        />
-                      </ExternalLink>
-                    ) : null}
-                    {linkedin ? (
-                      <ExternalLink
-                        href={linkedin.href}
-                        className={ABOUT_BUTTON_SECONDARY}
-                      >
-                        <EncryptedButtonLabel
-                          text={linkedin.label}
-                          encryptedClassName={ABOUT_SCRAMBLE_ON_BASE}
-                        />
-                      </ExternalLink>
-                    ) : null}
-                  </div>
-                </IntroEntrance>
-              </CvModalHost>
-            </div>
+                      {github ? (
+                        <ExternalLink
+                          href={github.href}
+                          className={ABOUT_BUTTON_SECONDARY}
+                        >
+                          <EncryptedButtonLabel
+                            text={github.label}
+                            encryptedClassName={ABOUT_SCRAMBLE_ON_BASE}
+                          />
+                        </ExternalLink>
+                      ) : null}
+                      {linkedin ? (
+                        <ExternalLink
+                          href={linkedin.href}
+                          className={ABOUT_BUTTON_SECONDARY}
+                        >
+                          <EncryptedButtonLabel
+                            text={linkedin.label}
+                            encryptedClassName={ABOUT_SCRAMBLE_ON_BASE}
+                          />
+                        </ExternalLink>
+                      ) : null}
+                    </div>
+                  </IntroEntrance>
+                </CvModalHost>
+              </div>
 
-            {/*
+              {/*
               THE PORTRAIT, FROM 1024px UP. Everything about it is a decision:
 
               `lg:ml-auto` IS GONE, AND IT WAS THE ACTUAL DEFECT — not the
@@ -1167,8 +1183,8 @@ export function AboutScreen() {
               it. It is not a fifth unit for phones — see the mobile portrait
               above, which arrives with the mark at delay 0.
             */}
-            <IntroEntrance
-              /*
+              <IntroEntrance
+                /*
                 IT IS NO LONGER `hidden` BELOW `lg`, AND THAT IS THE WHOLE OF
                 ITEM 7. One element at every width instead of two, with the
                 mobile one deleted rather than re-sized.
@@ -1187,17 +1203,16 @@ export function AboutScreen() {
                 `lg`, where the two are columns of a row and there is no gap of
                 this kind between them.
               */
-              className="mx-auto mt-xl max-w-[34rem] lg:mx-0 lg:mt-0 lg:max-w-[364px] lg:min-w-[213px] lg:flex-1"
-            >
-              <Image
-                src={portrait}
-                alt={ABOUT_PAGE_PORTRAIT_ALT}
-                sizes={PORTRAIT_SIZES}
-                priority
-                className="aspect-square w-full rounded-photo object-cover"
-              />
-
-            </IntroEntrance>
+                className="mx-auto mt-xl max-w-[34rem] lg:mx-0 lg:mt-0 lg:max-w-[364px] lg:min-w-[213px] lg:flex-1"
+              >
+                <Image
+                  src={portrait}
+                  alt={ABOUT_PAGE_PORTRAIT_ALT}
+                  sizes={PORTRAIT_SIZES}
+                  priority
+                  className="aspect-square w-full rounded-photo object-cover"
+                />
+              </IntroEntrance>
             </div>
 
             {/*
@@ -1336,7 +1351,6 @@ export function AboutScreen() {
             <IntroEntrance className="mx-auto mt-xl max-w-[34rem] lg:mt-2xl lg:max-w-[963px] xl:max-w-[997px]">
               <AboutFlipBoard />
             </IntroEntrance>
-
           </div>
         </div>
       </div>

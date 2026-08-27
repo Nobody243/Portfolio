@@ -25,8 +25,8 @@ No backend, no database, no auth. Everything is statically prerendered.
 
 | Route | What's on it |
 |---|---|
-| `/` | Hero, Trajectory, Skills, the three featured projects, a "Browse as a list" link, reveal footer |
-| `/work` | Headed "Projects." — a fanned card deck of all five, a "Browse as a list" link to `/projects`, Certifications ("Coming soon."), Experience, Currently Learning, reveal footer |
+| `/` | Hero, Trajectory, Skills, the three featured projects, a "Browse All" link, reveal footer |
+| `/work` | Headed "Projects." — a fanned card deck of all five, a "Browse All" link to `/projects`, Certifications ("Coming soon."), Experience, Currently Learning, reveal footer |
 | `/projects` | The same five as a full-bleed strip list, one row each, between two `Close` links back to `/work`. No reveal footer |
 | `/about` | Portrait, longer bio, CV link. Composed to fit a 945px browser window without scrolling, and scrolls anywhere it doesn't |
 | `/projects/<slug>` | Project detail. Also renders as an intercepted overlay from a card or strip-row click, at the same URL |
@@ -36,7 +36,7 @@ call-center network design and a Windows Server enterprise infrastructure. The f
 featured on `/`; all five are on `/work` and on `/projects`, which hold the same set in two different
 presentations rather than two different sets.
 
-The navbar has two centre links, not four. `/projects` is reached from the "Browse as a list" control
+The navbar has two centre links, not four. `/projects` is reached from the "Browse All" control
 on `/` and on `/work`; `WORK` shows as the active item while you are there.
 
 ## Running it locally

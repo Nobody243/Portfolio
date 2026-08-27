@@ -73,7 +73,7 @@ import {
  *   `<h1>` `text-h2` 68 x 1.1                                 74.8
  *   `mt-xl` heading -> deck                                   55.0
  *   deck container `h-[540px]`                               540.0
- *   `mt-xl` deck -> "Browse as a list"                        55.0
+ *   `mt-xl` deck -> "Browse All"                        55.0
  *   the control (13 + 16.8 + 13 + 2x2 border)                 46.8
  *   `ProjectDeckSection` `pb-2xl`                             89.0
  *                                                           ───────
