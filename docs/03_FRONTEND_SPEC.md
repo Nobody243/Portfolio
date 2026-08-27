@@ -335,6 +335,24 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 
 > ### `accent-hero` has exactly TWO DOM consumers site-wide — and count RENDER SITES, not code paths. Ticket 10.
 >
+> **THE COUNT HAS MOVED TWICE AND IS BACK WHERE IT WAS.** It read TWO until 2026-08-26, when the
+> footer wordmark's cyan reveal ramp was replaced by the Aceternity component's five-stop rainbow
+> and the count dropped to ONE. Saad asked for "the colors to the portfolio theme" on 2026-08-27
+> and the cyan came back, so it is TWO again: the 34x3px bar in `RevealFooter.tsx`, and
+> `REVEAL_STOPS` in `components/ui/text-hover-effect.tsx`. **Both are on the same plate**, which is
+> the only surface CLAUDE.md licenses for this token. The rainbow's brief life also created and
+> retired the two-accent rule's one named exception — see CLAUDE.md.
+>
+> **AMENDED 2026-08-26: back to ONE, from TWO.** The second consumer was the reveal ramp inside
+> `RevealFooter`'s wordmark, added 2026-08-23. Saad asked for the Aceternity `text-hover-effect`
+> component "as it is", so that ramp is gone and the vendor's five-stop gradient — yellow, red,
+> blue, cyan, violet — is in its place. `--accent-hero` no longer appears in
+> `components/ui/text-hover-effect.tsx` in any form. **That change reverses CLAUDE.md's two-accent
+> rule**, which is written as absolute; see that file's note and the component's `REVEAL_STOPS`
+> docblock for what survives of the reasoning and what does not. The remaining consumer is the
+> 34x3px bar on the same plate. Everything below about counting render sites rather than code
+> paths is unchanged and is the part that matters.
+>
 > **This heading read ONE until 2026-08-23.** The second consumer is `RevealFooter`'s `SAAD`
 > wordmark: the cursor-reveal layer's stroke is painted by a `<radialGradient>` whose innermost stop
 > is `var(--accent-hero)`, ramping to `currentColor` by 45% of the disc's radius. Both consumers are
@@ -753,6 +771,40 @@ true of chrome, and the rule is corrected here rather than left to be discovered
   something the code stopped doing. The navbar's own container comment states the same carve-out in
   the same words, and both were changed in one commit.
 
+**S-1's TRAILING EDGE — the reveal footer's link column, 2026-08-28.** S-1 has only ever been a rule
+about where content BEGINS; the site's negative space lives on the right and no section had a
+declared right edge. The footer's two-column layout made that a defect rather than a choice. The
+left column had one clean left edge; the right column was left-aligned inside itself, so three
+labels and three values of unequal length produced **six different right edges** against it. Saad,
+2026-08-28: *"one column has a true edge, the other doesn't."*
+
+`lg:text-right` on the `<ul>` squares all six. **The edge it lands on is S-1's own inset, not a new
+footer margin** — the grid's second column ends at the spine container's content-box right edge,
+because `lg:grid-cols-2` splits the padded box and nothing there sets a width. Measured on a
+production build:
+
+| viewport | spine content box | left column (`<h2>`) | right column, before | right column, after |
+|---|---|---|---|---|
+| 1440×900 | `89 → 1351` | `89` | `805.31 / 912.50 / 813.47 / 969.42 / 829.78 / 1128.94` | **`1351.00` ×6** |
+| 768×1024 | `55 → 713` | `55` | *(single column, left)* | *(unchanged — `lg:` only)* |
+| 360×640 | `21 → 339` | `21` | *(single column, left)* | *(unchanged — `lg:` only)* |
+
+Below 1024px the grid is one stacked column and there is no second column to mirror, so the class is
+`lg:` scoped: right-aligning there would set the links flush right while the heading stayed flush
+left. Alignment moves no box, and it was re-measured anyway — composed content is **681.78 / 850.91 /
+752.38px**, unchanged to the hundredth, and the Rule S-6 sticky delta is **0 in 32 of 32** cases.
+
+> **THE BRIEF ASKED FOR THE NAVBAR'S RIGHT EDGE AND THAT IS NOT WHAT SHIPPED — deliberately, and it
+> is the chrome carve-out above, not an oversight.** *"The footer's right edge should land in the
+> same place as, e.g., the navbar's right-side content above it."* It cannot, without reversing the
+> carve-out: the bar is full-bleed at a 21/34px gutter and the spine is 1440-capped at 21/55/89, so
+> measured on the same page they sit at **1406 vs 1351 at 1440 (55px apart)** and **734 vs 713 at 768
+> (21px apart)**. They coincide only below 640px, where both use `px-md` — `339` and `339`. The same
+> brief also said *"check `docs/03` for the recorded spine values, don't invent a new margin specific
+> to the footer"*, and the two instructions point at different numbers. **The spine won**, because it
+> is the one the brief named a document for and because matching the bar would give the footer a
+> right edge no other section has.
+
 **Rule S-2 (section seam).** The standard seam between two adjacent `bg-base` sections is
 `spacing-2xl` bottom + `spacing-2xl` top = **178px, uniform at all breakpoints**. There is exactly one
 documented exception: About opens at `spacing-3xl` (144px) at ≥640px, because the hero ends in a hard
@@ -904,8 +956,10 @@ the page"; `sticky` produces the identical effect and is what ships.
   SENTENCE WAS ALWAYS ABOUT THE POSITIONING SCHEME RATHER THAN ABOUT THE HEIGHT — the distinction
   only became load-bearing when the plate acquired a viewport-unit floor.** The document *does* now
   get taller: `md:min-h-dvh` grows `scrollHeight` by `max(0, viewportHeight − composedContentHeight)`,
-  **measured at +124px at 1440x900, +24px at 1280x800, +190px at 768x1024, +664px at 2560x1440, and
-  0px at 1024x600 / 1366x768 / 1280x720 / 360x640.** That growth lands entirely after `<main>`'s last
+  **re-measured 2026-08-27 at +167px at 1440x900, +67px at 1280x800, +157px at 768x1024, +707px at
+  2560x1440, +35px at 1366x768, and 0px at 1024x600 / 1280x720 / 360x640** (it was +124 / +24 / +190
+  / +664 / 0 before the footer redesign shortened the composed content — the shorter the content, the
+  more the floor has to grow, and `document.scrollHeight` on `/` at 1440x900 is 5621 either way). That growth lands entirely after `<main>`'s last
   child, so no section moves and every element-relative trigger end resolves where it did; the only
   effect is more scroll runway for the last scrubbed unit on `/`, never less. **A trigger that ever
   resolves its `end` against the document or `body` rather than a section would move by that delta.**
@@ -959,10 +1013,28 @@ the page"; `sticky` produces the identical effect and is what ships.
     ≥1024px by construction now, so the rule as written was violated the moment the class landed. Its
     purpose is untouched: it exists to stop *content* growing until the reveal becomes a crawl over
     something that can never be seen whole. **If the plate's composed content ever exceeds 900px at
-    ≥1024px, cut content; do not cap the box.** (Measured 2026-08-23 with the wordmark: **775.98px**
-    at every width from 1280 up, **867.58px** at 1024x600 where the link row wraps, 833.58px at
+    ≥1024px, cut content; do not cap the box.** (Re-measured 2026-08-27 after the two-column
+    redesign, the `<h2>` going back to `text-h2`, and the stamp/copyright merge: **681.78px** at
+    every width from **1024** up — the link stack has no width-dependent
+    height, so the width-invariance now starts at 1024 rather than 1280 — **850.91px** at 768x1024
+    where the two columns stack, and 752.38px at 360x640. (It measured 732.58 / 866.97 / 782.56 at
+    the halfway point of that day, before the heading and the merge.) Measured 2026-08-23 with the wordmark in
+    flow: 775.98px from 1280 up, 867.58px at 1024x600 where the link row wrapped, 833.58px at
     768x1024, 811.36px at 360x640. Measured at Phase 5, before the wordmark: 793px at 1440, 787px at
     1280, 870px at 1024.)
+
+    > **THIS RULE CAUGHT A REAL REGRESSION ON 2026-08-27 AND IS THE REASON IT IS TRACKED.** The
+    > redesign first shipped with a flat `gap-2xl` between the two columns, which at 768x1024 — where
+    > they stack — measured **900.97px, 0.97px over**, in all four route/theme cases. Nothing was cut
+    > to fix it: the gap became `gap-xl lg:gap-2xl`, 55px stacked and 89px side by side, which are the
+    > values the composition already used on each axis. **The ceiling was never in danger at desktop
+    > widths and that is exactly why a measured check is needed — the breach was at the one viewport
+    > nobody was looking at.**
+
+    > **AND THE 768-TALL RESIDUAL IS GONE.** `RevealFooter.tsx`'s header recorded "775.98px DOES NOT
+    > FIT A 768-TALL VIEWPORT — 7.98px OVER" as KNOWN AND ACCEPTED. At 681.78px it fits with 86.22px
+    > of headroom at 1366x768, and clears 1280x720 too. That was a side effect of taking the wordmark
+    > out of flow, not the goal, and neither of the two levers that section named was spent.
 - **No parallax on the plate. The plate's travel is still 0px**, measured through a full reveal at
   1440x900 with the full-height class present; the page scrolls off it at 1:1 and that is the entire
   wipe. A plate that drifts as it appears did not arrive early — it is arriving now — which
@@ -1432,7 +1504,7 @@ who have that OS setting enabled.
 > then-three chrome routes at 375×667, in both themes. **112 tab stops. Zero problems.**
 >
 > > **DATED 2026-08-22, AND THE PAGE IT COUNTED IS NOT THE PAGE THAT SHIPS.** The figure predates
-> > `/projects` and predates `/work`'s fanned deck. Home gained one stop (the `Browse as a list`
+> > `/projects` and predates `/work`'s fanned deck. Home gained one stop (the `Browse All`
 > > control), and that one settles by identity rather than needing a re-run — it takes `BUTTON_BASE`'s
 > > ring, the same constant this sweep verified on `/about`, at 7.95:1 dark / 5.34:1 light on
 > > `bg-base`. **`/projects` and the deck are NOT settled and need a real tabbing pass**, and the deck
@@ -1540,6 +1612,113 @@ who have that OS setting enabled.
   > mentions are in comments. Flagged, not deleted: it is the correct constant the moment anything
   > in-flow lands on `bg-hero-surface` again, and deleting it would take its documented
   > `hero-accent` / `accent-hero` anagram warning with it.
+
+## Text selection — site-wide `none`, with a named list of exceptions
+
+**Shipped 2026-08-28 as one exception; extended the same day.** Saad, on dragging across the fanned
+deck: *"the cards content and the picture cannot be selected like you get blue shadow on it ... for
+all of the content other than the details section."* Then, on the principle: **"long-form prose that
+exists for someone to read and might reasonably want to quote or copy stays selectable. UI chrome,
+labels, card teasers, and every image stay non-selectable, everywhere, no exceptions."**
+
+`user-select` inherits, so `<body>` sets the policy for the whole site and each exception gives it
+back on the narrowest root that covers its case. **The classes only make sense as a set** — grep
+`select-none` and `select-text` together and the whole policy is on screen. That is why these are
+Tailwind utilities and not a `user-select` rule in `app/globals.css`: the utility also emits
+`-webkit-user-select`, which Safari still requires, and half a rule found by grep is worse than none.
+
+### `select-none` — the default
+
+| Element | File |
+|---|---|
+| `<body>` | `app/layout.tsx` |
+
+### `select-text` — the exceptions, and nothing else
+
+| Element | File | Why |
+|---|---|---|
+| the frame root | `ProjectDetailFrame` | the whole detail surface — one root, so the standalone route and the intercepted overlay cannot drift |
+| the beat's prose `<div>` | `Trajectory` | Home's narrative; once per beat, not once per paragraph |
+| the bio `<p>` | `AboutScreen` | `/about`'s only read content |
+| `<blockquote class="sr-only">` | `AboutFlipBoard` | the real attributed quote — the tiles stay `aria-hidden` AND locked |
+| the value `<p>` | `RevealFooter` | the two URLs are displayed AS text, and the email's no-JS `mailto:` |
+| the address `<span>` | `CopyEmailButton` | the clipboard fallback's selection target — see below |
+| the `mailto:` `<a>` | `CopyEmailButton` | the JS-off fallback |
+
+### `select-none` again, INSIDE those exceptions
+
+| Element | File | Why |
+|---|---|---|
+| cover + screenshot `<Image>` | `ProjectDetail` | a range spanning an `<img>` floods the whole box in selection blue — the exact artefact this policy exists to remove |
+| the `sr-only` new-tab note | `ExternalLink` | copying the footer's GitHub link returned `"github.com/Nobody243(opens in a new tab)"`. **This predates the policy** — every detail page is fully selectable, so its links row has always copied `"GitHub (opens in a new tab)"` |
+| the swap-in confirmation | `CopyEmailButton` | it shares grid cell 1/1 with the address, so any selection covering one covers the other; unlocking the footer's `<p>` made a drag return `"saad@saaddev.topCopied"` |
+| the outbound arrow `<svg>` | `RevealFooter` | it is the last thing inside the anchor, and a triple-click was returning the URL with trailing newlines |
+
+**STAYS LOCKED, unchanged:** card teasers on the deck and the strip list, every image everywhere,
+navbar and footer chrome, the footer's punchline and copyright, section headings, the Trajectory rail
+labels, skills and stack tags, the flip board's 276 tiles.
+
+### Measured, not eyeballed
+
+Production build, real `Input.dispatchMouseEvent` gestures, intro gate waited out, occlusion checked
+with `elementFromPoint`. **16 cases, 0 failures.** Newly selectable: Home's two Trajectory
+paragraphs, `/about`'s bio. Confirmed still locked: the footer `<h2>`, a link label, the copyright,
+the punchline, a section heading, a skills tag, a rail label, a strip row, `/about`'s `<h1>`, a flip
+tile, a detail cover `<img>`, a navbar control.
+
+The control that matters is the **overlay opened from `/work`**: the same gesture, on the same page,
+selects nothing behind the dialog and real text inside it. A modal `<dialog>` is promoted for PAINT
+only — inherited properties still come from its DOM parent.
+
+### What a gesture can and cannot do — and one limit that is NOT ours
+
+| | drag across | drag from the left | double-click | triple-click |
+|---|---|---|---|---|
+| detail prose `<p>` *(control)* | yes | yes | yes | yes |
+| **detail page's GitHub link** | no | no | no | no |
+| footer GitHub / LinkedIn URL | no | no | partial | **yes, exact URL** |
+| footer email control | yes | yes | partial | yes |
+
+**A drag that STARTS on an `<a>` drags the link rather than selecting it, and a double-click on one
+does not take the word.** That is universal browser behaviour, not a consequence of this policy —
+row 2 is the proof: the detail page is fully `select-text` and its GitHub link behaves identically.
+For a URL the working gestures are triple-click, select-all, and right-click -> *Copy link address*,
+and the copied string is now exactly `github.com/Nobody243` /
+`linkedin.com/in/muhammad-saad-2911702a3`.
+
+**One residual, recorded rather than fixed.** A drag across a URL that RELEASES on the trailing arrow
+collapses the range and yields `""`; releasing 3px earlier yields the full URL. `select-none` on the
+arrow did not change it (it did clean the trailing newlines out of the triple-click result). Moving
+the arrow outside the anchor would fix it and was refused — the arrow is inside the link by design,
+and the 2026-08-28 brief listed it under "don't touch".
+
+### The no-JS state, which is the reason two of the exceptions exist
+
+`CopyEmailButton` ships a `mailto:` `<a>` on the server and swaps to a `<button>` on hydration, so
+with JavaScript off the address is TEXT the visitor has to act on rather than a control they can
+press. **`select-text` on the anchor alone was not enough** — a triple-click only takes a line when
+the CONTAINING BLOCK is selectable, so the value `<p>` had to take it too. Verified with
+`Emulation.setScriptExecutionDisabled`, on the real server-rendered anchor with no `<button>` in the
+DOM: triple-click and a drag from the paragraph's whitespace both return `saad@saaddev.top`, and the
+GitHub and LinkedIn URLs both triple-click cleanly. The link labels stayed `none` throughout.
+
+**The clipboard fallback is the one place this policy reaches a code path rather than a surface.**
+When `navigator.clipboard.writeText` rejects (an insecure origin — most often a phone on a LAN IP),
+`copy()` calls `selectContents(addressRef)` and the label becomes "Press Ctrl/⌘+C". Under a bare
+`select-none` that selection is empty, i.e. the control would tell a visitor to copy something that
+is not selected and cannot be. Measured with `navigator.clipboard` stubbed out: the address is
+selected and the label reads correctly.
+
+### What it costs, stated
+
+Outside the listed exceptions nobody can copy anything — an experience entry, a cert name, a project
+teaser. That is the instruction. `user-select` governs selection and nothing else: find-in-page, the
+accessibility tree, Reader mode and translation tools are unaffected, and the new-tab note is still
+announced as "GitHub (opens in a new tab)" despite being unselectable. There is not one `<input>`,
+`<textarea>`, `<select>` or `contentEditable` in `app/` or `components/`, so nothing typeable
+inherits any of this, and the CV modal's PDF is an `<iframe>` — its own document. **`-webkit-user-drag`
+was NOT added**: dragging a cover still lifts the browser's native image ghost, which is a different
+behaviour from the selection highlight and is deliberately left alone.
 
 ## Third-party integrations (kept intentionally minimal)
 

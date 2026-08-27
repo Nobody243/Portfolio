@@ -109,6 +109,22 @@ for contrast):**
   (7.95:1), `#0F766E` in light (5.34:1). Same teal, darkened for light mode because `#14B8A6` on
   `#FDFCFA` is 2.44:1 and fails AA for text. One hue family, tuned per background — not two accents.
 - Rule: no other accent colors. Two accents total, each with one clear job. Never mix.
+  > **AN EXCEPTION WAS ADDED ON 2026-08-26 AND RETIRED ON 2026-08-27. THE RULE IS UNQUALIFIED
+  > AGAIN.** For one day the footer wordmark's hover reveal carried the Aceternity
+  > `text-hover-effect` component's own five-stop gradient — `#eab308` `#ef4444` `#3b82f6` `#06b6d4`
+  > `#8b5cf6` — because Saad asked for that component "as it is, with its hover and the text
+  > animation". It was the only place on the site where more than two accents appeared. Saad then
+  > asked for "the colors to the portfolio theme", so the ramp went back to a single `--accent-hero`
+  > cyan and **`docs/03`'s DOM consumer count for that token went back from ONE to TWO.**
+  >
+  > It is recorded rather than deleted for two reasons. The exception's *conditions* are the useful
+  > part if one is ever wanted again — nothing painted at rest, only while hovered, only inside a
+  > masked disc under the cursor, only on a 1.5px non-scaling stroke, and only on the
+  > `bg-hero-surface` plate this file already licenses for Tier 1 spectacle. And **teal is still
+  > refused there**, which never depended on the exception in either direction: teal means "activate
+  > this", and a wordmark that turns teal under the cursor is the canonical signal of an interactive
+  > control on an `aria-hidden` non-link. That refusal got *stronger* on 2026-08-27, when the
+  > footer's real links took a muted→teal hover of their own.
 - `--field-ink` (Tier 2/3, ONE consumer — `/about`'s particle field): `#9EC9D4` in dark, `#33474C` in
   light. **It is not a third accent and must never be used as one** — no utilities exist for it, by the
   same mechanical guard `accent-hero` uses. It exists because `/about` renders the hero's particle mesh
@@ -145,10 +161,24 @@ this summary is downstream of it. The numbered list below keeps its original num
 | Route | Sections, in order |
 |---|---|
 | `/` | Hero · Trajectory · Skills · Projects (**the featured three only**) · reveal footer |
-| `/work` | `<h1>` **"Projects."** · the fanned card deck (all five, `components/sections/FannedDeckPhase1.tsx`) · a **"Browse as a list"** `<Link>` to `/projects` · Certifications (heading + "Coming soon.", a visible placeholder) · Experience · Currently Learning · reveal footer. The navbar label stays `WORK` and the route stays `/work` — the heading changed, nothing else did. A card's `Details` opens the intercepted overlay, not the standalone page |
-| `/projects` | The same five projects as a **full-bleed strip list** — one row each, numeral + title, cover fading in from the right at `lg`+ — between two `Close` affordances that both go to `/work`, fixed rather than return-to-referrer. A row opens the same intercepted overlay a card does. **No reveal footer**, deliberately. It is Rule S-1's second named exception: no spine, the chrome gutter instead. The navbar does **not** link here |
+| `/work` | `<h1>` **"Projects."** · the fanned card deck (all five, `components/sections/FannedDeckPhase1.tsx`) · a **"Browse All"** `<Link>` to `/projects` (whose label scrambles on hover) · Certifications (heading + "Coming soon.", a visible placeholder) · Experience · Currently Learning · reveal footer. The navbar label stays `WORK` and the route stays `/work` — the heading changed, nothing else did. A card's `Details` opens the intercepted overlay, not the standalone page |
+| `/projects` | `<h1>` **"Index"** · the same five projects as a **full-bleed strip list** — one row each, numeral + title + **date**, with the cover fading in oversized from the right at `lg`+ and **overhanging the row**, while the other four rows dim to 40% — between two `Close` affordances that both go to `/work`, fixed rather than return-to-referrer. The top one shares the `<h1>`'s baseline at the trailing edge; the bottom one is its own block. A row opens the same intercepted overlay a card does. **No reveal footer**, deliberately. It is Rule S-1's second named exception: no spine, the chrome gutter instead. The navbar does **not** link here |
 | `/about` | **Composed to fit a REAL browser window on a 1080p display — 945px of `innerHeight`, not 1080 — without scrolling; scrolls anywhere it does not fit.** There is no CSS enforcing a single screen any more — no `h-dvh`, no `overflow-hidden` — so the non-scroll outcome is a property of the composition rather than a rule, and nothing is ever clipped. The guarantee narrowed twice on 2026-08-23 (`lg`+ → `xl`+ → 1080p only, each time on Saad's call) and its TARGET was corrected on 2026-08-24: a display resolution is not a viewport, and verifying against 1080 shipped a page that overflowed a real window by 21px. Verify `/about` in a real browser, or against 945/905/875 — never against the display height. `docs/07` §6 carries all of it. No reveal footer, deliberately, at any width — see `docs/07` §5–6 |
 | `/projects/<slug>` | Tier 3 detail, plus an intercepted overlay at the same URL. **No navbar** |
+
+> **THE HEADING ON `/projects` IS "Index", NOT "Projects", AND THAT IS AN IA FIX RATHER THAN A
+> RENAME FOR ITS OWN SAKE (2026-08-26).** `/work`'s `<h1>` is "Projects." and `/projects`' was
+> "Projects" — two routes, near-identical headings, separated by a full stop, both rendering the same
+> five projects, and nothing on either page telling a visitor which one they were on. The heading was
+> the only thing that could distinguish them and it did not. "Index" names what is actually different:
+> the same five, enumerated and comparable, with numerals and dates. `metadata.title` moved with it,
+> so the tab reads `Index — Saad` rather than a second `Projects — Saad` competing with `/work`'s in a
+> bookmark list. **The navbar is unaffected** — it has never linked here (`WORK` shows active on this
+> route via `ROUTE_GROUP`), and the only inbound control is `/work`'s `Browse All`. **That label read
+> `Browse as a list` until 2026-08-27** and carried half of this argument — it described the
+> affordance while the heading named the set, so the two said complementary things. `Browse All` names
+> a set, so the distinction now rests on the heading alone. Still enough, but one signal where there
+> were two.
 
 > **`/work`'S DECK IS MID-REBUILD AND MUST NOT BE TREATED AS FINISHED.** It ships as
 > `components/sections/FannedDeckPhase1.tsx` — the filename is the status. Saad ordered it rebuilt
@@ -166,7 +196,7 @@ this summary is downstream of it. The numbered list below keeps its original num
 > handler; no focus management and no `focus-visible` ring; inactive cards that stay tabbable after
 > being dropped to `opacity: 0`, with no `pointer-events` gate. **And `/work` prerenders ZERO
 > `/projects/<slug>` anchors**, so with JavaScript off no project is navigable from that page — the
-> only route onward is the single `Browse as a list` link, which is load-bearing in a way nobody
+> only route onward is the single `Browse All` link, which is load-bearing in a way nobody
 > designed it to be. Counted off `.next/server/app/work.html` against `projects.html`, which emits
 > all five. Making the deck degrade to links is a design decision, not a cleanup.
 >

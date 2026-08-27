@@ -742,9 +742,56 @@ click-to-copy as the navbar), LinkedIn, the MS mark, and a stamp/signature detai
 
 ### 5.1 `/projects` — the strip list, and why it has no reveal footer (added 2026-08-25)
 
+> **AMENDED 2026-08-26 — the row gained a date, the reveal grew, the list dims, and the heading was
+> renamed.** The row as first shipped rendered numeral + title and nothing else, which made this page
+> strictly LESS informative than the deck it is the alternative to: a list whose entire justification
+> is scanning and comparison had nothing to compare. Four changes, on Saad's instruction:
+>
+> - **The date**, from `content/projects.ts`'s `date` field, which had shipped unrendered anywhere but
+>   the detail page. Set in the detail page's exact treatment — `formatMonthYear`, `text-caption
+>   font-mono text-fg/70` — and right-aligned at the far end of the row. **It makes visible that this
+>   list is not chronological**: `content/projects.ts` is ordered strength-first by explicit decision,
+>   so 05 is the most recent and 04 the oldest. That is the accepted trade for showing the only
+>   comparable fact the five projects share.
+> - **The cover reveal is now oversized and overhangs the row** — 360x184 at `lg`, 440x224 at `xl`,
+>   against a 144px row, so it breaks the rules above and below by 20px and 40px. It stays in flow, so
+>   the title's measure is still reserved and the two can never collide; the row takes `z-10` while
+>   engaged so the overhang paints above its neighbours.
+>
+>   **THOSE HEIGHTS WERE 180 AND 220 FOR ONE DAY, AND THE FOUR PIXELS ARE NOT COSMETIC (2026-08-27).**
+>   A flat 2.000 box is wider in aspect than SNA's cover (1.966), so under `object-contain` SNA
+>   letterboxed left-and-right: it painted 434px inside the 440px box and sat ~6px narrower than its
+>   four neighbours. 184 and 224 put both boxes at 1.957/1.964 — under the narrowest cover — so all
+>   five fill their box width exactly. **If a cover below 1.964 is ever added, these move again.**
+>
+>   The same round fixed a real blur: `sizes` on that image still declared the pre-enlargement
+>   `200px`, so the browser fetched a 256px bitmap and painted it into a 440px box — a 1.72x upscale
+>   at 1x and 1.38x at 2x, on every row and every display. It now declares all three slot widths.
+>   Neither fault was catchable by `tsc`, `eslint` or `next build`: a wrong `sizes` is never an
+>   error, and `img.naturalWidth` reports the density-corrected number, which agrees with the wrong
+>   value.
+> - **The other four rows dim to 40%** while one is hovered or focused. This is what makes the
+>   overhang read as the row opening rather than as a rendering fault, and with five near-identical
+>   strips it is the cheapest way to say "this one".
+> - **The top `Close` moved onto the `<h1>`'s baseline at the trailing edge**, from its own line above
+>   the heading. Alone above the heading it read as a stray label rather than an exit and took the
+>   first fixation on the page away from the page's own name. Both exits are kept — this section still
+>   requires two. It stacks again below `sm`, where a 12px mono word beside a 68px heading leaves the
+>   heading no measure.
+>
+> **The heading is now "Index".** See CLAUDE.md's note: `/work` said "Projects." and this page said
+> "Projects", which distinguished nothing.
+>
+> **One suggestion was withdrawn rather than built**, and the reason is worth keeping: making the five
+> rows fill exactly one viewport. It was proposed off a measurement taken in a 1400px-tall test window,
+> where the page overflowed by only 44px and so looked like it scrolled by accident. At the site's own
+> verification height — 945 of `innerHeight`, per §6 — the page is 1249px and scrolls by ~300px, which
+> is decisive already. **There was no problem to fix**, and fitting one screen would have required
+> ~96px rows, which the oversized cover and the date column both fight.
+
 **`/projects` is a fourth content route and this section did not have it.** It holds the same five
-projects `/work` does, as one full-width strip row each — numeral, title, and the project's cover
-fading in from the right at `lg`+ — reached from the `Browse as a list` control on Home and on
+projects `/work` does, as one full-width strip row each — numeral, title, **date**, and the
+project's cover fading in from the right at `lg`+ — reached from the `Browse All` control on Home and on
 `/work`. It is **not** in the navbar; `WORK` shows as the active item there (§1.1). It is a different
 PRESENTATION of the same set, not a different set, which is why `/work`'s definition as "the complete
 record" is unchanged by its existence and why the control is not labelled "View all projects" —

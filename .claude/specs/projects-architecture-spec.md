@@ -2241,3 +2241,990 @@ exact commands pasted in the handoff.
 off; **no mobile treatment at all** (below 1024 the deck is the desktop fan at 220x300 with 70px
 spacing, so each card exposes 70px — §6 asks for a real mobile version of the interaction); and
 the file is still named `FannedDeckPhase1.tsx`.
+
+---
+
+## Phase 3 (REVISED) — the card stopped doing two jobs · 2026-08-26
+
+Saad revised the Phase 3 brief before it was accepted. The revision keeps every colour and
+typography instruction from the original and adds a **structural change ahead of them**: the
+description and the `Details` action move OUT of the card into a separate panel, adapted from the
+retired `ProjectDeck.tsx` rather than designed fresh. His reason, verbatim: restyling the
+card-is-button structure and then replacing it "would mean redoing the same color/text work twice."
+
+### ▸ BUILT — the split
+
+One element was doing two jobs, and three defects that had been tracked separately were all that
+single fact. All three are closed **by structure, not by workaround**:
+
+| defect | how the split closes it |
+|---|---|
+| `<a>` nested inside `<button>` | `Details` is now a sibling region. Verified: **0** matches for `button a, a button` anywhere on the rendered page, both themes, all five cards. |
+| titles clipped by the fan's overlap | the card face is cover + title and nothing else, so the title owns the whole lower half. |
+| content shifting mid-transition | the card renders the **same two elements** at rest and active, so nothing inside it can move. |
+
+The panel is **in flow, not `absolute`** — the one deliberate departure from `ProjectDeck`'s
+version, whose panel was `absolute left-0 top-[20px]` and reserved no height. Saad's standing
+requirement on this section is that expanding a card produces real block-level height so
+Certifications and Experience actually shift down. It also carries **no cover** (the card is still
+on screen directly above it, at `ACTIVE_SCALE` — a second copy of the same screenshot 55px below
+the first is not a second view of anything) and **no stack tags** (Phase 2's ruling, unchanged).
+
+### ▸ RULED — a colour belongs to a PROJECT, not to a stacking position
+
+The ten hexes are Saad's, specified in the brief. They replace Phase 3's neutral five-step
+elevation ramp, and **the binding change is the mapping, not the hues**: `bg-deck-1` is FOLIO's
+colour because it is FOLIO's, not because FOLIO sits at the bottom of the fan. Phase 3's rule —
+"do not re-shuffle these five class strings, they encode depth" — is therefore **reversed**, and
+re-ordering `content/projects.ts` now requires re-ordering `--color-deck-*` with it. Both the old
+rule and the reversal are quoted in place at `FAN_PRESENTATION` so it cannot be restored from
+memory.
+
+### ▸ VERIFIED — per-card contrast, as the brief required (not assumed uniform)
+
+One ink, `text-fg`, serves all five in both themes.
+
+| | dark face | vs `#ededed` | light face | vs `#151515` |
+|---|---|---|---|---|
+| FOLIO | `#24170F` | 14.89:1 | `#F5EFEB` | 16.03:1 |
+| Aero-Grid | `#223145` | 11.26:1 | `#E2E8F0` | 14.81:1 |
+| ClashChat | `#346E68` | **5.02:1** ← floor | `#D8F3EC` | 15.61:1 |
+| CCN | `#2F5B61` | 6.43:1 | `#EDE8F5` | 15.18:1 |
+| SNA | `#0B281E` | 13.42:1 | `#D9EBE1` | 14.71:1 |
+
+`#346E68` and `#2F5B61` are teal-adjacent, which is a **known and accepted** collision with
+`--color-accent-working`. They are desaturated surfaces; teal text on them is unusable (2.36:1), so
+the accent never appears on a deck face and the two readings stay apart.
+
+### ▸ CORRECTED — the no-border flag I raised was wrong, and the metric was the reason
+
+I measured the borderless deck with WCAG contrast first and reported that "no border" and these
+hexes were **not jointly satisfiable** — adjacent light faces sit at 1.03–1.08:1, below the
+threshold of perception. That conclusion was published in `globals.css` before I had a render, and
+the render falsified it.
+
+**WCAG's ratio is a function of relative luminance only and is blind to hue.** The light faces are
+deliberately near-isoluminant and separated by hue — beige, blue-grey, mint, lilac, sage — so the
+ratio collapses while the boundary stays plainly visible. Re-measured with CIEDE2000:
+
+| overlap | WCAG light / dark | ΔE light / dark |
+|---|---|---|
+| FOLIO \| Aero-Grid | 1.08 / 1.32 | **7.4 / 19.4** |
+| Aero-Grid \| ClashChat | 1.05 / 2.24 | **11.7 / 26.6** |
+| ClashChat \| CCN | 1.03 / 1.28 | **17.3 / 9.1** |
+| CCN \| SNA | 1.03 / 2.09 | **15.8 / 18.5** |
+| card 1 vs page | 1.11 / 1.14 | 3.4 / 9.6 |
+| card 5 vs page | 1.21 / 1.26 | 10.3 / 16.1 |
+
+ΔE 1.0 is a just-noticeable difference; every overlap is 3× to 26× the floor. The borderless deck
+holds. The standing rule, written at the token: **retune a face with ΔE, never with a ratio, and
+never add a border back to fix a number that was not measuring the right thing.** The one soft
+boundary is FOLIO's outer edge against the light page at ΔE 3.4 — above the floor, accepted.
+
+### ▸ RULED — the site has a second radius token, and Saad took that decision
+
+`--radius-photo`'s docblock states that a second consumer "is the moment to decide whether this site
+has a radius system, with Saad, and it is not a decision an implementer may take by adding
+`rounded-photo` to something that is not a photograph." The brief took it, and specified the
+discipline: name it distinctly, don't reach for a generic scale. `--radius-deck: 13px` — the same
+`--spacing-sm` value off the Fibonacci scale, two consumers inside one component (card and panel).
+**Still not a scale.** A third consumer is the next decision point, on the same terms.
+
+### ▸ RULED — the resting title is 21px because 21px is a CEILING, not a preference
+
+The brief asked for a larger title to fill the card's dead space. `CARD_SPACING` is 180, so every
+card but the last shows a 180px strip before the next paints over it — **167px of measure** after
+`lg:px-sm`. Measured in Space Grotesk at this site's tracking, the longest unbreakable word in the
+five titles, "Infrastructure":
+
+| 16px | 18px | 20px | **21px** | 24px | 26px |
+|---|---|---|---|---|---|
+| 106 | 120 | 133 | **139 ✓ (28px slack)** | 159 (8px slack) | **173 ✗ overflows** |
+
+`--text-h4` is `clamp(21px, …, 26px)` and resolves to **26px at every viewport the deck is actually
+shown at**, so h4 overflows the strip by 6px and clips — the exact defect this phase existed to fix.
+A clamp cannot be capped by a utility, so `--text-deck-title` takes h4's floor as a literal: single
+consumer, distinctly named, same guard as `--field-ink` and `--radius-deck`. **Going bigger means
+widening `CARD_SPACING`, which is on the do-not-change list — that is Saad's call, not an
+implementer's.**
+
+`lg:max-w-[167px]` on the title is what actually fixes the clipping. Phase 3's `min-h-xl` sized the
+*reservation* and only ever fixed the vertical half of the problem; CCN stayed cut off horizontally.
+Below `lg` the cap is deliberately absent — the strip there is 70px, which cannot hold a word.
+
+### ▸ BUILT — the cover, and the "chopped at the top edge" bug
+
+The cover was inset by the card's padding AND carried its own `border-fg/25` hairline, so the
+screenshot sat in a visible frame inside a visible frame and read as hard-clipped. It now runs
+**full bleed to the card's top, left and right edges** and is clipped by the card's own radius,
+which is what "respects the border-radius at all corners, top included" asks for. The frame is gone
+with the card's border — a frame around the image only would have been the loudest line on the
+surface.
+
+`aspect-[2/1]` is chosen against the sources, not picked. The five screenshots run 1.971 to 2.674
+native, so a 2.0 box sits inside their range at both ends. Measured bars at `lg`:
+
+FOLIO 5.0px · Aero-Grid 4.6px · ClashChat 4.6px · **CCN 18.9px (worst)** · SNA 2.1px pillarbox.
+
+`aspect-[4/3]`, which would have filled more of the card's height, puts CCN at ~56px of bar. No
+crop anywhere: `content/projects.ts`'s "DO NOT CROP" stays authoritative for all five.
+
+### ▸ VERIFIED — on the production build, all five cards, both themes
+
+- **Transition.** Sampled the card's internals every 45ms across a real expand, 21 frames per card.
+  `[coverW, coverH, titleTop, titleH]` took **exactly one distinct value** for the whole animation
+  on every card: `300,150,262,25` (one-line titles) and `300,150,237,76` (CCN and SNA, three lines).
+  Endpoint checks would have passed Phase 2's bug too, which is why this samples the middle.
+- **Silhouette.** Cover layout box is `300x150` on all five. (An earlier run reported five different
+  sizes — that was `getBoundingClientRect` on rotated cards returning axis-aligned bounding boxes.
+  `offsetWidth`/`offsetHeight` is the correct instrument here.)
+- **Titles.** None overlapped: hit-tested nine points across each title's box and confirmed the
+  topmost element at each belongs to that title's own card. Max width exactly 167px, max 3 lines.
+- **Panel.** Same `background-color` as its card (byte-identical computed value), `border-radius`
+  13px, centred on the active card to **Δ 0px**, `aria-labelledby` resolves to the card's own `<h2>`.
+- **Inertness.** All four dropped cards report `inert === true` and fail a centre-point hit test.
+- **In-flow growth.** `#certifications-heading` 991.08 → 1203.06 (**+212.00**), `scrollHeight`
+  2645 → 2857 (+212). Real block height; the document below actually moves.
+- **Escape** closes the panel and returns focus to the card that opened it.
+- **0 console exceptions** across the full sweep.
+
+### ▸ FIXED — a focus bug the code review would not have caught
+
+`close()` first called `triggerRef.current?.focus()` **inside the `setActive` updater**, which React
+runs during render; the re-render then unmounted the panel and focus fell to `<body>`. It reads as
+correct. CDP caught it — Escape closed the panel and `document.activeElement` was not the card.
+Focus now moves in an effect, after the commit. The single `triggerRef` written from a `ref`
+callback guarded on `isActive` was replaced by a slug-keyed map for a related reason: React invokes
+an inline `ref` with `null` and then the node on *every* render, so the guard skipped both calls for
+the just-deactivated card and the ref survived only because React happened to reuse the DOM node.
+
+### ▸ Gates
+
+`tsc` clean · `eslint` 12 problems / 9 errors / 3 warnings, **baseline unchanged**, all in the four
+Aceternity vendor files · `next build` green, 17/17, route table intact. Every new utility confirmed
+in the emitted production CSS with `grep -F`: `.text-deck-title{font-size:var(--text-deck-title);…}`
+is a real font-size utility with line-height and letter-spacing — *not* another `text-base`.
+A comment-stripped sweep of the deck source returns **only** site tokens: `bg-deck-1..5`,
+`rounded-deck`, `text-body`, `text-caption`, `text-deck-title`, `text-fg`, `text-left`. No
+Tailwind-default scale utility survives anywhere in the file.
+
+### ▸ Still open after Phase 3 (revised)
+
+- **No mobile treatment below 1024.** Not one `sm:` or `md:` utility in the file. The largest open
+  item; §6 asks for a real mobile version of the interaction.
+- **No `prefers-reduced-motion` branch.** The spring runs for everyone.
+- **No one-click project switching** — new, and a direct cost of this change. The dropped cards are
+  clipped and inert, so changing project means closing first. `ProjectDeck.tsx`'s index rail is the
+  known remedy and was not in this brief.
+- **Still no project links with JS off.** `Details` exists only while a card is active: zero
+  `/projects/<slug>` anchors in `.next/server/app/work.html`, against five in `projects.html`.
+- **The card is still sparse.** At `lg` the title block is 250px tall for a title of 25–76px, so a
+  one-line title has ~87px of flat colour above and below it. 21px is the ceiling the strip allows;
+  reducing the card height or widening `CARD_SPACING` are both on the do-not-change list.
+- **FOLIO's cover has no edge against FOLIO's card** in light — `#F5EFEB` and the screenshot's own
+  cream page background are too close. The one card where dropping the cover frame costs something.
+- The file is still named `FannedDeckPhase1.tsx`.
+
+---
+
+## Phase 3 (REVISED) — REVERTED. The content is back inside the card · 2026-08-26
+
+**Saad rejected the panel split on sight and ordered it reverted.** It is preserved on branch
+`deck-panel-split-backup` and tag `deck-panel-split` (the `intro-zoom-in` precedent), and it is not
+what ships.
+
+### ▸ RULED — interaction fidelity outranks structural purity
+
+> "The reference's cards grow *in place*, description and Details appear *within* the expanded card,
+> the other four stay visible fanned below, and switching between projects is one click. The split
+> lost all of that: content now sits disconnected below the deck with a scroll gap, other cards
+> disappear while one is active, and switching requires closing first. **That's a different
+> interaction than what was asked for, not a smoother version of it.**"
+
+The split is the textbook fix for `<a>`-inside-`<button>` and it is the wrong fix here. My own
+report on it named the lost one-click switching as a "cost" and shipped it anyway — it was not a
+cost to accept, it was the interaction. That misjudgement is the thing to remember: **a fix that
+changes what the thing does is not a fix.** The rule is now written into the component header under
+"READ THIS BEFORE 'FIXING' THE STRUCTURE AGAIN", with the rejected design named, so it cannot be
+re-derived by the next agent reaching for the obvious answer.
+
+### ▸ BUILT — the two bugs, fixed surgically
+
+| bug | fix | verified |
+|---|---|---|
+| `<a>` inside `<button>` | the card is a `<div role="button" tabIndex>`, so a real `<a>` inside it is valid. `onKeyDown` restores Enter and Space by hand; `e.target !== e.currentTarget` stops Enter on the link from toggling the card shut on its way out. | **0** `button a, a button` matches on the page; `link.closest('button')` is null; Enter on a focused card opens it with `Details` rendered |
+| inactive cards stay tabbable | `tabIndex={-1}` while another card is open, `0` when none is | active `0`, inactive `[-1,-1,-1,-1]`; restored to `[0,0,0,0,0]` on close |
+
+**NOT `inert` and NOT `pointer-events-none`** — the panel version used both, and both kill the click.
+The dropped cards must stay clickable, because that *is* one-click switching.
+
+**The known residual, stated rather than hidden:** ARIA says a `role="button"` should not contain
+focusable descendants, so some AT may not surface the inner `Details` link while traversing the card
+as a widget. It is reachable by Tab and the HTML is valid. The clean answer to both is `Details`
+outside the card's hit area — which is the design that was rejected.
+
+### ▸ VERIFIED — the three things the revert exists to restore
+
+- **Growth in place.** Description and `Details` are both `card.contains(…) === true`.
+- **The other four stay visible.** All four on screen at opacity 1 while a card is open
+  (`224x291 218x286 215x284 215x284`), not clipped and not inert.
+- **One-click switching.** Clicked card 3, then clicked card 0 directly with no close step: active
+  moved to card 0 with its description present.
+
+### ▸ VERIFIED — nothing moves inside the card during the expand
+
+`[coverW, coverH, titleTop, titleH]` sampled every 45ms across a real expand, 23 frames, on the
+worst card (CCN, three-line title): **one distinct value, `300,150,163,76`**, for the whole
+animation. Three things hold it: a fixed-aspect cover, a `min-h` title, and — new — **the
+description's height is not animated at all.** Phase 3 animated it `0 → auto`; this fades it in at
+natural height with an 8px rise, into space that is already empty and already the right size.
+
+### ▸ RE-VERIFIED — title clipping, against the reverted structure
+
+Measured on the **actual painted line boxes** (`Range.getClientRects()`), not the reservation box —
+4 probes per line, every card, both themes:
+
+| card | lines | widest line | cap | probes covered |
+|---|---|---|---|---|
+| FOLIO | 1 | 60px | 167px | 0 |
+| Aero-Grid | 1 | 97px | 167px | 0 |
+| ClashChat | 1 | 102px | 167px | 0 |
+| CCN | 3 | **157px** | 167px | 0 |
+| SNA | 3 | 141px | 167px | 0 |
+
+**A correction to how this was measured.** The first run probed the 76px *reservation* box and
+reported FOLIO and CCN as clipped. Both were false: on a one-line title two thirds of the
+reservation is empty, and the neighbouring card is entitled to overlap empty space. It also exposed
+a flaw in the original "180px strip" reasoning — the cards are rotated and vertically offset, so the
+covering card's left edge is a *slanted* line and the clearance varies with y. The line-box test is
+the correct instrument and it passes with 10px of headroom on the worst card.
+
+### ▸ BUILT — the below-`lg` height budget, which the revert re-opened
+
+With the description back inside, the 220x300 card has to hold it again. Two things were sized for
+that, and neither is taste:
+
+- **Title is `text-body` (16px) below `lg`, `lg:text-deck-title` (21px) at it.** A three-line
+  reservation at 21px costs 20.6px the small card does not have.
+- **Cover is `aspect-[16/5]` below `lg`, `lg:aspect-[2/1]`.** A 2/1 cover on the small card is 110px
+  tall and pushes `Details` outside the card, where `overflow-hidden` eats it — a defect this
+  component has shipped once already.
+
+Measured at 900 and 768, all five cards: worst-case slack **24px** (CCN), `Details` visible and
+hit-testable on all five. At `lg`: 39px slack.
+
+### ▸ KEPT from the split round — none of it depended on the split
+
+The ten per-project faces, the borderless card, `--radius-deck`, the full-bleed cover clipped by the
+card's radius (the "chopped at the top edge" fix — confirmed at 6x zoom on CCN's white screenshot,
+the corner arc cuts cleanly), the one-aspect letterbox, `--text-deck-title`, and **the CIEDE2000
+correction and the standing rule it produced**: retune a deck face with ΔE, never with a WCAG
+contrast ratio, which is luminance-only and reports 1.03:1 on a boundary that is plainly visible.
+
+### ▸ Gates
+
+`tsc` clean · `eslint` 12 problems / 9 errors / 3 warnings, **baseline unchanged**, all in the four
+Aceternity vendor files · `next build` green, 17/17 · **0 console exceptions** across the full sweep
+in both themes · `#certifications-heading` 978.08 → 1338.08 (**+360.00**), the Phase 1b figure,
+restored exactly with the animated container height.
+
+### ▸ Flagged, not fixed — both need a decision from Saad
+
+- **The 76px title reservation shows on one-line cards.** FOLIO, Aero-Grid and ClashChat leave ~50px
+  empty between title and description when open. It buys a constant description baseline across all
+  five, which is worth more now that switching is one click. Dropping `min-h` tightens the card at
+  the cost of the description jumping up to 50px on switch. **It changes nothing about the
+  transition either way** — the title's height does not vary between rest and active — so this is
+  purely a composition call.
+- **FOLIO's cover has no edge against FOLIO's card** in light: `#F5EFEB` against the screenshot's own
+  cream page background. The one card where dropping the cover's `border-fg/25` frame costs
+  something visible. Still applies after the revert.
+- **One dropped-row title is clipped** — new, and secondary. At rest all five are completely clear,
+  but while a card is open the other four collapse to `offsetX * 0.4` (72px apart) and **Aero-Grid
+  loses the tail of its title**, one probe in five. Fixing it means changing the drop geometry,
+  which is on the do-not-change list.
+
+### ▸ Still open
+
+No mobile treatment below 1024 (the expanded card now *fits* there, but fitting is not a treatment);
+no `prefers-reduced-motion` branch; the ARIA residual above; still zero `/projects/<slug>` anchors in
+`work.html` with JS off; the file is still named `FannedDeckPhase1.tsx`.
+
+---
+
+### Amendment · 2026-08-26 — the card recomposed: inset photo, name at the foot
+
+Saad, on sight: *"the pictures are taking full top section there is no margin … the margin should be
+all around the photo and the name should be at the bottom of the card and then transform with the
+content."*
+
+**▸ BUILT.** The card is `justify-between`: cover pinned to the top, text block pinned to the bottom.
+`p-xs lg:p-sm` is back on the card so the cover is inset on all four sides, and the cover carries
+`rounded-deck` itself now that it no longer reaches the card's corners to be clipped by them. The
+description's height animates `0 → auto` on the card's own spring, and because the block is
+bottom-anchored **that lifts the title** — which is the requested "transform with the content".
+
+**▸ REVERSED.** Phase 3 rejected `justify-between` precisely because "the title travels upward by the
+description's full height on every expand". True, and now the point rather than the defect. What made
+Phase 2's version a *bug* is still fixed and is a different thing: the cover was `flex-1` and
+re-solved against the text block every frame, so the screenshot itself scaled 200 → 117. **The
+invariant is the COVER, not the title.**
+
+  COVER [w, h, offsetTop]   `274,154,13`   one distinct value across 23 sampled frames
+  TITLE offsetTop           `311 → 167`    seven sampled positions
+
+A title with one sampled position would mean it jumped instead of animating; the check now asserts
+against that too.
+
+**▸ RESOLVED — the flagged 50px gap.** The title's `min-h-xl lg:min-h-[76px]` reservation is gone.
+Bottom-anchoring makes it unnecessary and gives a better constant (`Details` is the same distance off
+the card's bottom edge on every card, in both states), and it takes the empty band under one-line
+titles with it.
+
+**▸ RE-VERIFIED — title clipping at the new position.** Moving the title to the foot of the card
+changes its clearance, because the fan tilts and offsets every card so the covering edge is a
+*slanted* line and clearance is a function of y. Re-measured on the painted line boxes at the new
+position: **0 covered probes on all five, both themes.**
+
+**▸ The height budget, re-derived.** With the text block bottom-anchored the cover gets what the
+expanded block does not need, and CCN's one-liner sets it:
+
+| | cover | text | of | headroom |
+|---|---|---|---|---|
+| `lg` — `aspect-[16/9]` | 154 | 205 | 374 | **15px** |
+| 900 — `aspect-[5/2]` | 82 | 198 | 284 | **4px** |
+
+`aspect-[7/3]` was tried below `lg` and measured **−1px** — it fit only by eating a pixel of the
+card's bottom padding, and one more word in that one-liner would have clipped `Details` against the
+card's `overflow-hidden`. 4px is not comfortable and is recorded as the honest number: **lengthening
+any one-liner in `content/projects.ts` requires re-measuring this.**
+
+Letterbox at `lg` against the 1.778 box: FOLIO 13.1 · Aero-Grid 12.7 · ClashChat 12.7 · **CCN 25.5**
+· SNA 7.6. All five letterbox; none pillarboxes.
+
+Gates: `tsc` clean · `eslint` at the 12/9/3 baseline · `next build` green 17/17 · both themes
+ALL CHECKS PASSED · 0 console exceptions.
+
+---
+
+### Amendment · 2026-08-26 — `height: "auto"` was the glitch. It is now a measured number.
+
+Saad: *"the content after transformation glitches to the bottom of the card."*
+
+**▸ ROOT CAUSE, traced rather than guessed.** A `requestAnimationFrame` sampler on the production
+build, reading the collapsing box's inline height, `offsetHeight` and `scrollHeight` every frame on
+CCN:
+
+| t (ms) | inline height | `scrollHeight` (true content height) |
+|---|---|---|
+| 27 | 58.9px | 129 |
+| 157 | 111.7px | 129 |
+| 502 | 186.3px | 129 |
+| 577 | 186.6px ← peak | 129 |
+| 1002 | 183.1px, still drifting | 129 |
+| **1012** | **`auto` → 129px** | 129 |
+
+Two faults. Motion resolved `animate={{ height: "auto" }}` to a target of **~183** when the content
+had measured **129** from the first frame — the `<p>` was 84px at a 274px measure throughout and
+`document.fonts.status` was already `loaded` before the click, so nothing reflowed. Then on
+completion it handed the inline height back to `auto`, the real value took over, and **everything
+below the title dropped 54px in a single frame.** That drop is the glitch.
+
+**▸ FIX.** The body is extracted to `CardExpandedBody`, always mounted, and its height is measured
+with a `ResizeObserver` and animated to a **number**. No `"auto"`, nothing to hand back, nothing to
+snap. Its content is pinned to the BOTTOM of the collapsing box (`justify-end`) so it is revealed
+rather than moved — anchored to the top it would have started a full content-height below its final
+position and ridden up, which is the same downward motion the bug produced, only on purpose.
+`AnimatePresence` is gone from the file; `inert` is what makes a collapsed body inactive, taking
+`Details` out of the tab order, hit-testing and the accessibility tree in one attribute.
+
+**▸ VERIFIED in transform-free layout coordinates.** `getBoundingClientRect` is the wrong instrument
+here and gave three separate false readings before this was caught: a resting card is rotated up to
+15°, so its bounding box is not its box, and the card's own `scale` animates 1 → 1.15 underneath.
+Measured with `offsetTop`/`offsetHeight` against the card's padding edge (and note every descendant's
+`offsetParent` IS the card, since the card is `absolute` — summing the chain triple-counts):
+
+- **`Details` bottom edge: 2px → 2px, travel `0.0px`** across the whole animation.
+- Title bottom: 0 → 132px — the intended lift.
+- Body height: peak 133, settles 129. A 4px spring overshoot, no snap.
+- Cover `[w, h, offsetTop]` = `274,154,13`, one value throughout.
+
+**▸ The `ResizeObserver` earns its keep across the breakpoint.** Driving a real viewport resize with
+a card open: 1440 → wrapH 129 = contentH 129; 900 → **147 = 147**; back to 1440 → 129 = 129. Details
+holds at 2px in all three. A height measured once would have been 18px wrong on the other side of
+1024.
+
+**▸ One side effect, stated so the grep is not misread.** Because the body is always mounted, all
+five `/projects/<slug>` anchors are now in `.next/server/app/work.html` where there were none.
+**They are not usable with JS off** — each is server-rendered inside `style="height:0px;opacity:0"`
+and carries `inert=""`. The no-JS gap is unchanged; only the anchor count moved.
+
+Gates: `tsc` clean · `eslint` 12/9/3 baseline · `next build` green 17/17 · both themes ALL CHECKS
+PASSED · title clipping 0 covered probes on all five · 0 console exceptions.
+
+---
+
+### Amendment · 2026-08-26 — the fan never fitted its box. 539px of cards in 480px.
+
+Saad: *"the cards are cut off on the top."* They were, and it was not marginal.
+
+**▸ MEASURED, each card's painted box against the deck viewport's own edges, at 1440:**
+
+| card | top | bottom |
+|---|---|---|
+| 0 FOLIO | **−12.0** cut | 28.0 |
+| 1 Aero-Grid | 41.1 | 1.1 |
+| 2 ClashChat | **−52.3** cut | 107.7 |
+| 3 CCN | 33.2 | **−6.8** cut |
+| 4 SNA | 47.7 | 7.7 |
+
+A card is 400px tall and up to 300 wide, so a 15° tilt paints `300·sin15 + 400·cos15 = 464px`, and
+the five `config.y` offsets spread another 100 on top. **The resting fan's true extent is 539.1px,
+from −52.3 to 486.8** — it never fitted in 480 and no re-centring would have fixed it, because the
+fan is not symmetric about its own middle. This has been wrong since Phase 1 and every screenshot
+since; it took a per-card overflow measurement to see it, because a clipped card still looks like a
+card.
+
+**▸ FIX.** `FAN_OFFSET_Y = 66` pushes the fan down inside the box; `DECK_H_REST` 480 → **570**. The
+offset is on the outer box and constant in both states — rest-only would jump the whole fan 66px the
+instant a card was clicked. `DECK_H_ACTIVE` 800 → 866 and `DECK_H_ACTIVE_LG` 840 → **906**, so the
+four dropped cards stay visible, which is what one-click switching needs.
+
+**▸ VERIFIED in every state**, worst card in each direction:
+
+| | top clear | bottom clear |
+|---|---|---|
+| rest | 13.7 | 17.2 |
+| card 2 hovered | **3.1** | 17.2 |
+| card 3 hovered | 13.7 | **5.8** |
+| a card open | 76.0 | 54.7 |
+
+The hover row is why the box is not sized to the resting fan alone: `whileHover` scales a resting
+card to 1.05, growing card 2 by ~10.6px and card 3 by ~11.3px. A first pass at 565/64 measured
+**1.1px** clear on a hovered card 2 — positive, but inside rounding noise, so five more pixels were
+spent.
+
+**▸ THE COST, and it is Saad's to spend.** The section's resting height goes 805.6 → **895.6** from
+the top of the viewport:
+
+| `innerHeight` | before | now |
+|---|---|---|
+| 945 | +139.4 | +49.4 ✓ |
+| 905 | +99.4 | +9.4 ✓ |
+| 875 | +69.4 | **−20.6** ✗ |
+| 860 | +54.4 | −35.6 |
+
+A 1920×1080 display with a bookmarks bar still fits; add an infobar too and "Browse as a list" drops
+~21px below the fold. **The 21px is reclaimable** by taking the heading gap from `mt-xl` (55) to
+`mt-lg` (34) — the same move, for the same reason, that already cut it from `lg:mt-2xl` (89) — which
+lands 875 at +0.4. **NOT TAKEN**: it is a spacing decision on a section Saad composed, and a visibly
+cut card is a defect on every visit while 875 is the narrower case.
+
+**▸ Two harness errors worth recording, both caught by disagreeing measurements.**
+`cards[0].closest('.overflow-hidden')` matched the **card itself** — cards carry `overflow-hidden`
+too — and reported the card's own rotated bounding box as the viewport. And `min-h-[570px]` was
+absent from a `grep -E` of the emitted CSS but present under `grep -F`: **the stylesheet escapes
+brackets with a literal backslash.** That is the same rule this file already records — always search
+emitted CSS with `grep -F` — broken again.
+
+**▸ One real bug the docs caught.** A single-occurrence `replace()` hit the *comment* mentioning the
+class instead of the class, leaving the pre-hydration floor at `min-h-[565px]` while the box animated
+to 570. The inline height from `animate` masked it at runtime; only the rendered HTML showed it.
+Fixed, and confirmed: zero occurrences of `min-h-[565px]` in `work.html`.
+
+Gates: `tsc` clean · `eslint` 12/9/3 baseline · `next build` green 17/17 · both themes ALL CHECKS
+PASSED · Details travel 0.0px · title clipping 0 covered probes on all five · 0 console exceptions.
+
+---
+
+### Amendment · 2026-08-26 — the stutter, profiled
+
+Saad: *"the content is stuttering when transform … run the browser yourself and then do the fix."*
+
+**▸ PROFILED, not guessed.** Production build, CPU throttled 6× over CDP, `devtools.timeline` trace
+across one expand. Headless has no vsync, so frame deltas are meaningless — the work is what counts.
+Then each animation was driven **in isolation from the page**, so the two costs could be separated:
+
+| driven alone | main thread | of which Paint |
+|---|---|---|
+| the outer box height, 570 → 906 | **545.7ms** | **232.1ms** over 763 calls |
+| all five card transforms together | 355.4ms | 9.6ms |
+
+**The five cards moving, rotating and scaling at once cost less than the one box getting taller.**
+
+**▸ WHERE THE PAINT GOES.** Attributed by node:
+
+| | paints | time | area |
+|---|---|---|---|
+| `<#document>` | 130 | **143.3ms** | ~4.69M px² |
+| the active card | 129 | 27.1ms | 120k px² |
+| `<footer>` (the sticky reveal curtain) | 46 | 18.2ms | ~106M px² |
+| each dropped card | 46 | 2.7–4.8ms | 120k px² |
+
+The root document repaints **in full, once per frame**, because the box's height is the one property
+that changes document flow: everything below it moves, and everything that moves repaints. Style
+recalc (median **7 elements** per pass) and layout (median **13 dirty objects** of 269) are both
+trivial and were never the problem.
+
+**▸ FIXES APPLIED, each measured.**
+
+1. **`will-change: transform` on the cards.** Motion writes inline transforms per frame — not a CSS
+   animation, so Chrome never promoted them and re-rastered each card, screenshot included, every
+   frame. `RasterTask` **1824 calls / 232.0ms → 627 / 45.9ms**, an 80% cut. Checked the obvious
+   regression: a promoted layer scaled to 1.15 can render blurry. Captured the settled title at 7× —
+   crisp.
+2. **The outer height moved off the spring onto a bounded tween** (`DURATION.reveal` + `EASE.reveal`,
+   the site's own tokens — the deck's first consumer of `lib/animation/easing.ts`). A spring does not
+   stop, it asymptotes: `bounce: 0.25` on a 336px height change **overshoots the entire document
+   below by ~9.5px** and then spends a long tail creeping back, every frame of it a full reflow and
+   repaint. Layout passes **285 → 224**. The cards keep the spring — they are composited, they cost
+   almost nothing, and the spring is the reference's feel and on the do-not-change list.
+
+**▸ TESTED AND REJECTED.** `contain: paint` + `will-change` on the sticky footer, to take its 18.2ms
+and its 106M px² clip out of the root paint. Measured **worse** — 142 fps against 154 — and noisier.
+Layer overhead exceeded the saving. Not applied.
+
+**▸ THE PART THAT IS NOT THE CODE.** Same machine, same page, same 6× throttle, three runs each:
+
+| | fps during the expand | runs |
+|---|---|---|
+| **dev server** (`next dev`, what Saad is watching) | **124** | 107, 119, 146 |
+| production build | **154** | 146, 154, 162 |
+
+Dev renders 93 style-recalc passes where production renders 170 for the same animation — barely half
+the frames — and its floor is 107 against production's 146. **The variance is what reads as
+stutter.** React's development build and Turbopack's unminified module graph are the difference, and
+they are not in the shipped bundle. Verify smoothness against `next build && next start`.
+
+**▸ Not touched.** Scroll anchoring was ruled out first: `scrollY` held at a single value across the
+whole expand and cumulative layout shift was 0.0002.
+
+Gates: `tsc` clean · `eslint` 12/9/3 baseline · `next build` green 17/17 · no card clipped in any
+state · Details travel 0.0px · title clipping 0 covered probes · both themes ALL CHECKS PASSED ·
+0 console exceptions.
+
+---
+
+### Amendment · 2026-08-26 — the stutter was one frame wide, and it was `restDelta`
+
+Saad, after the throughput work: *"i can still see the stuttering as the content pulls up it goes
+slightly down with a stutter."* He was right and the previous round had been looking at the wrong
+thing — throughput was never the problem.
+
+**▸ FOUND IT.** Sampling the card's computed transform matrix on **every frame** of a real expand:
+
+| t | scale | step |
+|---|---|---|
+| 351.6ms | 1.13918 → 1.14015 | +0.0010 |
+| 356.5ms | 1.14015 → 1.14108 | +0.0009 |
+| *…60 more frames, every step ≤ 0.001, all upward…* | | |
+| **526.5ms** | **1.15410 → 1.15000** | **−0.0041** |
+
+**Four times any other step, in one frame, and it reverses direction.** A spring does not do that —
+Motion stopped it and wrote the target. Its springs finish when the remaining distance falls under
+`restDelta`, default **0.01**: a sensible pixel tolerance and a terrible one for `scale`, which is
+dimensionless. On a 400px card, 0.01 of scale is **4px**. It took 0.0041 — **1.64px, downward, in a
+single frame, while the card was still travelling up** — and everything drawn inside the card moved
+with it. Exactly "as the content pulls up it goes slightly down".
+
+**▸ FIX 1 — `SCALE_REST_DELTA = 0.0002`**, applied as a per-channel override so `x`, `y` and `rotate`
+keep the default (0.01px / 0.01deg, already invisible). 0.0002 is 0.08px on this card: below one
+device pixel, so the spring settles into place instead of arriving at it. **The bounce is not the bug
+and is not removed** — the card still overshoots `ACTIVE_SCALE` by ~0.4% and returns, which is the
+reference's feel and on the do-not-change list. What changed is that the last 1.64px is animated.
+
+**▸ FIX 2 — the body's growth is critically damped** (`bounce: 0`, same `visualDuration`). The
+body's height lifts the title, and a bounce on it sent the title **1.4px past its resting place**
+followed by a ~350ms creep back — the body settled at 886.6ms and the title at 811.5ms, long after
+the card was done at 526.5. A slow reverse drift with nothing else moving reads as a second motion,
+not a tail.
+
+**▸ MEASURED, before → after:**
+
+| | before | after |
+|---|---|---|
+| worst single scale step | **−0.0041** (a reversal) | +0.0010, monotonic |
+| title screen overshoot past final | 1.4px | **0.0px** |
+| body wrapper height | peak 133, final 129 | **peak 129 = final** |
+| title screen-y jumps > 0.6px | 1 | 1 *(the first frame of motion)* |
+| `Details` travel inside the card | 0.0px | 0.0px |
+
+**▸ TESTED AND REJECTED — giving the body the outer box's bounded tween.** It looks like the obvious
+tidy-up and it measured **worse**. The title's screen position is the sum of its layout position
+inside the card (this animation) and the card's own transform (`SPRING`). A 0.7s tween finishes the
+first at 679ms while the second is still settling out of its overshoot until ~864ms, so the title
+arrived and was then **dragged 16.0px past its resting place and back** by the card moving underneath
+it — 2 direction reversals, 4 frame-to-frame jumps over 0.6px. Sharing `visualDuration` with `SPRING`
+is what keeps the two halves of that sum in step. It costs ~135 more Layout passes than the tween
+variant and is worth every one of them.
+
+**▸ The cost, stated.** The tighter rest threshold means the card's spring now runs its tail to
+convergence: scale settles at **913ms** rather than 526ms, and the body at 963ms. Every frame of that
+tail is sub-pixel and composited (`will-change: transform`), and the body's layout is contained by an
+absolutely-positioned, fixed-size card — median 13 dirty objects. Longer, and invisible, is the right
+trade against a 1.64px snap.
+
+Gates: `tsc` clean · `eslint` 12/9/3 baseline · `next build` green 17/17 · no card clipped in any
+state · both themes ALL CHECKS PASSED · 0 console exceptions.
+
+---
+
+### Amendment · 2026-08-26 — `/projects` is now an index, not a list of names
+
+Saad asked for design suggestions for the strip list. Rendered and measured first; the diagnosis was
+that **the page was strictly less informative than the deck it is the alternative to** — five names,
+nothing else, with `date`, `stack`, `oneLiner` and `category` all present in the data and rendered
+nowhere. A list whose justification is scanning had nothing to scan. Four of five suggestions built.
+
+**▸ 1. The date column.** `content/projects.ts` has carried `date` since it was written; only the
+detail page rendered it. Now right-aligned at the far end of the row via `lg:ml-auto` on a
+`lg:flex-1` text group, in the detail page's exact treatment — `formatMonthYear` (the site's own, not
+`Intl`; see that file for the UTC-midnight reason) and `text-caption font-mono text-fg/70`, where
+**`/70` is the documented floor**. Below `lg` it follows the title in the stacked column.
+
+**Stated consequence:** the array is ordered strength-first, deliberately not chronologically, so
+dates make 05 (2025-12) the most recent while it sits last and 04 (2024-12) the oldest. Accepted —
+the alternative is withholding the only comparable fact the five share. `category` was the other
+candidate and is nearly information-free here: four of five are `systems-foundation`.
+
+**▸ 2. Sibling dimming.** Hovering or focusing one row drops the other four to 40%. Written as four
+*paired* variants, and the pairing is a specificity fix rather than repetition: the "undim me" rule
+must out-specify the "dim everything" rule, so each pair shares a prefix and the winner adds to it —
+`[ul:hover>&]` against `[ul:hover>&:hover]`. The obvious spelling of the second, a bare
+`hover:opacity-100`, compiles to `li:hover`, which is **less** specific than `ul:hover > li`, so the
+hovered row would have dimmed itself. Verified in the emitted stylesheet.
+
+**▸ 3. The cover reveal, oversized and overhanging.** 200×125 → **360×180 at `lg`, 440×220 at `xl`**,
+against a 144px row: it breaks the rules above and below by 18px and 38px. It stays **in flow** — the
+row is a fixed-height flex with `items-center`, so a taller child overflows equally without changing
+layout, and the title's horizontal measure is still reserved so the two can never collide. The row
+takes `z-10` while engaged so the overhang paints above its neighbours. `pointer-events-none` is
+untouched and still load-bearing for the reason its own docblock gives.
+
+**▸ 5. The top `Close` moved onto the `<h1>`'s baseline** at the trailing edge, from its own line
+above the heading, where a bare teal word read as a stray label and took the first fixation away from
+the page's name. Both exits kept. Stacks again below `sm`. This does not breach Rule S-1's second
+exception: that rule is about one *leading* edge, and the exit is aligned to the trailing edge of the
+same chrome gutter.
+
+**▸ The IA fix — the heading is "Index".** `/work`'s `<h1>` is "Projects." and this page's was
+"Projects": two routes, the same five projects, headings separated by a full stop, and nothing telling
+a visitor which page they were on. `metadata.title` moved too — the tab reads `Index — Saad` instead
+of a second `Projects — Saad`. Navbar unaffected; it has never linked here.
+
+**▸ 4 WAS WITHDRAWN, AND THE WITHDRAWAL IS THE POINT.** I proposed making the five rows fill exactly
+one viewport, on the grounds that the page "scrolls by 44px — the worst of both". **That measurement
+was taken in a 1400px-tall test window and is not a viewport.** At the site's own verification height
+— 945 of `innerHeight`, per `docs/07` §6 — the page is 1249px and scrolls by ~300px, which is
+decisive already. There was no problem to fix. I also quoted "roughly 190px per row"; the arithmetic
+to fit 945 gives **~96px**, which the oversized cover and the date column both fight. Same class of
+error as measuring `/about` against 1080.
+
+**▸ Verified.** Both themes at 1440; 390 / 768 / 1024 for horizontal overflow — **zero at every
+width**. Dimming reads `["0.4","0.4","1","0.4","0.4"]` with `z-index` `[0,0,10,0,0]`. All five dates
+present in the prerendered HTML at every width. Every route smoke-tested: titles now distinct
+(`Work — Saad` / `Index — Saad`), **0 console exceptions**. The intercepted overlay still opens from a
+row — URL `/projects/clashchat`, index still mounted beneath, detail content present.
+
+**▸ A harness note, third time this session.** `grep -F 'hover:z-10'` and `grep -F 'ul:hover>&'`
+reported classes missing from the emitted CSS that were in fact present: the stylesheet escapes
+colons and brackets with literal backslashes. Search emitted CSS by the *declaration*
+(`{z-index:10}`) rather than the class name.
+
+Gates: `tsc` clean · `eslint` 12/9/3 baseline · `next build` green 17/17.
+
+---
+
+### Amendment · 2026-08-26 — the footer wordmark takes the vendor component "as it is"
+
+Saad: *"https://ui.aceternity.com/components/text-hover-effect ... implement this as it is in the
+footer instead of Saad with its hover and the text animation."*
+
+**▸ WHAT WAS ALREADY THERE.** `TextHoverEffect` has shipped in `RevealFooter` since 2026-08-23, but as
+a deliberately toned-down adaptation: two layers, a resting `currentColor` outline at 45%, and a hover
+reveal ramping through a single `--accent-hero` cyan inside a masked disc. Its own header **refused**
+the two things asked for here, by name — item 4 called the vendor's draw-in "deleted, not retimed ...
+the disqualifying one", and item 5 said the rainbow "is gone outright and stays gone ... multi-hue
+stops are refused here permanently". Both refusals are now reversed, in place, quoted rather than
+deleted.
+
+**▸ THE VENDOR'S SOURCE was fetched from the shadcn registry** (`/registry/text-hover-effect.json`) —
+the docs page does not carry it. Both behaviours were grafted onto the existing geometry rather than
+dropping the vendor file in wholesale: it is centred in a fixed `0 0 300 100` viewBox, and this
+consumer is left-anchored, sized from `FONT_SIZE_UNITS`, and wrapped in a `w-fit` box whose aspect
+ratio is computed from the same constant. Replacing the file would have broken the spine alignment and
+the plate's height budget.
+
+**▸ 1. The five stops**, verbatim: `#eab308 #ef4444 #3b82f6 #06b6d4 #8b5cf6`, on a `linearGradient`
+laid across the wordmark in user space. The vendor declares `gradientUnits="userSpaceOnUse"` with no
+`x1`/`x2`, which resolves correctly on its fixed 300-unit box and would not on a `viewBoxWidth`-driven
+one, so those are stated. **The stops render only while hovered** — the vendor's construction, and not
+an optimisation: a gradient with no stops paints as `none`, which is the second of two independent
+reasons nothing colourful appears at rest. `revealAccent` is deleted; the palette is not optional and
+there is one consumer.
+
+**▸ 2. The 4s `strokeDashoffset` draw-in**, the vendor's numbers (`strokeDasharray` 1000, `duration`
+4, `easeInOut`) — **but not on mount.** `RevealFooter` is a sticky curtain and its own header records
+that "the plate is in the viewport from FIRST PAINT, pinned at the bottom and occluded"; a
+mount-fired draw finishes during page load, behind the page, seen by nobody. That is also why an
+`IntersectionObserver` is useless here — intersection is not occlusion. **The gate tests occlusion
+instead**: a passive scroll listener, coalesced to one frame, asks `elementFromPoint` at the
+wordmark's own centre whether anything still covers it, sets one boolean the first time the answer is
+no, and removes itself.
+
+The old item 4 claimed "RETIMING DOES NOT FIX IT: any trigger that would work is a SCROLL-POSITION
+DRIVER", against this footer's ban on "no scroll-linked value". **A one-shot occlusion test is not a
+scroll-linked value** — nothing is interpolated against scroll position and the listener is gone for
+the rest of the page's life. It is still a deviation from the letter of that list and is recorded as
+one.
+
+**▸ VERIFIED in a real browser**, production build:
+
+| | `strokeDashoffset` | gradient stops | reveal opacity |
+|---|---|---|---|
+| footer occluded, scroll 0 | **1000px** (held) | 0 | 0 |
+| after scrolling to the bottom | 980 → 908 → 779 → 604 → 405 → 228 → 98 → 21 → **0** over ~3.6s | 0 | 0 |
+| hovered | 0 | **5** — all vendor hues | **1** |
+| un-hovered | 0 | **0** | 0 |
+| `prefers-reduced-motion` | **0 from first paint** — no draw | 0 | 0 |
+
+**▸ TWO RULE REVERSALS, RECORDED WHERE THE RULES LIVE.** CLAUDE.md's two-accent rule now carries one
+named, dated exception rather than being silently contradicted. `docs/03`'s `--accent-hero` DOM
+consumer count went back from **TWO to ONE** — the token no longer appears in the component at all.
+**Teal remains refused** and that half never depended on the rule.
+
+**▸ A near-miss worth recording.** `import re` in a patch script executed
+`scratchpad/types.py` — Python puts the *script's own directory* first on `sys.path`, so a stray file
+named after a stdlib module gets imported and run when anything imports `re` → `enum` → `types`. The
+file was an old, non-idempotent recovery script; it appended 103 lines of duplicate fields to
+`content/types.ts`. Caught by `tsc` (`TS2300: Duplicate identifier`), confirmed against `git status`
+as previously clean, restored with `git checkout --`, and every stdlib-shadowing name moved out of the
+scratchpad's import path. **Never name a scratch file after a stdlib module.**
+
+Gates: `tsc` clean · `eslint` 12/9/3 baseline · `next build` green 17/17.
+
+---
+
+## ▸ AMENDED — `Browse All`, with the label scrambling on hover (2026-08-27)
+
+**Saad's instruction: "add the encrypted text effect on browse as a list and change the button text to
+Browse All".** Both halves shipped, on BOTH surfaces — `/work` below the deck and Home below the
+featured three — because they are one control on two pages reading one constant, which is the
+arrangement §5 chose deliberately.
+
+| file | change |
+|---|---|
+| `components/sections/projectDeckContent.ts` | `DECK_BROWSE_AS_LIST_LABEL` → **`BROWSE_ALL_LABEL = "Browse All"`**. Renamed with the string: both halves of the old name had gone wrong — `DECK_` since Home became the second reader, `BROWSE_AS_LIST` as of this change |
+| `components/ui/EncryptedButtonLabel.tsx` | **MOVED** from `components/about/`. Unchanged otherwise |
+| `components/sections/projectButtonStyles.ts` | new `PROJECT_SCRAMBLE_ON_BASE = "text-accent-working"` |
+| `components/sections/ProjectDeckSection.tsx`, `Projects.tsx` | label wrapped in `EncryptedButtonLabel` |
+| 15 further files | the label named in prose — docs, route tables, arithmetic tables |
+
+### The objection, recorded because Saad overrode it
+
+**"Browse All" is true from Home and not from `/work`.** Home features three and the control leads to
+five, so "all" is exactly right there. `/work` already renders all five in the deck directly above it,
+so on that page the control offers the same five again in a different presentation — "All" names the
+set rather than the difference.
+
+**This is the identical objection that retired "View All Projects" on 2026-08-25** and that put
+"Browse as a list" there instead: a label promising more projects than the destination holds is the
+label lying, and CLAUDE.md's "every claim on the site must be true and specific" is a rule rather than
+a preference. It is written into `projectDeckContent.ts` beside the string, and at both call sites, so
+that **nobody re-derives it and quietly reverts the label.** It is Saad's call and it is deliberate.
+
+The fix, if it ever matters, is NOT two strings — that is what §5 built one constant to prevent. It
+would be a second NAMED constant with its own recorded reason.
+
+**A second thing was lost with the wording and is worth knowing.** `/projects`' heading was renamed to
+"Index" on 2026-08-26 precisely because `/work` said "Projects." and `/projects` said "Projects", and
+the pair of them distinguished nothing. Part of what made that fix land was that the inbound control
+said "Browse as a list" — it described the AFFORDANCE while the heading named the SET, so the two
+signals were complementary. "Browse All" names a set, so the distinction now rests on the heading
+alone. Still enough, but one signal where there were two; do not weaken the heading as well.
+
+### Why the component moved rather than being imported across
+
+`aboutButtonStyles.ts` carries a standing note that a `components/ui/` primitive reaching into
+`components/about/` is "the wrong way round". Importing `components/about/EncryptedButtonLabel` from
+`components/sections/` would have been the same defect one level up — a section reaching into
+`/about` for a generic control. Four consumers now, on three routes, none more entitled to own the
+file than the others.
+
+**The `ABOUT_SCRAMBLE_*` inks did not move with it, and `PROJECT_SCRAMBLE_ON_BASE` is byte-identical
+to `ABOUT_SCRAMBLE_ON_BASE` on purpose.** Same call `projectButtonStyles.ts` already makes for
+`PROJECT_BUTTON_NAV`, which equals `ABOUT_BUTTON_SECONDARY` today: equal by coincidence of surface,
+not by intent. Do not deduplicate them.
+
+### Verified in a real browser (headless Chrome, dev server, 1440×945)
+
+| | `/work` | `/` |
+|---|---|---|
+| rest label / box | `Browse All`, 127.6 × 46.8 | `Browse All`, 127.6 × 46.8 |
+| width during scramble | 127.7px, every sampled frame | 127.7px, every sampled frame |
+| settles to | `Browse All` | `Browse All` |
+| console errors | none | none |
+
+- **Accessible name is `BROWSE ALL` at rest AND mid-scramble** (`Accessibility.getPartialAXTree`);
+  the ciphertext is `aria-hidden` and never announced.
+- **Width-stable by construction**, not by luck: `BUTTON_BASE` is `font-mono`, so every substituted
+  glyph has the same advance. The 0.1px is subpixel.
+- **Height is unchanged at 46.8px**, so `/work`'s one-viewport arithmetic is untouched. The box got
+  *narrower* — 16 characters to 10, 176.6px to 127.6px — which only helps the 360px case.
+- **Both themes:** resolved characters inherit `text-fg`; unresolved paint `accent-working` (`#14B8A6`
+  dark, `#0F766E` light). Screenshotted mid-flight in each.
+- **`/about` regression pass after the move:** View CV, GitHub and LinkedIn all still scramble, widths
+  stable (103.1 / 95.0 / 111.3), no console errors.
+
+`tsc` clean · `eslint` at the 12/9/3 baseline (all in unimported vendor files) · `next build` 17/17.
+
+---
+
+## ▸ AMENDED — the footer redesign (2026-08-27)
+
+Saad's brief, in six parts: a two-column split, a stacked link column with outbound arrows and a
+muted→accent hover, the `SAAD` wordmark demoted to an ambient watermark behind the content, a bottom
+status bar with a divider and `© 2026 MS`, no particles, and tokens throughout.
+
+### What it reverses, and where each reversal is recorded
+
+| ruling | where it lived | why it lapsed |
+|---|---|---|
+| "The only permitted hover device anywhere on this site is `hover:decoration-2`: never a colour change" | `ExternalLink.tsx`, both link constants | The stated reason was arithmetic against **dimming the teal** (`hero-accent`/70 = 4.31:1, fails AA). The brief inverts the direction — neutral 8.17:1 → full teal 8.01:1 — so neither endpoint is near the floor. **The arithmetic that forbade the old hover permits this one.** Still a deviation from the letter of a site-wide rule, recorded as one. |
+| "It is four digits and nothing else. No `©`, no name … a copyright assertion is a claim" | `RevealFooter.tsx` stamp comment, `contactContent.ts` | The rule was never that copyright is wrong — it was that nobody but Saad may assert it on his behalf. **He asserted it.** |
+| "the wordmark … is LAST in the DOM and last on the plate" / the bottom-up reveal reads as a signature emerging | `RevealFooter.tsx` signature comment | The brief moves the wordmark behind the content. The closing slot was vacated by the same instruction that filled it with the © line. |
+| The stamp is "a DATE STAMP on a signed piece rather than legal furniture … A copyright line is the last thing in a document by definition; this one is not" | `RevealFooter.tsx` year comment | There is a copyright line below it now. **Both were asked for explicitly, so both ship**; the year-twice redundancy is flagged, not resolved on nobody's authority. The sanctioned fix, if wanted, is deleting the year beside the mark. |
+| The closing line "I read everything that arrives here. Email is fastest." | `contactContent.ts` | Saad supplied the replacement verbatim, as he supplied the original. The dropped channel ranking moved into the stack order. |
+
+### Two defects found and fixed along the way, neither of them in the brief
+
+- **The 4s draw-in never completed, and had not since it shipped on 2026-08-26.** `DASH_UNITS` was a
+  hardcoded 1000 against a "SAAD" outline **measured at ~1800 viewBox units** — so at offset 0 the
+  pattern painted units 0–1000 and left 1000–1800 blank. The resting wordmark has been rendering with
+  a missing middle for a day. Invisible in review because every check of the effect was of the
+  *hovered* state, where the reveal layer carries no dash. Measured by setting
+  `dasharray = dashoffset = L` and pixel-counting the box until the ink hit zero. Now derived from the
+  string: `viewBoxWidth × 10`.
+- **`pointer-events-none` broke the exposure gate — my own regression, inside this change.**
+  `elementFromPoint` skips non-hit-testable elements, so `svg.contains(top)` could never be true
+  again, `drawn` never went true, and the watermark was *permanently invisible* with nothing erroring.
+  Caught by reading `strokeDashoffset` off a live page and finding it at its initial value seven
+  seconds after exposure. The gate now probes the nearest hit-testable ancestor.
+
+### Verified in a real browser, not asserted
+
+- **`pointer-events`:** `none` on the wrapper *and* the SVG. **0 of 120 grid probes** over the
+  watermark's box return the watermark as topmost. All three controls reachable at left/centre/right;
+  real dispatched clicks reach both anchors and the copy button.
+- **Watermark response, before vs after** — the reported lag, measured:
+
+  | | disc reaches target | reveal at full strength |
+  |---|---|---|
+  | before | **228.1 ms**, 13 interpolated frames | **210.7 ms**, 24 frames ramping 0 → 0.069 → 0.205 → … |
+  | after | **36.5 ms**, **0 intermediate values** | **41.3 ms**, **0 intermediate values** |
+
+  The 2 frames left are the event → rAF → commit → paint pipeline, which is the floor. `followDuration`
+  is 0 and the reveal's in-edge is 0; the out-edge keeps `DURATION.ui` so a boundary graze does not blink.
+- **Contrast**, computed from the tokens and confirmed against computed styles: link rest
+  `hero-fg/70` **8.17:1**, hover `hero-accent` **8.01:1**, permanent rule `hero-fg/30` 2.31:1, divider
+  `hero-fg/15` 1.40:1, watermark idle `hero-fg/10` 1.22:1 (deliberately sub-floor — `aria-hidden`,
+  no information, not a control). Identical in both themes; the plate is pinned dark.
+- **Reduced motion:** all three transitions report `transition-property: none`; colour, underline
+  scale and arrow travel all still change, instantly. The draw-in is skipped (`strokeDashoffset: 0`
+  from first paint).
+- **Δ=0 in 32 of 32 cases** (2 routes × 2 themes × 8 viewports), unchanged.
+- **900px content ceiling:** clear everywhere after the gap fix. See `docs/03` Rule S-6.
+- **No horizontal overflow at 360 or 768**; the LinkedIn value fits on one line box at both.
+
+### Flagged, not fixed
+
+- **The email is the only coloured link at rest.** The brief keeps `CopyEmailButton` "as-is", and it
+  is teal; its two siblings are now muted. Consistent with the instruction, visually inconsistent on
+  the plate. One line either way.
+- **The year appears twice** — beside the mark and in `© 2026 MS`, separated only by the divider.
+
+---
+
+## ▸ AMENDED AGAIN — the same day, four follow-ups (2026-08-27)
+
+Saad, on the shipped redesign: bigger Contact heading · resolve the two MS/2026 stamps by keeping
+the drawn logo · the wordmark should draw itself in on arrival and then reverse to faint, hover
+unchanged · portfolio colours instead of the vendor rainbow.
+
+### 1. `<h2>` back to `text-h2`, and it cost the plate nothing
+
+19.2px → 74.8px, and `font-mono` dropped (every heading on this site is Space Grotesk). It is a full
+round trip: Phase 5 shipped `text-h2`, 2026-08-23 demoted it to `text-caption` "so the wordmark can be
+the largest element", and that reason lapsed when the wordmark left the flow.
+
+**The +55.6px cost 0px of plate height, which is a fact about grid rows rather than luck.** The
+heading is in the LEFT column; at 1440 that column measures **158.39px** against the link stack's
+**261.78px**, and a grid row is as tall as its tallest child. The heading spent slack that was already
+paid for. **103.39px of that headroom is left at 1440** — past it, the next pixel costs a pixel. At
+768×1024, where the columns stack, it would be real; it fell anyway because §2 is worth more.
+
+**I argued against this a day earlier**, in the very comment that now reverses it ("a 68px heading over
+a faint 400px outline is two large letterforms in one place"). Looked at rather than reasoned about,
+that was wrong: at 1.22:1 the watermark is texture.
+
+### 2. One stamp row, not two — the drawn mark keeps the "MS"
+
+`[MS] 2026` · rule · `© 2026 MS` became rule · `[MS] © 2026`. `CONTACT_COPYRIGHT_LINE` is `© 2026`;
+the mark *is* the MS, so setting it in type beside itself was captioning a logo with its own name.
+**The duplication was flagged when it shipped and deliberately left unresolved** — both halves were
+named in one brief and the choice was not mine. Saves **50.8px**, which is what funds §1.
+
+What this spends, stated: the 2026-08-23 defence of the bare year ("A copyright line is the last thing
+in a document by definition; this one is not") is now gone, not weakened — it *is* the last thing and
+it *does* carry a ©. The load-bearing fact survives: Saad asserted the copyright himself.
+
+### 3. Draw → hold → recede
+
+The draw-in already existed but ran at the caller's **resting** alpha, which `RevealFooter` sets to
+0.10 — a four-second animation at 1.22:1, spending the plate's one arrival beat on nothing. New
+`drawStrokeAlpha` prop (0.45, **3.90:1**); after `DRAW_SECONDS` the stroke opacity eases to
+`restingStrokeAlpha` over `RECEDE_SECONDS` (1.5s). Measured on the production build:
+
+```
+0.0s  opacity=0.45  dashoffset=2330      draw
+1.6s  opacity=0.45  dashoffset= 810
+3.2s  opacity=0.448 dashoffset=   0      drawn, holding
+4.0s  opacity=0.150 dashoffset=   0      receding
+4.8s  opacity=0.100 dashoffset=   0      settled
+```
+
+The hold is free: `DASH_UNITS_PER_VIEWBOX_UNIT` carries 41% headroom, so the last ~1.16s of the 4s was
+already a no-op. The delay spends it as a beat.
+
+**"Reverses" was read as reversing the STRENGTH, not un-drawing the stroke.** The literal reading —
+`strokeDashoffset` back to `dashUnits` — leaves nothing at rest and contradicts the same brief's "idle
+state: faint". Recorded at `RECEDE_SECONDS`, with what to change if the other reading was meant.
+
+### 4. Portfolio colours — and the two-accent exception is retired
+
+`#eab308 #ef4444 #3b82f6 #06b6d4 #8b5cf6` → `var(--accent-hero)` → `currentColor` → `currentColor`.
+The rainbow lived **one day**. Consequences, all recorded where the rules live:
+
+- **CLAUDE.md's two-accent exception is retired** — the rainbow was the only place on the site where
+  more than two accents appeared. The rule is unqualified again; the exception's *conditions* are kept
+  for whoever wants one next.
+- **`docs/03`'s `--accent-hero` DOM consumer count goes ONE → TWO** (it was TWO, dropped to ONE on
+  08-26, back to TWO now). Both consumers are on the same plate — the only surface CLAUDE.md licenses.
+- **The construction reverted with the colour**: `linearGradient` across the word → `radialGradient`
+  centred on the cursor. A one-hue ramp cannot use the vendor's: hovering the middle of the word would
+  show `currentColor` and read as the effect being broken.
+- **Teal is still refused, and is now MORE binding** — the footer's own links took a muted→teal hover
+  in the same redesign. Two things a cursor can touch on one plate, one of which is real.
+
+### Re-verified on a production build
+
+| | |
+|---|---|
+| composed content | **681.78px** at ≥1024, 850.91 at 768×1024, 752.38 at 360×640 — all under 900 |
+| 768 fit | **86.22px** of headroom at 1366×768 (was 35.4 this morning, −7.98 yesterday) |
+| Δ (sticky↔static) | **0 in 32 of 32** |
+| pointer-events | **0/120** grid probes hit the watermark; all three controls reachable; real clicks land |
+| disc follow | target in **1 frame / 19.3 ms**, **0 intermediate values** |
+| reduced motion | all three transitions `none`; colour, underline and arrow still change instantly |
+| status bar | `© 2026`, exactly **1** drawn mark, **0** stray bare-year `<p>` |
+| gates | `tsc` clean · `eslint` 12/9/3 baseline · `next build` 17/17 |
