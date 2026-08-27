@@ -3,8 +3,12 @@ import Link from "next/link";
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import type { DeckCardProject } from "@/components/sections/FannedDeckPhase1";
 import { Cards as FannedDeckPhase1 } from "@/components/sections/FannedDeckPhase1";
-import { PROJECT_BUTTON_NAV } from "@/components/sections/projectButtonStyles";
-import { DECK_BROWSE_AS_LIST_LABEL } from "@/components/sections/projectDeckContent";
+import {
+  PROJECT_BUTTON_NAV,
+  PROJECT_SCRAMBLE_ON_BASE,
+} from "@/components/sections/projectButtonStyles";
+import { BROWSE_ALL_LABEL } from "@/components/sections/projectDeckContent";
+import { EncryptedButtonLabel } from "@/components/ui/EncryptedButtonLabel";
 import { WORK_PAGE_HEADING } from "@/components/sections/projectsContent";
 import type { Project } from "@/content/types";
 
@@ -69,7 +73,7 @@ import type { Project } from "@/content/types";
  *                                                                card is open —
  *                                                                see the caveat)
  *   `mt-xl` deck -> control                               55.0
- *   "Browse as a list" (13 + 16.8 + 13 + 2x2 border)      46.8
+ *   "Browse All" (13 + 16.8 + 13 + 2x2 border)            46.8
  *   brutal shadow overhang below it                        5.0
  *                                                       ───────
  *   from the top of the viewport                         865.6
@@ -92,64 +96,66 @@ import type { Project } from "@/content/types";
  * The section's closing `pb-2xl` (89) sits below the fold by design; the
  * Certifications heading is the scroll cue.
  *
- * **PHASE 1/2/3 CAVEAT — THE 540.0 LINE IS THE RETIRED DECK'S CONTAINER, AND
- * THE SCAFFOLD IN THIS SLOT HAS TWO HEIGHTS RATHER THAN ONE.** The deck's box
- * RESIZES when a card is expanded, because the four cards it throws to
- * `y: 400` reach 795px below the box's top edge at `lg` and would otherwise be
- * clipped by its own `overflow-hidden`. `FannedDeckPhase1.tsx` carries the
- * full extent arithmetic and the measurement behind the animated height.
+ * **THE DECK BOX IS 570 AT REST, NOT 480, AND THAT COSTS THIS SECTION 90px.**
+ * The 540.0 line in the table above is the RETIRED deck's container; the number
+ * that ships is below and it is close to it by accident rather than design.
  *
- * **NEITHER PHASE 2 NOR PHASE 3 CHANGED ANY OF THESE NUMBERS, AND NEITHER HAD
- * TO.** Phase 2 swapped the vendor's placeholder deck for the five real
- * projects and Phase 3 restyled the card to this site's palette, type and
- * spacing; both changed what is INSIDE each card and neither touched the card's
- * layout box. `--width` / `--height` are still 220x300 and 300x400, the drop is
- * still `y: 400` at `scale: 0.7`, and `ACTIVE_SCALE` is still 1.15. The
- * expanded card absorbs its extra content inside its own fixed box — Phase 2 by
- * shrinking its cover, Phase 3 by reserving the space up front and never moving
- * anything — so every figure below still holds and this section's neighbours
- * still move by exactly +360. What ships:
+ * The resting fan is **539.1px tall** and it was in a 480px box. A card is
+ * 400px tall and up to 300 wide, so a 15-degree tilt paints a 464px box, and
+ * the five `config.y` offsets spread another 100 on top. Measured on the
+ * production build, cards 0 and 2 were cut off at the top (12.0 and **52.3px**)
+ * and card 3 at the bottom (6.8) — Saad reported it on sight. No amount of
+ * re-centring would have fixed it: the fan does not fit in 480 and is not
+ * symmetric about its own middle. `FannedDeckPhase1.tsx`'s box header carries
+ * the full derivation, the hover case that sets the slack, and the constants.
  *
- *   RESTING          480px (`h-120`, the vendor's own box, unchanged)
- *   EXPANDED         800px below 1024 · **840px at `lg`**
+ *   RESTING          570px   (`DECK_H_REST`, fan offset 66px inside it)
+ *   EXPANDED         866px below 1024 · **906px at `lg`**
  *
  * so the running total from the top of the viewport is:
  *
- *   at rest   89 + 74.8 + 55 + **480** + 55 + 46.8 + 5 = **805.6**
- *   expanded  the same sum with **840** in place of 480 = **1165.6**
+ *   at rest   89 + 74.8 + 55 + **570** + 55 + 46.8 + 5 = **895.6**
+ *   expanded  the same sum with **906** in place of 570 = **1231.6**
+ *
+ *   at 945 innerHeight   +49.4 clear  ✓
+ *   at 905                +9.4 clear  ✓
+ *   at 875               -20.6           <- crosses the fold
+ *   at 860               -35.6
+ *
+ * **A 1920x1080 display with a bookmarks bar still fits. Add an infobar too and
+ * "Browse All" drops ~21px below the fold.** That is a real regression
+ * against the +69.4 this section had at 480, and it is the price of the deck
+ * not being visibly cut on every visit. **The 21px is reclaimable** by taking
+ * the heading gap from `mt-xl` (55) to `mt-lg` (34) — the same move, for the
+ * same reason, that already took it down from `lg:mt-2xl` (89) — which lands
+ * 875 at +0.4. NOT TAKEN: it is a spacing decision on a composed section and
+ * it is Saad's, not an implementer's.
+ *
+ * **`mt-xl` (55) UNDER THE HEADING, NOT `Projects.tsx`'s `lg:mt-2xl` (89).**
+ * Do not "harmonise" it back to the grid's rhythm — the grid is on a page with
+ * no one-viewport requirement. If it moves, it moves DOWN, and only on Saad's
+ * call.
  *
  * **THE GROWTH IS REAL BLOCK HEIGHT AND THIS SECTION'S NEIGHBOURS ACTUALLY
- * MOVE.** That is a requirement rather than a side effect — an expanded deck
- * pushes Certifications and Experience down the document; it does not merely
- * paint over them or reserve nothing. Measured on the production build at
- * 1440x900, rest -> expanded:
+ * MOVE.** That is a standing requirement, not an implementation detail — an
+ * expanded deck pushes Certifications and Experience down the document rather
+ * than painting over them. Measured on the production build at 1440x900,
+ * rest -> expanded:
  *
- *   this section's "Browse as a list"     753.80  -> 1113.80
- *   `#certifications-heading`             991.59  -> 1351.59   (+360.00)
- *   Experience's `<h2>`                  1316.19 -> 1676.19   (+360.00)
- *   `document.scrollHeight`                 2770 ->    3130    (+360)
+ *   `#certifications-heading`             978.08 -> 1338.08   (+360.00)
+ *   `document.scrollHeight`                              (+360)
  *
  * If those offsets were ever equal in the two states, the deck would have been
  * built the wrong way — visually accommodated, not in flow.
  *
- * At rest that is 60px better than the 865.6 above and every clearance in the
- * table gains 60px — 139.4 clear at 945, 99.4 at 905, 69.4 at 875, and **+54.4
- * at 860**, so the one case that was "accepted at −5.6" is comfortably inside
- * the fold for as long as this scaffold is in the slot.
- *
  * **THE EXPANDED STATE DELIBERATELY EXCEEDS ONE VIEWPORT, AND THAT IS FINE.**
- * 1165.6px is 220.6px past a 945 `innerHeight` and 265.6px past 900. `/work`
- * is a scrolling document; the one-screen composition guarantee is `/about`'s
- * and only `/about`'s (`docs/07` §6, and this page's own file header). The
- * requirement here is that the deck's RESTING state — which is what a visitor
- * lands on, and the only state the Intro hands off into — fits without
- * scrolling, and it does, with 69px to spare at 875. When a card is expanded
- * the page simply scrolls. Do not "fix" this by shrinking the expanded box:
- * every pixel of it is holding a card that would otherwise be invisible.
- *
- * The 540.0 figure is left in the table above because it is the number Phase
- * 3's real deck must be measured against again; do not treat 480 or 840 as the
- * new target.
+ * `/work` is a scrolling document; the one-screen composition guarantee is
+ * `/about`'s and only `/about`'s (`docs/07` §6). The requirement here is that
+ * the RESTING state — what a visitor lands on, and the only state the Intro
+ * hands off into — fits without scrolling. Do not "fix" the expanded box by
+ * shrinking it: every pixel of it is holding a card that would otherwise be
+ * clipped, and those cards staying visible is what makes one-click switching
+ * between projects possible.
  *
  * ═══════════════════════════════════════════════════════════════════════════
  * MOTION
@@ -193,14 +199,20 @@ import type { Project } from "@/content/types";
  * knows what the card draws. `ProjectStripRow` splits the same way.
  *
  * `ProjectDeck.tsx` IS STILL ON DISK AND IS DELIBERATELY UNIMPORTED. It is not
- * dead code to be swept — Saad may want to compare the two, and its
- * keyboard/focus handling and its separate expanded PANEL are still wanted:
- * that panel is the structure that fixes the `<a>`-inside-`<button>` problem
- * Phase 2 introduced, and **Phase 3 did not take it on** — Phase 3's brief was
- * the restyle and four measured defects, not the accessibility work, which is
- * enumerated as still open at the end of `FannedDeckPhase1.tsx`'s header. Its
- * hard-cap guard has already been salvaged into `FannedDeckPhase1.tsx`.
- * Do not delete it.
+ * dead code to be swept — Saad may want to compare the two, and its hard-cap
+ * guard was salvaged into `FannedDeckPhase1.tsx` in Phase 1.
+ *
+ * **ITS SEPARATE EXPANDED PANEL IS NO LONGER WANTED, AND THAT IS A RULING
+ * RATHER THAN AN OVERSIGHT.** This paragraph said the panel "is still wanted"
+ * because it is the structure that fixes the `<a>`-inside-`<button>` problem.
+ * It was built that way on 2026-08-26 and **Saad rejected it**: moving the
+ * content out of the card costs growth-in-place, the other four cards staying
+ * visible, and one-click switching — which are the interaction, not decoration.
+ * That version is preserved on branch `deck-panel-split-backup` / tag
+ * `deck-panel-split`. The `<a>` problem is fixed instead by making the card a
+ * `<div role="button">`. Do not re-derive the panel.
+ *
+ * Its index RAIL is the one idea here still unclaimed. Do not delete this.
  */
 export function ProjectDeckSection({
   projects,
@@ -275,14 +287,34 @@ export function ProjectDeckSection({
           with its own heading and its own Close; only `/projects/<slug>` is
           intercepted.
 
-          THE LABEL IS "Browse as a list" AND THE REASON LIVES WITH THE STRING,
-          in `projectDeckContent.ts`. Do not "fix" it back to "View All
-          Projects": both surfaces hold the same five projects, so a label
-          promising more of them would be untrue.
+          THE LABEL IS "Browse All" AND THE REASON LIVES WITH THE STRING, in
+          `projectDeckContent.ts`. It read "Browse as a list" until 2026-08-27.
+          **THAT DOCBLOCK RECORDS AN OBJECTION TO THE CURRENT WORDING AND SAAD
+          OVERRODE IT** — on THIS page all five projects are already in the deck
+          above, so "All" names the set rather than the difference. Do not
+          revert it, and do not give this instance its own string; go and read
+          the constant before touching either.
         */}
         <IntroEntrance className="mt-xl">
           <Link href="/projects" className={PROJECT_BUTTON_NAV}>
-            {DECK_BROWSE_AS_LIST_LABEL}
+            {/* THE LABEL SCRAMBLES ON POINTER-ENTER. `EncryptedButtonLabel`
+                finds this control by `closest("a,button")` and owns every
+                listener, so this file stays a SERVER component — the same
+                arrangement `/about`'s row uses, and the reason that component
+                reaches for its ancestor instead of taking a `hovered` prop.
+
+                WIDTH-STABLE BY CONSTRUCTION: `BUTTON_BASE` is `font-mono`, so
+                every substituted glyph has the same advance and the button's
+                box cannot change mid-scramble. `uppercase` is CSS, so the
+                ciphertext is uppercased with everything else.
+
+                `PROJECT_SCRAMBLE_ON_BASE`, NOT `ABOUT_SCRAMBLE_ON_BASE` — the
+                two strings are identical and the names are not
+                interchangeable; see the constant. */}
+            <EncryptedButtonLabel
+              text={BROWSE_ALL_LABEL}
+              encryptedClassName={PROJECT_SCRAMBLE_ON_BASE}
+            />
           </Link>
         </IntroEntrance>
       </div>

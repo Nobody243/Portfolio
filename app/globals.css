@@ -103,18 +103,60 @@
      one solid offset. */
   --color-brutal-edge: #8f8f8f; /* 6.12:1 on base — a RULE colour, never text */
 
-  /* The DECK RAMP — five surfaces for `/work`'s fanned card deck, mapped onto
-     the fan's z-order. A five-step neutral ELEVATION ramp, not five hues:
-     CLAUDE.md allows two accents total, and five distinguishable card faces
-     had to come from neutrals and elevation rather than from new colour.
-     ΔL* ≈ 3.2 between steps. Climbs LIGHTER in dark, the direction
-     `--color-elevated` already climbs. Light mode is tuned independently
-     below, never this ramp at another opacity. */
-  --color-deck-1: #0e1310;
-  --color-deck-2: #141a16;
-  --color-deck-3: #1a211c;
-  --color-deck-4: #202823;
-  --color-deck-5: #262f29;
+  /* THE DECK FACES — five surfaces for `/work`'s fanned card deck, ONE PER
+     PROJECT, in `content/projects.ts`'s array order:
+
+       1 FOLIO   2 Aero-Grid   3 ClashChat   4 CCN   5 SNA
+
+     ═══ THIS REPLACED A NEUTRAL ELEVATION RAMP ON 2026-08-26, ON SAAD'S
+     EXPLICIT INSTRUCTION, AND THE TEN HEXES ARE HIS. ═══
+
+     What was here until 2026-08-26 was a five-step neutral ramp mapped onto
+     the fan's Z-ORDER rather than onto the projects — `#0e1310` … `#262f29`
+     dark, `#f7f9f6` … `#d7ddd6` light, ΔL* ≈ 3.2 per step — chosen so five
+     card faces could be distinguished without spending a third accent. Saad
+     replaced it with a per-project palette and specified every value. The
+     binding difference is not the hues, it is the MAPPING: **a colour now
+     belongs to a PROJECT, not to a stacking position**, so re-ordering
+     `content/projects.ts` must re-order these with it. The old ramp's
+     "do not re-shuffle these, they encode depth" rule is therefore GONE and
+     `FannedDeckPhase1.tsx` no longer states it.
+
+     THIS IS NOT A THIRD ACCENT AND IT DOES NOT REOPEN THE PALETTE. Same guard
+     `--field-ink` uses: these are five SURFACES with exactly one consumer
+     (the deck card and its panel), no utilities exist for them elsewhere, and
+     nothing here may be borrowed as a text, border or highlight colour. The
+     two-accent rule in CLAUDE.md is unchanged — teal is still the only
+     affordance colour on the page.
+
+     CONTRAST, MEASURED AGAINST `--color-fg` (#ededed) RATHER THAN ASSUMED —
+     the brief required per-card verification and this is the result. ONE ink
+     serves all five; there is no per-card text colour:
+
+       1 FOLIO      #24170F   14.89:1
+       2 Aero-Grid  #223145   11.26:1
+       3 ClashChat  #346E68    5.02:1   ← the floor. AA at any size; AAA on none
+       4 CCN        #2F5B61    6.43:1
+       5 SNA        #0B281E   13.42:1
+
+     **#346E68 AND #2F5B61 ARE TEAL-ADJACENT AND THAT IS A KNOWN, ACCEPTED
+     COLLISION.** `--color-accent-working` is #14b8a6 and means "activate
+     this" everywhere on the site; cards 3 and 4 are desaturated, much darker
+     mid-teals used as SURFACES. Teal text on them is unusable (#14b8a6 is
+     2.36:1 on card 3), so the accent never appears on a deck face — which is
+     what keeps the two readings apart. Do not put a teal control on a card.
+
+     **A CONTRAST RATIO IS THE WRONG INSTRUMENT FOR THESE FACES.** Card 1 is
+     1.14:1 against `--color-base` and card 5 is 1.26:1, which reads as "no
+     silhouette at all" and is not what the deck looks like — the faces are
+     differentiated by HUE and WCAG's ratio is luminance-only. The light block
+     below carries the ΔE table, the reasoning, and the rule: retune with
+     CIEDE2000, never with a ratio. */
+  --color-deck-1: #24170f; /* FOLIO      — 14.89:1 under --color-fg */
+  --color-deck-2: #223145; /* Aero-Grid  — 11.26:1 */
+  --color-deck-3: #346e68; /* ClashChat  —  5.02:1, the palette's floor */
+  --color-deck-4: #2f5b61; /* CCN        —  6.43:1 */
+  --color-deck-5: #0b281e; /* SNA        — 13.42:1 */
 
   /* Surfaces. `elevated` is the card background (Ticket 6); the two tints are
      the quiet cyber-green / cloud-blue undertones reserved for skill groups
@@ -227,6 +269,36 @@
   --text-h4--line-height: 1.2;
   --text-h4--letter-spacing: -0.01em;
 
+  /* --- THE DECK CARD'S RESTING TITLE, ADDED 2026-08-26 ---------------------
+     A FIXED 21px, WHICH IS `--text-h4`'S OWN FLOOR WITH THE CLAMP REMOVED.
+     Single consumer, distinctly named, same guard as `--field-ink` and
+     `--radius-deck`: nothing outside `/work`'s fanned card may use it.
+
+     WHY NOT JUST `text-h4`. IT OVERFLOWS, AND THE NUMBER IS MEASURED.
+     In the fan, five 300px cards sit 180px apart (`CARD_SPACING`), so every
+     card except the last shows a 180px STRIP before the next one paints over
+     it — 167px of usable measure once the card's 13px padding is taken. The
+     longest unbreakable word in the five project titles is "Infrastructure",
+     measured in Space Grotesk at the site's own -0.01em tracking:
+
+       16px  106px    21px  139px  ← 28px of slack in 167. Chosen.
+       18px  120px    24px  159px  ←  8px of slack. Too tight for a new title.
+       20px  133px    26px  173px  ← OVERFLOWS. This is `--text-h4`'s ceiling.
+
+     `--text-h4` is `clamp(21px, …, 26px)` and resolves to 26px at any viewport
+     from ~1360px up — i.e. exactly where the deck is shown. A word 6px wider
+     than the strip is a word clipped by the next card, which is the defect
+     this brief existed to fix. The clamp cannot be capped by a utility, so the
+     floor is taken as a literal.
+
+     IF `CARD_SPACING` OR THE CARD WIDTH EVER CHANGES, RE-MEASURE THIS. The
+     binding constraint is one word against one strip, and it has 28px of
+     room — a longer project name than "Infrastructure" spends it.
+  ------------------------------------------------------------------------ */
+  --text-deck-title: 1.3125rem; /* 21px — see the strip arithmetic above */
+  --text-deck-title--line-height: 1.2;
+  --text-deck-title--letter-spacing: -0.01em;
+
   /* 26px -> 42px */
   --text-h3: clamp(1.625rem, 1.292rem + 1.48vw, 2.625rem);
   --text-h3--line-height: 1.15;
@@ -311,6 +383,35 @@
      `rounded-photo` to something that is not a photograph.
   --------------------------------------------------------------------- */
   --radius-photo: 13px;
+
+  /* --- THE SECOND RADIUS, ADDED 2026-08-26 ---------------------------------
+     `--radius-photo`'s docblock says, in as many words, that a SECOND consumer
+     "is the moment to decide whether this site has a radius system, with
+     Saad, and it is not a decision an implementer may take". **That decision
+     was taken, by Saad, in the Phase 3 deck brief**, which asked for rounded
+     deck cards and specified the discipline to follow: "use the site's
+     established single-consumer radius token pattern — name it distinctly,
+     don't reach for a generic scale that doesn't exist on this site."
+
+     SO THIS IS STILL NOT A SCALE. There is no `--radius-sm`/`md`/`lg`; there
+     are two tokens, each naming what it is allowed to touch. `--radius-photo`
+     is the `/about` portrait. `--radius-deck` is `/work`'s fanned card and
+     the panel that opens beneath it — one component, two elements of it.
+     A THIRD consumer is the next decision point, on the same terms.
+
+     13px, THE SAME VALUE, AND FOR THE SAME REASON — it is `--spacing-sm` off
+     the Fibonacci scale the whole site is built on, not a number from
+     Tailwind's default radius scale (4/6/8/12/16), which this project has
+     never imported. On a 300x400 card it is 4.3% of the short side; on the
+     364px portrait it is 3.6%. Close enough that the two rounded things on
+     the site look like they come from the same hand, which is the point.
+
+     IT IS LOAD-BEARING BEYOND DECORATION IN LIGHT MODE. With the card border
+     removed, adjacent deck faces sit at 1.03:1 against each other and draw no
+     edge at all; the corner arcs are the only thing left interrupting one
+     card's silhouette against the next. See the light `--color-deck-*` block.
+  ------------------------------------------------------------------------ */
+  --radius-deck: 13px;
 
   /* --- BREAKPOINTS -------------------------------------------------------
      THERE ARE NO CUSTOM BREAKPOINTS. The site runs on Tailwind's defaults.
@@ -563,15 +664,69 @@ html.light {
      false statement. #151515 is the same ink `border-fg` gave these controls
      before the token existed, so light is unchanged by its existence.
 
-     THE DECK RAMP CLIMBS DARKER IN LIGHT, its own tuned values at ΔL* ≈ 2.5 —
-     not the dark ramp reused at another opacity. That principle is why
-     `--color-accent-working` is #14b8a6 dark and #0f766e light. */
+     THE DECK FACES ARE INDEPENDENTLY TUNED IN LIGHT, never the dark set at
+     another opacity — the same principle that makes `--color-accent-working`
+     #14b8a6 dark and #0f766e light. Saad specified all ten hexes on
+     2026-08-26; see the dark block for the mapping rule and the guard.
+
+     ONE INK SERVES ALL FIVE. Measured against `--color-fg` (#151515):
+
+       1 FOLIO      #F5EFEB   16.03:1
+       2 Aero-Grid  #E2E8F0   14.81:1
+       3 ClashChat  #D8F3EC   15.61:1
+       4 CCN        #EDE8F5   15.18:1
+       5 SNA        #D9EBE1   14.71:1
+
+     ══════════════════════════════════════════════════════════════════════
+     WHY THE BORDERLESS DECK WORKS, AND WHY WCAG CONTRAST SAYS IT DOES NOT
+     ══════════════════════════════════════════════════════════════════════
+
+     The card's `border-accent-working/30` hairline was removed in the same
+     change, on Saad's instruction — "background color is the card's only edge
+     definition" — so these ten values are now solely responsible for the edge
+     where one card overlaps the next. That edge is the whole reason a fanned
+     deck reads as five objects rather than one shape.
+
+     **DO NOT EVALUATE IT WITH A CONTRAST RATIO. THAT MEASUREMENT WAS RUN
+     FIRST, IT SAID THE DECK WAS ILLEGIBLE, AND IT WAS WRONG.** WCAG's ratio
+     is a function of relative LUMINANCE only; it is blind to hue. These five
+     light faces are deliberately near-isoluminant and differentiated by hue —
+     beige, blue-grey, mint, lilac, sage — so the ratio collapses to nothing
+     while the boundary stays plainly visible:
+
+                     WCAG ratio        CIEDE2000
+                     light   dark      light   dark
+       1 | 2         1.08    1.32       7.4    19.4
+       2 | 3         1.05    2.24      11.7    26.6
+       3 | 4         1.03    1.28      17.3     9.1
+       4 | 5         1.03    2.09      15.8    18.5
+       card1 v page  1.11    1.14       3.4     9.6
+       card5 v page  1.21    1.26      10.3    16.1
+
+     ΔE 1.0 is a just-noticeable difference and 2–3 is clear at an edge, so
+     every overlap on this deck is between 3x and 26x the perceptual floor
+     even where the luminance ratio reads 1.03:1. Confirmed on a real render
+     in both themes before this note was written — the first version of this
+     comment claimed the light fan "draws no edge", which the screenshot
+     falsified.
+
+     The one genuinely soft boundary is FOLIO's outer edge against the page in
+     light: ΔE 3.4, the faintest silhouette on the deck. It is above the floor
+     and it is accepted.
+
+     `--radius-deck` helps and is not the load-bearing part: the corner arcs
+     interrupt one card's silhouette against the next, which the colours are
+     already doing along the straight edges.
+
+     IF A FUTURE FACE IS EVER RETUNED, CHECK IT WITH ΔE AND NOT WITH A RATIO,
+     and keep every adjacent pair above ~5. Do not add a border back to
+     "fix" a number that was never measuring the right thing. */
   --color-brutal-edge: #151515; /* 17.81:1 — the same ink `border-fg` gave */
-  --color-deck-1: #f7f9f6;
-  --color-deck-2: #eff2ee;
-  --color-deck-3: #e7ebe6;
-  --color-deck-4: #dfe4de;
-  --color-deck-5: #d7ddd6;
+  --color-deck-1: #f5efeb; /* FOLIO      — 16.03:1 under --color-fg */
+  --color-deck-2: #e2e8f0; /* Aero-Grid  — 14.81:1 */
+  --color-deck-3: #d8f3ec; /* ClashChat  — 15.61:1 */
+  --color-deck-4: #ede8f5; /* CCN        — 15.18:1 */
+  --color-deck-5: #d9ebe1; /* SNA        — 14.71:1 */
   /* --accent-hero is deliberately NOT overridden — see ACCENT POLICY above.
      Neither are --color-hero-surface, --color-hero-fg or --color-hero-accent:
      the hero is a pinned dark context in both themes. Their absence here is
