@@ -2,7 +2,12 @@
 
 import * as HoverCard from "@radix-ui/react-hover-card";
 import Image, { type StaticImageData } from "next/image";
-import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useSpring,
+} from "motion/react";
 import { useState, type MouseEvent, type ReactNode } from "react";
 
 import { BRUTAL_SHADOW } from "@/components/about/aboutButtonStyles";
@@ -204,74 +209,120 @@ export function LinkPreview({ preview, children }: LinkPreviewProps) {
         {children}
       </HoverCard.Trigger>
 
-      <HoverCard.Content
-        side="top"
-        align="center"
-        sideOffset={10}
-        className="[transform-origin:var(--radix-hover-card-content-transform-origin)]"
-      >
-        <AnimatePresence>
-          {open ? (
-            <motion.div
-              aria-hidden
-              /* `BRUTAL_SHADOW`, IMPORTED — NOT PASTED. This attribute carried
-                 a verbatim second copy of the five-layer shadow string until
-                 2026-08-25, which meant `projectButtonStyles.ts`'s rule ("Do
-                 not paste the class strings here. A second copy of a five-layer
-                 shadow is a second source of truth") was written while a second
-                 copy already existed, one directory away. The two never drifted
-                 — they were still byte-identical when this was closed — but the
-                 only reason is that nobody retuned the shadow in the eight
-                 hours between. */
-              className={`border-2 border-brutal-edge bg-base p-0.5 ${BRUTAL_SHADOW}`}
-              initial={
-                reducedMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: 20, scale: 0.6 }
-              }
-              animate={
-                reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }
-              }
-              exit={
-                reducedMotion
-                  ? { opacity: 0 }
-                  : { opacity: 0, y: 20, scale: 0.6 }
-              }
-              transition={
-                reducedMotion
-                  ? { duration: 0 }
-                  : { type: "spring", stiffness: 260, damping: 20 }
-              }
-              style={reducedMotion ? undefined : { x: translateX }}
-            >
-              {/* `alt=""` AND `aria-hidden` ON THE WRAPPER: the card duplicates
-                  a link that already has a correct accessible name two pixels
-                  away. Describing the screenshot here would announce the same
-                  destination twice, the second time in words nobody wrote for
-                  that purpose. */}
-              <Image
-                src={preview}
-                alt=""
-                width={PREVIEW_WIDTH}
-                height={PREVIEW_HEIGHT}
-                /* A FIXED BOX WITH A TOP-ANCHORED CROP, not `h-auto`.
-                   The sources are full-page screenshots at roughly 2.1:1 and
-                   the card is 1.6:1, so something has to give. `h-auto` was
-                   the first attempt and it is wrong: it lets each preview pick
-                   its own height from its own source aspect, so the card
-                   changes size link to link — LinkedIn's near-square capture
-                   would have rendered nearly twice as tall as a GitHub repo's.
-                   Cropping to a constant box keeps every preview the same
-                   object, and `object-top` decides WHERE the ~24% goes: off the
-                   bottom, keeping the header, the identity and the first fold —
-                   which is the part that makes a page recognisable at 200px
-                   wide. */
-                className="block h-[125px] w-[200px] object-cover object-top"
-              />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </HoverCard.Content>
+      {/*
+          ═══ `HoverCard.Portal` — THE FIX FOR A `<div>` INSIDE A `<p>` ═══
+
+          RADIX RENDERS `Content` IN PLACE UNLESS IT IS PORTALLED, so the card's
+          `motion.div` was emitted as a SIBLING OF THE TRIGGER, inside whatever
+          element wraps the link. `RevealFooter` wraps each contact value in a
+          `<p>`, and a `<div>` may not descend from a `<p>` — the parser closes
+          the paragraph early, so the server's tree and the client's disagree.
+          React logged it on `/` and `/work` on every hover:
+
+            In HTML, <div> cannot be a descendant of <p>.
+            This will cause a hydration error.
+              ... <RevealFooter> <footer id="contact" data-hero-palette="">
+
+          NOT FIXED BY CHANGING THE FOOTER'S `<p>` TO A `<div>`. That would fix
+          one call site and leave the next one to rediscover it — this component
+          is meant to be wrapped around any external link on the site, and four
+          files already do. The defect is that the card renders inside the
+          document flow at all; the portal is the fix at the level the defect
+          lives.
+
+          THREE THINGS THAT COULD HAVE BROKEN AND DO NOT, checked rather than
+          assumed:
+
+            - THEME. `lib/theme.ts` puts `light`/`dark` on
+              `document.documentElement`, so a portal to `<body>` still inherits
+              it. Had the class been on a wrapper div, this would have flipped
+              every card to the wrong palette.
+            - THE FOOTER'S `data-hero-palette` SCOPE. It defines `--nav-fg`,
+              `--nav-fg-dim` and `--nav-accent`, which only `CopyEmailButton`
+              reads. Nothing in this card resolves against it, so leaving the
+              subtree costs nothing. (`bg-base`, `border-brutal-edge` and
+              `BRUTAL_SHADOW` are all `:root` tokens.)
+            - PAINT ORDER. The footer is `relative z-0` UNDER the page stack's
+              `z-10`, so an in-flow card could be occluded by the curtain it
+              belongs to. Portalled, it is a late sibling of the app root at
+              `z-index: auto` and paints above both.
+
+          POSITIONING IS UNAFFECTED: Radix positions `Content` against the
+          trigger's measured rect with fixed positioning, which is viewport-
+          relative and does not care where in the tree the node sits.
+      */}
+      <HoverCard.Portal>
+        <HoverCard.Content
+          side="top"
+          align="center"
+          sideOffset={10}
+          className="[transform-origin:var(--radix-hover-card-content-transform-origin)]"
+        >
+          <AnimatePresence>
+            {open ? (
+              <motion.div
+                aria-hidden
+                /* `BRUTAL_SHADOW`, IMPORTED — NOT PASTED. This attribute carried
+                   a verbatim second copy of the five-layer shadow string until
+                   2026-08-25, which meant `projectButtonStyles.ts`'s rule ("Do
+                   not paste the class strings here. A second copy of a five-layer
+                   shadow is a second source of truth") was written while a second
+                   copy already existed, one directory away. The two never drifted
+                   — they were still byte-identical when this was closed — but the
+                   only reason is that nobody retuned the shadow in the eight
+                   hours between. */
+                className={`border-2 border-brutal-edge bg-base p-0.5 ${BRUTAL_SHADOW}`}
+                initial={
+                  reducedMotion
+                    ? { opacity: 0 }
+                    : { opacity: 0, y: 20, scale: 0.6 }
+                }
+                animate={
+                  reducedMotion
+                    ? { opacity: 1 }
+                    : { opacity: 1, y: 0, scale: 1 }
+                }
+                exit={
+                  reducedMotion
+                    ? { opacity: 0 }
+                    : { opacity: 0, y: 20, scale: 0.6 }
+                }
+                transition={
+                  reducedMotion
+                    ? { duration: 0 }
+                    : { type: "spring", stiffness: 260, damping: 20 }
+                }
+                style={reducedMotion ? undefined : { x: translateX }}
+              >
+                {/* `alt=""` AND `aria-hidden` ON THE WRAPPER: the card duplicates
+                    a link that already has a correct accessible name two pixels
+                    away. Describing the screenshot here would announce the same
+                    destination twice, the second time in words nobody wrote for
+                    that purpose. */}
+                <Image
+                  src={preview}
+                  alt=""
+                  width={PREVIEW_WIDTH}
+                  height={PREVIEW_HEIGHT}
+                  /* A FIXED BOX WITH A TOP-ANCHORED CROP, not `h-auto`.
+                     The sources are full-page screenshots at roughly 2.1:1 and
+                     the card is 1.6:1, so something has to give. `h-auto` was
+                     the first attempt and it is wrong: it lets each preview pick
+                     its own height from its own source aspect, so the card
+                     changes size link to link — LinkedIn's near-square capture
+                     would have rendered nearly twice as tall as a GitHub repo's.
+                     Cropping to a constant box keeps every preview the same
+                     object, and `object-top` decides WHERE the ~24% goes: off the
+                     bottom, keeping the header, the identity and the first fold —
+                     which is the part that makes a page recognisable at 200px
+                     wide. */
+                  className="block h-[125px] w-[200px] object-cover object-top"
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </HoverCard.Content>
+      </HoverCard.Portal>
     </HoverCard.Root>
   );
 }
