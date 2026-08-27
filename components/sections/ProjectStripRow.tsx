@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { Project } from "@/content/types";
+import { formatMonthYear } from "@/lib/formatMonthYear";
 
 /**
  * One full-bleed strip row on `/projects` — the projects-architecture spec §3,
@@ -60,7 +61,7 @@ import type { Project } from "@/content/types";
  */
 export type ProjectStripRowProps = Pick<
   Project,
-  "slug" | "title" | "coverImage"
+  "slug" | "title" | "coverImage" | "date"
 > & {
   readonly index: number;
 };
@@ -69,6 +70,7 @@ export function ProjectStripRow({
   slug,
   title,
   coverImage,
+  date,
   index,
 }: ProjectStripRowProps) {
   const numeral = String(index + 1).padStart(2, "0");
@@ -90,7 +92,38 @@ export function ProjectStripRow({
       on every row plus a `border-t` on the `<ul>` would look identical and put
       the two edges in two different files.
     */
-    <li className="border-t border-fg/25 last:border-b">
+    /*
+      ═══ THE INDEX DIMS AROUND WHATEVER YOU ARE POINTING AT ═══
+
+      Hovering (or tab-focusing) any row drops the OTHER four to 40%. It is
+      four utilities and it is the difference between a table and an index you
+      are reading: with five near-identical strips, the cheapest way to say
+      "this one" is to say "not those".
+
+      **IT IS ALSO WHAT MAKES THE OVERSIZED COVER LEGIBLE.** The cover below is
+      taller than the row and deliberately overhangs its neighbours; against
+      undimmed siblings that reads as a rendering bug, and against dimmed ones
+      it reads as the row opening.
+
+      WRITTEN AS FOUR PAIRED VARIANTS, AND THE PAIRING IS A SPECIFICITY FIX
+      rather than repetition. The "undim me" rule has to out-specify the
+      "dim everything" rule, so each pair shares a prefix and the winner adds
+      to it: `[ul:hover>&]` vs `[ul:hover>&:hover]`. The obvious spelling of
+      the second — a bare `hover:opacity-100` — compiles to `li:hover`, which
+      is LESS specific than `ul:hover > li`, so the hovered row would dim
+      itself. The same trap applies to the focus pair, where `:has()` takes
+      the specificity of its argument and makes the numbers non-obvious.
+
+      NO `motion-safe:` GATE. This is an opacity change, not a move, and the
+      numeral's colour step two levels down is already documented as the
+      feedback that deliberately survives `prefers-reduced-motion`. Dimming
+      belongs in that same category.
+
+      `duration-350` and `ease-in-out` are `DURATION.ui` / `EASE.ui`
+      numerically — see the `<h2>`'s note on why these are values and not
+      references.
+    */
+    <li className="border-t border-fg/25 transition-opacity duration-350 ease-in-out last:border-b [ul:has(a:focus-visible)>&]:opacity-40 [ul:has(a:focus-visible)>&:has(a:focus-visible)]:opacity-100 [ul:hover>&]:opacity-40 [ul:hover>&:hover]:opacity-100">
       {/*
         `group` AND `relative` BOTH LIVE ON THIS DIV, NOT ON THE `<li>`. The
         stretched link's `after:inset-0` resolves against the nearest positioned
@@ -124,7 +157,7 @@ export function ProjectStripRow({
         so a positive offset would draw the ring's left and right edges outside
         the viewport and a keyboard user would see three sides of a rectangle.
       */}
-      <div className="group relative flex items-center gap-md px-md py-md sm:px-lg has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-accent-working lg:h-3xl lg:justify-between lg:py-0">
+      <div className="group relative z-0 flex items-center gap-md px-md py-md hover:z-10 has-[a:focus-visible]:z-10 sm:px-lg has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-accent-working lg:h-3xl lg:justify-between lg:py-0">
         {/*
           THE TEXT GROUP. One line at `lg`+ (numeral, then title); stacked
           below it, because at 360px a 38-character title beside a fixed
@@ -134,7 +167,7 @@ export function ProjectStripRow({
           baseline. `items-center` would float it against the middle of a
           42px cap height and read as a stray label.
         */}
-        <div className="flex flex-col gap-2xs lg:flex-row lg:items-baseline lg:gap-md">
+        <div className="flex min-w-0 flex-col gap-2xs lg:flex-1 lg:flex-row lg:items-baseline lg:gap-md">
           {/*
             `aria-hidden`, LIKE EVERY OTHER `01` ON THIS SITE. The numeral is
             derived from array position and takes its meaning from sitting at
@@ -247,6 +280,52 @@ export function ProjectStripRow({
               </span>
             </Link>
           </h2>
+
+          {/*
+            ═══ THE DATE — THE ONE THING A LIST CAN DO THAT THE DECK CANNOT ═══
+
+            `content/projects.ts` has carried `date` since it was written and
+            nothing rendered it except the detail page. Without it this index
+            showed five names and nothing else, which made it strictly LESS
+            informative than the deck it is the alternative to — and a list
+            whose whole justification is scanning had nothing to scan.
+
+            `formatMonthYear` IS THE SITE'S OWN, and it is not `Intl`. That
+            function's docblock records why: `new Date("2025-05")` parses as UTC
+            midnight, so every viewer at a negative UTC offset sees the previous
+            month, and `Intl` disagrees across the server/client boundary. This
+            is its second caller after the detail page.
+
+            `text-caption font-mono text-fg/70` IS THE DETAIL PAGE'S EXACT
+            TREATMENT, deliberately — the same fact, set the same way, on both
+            surfaces. **`/70` IS THE FLOOR**: 8.41:1 dark, 6.69:1 light. Do not
+            dim it to /50 to create hierarchy against the title; `docs/03`
+            records that defect being caught twice already, and light mode is
+            the binding constraint.
+
+            `lg:ml-auto` PUSHES IT TO THE FAR END of the now-`flex-1` text
+            group, so it lands against the cover with the title's measure
+            between them. Below `lg` the group is a column and the date simply
+            follows the title, which is where a caption belongs on a stacked
+            row.
+
+            **THE ORDER OF THIS LIST IS NOT CHRONOLOGICAL AND THIS MAKES THAT
+            VISIBLE.** `content/projects.ts` is ordered strength-first, by
+            explicit decision, so 05 (2025-12) is the most recent and 04
+            (2024-12) the oldest. Showing dates exposes that. It is the honest
+            trade — the alternative is withholding the only comparable fact the
+            five projects have — but it is a trade, and if the ordering ever
+            reads as arbitrary the fix is a line of copy naming the order, not
+            hiding the dates.
+
+            NOT `<time>`. `date` is a `YYYY-MM` string with no day, so a
+            `dateTime` attribute would be asserting a precision the data does
+            not have. `aria-hidden` is also wrong here — unlike the numeral,
+            this is real information and should be announced.
+          */}
+          <span className="text-caption font-mono text-fg/70 lg:ml-auto lg:shrink-0 lg:pl-md">
+            {formatMonthYear(date)}
+          </span>
         </div>
 
         {/*
@@ -324,12 +403,23 @@ export function ProjectStripRow({
           intent (the image is decoration, it is never interactive) and does not
           touch paint order, so it cannot be undone by a future z-index.
         */}
-        <div className="pointer-events-none relative order-first h-[60px] w-[96px] shrink-0 transition-[opacity,translate] duration-350 ease-in-out lg:order-last lg:h-[125px] lg:w-[200px] lg:opacity-0 lg:group-hover:opacity-100 lg:group-has-[a:focus-visible]:opacity-100 lg:motion-safe:translate-x-md lg:motion-safe:group-hover:translate-x-0 lg:motion-safe:group-has-[a:focus-visible]:translate-x-0">
+        <div className="pointer-events-none relative order-first h-[60px] w-[96px] shrink-0 transition-[opacity,translate] duration-350 ease-in-out lg:order-last lg:h-[184px] lg:w-[360px] lg:opacity-0 xl:h-[224px] xl:w-[440px] lg:group-hover:opacity-100 lg:group-has-[a:focus-visible]:opacity-100 lg:motion-safe:translate-x-md lg:motion-safe:group-hover:translate-x-0 lg:motion-safe:group-has-[a:focus-visible]:translate-x-0">
           {/*
             `fill` PLUS A FIXED BOX, not intrinsic sizing. The five covers run
-            1.967 to 2.671 in aspect and this slot is a constant 1.6, so the
+            1.966 to 2.671 in aspect and the slot is a constant per band, so the
             image has to be told to fill a box the layout owns rather than the
             other way round.
+
+            THE BAND ASPECTS ARE CHOSEN, NOT ROUNDED: 96x60 (1.600) below `lg`,
+            360x184 (1.957) at `lg`, 440x224 (1.964) at `xl`. **Every one is
+            NARROWER than the narrowest cover (SNA, 1.966)**, which is the
+            invariant the `sizes` string below depends on — see its note. The
+            two large boxes were 360x180 and 440x220, a flat 2.000, for one day;
+            SNA fell on the wrong side of that and painted 434px inside the
+            440px box, so it sat ~6px narrower than its four neighbours and made
+            `sizes` over-declare. Four pixels of height on each box fixed both.
+            **If a cover is ever added below 1.964, these two heights move
+            again** — that is the whole maintenance rule.
 
             `object-contain`, NOT `object-cover`, AND THIS OVERRULES THE DESIGN
             BRIEF. Decided 2026-08-25 while Saad was asleep, under the spec's
@@ -354,10 +444,12 @@ export function ProjectStripRow({
             ruling and a content ruling disagree in this repo, content wins —
             that is what "content authority, not taste" means.
 
-            AND THE MEASUREMENT AGREES. CCN's cover is 1600x599. Cropped to this
-            slot's 1.6 it keeps the middle 200/334 of its width and discards
-            ~40% of a multi-floor topology whose entire subject is HOW MANY
-            FLOORS THERE ARE. That is not a cosmetic loss; it is the thumbnail
+            AND THE MEASUREMENT AGREES. CCN's cover is 2.671 in aspect (3200x1198
+            since the source was recaptured; it was 1600x599 when this was
+            written and the ratio is unchanged). Cropped to the `xl` slot's
+            1.964 it would keep the middle 73.5% of its width and discard ~26%
+            of a multi-floor topology whose entire subject is HOW MANY FLOORS
+            THERE ARE — and ~40% at the 1.6 the slot used to be. That is not a cosmetic loss; it is the thumbnail
             misrepresenting what the project is, on the page whose job is to let
             someone choose which project to open.
 
@@ -371,16 +463,47 @@ export function ProjectStripRow({
             untouched — they already show the cover uncropped and were never in
             conflict.
 
-            `sizes` IS CORRECT UNDER `object-contain` ONLY BECAUSE EVERY COVER
-            IS WIDER THAN THIS BOX'S 1.6 ASPECT (they run 1.967-2.671), so the
-            rendered width is the box width in both bands. A future cover TALLER
-            than 1.6 would letterbox left-and-right instead, render narrower
-            than the box, and make this string over-declare.
+            ═══ `sizes` MIRRORS THE THREE SLOT WIDTHS AND NOTHING ELSE ═══
 
-            `sizes` MIRRORS THE TWO SLOT WIDTHS AND NOTHING ELSE. There is no
-            fluid branch to encode because neither box is fluid; if either
-            number changes, this string changes in the same commit or the page
-            silently ships the wrong candidate.
+            **THIS EXACT PARAGRAPH USED TO SAY "THE TWO SLOT WIDTHS", AND IT
+            PREDICTED THE BUG IT THEN SHIPPED**: "if either number changes, this
+            string changes in the same commit or the page silently ships the
+            wrong candidate." The box grew from 200x125 to 360x180 at `lg` and
+            440x220 at `xl` in the 2026-08-26 index pass, the string was left
+            declaring `200px`, and the page silently shipped the wrong candidate
+            for a day. Measured on `/projects` at 1440x945 before the fix:
+
+              declared 200px -> browser picks the 256w candidate
+              painted into a 440px box            = 1.72x UPSCALE, 1x display
+              at DPR 2 it needs 400 -> picks 640w
+              painted into 880 device px          = 1.38x UPSCALE
+
+            Every row, every display. **The sources were never the problem** —
+            they are 2046-3836px wide and the optimiser was returning correct
+            bitmaps at every width asked of it. Only the ask was wrong.
+
+            (`img.naturalWidth` reads 200 rather than 256 while this is broken,
+            which is not a second fault: with `w` descriptors the DOM corrects
+            intrinsic size for the candidate's density, 256/1.28. Do not use
+            `naturalWidth` alone to check this — compare `currentSrc`'s `w=`
+            against the painted box.)
+
+            THERE IS STILL NO FLUID BRANCH TO ENCODE. None of the three boxes is
+            fluid, so each is a flat pixel count and the breakpoints are
+            Tailwind's `lg` (1024) and `xl` (1280), in descending order because
+            the browser takes the first media condition that matches.
+
+            `sizes` IS EXACT ONLY WHILE EVERY COVER IS WIDER THAN ITS BOX, and
+            under `object-contain` that is a real precondition rather than a
+            formality: a cover NARROWER than the box letterboxes
+            left-and-right, paints less than the full box width, and makes this
+            string over-declare. It was briefly violated — the boxes shipped at
+            a flat 2.000 and SNA is 1.966 — and the box heights were moved to
+            1.957/1.964 to restore it rather than the string being fudged,
+            because the mismatch was also visible: SNA rendered ~6px narrower
+            than its four neighbours. All three bands now clear all five covers,
+            so each number here IS the painted width. Keep it that way; the
+            aspects are listed at the top of this block.
 
             `quality={85}` uniformly, never per image — `ProjectCard`'s stated
             rule for the same five sources, all of which are UI screenshots
@@ -420,7 +543,7 @@ export function ProjectStripRow({
             src={coverImage.src}
             alt={coverImage.alt}
             fill
-            sizes="(min-width: 1024px) 200px, 96px"
+            sizes="(min-width: 1280px) 440px, (min-width: 1024px) 360px, 96px"
             placeholder="blur"
             quality={85}
             className="object-contain"

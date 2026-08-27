@@ -13,7 +13,8 @@ import { projects } from "@/content/projects";
  * page, not a modal, reachable by direct URL and refreshable, holding one
  * full-width strip row per project. `/work` carries the fanned deck and the
  * rest of the record; this page is the same five projects in a different
- * PRESENTATION, which is why `/work`'s button to it reads "Browse as a list"
+ * PRESENTATION, which is what `/work`'s button to it used to say in as many
+ * words ("Browse as a list", until 2026-08-27; it reads "Browse All" now)
  * rather than promising more projects.
  *
  * WHAT IS ON IT, AS OF SLICE 4: the heading, the five strip rows in
@@ -26,7 +27,7 @@ import { projects } from "@/content/projects";
  * THE ORDER OF THE ROWS IS `content/projects.ts`'s ARRAY ORDER AND IS NEVER
  * SORTED. `projects` is passed straight to `.map()` below — no filter, no
  * slice, no `featuredProjects`. This page is the exhaustive list by definition,
- * which is why `/work`'s button to it reads "Browse as a list": both surfaces
+ * which "Browse as a list" said out loud until 2026-08-27: both surfaces
  * hold the same five, and only the presentation differs.
  *
  * INSIDE `(chrome)`, AND THAT IS FORCED RATHER THAN CHOSEN. Two independent
@@ -133,7 +134,7 @@ import { projects } from "@/content/projects";
  * mandatory.
  */
 export const metadata: Metadata = {
-  title: "Projects",
+  title: "Index",
   alternates: { canonical: "/projects" },
 };
 
@@ -207,23 +208,82 @@ export default function ProjectsPage() {
         aria-labelledby="projects-index-heading"
         className="w-full bg-base pt-2xl pb-2xl"
       >
+        {/*
+          ═══ THE HEADER BAR — HEADING LEFT, EXIT RIGHT, ONE BASELINE ═══
+
+          The top `Close` used to sit on its own line ABOVE the `<h1>`, which
+          matched `ProjectDetailFrame`'s order and did not survive being looked
+          at: a bare teal word alone above the heading reads as a stray label
+          rather than an exit, and it takes the first fixation on the page away
+          from the thing the page is called. It now shares the heading's
+          baseline at the far edge, which is what an exit control looks like.
+
+          BOTH EXITS ARE KEPT. `docs/07` has two `Close` affordances on this
+          route deliberately, top and bottom, both to `/work`; this moves one,
+          it does not remove it.
+
+          IT STACKS AGAIN BELOW `sm`. At 360px the heading and a 12px mono word
+          on one line leaves the heading no measure, so the flex row is gated to
+          `sm:` and below it the two simply stack — heading first, exit under
+          it, which is the order that reads when there is no room to pair them.
+
+          `items-baseline` AND NOT `items-center`: the exit is a 12px mono word
+          against a 68px heading, and centring it against that cap height floats
+          it in the middle of nothing. The same argument the numeral's
+          `lg:items-baseline` makes one file over.
+
+          RIGHT-ALIGNING IT DOES NOT BREAK RULE S-1'S EXCEPTION. That rule is
+          about the page having ONE LEADING edge — every block starting at the
+          same `px-md sm:px-lg` chrome gutter — and this block still does. The
+          exit is aligned to the trailing edge of the same inset, which is the
+          gutter's other side, not a second spine.
+        */}
         <div className="px-md sm:px-lg">
-          {/* NOT WRAPPED IN A `Reveal`, matching the detail route's back links
-              and for the reason recorded there: this is one of the page's two
-              escape hatches, and a navigation exit that fades in is worse than
-              one that is simply there. It sits ABOVE the heading, which is the
-              same order `ProjectDetailFrame` uses. */}
-          <Link href={CLOSE_HREF} className={STANDALONE_NAV}>
-            {CLOSE_LABEL}
-          </Link>
-          {/* A VISIBLE `<h1>`, unlike `/work`'s `sr-only` one. That page hides
-              its `<h1>` because `Projects` already renders a visible "Work" as
-              an `<h2>` and a second visible copy would be a duplicate rather
-              than a hierarchy. The rows below are `<h2>`s, so this `<h1>` is
-              the outline's root and nothing sits between it and them. */}
-          <h1 id="projects-index-heading" className="mt-lg text-h2 text-fg">
-            Projects
-          </h1>
+          {/* A VISIBLE `<h1>`, unlike `/work`'s `sr-only` one. The rows below
+              are `<h2>`s, so this `<h1>` is the outline's root and nothing sits
+              between it and them.
+
+              ═══ IT SAYS "Index", NOT "Projects", AND THAT IS AN IA FIX ═══
+
+              `/work`'s `<h1>` is "Projects." and this page's was "Projects" —
+              two routes, near-identical headings, separated by a full stop, and
+              nothing on either page telling you which one you were on. Both
+              render the same five projects, so the heading was the only thing
+              that could distinguish them and it did not.
+
+              "Index" names what is different: this is the same five, enumerated
+              and comparable, with numerals and dates. `metadata.title` moved
+              with it, so the tab reads "Index — Saad" rather than a second
+              "Projects — Saad" competing with `/work`'s in a bookmark list.
+
+              THE NAVBAR IS UNAFFECTED — it has never linked here (`WORK` shows
+              active on this route via `ROUTE_GROUP`), and the only inbound
+              control is `/work`'s "Browse All".
+
+              THAT LABEL USED TO CARRY HALF OF THIS ARGUMENT AND NO LONGER
+              DOES. It read "Browse as a list" until 2026-08-27, which described
+              this page's affordance rather than naming it — so the control and
+              the heading were saying two different, complementary things.
+              "Browse All" names a SET, which is the same job the heading does.
+              The distinction now rests on the heading alone: "Index" against
+              `/work`'s "Projects.". That is still enough — it is the visible
+              text on the page a visitor is standing on — but it is one signal
+              where there were two, so do not weaken the heading as well. */}
+          <div className="sm:flex sm:items-baseline sm:justify-between sm:gap-lg">
+            <h1 id="projects-index-heading" className="text-h2 text-fg">
+              Index
+            </h1>
+            {/* NOT WRAPPED IN A `Reveal`, matching the detail route's back
+                links and for the reason recorded there: this is one of the
+                page's two escape hatches, and a navigation exit that fades in
+                is worse than one that is simply there. */}
+            <Link
+              href={CLOSE_HREF}
+              className={`${STANDALONE_NAV} mt-lg block sm:mt-0`}
+            >
+              {CLOSE_LABEL}
+            </Link>
+          </div>
         </div>
 
         {/*
@@ -245,6 +305,7 @@ export default function ProjectsPage() {
               slug={project.slug}
               title={project.title}
               coverImage={project.coverImage}
+              date={project.date}
             />
           ))}
         </ul>

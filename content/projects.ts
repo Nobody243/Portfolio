@@ -306,7 +306,7 @@ export const projectSlugs = projects.map((project) => project.slug);
  * THAT LAST CLAUSE READ "which is also the ONLY route that links to their
  * detail pages" UNTIL 2026-08-25 AND IS NO LONGER TRUE. `/projects` shipped a
  * strip row per project, so both routes link to all five — and Home reaches
- * `/projects` in one click via the `Browse as a list` control under its three
+ * `/projects` in one click via the `Browse All` control under its three
  * cards. "Archive-only" now means "not among Home's three CARDS", which is a
  * narrower statement than it used to be. Changing this set is still Saad's
  * call, not a layout decision.

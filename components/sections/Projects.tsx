@@ -3,8 +3,12 @@ import Link from "next/link";
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
 import { ScrubReveal } from "@/components/ui/ScrubReveal";
 import { ProjectCard } from "@/components/sections/ProjectCard";
-import { PROJECT_BUTTON_NAV } from "@/components/sections/projectButtonStyles";
-import { DECK_BROWSE_AS_LIST_LABEL } from "@/components/sections/projectDeckContent";
+import {
+  PROJECT_BUTTON_NAV,
+  PROJECT_SCRAMBLE_ON_BASE,
+} from "@/components/sections/projectButtonStyles";
+import { BROWSE_ALL_LABEL } from "@/components/sections/projectDeckContent";
+import { EncryptedButtonLabel } from "@/components/ui/EncryptedButtonLabel";
 import { PROJECTS_HEADING } from "@/components/sections/projectsContent";
 import type { Project } from "@/content/types";
 
@@ -431,24 +435,25 @@ export function Projects({ projects, motion }: ProjectsProps) {
           the brutal shadow's 5px overhang some free clearance; the section's
           `pb-2xl` covers it many times over regardless.
 
-          THE LABEL IS `DECK_BROWSE_AS_LIST_LABEL`, IMPORTED — NOT A SECOND COPY
-          OF THE STRING. Home and `/work` are one control on two pages, with one
+          THE LABEL IS `BROWSE_ALL_LABEL`, IMPORTED — NOT A SECOND COPY OF THE
+          STRING. Home and `/work` are one control on two pages, with one
           destination, so they get one string; two copies would drift the first
           time the wording was retuned and the drift would be invisible until
-          someone opened both pages side by side. The `DECK_` prefix is now a
-          slight misnomer here and that is recorded at the constant itself.
+          someone opened both pages side by side. The constant was
+          `DECK_BROWSE_AS_LIST_LABEL` until 2026-08-27; the `DECK_` prefix had
+          been a misnomer here since Home became the second reader.
 
-          "VIEW ALL PROJECTS" WAS THE DESIGN BRIEF'S LABEL AND IS DELIBERATELY
-          NOT USED, EVEN THOUGH IT WOULD BE LITERALLY TRUE FROM HOME (three
-          cards here, five rows there). Two reasons, and the second is the
-          load-bearing one: (1) the same control on `/work` cannot say it —
-          five and five — so keeping both on one string means keeping the one
-          that is true on both surfaces; (2) "View all projects" promises the
-          ARCHIVE, and the archive is `/work`, which is what the navbar already
-          offers. A control that promises the archive and delivers a differently
-          presented list of the same five is the label doing the lying. "Browse
-          as a list" names the affordance difference, which is the thing that is
-          actually different from either surface.
+          **THIS IS THE SURFACE WHERE "Browse All" IS TRUE.** Home features
+          three and the control leads to five, so "all" is exactly right. It is
+          `/work` that cannot honestly say it — the deck there already holds all
+          five — and the constant's docblock records that objection and Saad's
+          override in full. Read it before retuning either instance.
+
+          "VIEW ALL PROJECTS" WAS THE DESIGN BRIEF'S LABEL AND IS STILL NOT
+          USED, and the reason survives the rename: it promises the ARCHIVE, and
+          the archive is `/work`, which is what the navbar already offers. A
+          control that promises the archive and delivers a differently presented
+          list of the same five is the label doing the lying.
 
           `PROJECT_BUTTON_NAV` UNCHANGED, and `bg-base` in it is correct here by
           the same "fill with the surface you are standing on" rule that chose
@@ -473,7 +478,24 @@ export function Projects({ projects, motion }: ProjectsProps) {
         */}
         <div className="mt-xl lg:mt-2xl">
           <Link href="/projects" className={PROJECT_BUTTON_NAV}>
-            {DECK_BROWSE_AS_LIST_LABEL}
+            {/* THE LABEL SCRAMBLES ON POINTER-ENTER. `EncryptedButtonLabel`
+                finds this control by `closest("a,button")` and owns every
+                listener, so this file stays a SERVER component — the same
+                arrangement `/about`'s row uses, and the reason that component
+                reaches for its ancestor instead of taking a `hovered` prop.
+
+                WIDTH-STABLE BY CONSTRUCTION: `BUTTON_BASE` is `font-mono`, so
+                every substituted glyph has the same advance and the button's
+                box cannot change mid-scramble. `uppercase` is CSS, so the
+                ciphertext is uppercased with everything else.
+
+                `PROJECT_SCRAMBLE_ON_BASE`, NOT `ABOUT_SCRAMBLE_ON_BASE` — the
+                two strings are identical and the names are not
+                interchangeable; see the constant. */}
+            <EncryptedButtonLabel
+              text={BROWSE_ALL_LABEL}
+              encryptedClassName={PROJECT_SCRAMBLE_ON_BASE}
+            />
           </Link>
         </div>
       </div>
