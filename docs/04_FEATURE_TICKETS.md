@@ -49,7 +49,10 @@ launch, **S** = should-have, **N** = nice-to-have.
 > are a **build record**, not a live spec, and their value is showing what was asked for at the time.
 >
 > **A count correction first: this file contains EIGHTEEN tickets, not sixteen.** `CLAUDE.md`'s
-> reference list calls them "the 16 build tickets", which was true of the original set; **Ticket 17
+> reference list called them "the 16 build tickets" until 2026-08-22, which was true of the original
+> set; it says 18 now and the two agree — verified 2026-08-28, `grep -c "^### TICKET "` returns 18.
+> *(This sentence went on describing CLAUDE.md as still saying 16 for six days after it stopped.
+> A cross-reference is a claim about another file and goes stale when that file is fixed.)* **Ticket 17
 > (`og:image`) and Ticket 18 (error / not-found pages) were added later**, in response to gaps found
 > during the build, and both have shipped. Anyone auditing "all 16" would silently skip two shipped
 > tickets. `CLAUDE.md` is not amended by this pass — flagged here rather than changed.
@@ -404,9 +407,11 @@ carried by `StaticImageData` — no hand-copied width/height, no layout shift.
 > sites. **No project entry carries a `featured` or `order` field**, deliberately, so display order
 > cannot drift between the two pages.
 >
-> **CCN and SNA are archive-only**, which makes `/work` the only route on the site that links to their
-> detail pages — and therefore the only place their card → overlay morph can be exercised at all. A
-> future test of the morph that only opens Home tests three fifths of it.
+> **CCN and SNA are not on Home**, so `/` exercises three fifths of the card → overlay morph and a
+> test that only opens Home is testing three fifths of it. *(This bullet said they were
+> "archive-only" and that `/work` was "the only route on the site that links to their detail pages"
+> until 2026-08-28. `/projects` shipped on 2026-08-25 and gives all five a second in-app entry point;
+> `docs/01`'s scope table caught the same sentence on 2026-08-25 and this copy of it was missed.)*
 >
 > **Home's cards are scroll-scrubbed and `/work`'s are not.** `<Projects motion="scrub">` on `/`,
 > `motion="reveal"` on `/work`; the prop is required and has no default, so the page that knows which
@@ -487,8 +492,20 @@ beat, not an afterthought.
 > `components/sections/Contact.tsx` no longer exists. Phase 5 (`23d890d`) replaced it with the
 > **reveal footer**: a `position: sticky; bottom: 0` `<footer>` sitting behind an opaque page stack,
 > which the last section wipes up off as you scroll past. One component, two call sites — `/` and
-> `/work` — and **deliberately not `/about`**, which `docs/07` §6 keeps as the one fully quiet page
-> and which therefore has **zero `contentinfo` landmarks**.
+> `/work`. **`/about` AND `/projects` both have zero `contentinfo` landmarks**, for two different
+> reasons: `docs/07` §6 keeps `/about` as the fully quiet page, and §5 rules the strip index out
+> because it ends on its own `Close` affordance and a curtain under it would be a second exit
+> competing with the one the page is built around. Counted off the built HTML on 2026-08-28: one
+> `<footer>` on `/` and on `/work`, zero on `/projects` and `/about`.
+>
+> *(This paragraph said "deliberately not `/about`" alone until 2026-08-28 — written when `/about`
+> was the only footer-less route, and left standing through the arrival of a second one.)*
+>
+> **The plate has been redesigned twice since**, on 2026-08-27 and 2026-08-28: two columns, an
+> ambient `SAAD` watermark that writes itself on arrival, an outbound arrow and a muted→teal hover on
+> the two real links, one merged mark-and-copyright row, and a right-aligned link column terminating
+> on the spine's own inset. `docs/03`'s Rule S-6 and its S-1 trailing-edge section carry the
+> measurements. **This ticket's two acceptance criteria survived all of it unchanged.**
 >
 > **Both of this ticket's acceptance criteria transferred intact and are still met:** the links are
 > real (click-to-copy email, LinkedIn, GitHub — no placeholder socials), and the closing beat is more

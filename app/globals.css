@@ -802,8 +802,12 @@ html {
    the grid read differently in the two modes. That is still the rule: ONE
    value for both themes, never a per-mode split.
    No shadow, gradient or backdrop-blur tokens either. (It said "or radius"
-   until 2026-08-24; there is now exactly one, `--radius-photo`, with one
-   consumer and its whole reversal recorded at the token.)
+   until 2026-08-24; there are now TWO, `--radius-photo` and `--radius-deck`,
+   each with one named consumer and each recorded at its own token. It said
+   "exactly one" until 2026-08-28, four days after `--radius-deck` was added a
+   few hundred lines above this comment. Two tokens are still not a SCALE:
+   `--radius-photo`'s docblock states in as many words that a second consumer
+   needs a second token, and that is what happened.)
 --------------------------------------------------------------------------- */
 body {
   background-color: var(--color-base);

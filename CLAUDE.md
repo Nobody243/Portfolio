@@ -92,8 +92,8 @@ regardless of tier. "Minimal" ≠ "static" — it means visually quiet, not un-c
   three.js debris and must not be deleted.
 - GSAP + ScrollTrigger (scroll-synced animation timelines — drives the tier energy curve)
 - Lenis (smooth scroll, used site-wide)
-- Framer Motion (component-level / shared-element transitions, e.g. project card → detail)
-- Tailwind CSS
+- Motion (component-level / shared-element transitions, e.g. project card → detail). **The package is `motion` and every import in the repo is `from "motion/react"`** — there is no `framer-motion` in `package.json`. This line said "Framer Motion" until 2026-08-28; it is the same library under its current name, and the old one sends anyone installing it to a different package.
+- Tailwind CSS **v4** — `@theme static`, `--color-*` / `--text-*` / `--spacing-*` namespaces, no `tailwind.config.js`. `app/globals.css` is the source of truth for every token value.
 - Deploy target: Vercel
 
 ## Design system
@@ -133,6 +133,22 @@ for contrast):**
   non-interactive layer in the affordance colour is the largest possible version of "a teal frame
   around something you cannot click". Full arithmetic in `docs/03_FRONTEND_SPEC.md` and
   `app/globals.css`.
+- `--color-deck-1` … `--color-deck-5` (Tier 2, ONE consumer — `/work`'s fanned card and nothing
+  else): **five SURFACES, not five accents, and the two-accent rule is untouched by them.** Ten hexes
+  in all, specified by Saad on 2026-08-26, one per project **in `content/projects.ts`'s array order**
+  — FOLIO, Aero-Grid, ClashChat, CCN, SNA. Dark `#24170f` `#223145` `#346e68` `#2f5b61` `#0b281e`;
+  light `#f5efeb` `#e2e8f0` `#d8f3ec` `#ede8f5` `#d9ebe1`. **A colour belongs to a PROJECT, not to a
+  stacking position**, so re-ordering `content/projects.ts` must re-order these with it — what they
+  replaced was a five-step neutral ELEVATION ramp mapped onto the fan's z-order, and that ramp's "do
+  not re-shuffle, these encode depth" rule died with it. Same mechanical guard `--field-ink` uses:
+  none of them may be borrowed as a text, border or highlight colour anywhere. Teal is still the only
+  thing that means "activate this". *(Absent from this list until 2026-08-28, which left the section
+  reading as though `--field-ink` were the only non-accent colour family on the site.)*
+- **There are TWO radius tokens, and there is still no radius SCALE.** `--radius-photo: 13px` on
+  `/about`'s portrait and `--radius-deck: 13px` on `/work`'s fanned card. Identical values, two
+  tokens, because each names exactly what it is allowed to touch — the point was never the number.
+  Nothing else on the site is rounded, and Rule S-4 still bans a radius on the project overlay.
+  *(This file and `app/globals.css` both said "exactly one" until 2026-08-28.)*
 - **Tier is a property of RENDER SITES, not of code paths.** The leak above was invisible for exactly
   that reason: `grep -rn "accent-hero" components/` returned two hits and reported clean the whole
   time, because generalising a component carried the colour to a new tier without anyone typing the
@@ -160,7 +176,7 @@ this summary is downstream of it. The numbered list below keeps its original num
 
 | Route | Sections, in order |
 |---|---|
-| `/` | Hero · Trajectory · Skills · Projects (**the featured three only**) · reveal footer |
+| `/` | Hero · Trajectory · Skills · Projects (**the featured three only**) · a **"Browse All"** `<Link>` to `/projects` · reveal footer. *(The Browse All control was missing from this row until 2026-08-28, which made Home look like a dead end — it is one of the route's two prerendered links out, and `README.md`, `docs/01` and `content/projects.ts` all recorded it while this table did not.)* |
 | `/work` | `<h1>` **"Projects."** · the fanned card deck (all five, `components/sections/FannedDeckPhase1.tsx`) · a **"Browse All"** `<Link>` to `/projects` (whose label scrambles on hover) · Certifications (heading + "Coming soon.", a visible placeholder) · Experience · Currently Learning · reveal footer. The navbar label stays `WORK` and the route stays `/work` — the heading changed, nothing else did. A card's `Details` opens the intercepted overlay, not the standalone page |
 | `/projects` | `<h1>` **"Index"** · the same five projects as a **full-bleed strip list** — one row each, numeral + title + **date**, with the cover fading in oversized from the right at `lg`+ and **overhanging the row**, while the other four rows dim to 40% — between two `Close` affordances that both go to `/work`, fixed rather than return-to-referrer. The top one shares the `<h1>`'s baseline at the trailing edge; the bottom one is its own block. A row opens the same intercepted overlay a card does. **No reveal footer**, deliberately. It is Rule S-1's second named exception: no spine, the chrome gutter instead. The navbar does **not** link here |
 | `/about` | **Composed to fit a REAL browser window on a 1080p display — 945px of `innerHeight`, not 1080 — without scrolling; scrolls anywhere it does not fit.** There is no CSS enforcing a single screen any more — no `h-dvh`, no `overflow-hidden` — so the non-scroll outcome is a property of the composition rather than a rule, and nothing is ever clipped. The guarantee narrowed twice on 2026-08-23 (`lg`+ → `xl`+ → 1080p only, each time on Saad's call) and its TARGET was corrected on 2026-08-24: a display resolution is not a viewport, and verifying against 1080 shipped a page that overflowed a real window by 21px. Verify `/about` in a real browser, or against 945/905/875 — never against the display height. `docs/07` §6 carries all of it. No reveal footer, deliberately, at any width — see `docs/07` §5–6 |
@@ -188,21 +204,49 @@ this summary is downstream of it. The numbered list below keeps its original num
 > in a real browser; the earlier purpose-built component is kept on disk, unimported, as
 > `components/sections/ProjectDeck.tsx`.
 >
-> **Verified against the code on 2026-08-25, not carried from a plan — every one of these is still
-> open:** a `<Link>` (an `<a>`) nested inside the card's `<button>`, which is invalid HTML; **no
-> mobile treatment at all below 1024px** — there is not one `sm:` or `md:` utility in the file, so a
-> phone gets the desktop fan at 220×300 with 70px of each card exposed, and the governing spec's §6
-> asks for a real mobile version of the interaction; no `prefers-reduced-motion` branch; no Escape
-> handler; no focus management and no `focus-visible` ring; inactive cards that stay tabbable after
-> being dropped to `opacity: 0`, with no `pointer-events` gate. **And `/work` prerenders ZERO
-> `/projects/<slug>` anchors**, so with JavaScript off no project is navigable from that page — the
-> only route onward is the single `Browse All` link, which is load-bearing in a way nobody
-> designed it to be. Counted off `.next/server/app/work.html` against `projects.html`, which emits
-> all five. Making the deck degrade to links is a design decision, not a cleanup.
+> **RE-VERIFIED AGAINST THE CODE ON 2026-08-28, AND MOST OF THE 08-25 LIST IS NOW WRONG.** What
+> this paragraph said then — invalid nested `<a>`, no Escape handler, no `focus-visible` ring, no
+> focus management, inactive cards left tabbable, and `/work` prerendering ZERO `/projects/<slug>`
+> anchors — was true when it was written and has since been fixed. Leaving it standing would have
+> been the exact failure this file keeps recording. **What actually changed:**
 >
-> *(This note is new on 2026-08-25 and is part of the documentation reconstruction described below.
-> It is written from the code, not from the spec — the spec describes a deck with a mobile swipe
-> stack and per-card GitHub / Live Site anchors, and that component is the retired one.)*
+> - The card is a `<div role="button" tabIndex>`, so the `Details` `<a>` inside it is valid HTML.
+>   Zero `button a` / `a button` matches on the page.
+> - `tabIndex={anyActive && !isActive ? -1 : 0}` takes dropped cards out of the tab order. **NOT
+>   `inert` and NOT `pointer-events-none`, deliberately** — they stay clickable, because
+>   one-click switching between projects is the interaction Saad specified.
+> - An Escape handler and a `focus-visible:outline-2 ... outline-accent-working` ring both exist.
+> - All five `/projects/<slug>` anchors are now in `.next/server/app/work.html`. **Do not read that
+>   as a fix** — see the third bullet below.
+>
+> **STILL OPEN, counted off the file today. `FannedDeckPhase1.tsx`'s own header carries the full
+> list with measurements; these are the ones that constrain other work:**
+>
+> - **NO MOBILE TREATMENT BELOW 1024px.** Still not one `sm:` or `md:` utility in the file — the two
+>   `lg:` breakpoints are the only ones. The expanded card at least FITS at 900 and 768 now
+>   (worst-case slack 24px, `Details` visible on all five), but fitting is not a treatment: at
+>   220×300 with 70px of each card exposed the titles overlap. **This is the largest open item** and
+>   the governing spec asks for a real mobile version of the interaction.
+> - **NO `prefers-reduced-motion` BRANCH.** The spring runs for everyone.
+> - **NO USABLE PROJECT LINKS WITH JS OFF, AND THE ANCHOR COUNT NO LONGER SHOWS IT.** The five
+>   anchors are server-rendered only because the expanded body is always mounted for the
+>   `ResizeObserver`; each sits inside `style="height:0px;opacity:0"` and carries `inert=""`, both
+>   server-rendered. Invisible and inactive. The only route onward without JavaScript is still the
+>   single `Browse All` control. Making the deck degrade to real links is a design decision, not a
+>   cleanup.
+> - **A `role="button"` CONTAINING A FOCUSABLE DESCENDANT.** Valid HTML and reachable by Tab, but
+>   some assistive tech may not surface `Details` while traversing the card as a widget. This is the
+>   residual of the surgical fix; the clean answer moves `Details` out of the card's hit area, and
+>   the version that did that by moving ALL the content out is the one Saad rejected.
+> - Aero-Grid's title is clipped while another card is open; CCN has 4px of vertical headroom at
+>   220×300, so **lengthening any one-liner in `content/projects.ts` requires re-measuring**;
+>   FOLIO's cover has no edge against FOLIO's card in light mode. Measurements at the file.
+> - The file is still named `FannedDeckPhase1.tsx`.
+>
+> *(Written from the code on both passes, never from the spec — the spec describes a deck with a
+> mobile swipe stack and per-card GitHub / Live Site anchors, and that component is the retired one.
+> The 2026-08-25 version of this note was part of the documentation reconstruction described below;
+> the 2026-08-28 pass re-ran every claim in it against the file and the built HTML.)*
 
 0. **Chrome** — a fixed, transparent navbar on `/`, `/work`, `/projects` and `/about` (MS mark +
    location, ABOUT/[icon]/WORK, theme toggle, copy-to-clipboard email + LinkedIn). It is permanently

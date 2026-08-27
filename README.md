@@ -68,6 +68,7 @@ content/skills.ts             skills, grouped
 content/currentlyLearning.ts  the living "in progress" list
 content/experience.ts         the internship
 content/contact.ts            the real links — email, GitHub, LinkedIn
+content/flipBoard.ts          the attributed quotes /about's split-flap board cycles
 content/types.ts              shared types
 ```
 

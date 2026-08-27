@@ -18,10 +18,12 @@
 | Hero visual | **Canvas2D + SVG. No WebGL.** | The hero is a 2D canvas particle field (`components/hero/ParticleGrid.tsx`) plus SVG for the Intro's mark. See the row below for what this replaced and why the packages are gone |
 | Scroll-synced animation | GSAP + ScrollTrigger | Industry standard for precisely choreographed scroll timelines — this is what actually drives the Tier 1 → 2 → 3 energy curve |
 | Smooth scroll | Lenis | Gives the whole site the "buttery" felt-smoothness that's part of the brief even in the minimal Tier 3 sections |
-| Component-level transitions | Framer Motion | Handles the project-card → detail shared-element transition and general UI micro-interactions; kept separate from GSAP so the two don't fight over the same elements |
+| Component-level transitions | Motion (`motion` — imported as `motion/react`; Framer Motion under its current name, and NOT the `framer-motion` package) | Handles the project-card → detail shared-element transition and general UI micro-interactions; kept separate from GSAP so the two don't fight over the same elements |
 | Styling | Tailwind CSS | Fast, already known, works well for the restrained Tier 3 sections |
 | Hosting | Vercel | Zero-friction with Next.js, already used for other projects (Aero-Grid) |
 | Fonts | Space Grotesk (headings/UI), JetBrains Mono (technical accents) | See Frontend Spec doc |
+| Headless primitives | `@radix-ui/react-hover-card`, `@base-ui/react` | **Neither was a stack decision — both arrived with an adapted vendor component and stayed.** Radix's HoverCard is the engine under `components/ui/link-preview.tsx`, which the reveal footer's two real links use; `@base-ui/react` has exactly one importer, `components/ui/button.tsx`, which nothing imports. Added to this table on 2026-08-28 because a dependency nobody wrote down is a dependency nobody can decide to remove |
+| Class merging | `clsx` + `tailwind-merge` (+ `class-variance-authority`) | `lib/utils.ts`'s `cn()`. Same story: expected by the adapted vendor components, not by the site's own. Two of its three consumers are unimported files |
 
 > **The 3D row used to read: "React Three Fiber + drei — Three.js expressed as React components …
 > drei supplies common helpers (camera rigs, loaders) so we're not reinventing them."** The R3F hero
@@ -71,14 +73,29 @@ form is added, it posts to a lightweight serverless function or a third-party fo
                                decide WHEN the gate mounts: IntroSession (the flags),
                                IntroContext (the arriving/introDone wires) and
                                IntroProvider (mounted by the (chrome) layout). See docs/06
-  /about                     — AboutScreen, CvAction, and /about's content + button styles
-  /sections                  — Trajectory, Skills, Experience, CurrentlyLearning, Projects,
-                               ProjectCard, ProjectDetail(+Frame), ProjectOverlay, RevealFooter,
-                               and each one's `*Content.ts` copy file
+  /about                     — AboutScreen, AboutFlipBoard, CvAction, and /about's content +
+                               button styles
+  /sections                  — Trajectory, Skills, Certifications, Experience, CurrentlyLearning,
+                               Projects, ProjectCard, FannedDeckPhase1 (+ProjectDeckSection),
+                               ProjectStripRow, ProjectDetail(+Frame), ProjectOverlay, CoverFrame,
+                               RevealFooter, and each one's `*Content.ts` copy file
                                (RevealFooter absorbed the old Contact section in Phase 5 — see
                                "The page stack" below, which is a hard layout requirement rather
-                               than a styling preference)
-  /ui                        — shared primitives (nav, mark geometry, theme toggle, reveals)
+                               than a styling preference. ProjectDeck.tsx is the RETIRED
+                               purpose-built deck, kept on disk with zero importers — see the
+                               deck note in CLAUDE.md before deleting it)
+  /ui                        — two different things under one directory, and the distinction
+                               matters more than the name suggests:
+                               • the site's OWN primitives — Navbar, MonogramMark + mark geometry,
+                                 ThemeToggle, Reveal/ScrubReveal, PageStack, Lenis/Motion providers,
+                                 CopyEmailButton, ExternalLink, EncryptedButtonLabel
+                               • ADAPTED VENDOR components — text-hover-effect (the footer
+                                 wordmark), text-flipping-board (/about's quote), link-preview,
+                                 encrypted-text, and several never imported at all (3d-card,
+                                 card-hover-effect, comet-card, glare-card, hover-border-gradient,
+                                 moving-border, wobble-card, button, card). The unimported ones are
+                                 where the eslint baseline's 12 problems live — do not "fix" them
+                                 without deciding whether the file is wanted
 /content
   types.ts                   — shared content types. NOT in the original listing: a deliberate
                                fourth file, because Project.category is typed as SkillGroup and
@@ -88,6 +105,8 @@ form is added, it posts to a lightweight serverless function or a third-party fo
   projects.ts                — structured project data (see "Content shape" below)
   skills.ts                  — structured skills data, grouped by SkillGroup
   currentlyLearning.ts       — structured "in progress" entries
+  flipBoard.ts               — the attributed quotes /about's split-flap board cycles through.
+                               MISSING from this listing until 2026-08-28
   experience.ts              — the internship entry
   contact.ts                 — the real links (email, GitHub, LinkedIn)
 /lib
@@ -101,6 +120,9 @@ form is added, it posts to a lightweight serverless function or a third-party fo
                                See "Client-side persisted state" below.
   metadata.ts                — the shared OG/Twitter image descriptor
   formatMonthYear.ts         — the one date formatter, shared by Experience and project detail
+  utils.ts                   — the `cn()` class merger (clsx + tailwind-merge) the adapted vendor
+                               components expect. MISSING from this listing until 2026-08-28
+  /hooks                     — useReducedMotion, useSectionScroll, useHoverCapable
 /scripts
   extract-glyph-outlines.mjs — build-time only. Reads the typeface JSON, writes msMarkGlyphs.ts
 /public

@@ -30,6 +30,7 @@
 | `accent-hero` | `#00E5FF` | Hero 3D glow/particles/lighting, and the small Contact-section echo ONLY |
 | `accent-working` | `#14B8A6` | Links, tags, highlights, borders — everywhere else |
 | `--field-ink` | `#9EC9D4` | `/about`'s particle field ONLY. Not an accent, no utilities — see below |
+| `--color-deck-1` … `-5` | `#24170f` `#223145` `#346e68` `#2f5b61` `#0b281e` | `/work`'s fanned card ONLY, one per PROJECT in `content/projects.ts` order. Surfaces, not accents — see below |
 
 **Light mode (toggle):**
 | Token | Hex | Use |
@@ -42,13 +43,41 @@
 | `accent-hero` | `#00E5FF` — same hex as dark mode | Unchanged; renders on the 3D scene's own dark backdrop. See the accent-tuning clarification below |
 | `accent-working` | `#0F766E` (dark mode: `#14B8A6`) | Same teal, darkened for contrast — `#14B8A6` on `#FDFCFA` is 2.44:1 and fails AA for text |
 | `--field-ink` | `#223F49` (dark mode: `#9EC9D4`) | `/about`'s particle field ONLY. Flips direction with the ground, unlike either accent |
+| `--color-deck-1` … `-5` | `#f5efeb` `#e2e8f0` `#d8f3ec` `#ede8f5` `#d9ebe1` | Same five projects, tuned independently per theme — never the dark ramp at another opacity |
 
 **Rule:** the two tinted whites are a subtle echo of the cyber(green)/cloud(blue) duality — they should
 be used as occasional, quiet background tints (e.g. behind a "Systems Foundation" vs "Currently Building
 Toward" skill group), never as competing primary surfaces. If in doubt, default to `bg-base` or
-`bg-elevated`. No other accent or neutral colors are introduced anywhere in the system.
+`bg-elevated`. No other accent colors are introduced anywhere in the system. **TWO NON-ACCENT FAMILIES have been added since this line was written, and both are named below rather than folded in silently** — `--field-ink` (2026-08-22) and the five `--color-deck-*` surfaces (2026-08-26). *(This sentence said "no other accent OR NEUTRAL colors" until 2026-08-28, by which point it had been false for two days and arguably six.)*
 
-> **`--field-ink` is the one addition to that list, and it is not an accent.** Added 2026-08-22.
+> ### The five deck surfaces — one colour per PROJECT, and not a third accent
+
+> Added 2026-08-26 on Saad's instruction, who specified all ten hexes. `--color-deck-1` … `-5` map
+> onto `content/projects.ts`'s array order — FOLIO, Aero-Grid, ClashChat, CCN, SNA — and their only
+> consumer is `/work`'s fanned card and its cover plate.
+>
+> **THE MAPPING IS THE BINDING PART, NOT THE HUES.** What these replaced was a five-step NEUTRAL
+> ELEVATION ramp — `#0e1310` … `#262f29` dark, ΔL\* ≈ 3.2 per step — mapped onto the fan's
+> **z-order**, chosen so five faces could be told apart without spending a third accent. A colour now
+> belongs to a project, so **re-ordering `content/projects.ts` must re-order these with it**, and the
+> old ramp's "do not re-shuffle, these encode depth" rule is gone rather than weakened.
+>
+> **IT DOES NOT REOPEN THE PALETTE.** Same mechanical guard `--field-ink` uses: five SURFACES, one
+> consumer, and none of them may be borrowed as a text, border or highlight colour anywhere on the
+> site. Teal is still the only thing that means "activate this", and the two-accent rule in
+> `CLAUDE.md` is untouched.
+>
+> **Contrast, dark, under `--color-fg`:** deck-1 14.89:1, deck-2 11.26:1, deck-3 **5.02:1 — the
+> palette's floor**, deck-4 6.43:1, deck-5 13.42:1. **Light:** 16.03 / 14.81 / 15.61 / 15.18 /
+> 14.71:1. Light is tuned independently, never the dark ramp at another opacity — the same rule the
+> tint tokens follow.
+>
+> **The card is borderless, so the surfaces themselves separate one card from the next.** That is
+> what `--radius-deck` assists and it is not the load-bearing part; the CIEDE2000 separation between
+> adjacent faces is. Figures live with the ramp in `app/globals.css` and the fuller record is in
+> `components/sections/FannedDeckPhase1.tsx` §1.
+
+> **`--field-ink` was the FIRST addition to that list, and it is not an accent.** Added 2026-08-22. *(It read "the one addition" until 2026-08-28; the deck surfaces below are the second, and they were added on 2026-08-26.)*
 > `/about` renders the hero's particle mesh at `QUIET_FIELD` density, and until that date the canvas
 > hardcoded `--accent-hero`, so a Tier 2/3 page painted a full-viewport field in `#00E5FF` in **both**
 > themes. That was never a theme bug: light mode did not inherit a dimmed dark value, it painted the
@@ -499,10 +528,21 @@ practice) for margins/padding/section gaps: `8, 13, 21, 34, 55, 89, 144` (px). T
 heading-to-text relationship and overall rhythm consistent with the ×1.618 type scale rather than
 arbitrary spacing values.
 
-### Radius — one token, one consumer, and it used to be zero
+### Radius — two tokens, one consumer each, and it used to be zero
 
-**`--radius-photo: 13px`, on `/about`'s portrait, and nothing else on the site is rounded.** Added
-2026-08-24 on Saad's instruction.
+**`--radius-photo: 13px` on `/about`'s portrait and `--radius-deck: 13px` on `/work`'s fanned card,
+and nothing else on the site is rounded.** The first was added 2026-08-24, the second 2026-08-26,
+both on Saad's instruction.
+
+> **THIS SECTION SAID "one token, one consumer" AND "nothing else on the site is rounded" UNTIL
+> 2026-08-28**, two days after the deck card started shipping with `rounded-deck`. The paragraph
+> below that predicted this is the one that held up: *"a second consumer is the moment to decide,
+> with Saad, whether this site has a radius system."* It was decided — **a second TOKEN, not a
+> scale.** `--radius-deck` names `/work`'s card the way `--radius-photo` names `/about`'s portrait,
+> and neither may be used on anything else. The two values are identical, which is the tell that the
+> number was never the point: what is being guarded is the LIST OF THINGS ALLOWED TO BE ROUND, and
+> that list is still exactly two entries long. There is still no `--radius-sm`/`md`/`lg`, so nothing
+> can acquire soft corners by reaching for a generic name.
 
 **The ticket asked for "the matching token from the site's established radius scale". THERE IS NO
 SUCH SCALE, AND THERE WERE NO ROUNDED BUTTONS OR CARDS TO MATCH** — that is worth stating plainly
@@ -521,11 +561,12 @@ project has never imported. On the 364px portrait it is 3.6% of the side. `--spa
 was the alternative and reads very nearly square at that size.
 
 **THE NAME IS THE GUARD, and it is the same mechanism `--accent-hero` and `--field-ink` use.**
-`--radius-photo` names ONE consumer and deliberately does not open a *scale* — there is no
+Each token names ONE consumer and deliberately does not open a *scale* — there is no
 `--radius-sm`/`md`/`lg`, so nothing can quietly acquire soft corners by reaching for a generic name.
-**A second consumer is the moment to decide, with Saad, whether this site has a radius system.** It
-is not a decision an implementer may take by adding `rounded-photo` to something that is not a
-photograph.
+**A THIRD consumer is the moment to decide, with Saad, whether this site has a radius system**, and
+the answer to the second one was "add a second name", not "generalise the first". It is not a
+decision an implementer may take by adding `rounded-photo` to something that is not a photograph, or
+`rounded-deck` to something that is not the fanned card.
 
 *Noted while sweeping, not fixed: the built CSS also contains `.rounded-tr-sm` and `.rounded-xl`,
 both dead. Tailwind's scanner extracts class names from COMMENTS, and those two are named inside
@@ -1507,11 +1548,20 @@ who have that OS setting enabled.
 > > `/projects` and predates `/work`'s fanned deck. Home gained one stop (the `Browse All`
 > > control), and that one settles by identity rather than needing a re-run — it takes `BUTTON_BASE`'s
 > > ring, the same constant this sweep verified on `/about`, at 7.95:1 dark / 5.34:1 light on
-> > `bg-base`. **`/projects` and the deck are NOT settled and need a real tabbing pass**, and the deck
-> > in particular is mid-rebuild: it currently ships with no `focus-visible` ring, no focus
-> > management, no Escape handler, and inactive cards that stay tabbable after being dropped. **112 is
-> > therefore a historical count, not a current one**, and it is kept dated rather than adjusted,
-> > because the only honest replacement is another tabbing run.
+> > `bg-base`. **`/projects` and the deck are NOT settled and need a real tabbing pass.** The deck's
+> > own position changed on 2026-08-26 and this paragraph was left behind for two days: it said the
+> > deck "currently ships with no `focus-visible` ring, no focus management, no Escape handler, and
+> > inactive cards that stay tabbable after being dropped". **Re-read off the file on 2026-08-28 —
+> > all four are now present**: a `focus-visible:outline-2 outline-offset-4 outline-accent-working`
+> > ring on the card, an Escape handler, and `tabIndex={anyActive && !isActive ? -1 : 0}` taking
+> > dropped cards out of the order while deliberately leaving them clickable.
+> >
+> > **THAT DOES NOT SETTLE THEM, WHICH IS THE POINT OF THIS BOX.** Reading four fixes off a file is
+> > not a tabbing pass, and the deck still has a `role="button"` containing a focusable descendant —
+> > valid HTML, reachable by Tab, and possibly not surfaced by assistive tech traversing the card as
+> > a widget. That is precisely the class of defect a real run finds and a grep does not. **112
+> > remains a historical count**, kept dated rather than adjusted, because the only honest
+> > replacement is another tabbing run over the routes and the deck as they ship today.
 >
 > Every stop resolves a ≥ 2px outline with a token colour, and every ring measures **≥ 3:1 against the
 > pixel immediately outside it**, sampled from a real screenshot at `left − outline-offset − 3`.

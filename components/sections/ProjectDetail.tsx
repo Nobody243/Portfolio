@@ -170,12 +170,28 @@ const IMAGE_FRAME = "border border-fg/25";
 /**
  * Caps an image at 57rem AND at its own intrinsic width, in one declaration.
  *
- * WHY THE INTRINSIC CAP: SNA's cover is 779px, the smallest source in the set
- * and not recapturable. Without this it renders at 912 CSS px — upscaled and
- * visibly soft, on the newest project and the one nearest Saad's stated career
- * direction. Every other image here is >=1600px, so only SNA is affected, and
- * the accepted consequence is that its cover is narrower than the other four
- * above ~1090px. Nobody sees two detail pages at once.
+ * WHY THE INTRINSIC CAP — AND THE REASON IT WAS ADDED NO LONGER EXISTS.
+ * This paragraph read: "SNA's cover is 779px, the smallest source in the set
+ * AND NOT RECAPTURABLE. Without this it renders at 912 CSS px — upscaled and
+ * visibly soft … the accepted consequence is that its cover is narrower than
+ * the other four above ~1090px." **It was recaptured.** All five covers were
+ * replaced at full resolution, and SNA is 2047x1041 now. Measured 2026-08-28,
+ * off the files: 3836, 3200, 3836, 2046, 2047 px wide. Every one of them is
+ * above the 912px cap, so `min()`'s intrinsic term binds on NOTHING today and
+ * the "narrower than the other four" consequence is gone with it.
+ *
+ * THE CAP STAYS, AND NOT OUT OF CAUTION. It is the guard that made a 779px
+ * source render at 779px instead of soft at 912, and the next cover added
+ * below 912px would hit it silently and correctly. Deleting it would trade a
+ * declaration that currently costs nothing for a defect that reappears without
+ * warning — and this file already carries one comment (`ProjectStripRow`'s
+ * sibling note) about how invisible an upscaled cover is: nothing in `tsc`,
+ * `eslint` or `next build` reports it, and `naturalWidth` reports the
+ * density-corrected value, which agrees with the wrong number.
+ *
+ * SNA'S ASPECT IS STILL LOAD-BEARING ELSEWHERE, so do not read "recaptured" as
+ * "unconstrained": 2047/1041 = 1.966 is the tallest of the five and is the
+ * figure `ProjectStripRow`'s 184/360 and 224/440 cover boxes sit just under.
  *
  * This is NOT a hand-copied dimension. `src.width` is the same build-time
  * value `next/image` itself uses, carried by the static import's
