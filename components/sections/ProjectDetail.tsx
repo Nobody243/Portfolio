@@ -313,6 +313,23 @@ export function ProjectDetail({ project }: { project: Project }) {
         soft image to hide a transient and desynchronises `IMAGE_SIZES` from the
         real route.
       */}
+{/*
+        `select-none` ON THE <img> ONLY, INSIDE THE ONE SELECTABLE SURFACE.
+        <body> carries `select-none` site-wide and `ProjectDetailFrame` undoes
+        it here — but Saad's 2026-08-28 complaint was specifically that a drag
+        paints "blue shadow" over the pictures, and a range that spans an <img>
+        highlights the ENTIRE box in the UA's selection colour. These are the
+        largest images on the site, so leaving them in would have meant the
+        reported artefact survived on the one surface people drag through most.
+        The prose either side still selects and still copies; the picture is
+        simply skipped.
+        ON THE <img>, NOT ON THE FRAME, because <figure> below also holds a
+        <figcaption>, and a caption is real text somebody may want to copy. No
+        project sets one today, which is exactly why this is easy to get wrong
+        later. `IMAGE_FRAME` is left alone for the same reason its own comment
+        gives: it is the border token and must not accumulate unrelated
+        utilities.
+      */}
       <CoverFrame
         layoutId={`project-cover-${project.slug}`}
         className={`block ${IMAGE_FRAME}`}
@@ -325,7 +342,7 @@ export function ProjectDetail({ project }: { project: Project }) {
           placeholder="blur"
           quality={85}
           priority
-          className="block h-auto w-full"
+          className="block h-auto w-full select-none"
         />
       </CoverFrame>
 
@@ -491,7 +508,10 @@ export function ProjectDetail({ project }: { project: Project }) {
                       sizes={IMAGE_SIZES}
                       placeholder="blur"
                       quality={85}
-                      className="block h-auto w-full"
+                      // `select-none` — see the cover above. Same reason, and
+                      // it is on the <Image> rather than the <figure> so the
+                      // <figcaption> a few lines down stays selectable.
+                      className="block h-auto w-full select-none"
                     />
                     {/*
                       Unexercised today: no project sets a caption (G4 shipped

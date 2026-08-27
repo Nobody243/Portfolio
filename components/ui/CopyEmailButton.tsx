@@ -245,7 +245,22 @@ export function CopyEmailButton({
   /* THE FALLBACK ANCHOR, and it carries the SAME two class slots so the swap
      is invisible: identical size, family and layout classes, so nothing moves
      when the button replaces it. No `target` and no `rel` — a `mailto:` does
-     not open a new tab, and announcing one that never opens is a lie. */
+     not open a new tab, and announcing one that never opens is a lie.
+
+     `select-text` IS THE NO-JS HALF OF THE SITE-WIDE SELECTION POLICY, and
+     this anchor is the ONLY reason the policy needed an exception outside the
+     detail surface. `<body>` carries `select-none` (see `app/layout.tsx` and
+     `docs/03`'s selection section); this component is the one control whose
+     JS-off state is a piece of TEXT the visitor is expected to act on rather
+     than a button they can press. Without this, a visitor with no JavaScript
+     gets a `mailto:` they may not be able to open and an address they cannot
+     sweep — the address is on screen and unreachable, which is the one outcome
+     the policy must not produce.
+
+     SCOPED TO THIS ELEMENT, deliberately. It does not reopen the site-wide
+     rule and it does not reach the `<li>`, the label, or anything else in the
+     footer's stack. Flagged as a known cost when the policy shipped on
+     2026-08-28 and closed the same day on Saad's instruction. */
   if (!hydrated && href) {
     return (
       <a
@@ -253,7 +268,7 @@ export function CopyEmailButton({
         /* `filter(Boolean)` rather than `?? ""`: an omitted optional prop
            would otherwise leave a stray space in the attribute, which is
            harmless and looks like a bug in view-source. */
-        className={[typeClassName, valueClassName, className]
+        className={["select-text", typeClassName, valueClassName, className]
           .filter(Boolean)
           .join(" ")}
       >
@@ -296,8 +311,25 @@ export function CopyEmailButton({
           transition={transition}
         >
           {/* The ref target for the fallback selection is this span, so what
-              gets selected is exactly the address and not the whole button. */}
-          <span ref={addressRef}>{value}</span>
+              gets selected is exactly the address and not the whole button.
+
+              `select-text` HERE IS NOT SYMMETRY WITH THE ANCHOR ABOVE — IT IS
+              WHAT MAKES THE FAILED-COPY PATH WORK AT ALL. When
+              `navigator.clipboard.writeText` rejects (an insecure origin, most
+              often a phone on a LAN IP), `copy()` falls back to
+              `selectContents(addressRef)` and the label changes to
+              `NAV_COPY_FALLBACK` — "Press Ctrl/⌘+C". Under the site-wide
+              `select-none` that programmatic selection produces an EMPTY
+              selection, so the control would tell a visitor to copy something
+              that is not selected and cannot be. Measured, not assumed: with
+              this class the fallback selects the address, without it
+              `String(getSelection())` comes back "".
+
+              This is the one place the selection policy reaches a code path
+              rather than a surface, which is why it is easy to miss. */}
+          <span ref={addressRef} className="select-text">
+            {value}
+          </span>
         </motion.span>
 
         {/* THE ONLY `--nav-accent` TEXT IN THE BAR, and therefore the only thing
@@ -311,7 +343,19 @@ export function CopyEmailButton({
             block, has the measurement and the reason the guard is load-bearing.
             Do not read this colour as free. */}
         <motion.span
-          className="col-start-1 row-start-1 flex items-center gap-2xs whitespace-nowrap text-[var(--nav-accent)]"
+          // `select-none` — THE CONFIRMATION IS CHROME AND MUST NEVER REACH A
+          // CLIPBOARD. It shares grid cell 1/1 with the address above it, so
+          // the two occupy the SAME box and any selection covering one covers
+          // the other. The moment the footer's value `<p>` was unlocked so the
+          // no-JS `mailto:` could be swept (2026-08-28), a drag across this
+          // control started returning "saad@saaddev.topCopied". Locking it here
+          // rather than re-locking the `<p>` keeps the fix with the element
+          // that causes it, and covers the navbar's instance for free.
+          //
+          // It is already `aria-hidden`, so this is the same boundary the
+          // accessibility tree already draws — the same argument the flip
+          // board's tiles make in `AboutFlipBoard`.
+          className="col-start-1 row-start-1 flex items-center gap-2xs whitespace-nowrap text-[var(--nav-accent)] select-none"
           // Hidden from the accessibility tree in BOTH directions: the button's
           // name is fixed (above) and the outcome is announced once by the live
           // region below. Leaving it exposed would give the control two names.

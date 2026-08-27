@@ -168,7 +168,29 @@ export function Trajectory() {
                   the rail has collapsed and there is no grid at all. Changing
                   one and not the other silently gives two different measures at
                   two different breakpoints. */}
-              <div className="mt-sm max-w-[34rem] space-y-sm lg:mt-0">
+              {/*
+                  `select-text` — THE PROSE, AND ONLY THE PROSE. `<body>` in
+                  `app/layout.tsx` carries `select-none` site-wide; this is one
+                  of the four narrow exceptions `docs/03`'s selection section
+                  enumerates. Saad's rule, 2026-08-28: "long-form prose that
+                  exists for someone to read and might reasonably want to quote
+                  or copy stays selectable. UI chrome, labels, card teasers, and
+                  every image stay non-selectable."
+
+                  ON THIS `<div>` AND NOT ON THE `<p>` INSIDE THE MAP, so it is
+                  declared once per beat rather than once per paragraph — a
+                  beat that grows a third paragraph inherits it. It is also the
+                  reason the `<h3>` beside it is NOT covered: the rail label is
+                  chrome, it sits outside this box, and the split falls exactly
+                  on the boundary that already existed for the measure.
+
+                  NO IMAGE OVERRIDE IS NEEDED HERE, checked rather than
+                  assumed: this box's only children are the `<p>` elements the
+                  map emits. If an image is ever added inside it, it takes
+                  `select-none` on the `<img>` itself — the pattern
+                  `ProjectDetail` uses for the cover and the screenshots.
+              */}
+              <div className="mt-sm max-w-[34rem] space-y-sm select-text lg:mt-0">
                 {/* Index as key: the array is static, never reordered and never
                     filtered. The alternative here is a 400-plus character
                     paragraph as a key, which is stable and correct but makes a

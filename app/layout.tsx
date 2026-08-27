@@ -296,7 +296,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           deck without it; the only project content in the markup is the mobile
           stack's front card, FOLIO, whose Details / GitHub / Live Site links
           are real anchors and do work. **The no-JS route to the other four is
-          the `Browse as a list` exit to `/projects`**, which is a plain
+          the `Browse All` exit to `/projects`**, which is a plain
           `<Link>` and lists all five as real anchors — so the page is not a
           dead end, but the exit is load-bearing in a way nobody designed it to
           be. Recorded, not fixed: making the deck degrade to five links is a
@@ -386,7 +386,82 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="flex min-h-full flex-col">
+      <body
+        // ===================================================================
+        // `select-none` — THE SITE-WIDE SELECTION POLICY. Set here, on
+        // <body>, so it INHERITS to every route. The exceptions are a NAMED
+        // LIST and `docs/03`'s selection section is the register.
+        // ===================================================================
+        //
+        // Saad, 2026-08-28, on dragging across the deck: "the cards content and
+        // the picture cannot be selected like you get blue shadow on it ... for
+        // all of the content other than the details section." Then, later the
+        // same day, the principle that governs the list: "long-form prose that
+        // exists for someone to read and might reasonably want to quote or copy
+        // stays selectable. UI chrome, labels, card teasers, and every image
+        // stay non-selectable, everywhere, no exceptions."
+        //
+        // WHAT IT ACTUALLY FIXES. A drag that starts anywhere on a card and
+        // sweeps across it painted the title, the one-liner AND the cover in
+        // the UA's selection blue — the cover included, because a selection
+        // range that spans an <img> highlights the whole box. The deck, the
+        // strip rows and the gallery cards are all press-and-move surfaces
+        // (`FannedDeckPhase1` fans on hover, `ProjectStripRow` swaps its cover,
+        // `ProjectCard` is one big link), so the gesture that selects them is
+        // the same gesture people use to browse them.
+        //
+        // THE EXCEPTIONS, EACH ON THE NARROWEST ROOT THAT COVERS ITS CASE — do
+        // not add one without adding a row to `docs/03`:
+        //
+        //   `ProjectDetailFrame`  the whole detail surface. ONE root covers the
+        //                         standalone /projects/<slug> route AND the
+        //                         intercepted overlay, so they cannot drift.
+        //   `Trajectory`          Home's narrative, once per beat.
+        //   `AboutScreen`         /about's bio paragraph.
+        //   `AboutFlipBoard`      the real <blockquote>/<cite> quote. The 276
+        //                         tiles stay `aria-hidden` AND stay locked.
+        //   `RevealFooter`        the value <p> — the two URLs are displayed AS
+        //                         text, and the email's no-JS `mailto:`.
+        //   `CopyEmailButton`     the address span and the fallback anchor.
+        //
+        // AND `select-none` AGAIN INSIDE THREE OF THEM, because "prose is
+        // selectable" is not the same as "everything in a prose block is":
+        // `ProjectDetail`'s cover and screenshots, `ExternalLink`'s sr-only
+        // new-tab note, `CopyEmailButton`'s swap-in confirmation, and the
+        // footer's outbound arrow. Each carries its own reason at its own site.
+        //
+        // A TAILWIND UTILITY ALSO CARRIES `-webkit-user-select`, which Safari
+        // still requires. Hand-written CSS in `globals.css` would have needed
+        // the prefix typed by hand, would have silently done nothing on iOS,
+        // and — the bigger cost — would put half the policy somewhere the grep
+        // for the other half does not reach.
+        //
+        // WHAT IT DOES NOT BREAK, checked rather than assumed:
+        //   - There is not one <input>, <textarea>, <select> or
+        //     `contentEditable` in `app/` or `components/`. Nothing typeable
+        //     inherits this.
+        //   - Find-in-page still works; `user-select` governs SELECTION, not
+        //     text search or the accessibility tree. Screen readers, Reader
+        //     mode and translation tools are unaffected.
+        //   - The CV modal's PDF is an <iframe>, i.e. its own document, so it
+        //     does not inherit this and its text stays selectable.
+        //   - THE NO-JS EMAIL WAS A REAL REGRESSION AND IS CLOSED. It shipped
+        //     flagged — `CopyEmailButton` serves a `mailto:` <a> and swaps to a
+        //     <button> on hydration, so a visitor without JavaScript could see
+        //     the address and not sweep it. Both that anchor and the footer's
+        //     value <p> now carry `select-text`; the anchor alone was NOT
+        //     enough, because a triple-click only takes a line when the
+        //     containing block is selectable. Measured with scripting disabled.
+        //
+        // WHAT IT DOES COST, STATED PLAINLY: outside the list above nobody can
+        // copy anything — an experience entry, a cert name, a project teaser.
+        // That is the instruction, and it is the reason the list exists at all.
+        //
+        // NOT `-webkit-user-drag`. Dragging a cover still lifts the browser's
+        // native image ghost, which is a different behaviour from the selection
+        // highlight and is deliberately left alone.
+        className="flex min-h-full flex-col select-none"
+      >
         {/*
           THE DOCUMENT-ENTRY MARKER. Renders null, holds no state, one effect,
           no cleanup — see `components/intro/IntroSession.tsx` for the whole

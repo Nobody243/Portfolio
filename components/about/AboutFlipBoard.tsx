@@ -235,7 +235,27 @@ export function AboutFlipBoard({ className }: { className?: string }) {
         minRows={FLIP_BOARD_MIN_ROWS}
         className={className}
       />
-      <blockquote className="sr-only">
+      {/*
+        `select-text` — THE REAL QUOTE IS PROSE; THE 276 TILES ARE NOT.
+        `<body>` carries `select-none` site-wide (`app/layout.tsx`), and
+        `docs/03`'s selection section exempts long-form read content. An
+        attributed quotation is the clearest case there is.
+
+        THE SPLIT THIS MAKES IS THE SAME ONE THE COMPONENT ALREADY DRAWS FOR
+        SCREEN READERS, which is why it costs nothing to reason about: the
+        board is `aria-hidden` because a reader must not spell out 276 cells,
+        and this pair carries the same text off-screen. The tiles stay
+        `aria-hidden` AND stay `select-none`; the sentence stays announced AND
+        becomes selectable. One boundary, two consumers.
+
+        WHAT THIS ACTUALLY BUYS, STATED HONESTLY: `sr-only` is a 1px clipped
+        box, so nobody drag-selects this in isolation. What changes is that a
+        selection SPANNING the board — or a select-all — now carries the real
+        sentence and its attribution instead of dropping them. That is the
+        behaviour worth having, and it is smaller than "the quote is now
+        selectable" sounds.
+      */}
+      <blockquote className="sr-only select-text">
         <p>{entry.text}</p>
         <cite>{entry.attribution}</cite>
       </blockquote>

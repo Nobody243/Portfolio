@@ -143,11 +143,39 @@ export function ProjectDetailFrame({
   const Root = as;
 
   return (
-    // `pt-xl pb-2xl lg:pt-2xl` — moved verbatim from the route's `<main>`.
+    // `select-text` IS THE LARGEST OF THE SITE'S SELECTION EXCEPTIONS — the
+    // only one that covers a whole surface rather than one block — and it is
+    // here rather than on either consumer BECAUSE this component is the one
+    // thing both detail surfaces share. It was the ONLY exception for a few
+    // hours on 2026-08-28; `docs/03`'s selection section now carries the full
+    // list and is the register to update when one is added. <body> in `app/layout.tsx` carries
+    // `select-none` for the whole site — Saad, 2026-08-28, wanted the deck and
+    // the strip rows to stop painting selection blue under a browse gesture —
+    // and this one line puts it back where reading actually happens.
+    //
+    // ONE LINE, TWO SURFACES, WHICH IS THE WHOLE REASON THIS FILE EXISTS. The
+    // standalone /projects/<slug> route and the intercepted overlay both render
+    // this component, so they cannot drift on selection any more than they can
+    // on the 106/140px cover offset above. Putting `select-text` on
+    // `ProjectDetail`'s <article> instead would have covered the prose but NOT
+    // the breadcrumb, the top row or the foot affordance, and putting it on the
+    // route and the dialog separately would have been two places to forget.
+    //
+    // IT COVERS THE AFFORDANCES DELIBERATELY, not incidentally: the exit
+    // controls are the only text on this surface a reader might sweep past on
+    // the way to a link, and an island of unselectable text inside a selectable
+    // page reads as a rendering fault rather than as a policy.
+    //
+    // INHERITANCE REACHES THE OVERLAY EVEN THOUGH IT IS IN THE TOP LAYER. A
+    // modal <dialog> is promoted for PAINT; inherited properties still come
+    // from its DOM parent, so `select-none` reaches it from <body> and this
+    // undoes it. Verified in a browser on both paths, not reasoned about.
+    //
+    // `pt-xl pb-2xl lg:pt-2xl` — moved verbatim from the route's <main>.
     // These three values, plus `mb-lg` on the row below, ARE the 106/140px the
     // cover sits below the top of this element. Changing any of them changes
     // both rendering paths at once, which is the entire point.
-    <Root className="w-full bg-base pt-xl pb-2xl lg:pt-2xl">
+    <Root className="w-full bg-base pt-xl pb-2xl select-text lg:pt-2xl">
       {/*
         THE TOP ROW CARRIES TWO THINGS: the exit affordance on the spine, and
         this surface's single theme toggle at the mirrored right inset.
