@@ -76,7 +76,7 @@ form is added, it posts to a lightweight serverless function or a third-party fo
   /about                     — AboutScreen, AboutFlipBoard, CvAction, and /about's content +
                                button styles
   /sections                  — Trajectory, Skills, Certifications, Experience, CurrentlyLearning,
-                               Projects, ProjectCard, FannedDeckPhase1 (+ProjectDeckSection),
+                               Projects, ProjectCard, FannedDeck (+ProjectDeckSection),
                                ProjectStripRow, ProjectDetail(+Frame), ProjectOverlay, CoverFrame,
                                RevealFooter, and each one's `*Content.ts` copy file
                                (RevealFooter absorbed the old Contact section in Phase 5 — see

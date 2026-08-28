@@ -177,7 +177,7 @@ this summary is downstream of it. The numbered list below keeps its original num
 | Route | Sections, in order |
 |---|---|
 | `/` | Hero · Trajectory · Skills · Projects (**the featured three only**) · a **"Browse All"** `<Link>` to `/projects` · reveal footer. *(The Browse All control was missing from this row until 2026-08-28, which made Home look like a dead end — it is one of the route's two prerendered links out, and `README.md`, `docs/01` and `content/projects.ts` all recorded it while this table did not.)* |
-| `/work` | `<h1>` **"Projects."** · the fanned card deck (all five, `components/sections/FannedDeckPhase1.tsx`) · a **"Browse All"** `<Link>` to `/projects` (whose label scrambles on hover) · Certifications (heading + "Coming soon.", a visible placeholder) · Experience · Currently Learning · reveal footer. The navbar label stays `WORK` and the route stays `/work` — the heading changed, nothing else did. A card's `Details` opens the intercepted overlay, not the standalone page |
+| `/work` | `<h1>` **"Projects."** · the project deck (all five, `components/sections/FannedDeck.tsx`) — a FAN at `lg`+ and a vertical PILE below it · a **"Browse All"** `<Link>` to `/projects` (whose label scrambles on hover) · Certifications (heading + "Coming soon.", a visible placeholder) · Experience · Currently Learning · reveal footer. The navbar label stays `WORK` and the route stays `/work` — the heading changed, nothing else did. A card's `Details` opens the intercepted overlay, not the standalone page |
 | `/projects` | `<h1>` **"Index"** · the same five projects as a **full-bleed strip list** — one row each, numeral + title + **date**, with the cover fading in oversized from the right at `lg`+ and **overhanging the row**, while the other four rows dim to 40% — between two `Close` affordances that both go to `/work`, fixed rather than return-to-referrer. The top one shares the `<h1>`'s baseline at the trailing edge; the bottom one is its own block. A row opens the same intercepted overlay a card does. **No reveal footer**, deliberately. It is Rule S-1's second named exception: no spine, the chrome gutter instead. The navbar does **not** link here |
 | `/about` | **Composed to fit a REAL browser window on a 1080p display — 945px of `innerHeight`, not 1080 — without scrolling; scrolls anywhere it does not fit.** There is no CSS enforcing a single screen any more — no `h-dvh`, no `overflow-hidden` — so the non-scroll outcome is a property of the composition rather than a rule, and nothing is ever clipped. The guarantee narrowed twice on 2026-08-23 (`lg`+ → `xl`+ → 1080p only, each time on Saad's call) and its TARGET was corrected on 2026-08-24: a display resolution is not a viewport, and verifying against 1080 shipped a page that overflowed a real window by 21px. Verify `/about` in a real browser, or against 945/905/875 — never against the display height. `docs/07` §6 carries all of it. No reveal footer, deliberately, at any width — see `docs/07` §5–6 |
 | `/projects/<slug>` | Tier 3 detail, plus an intercepted overlay at the same URL. **No navbar** |
@@ -197,7 +197,7 @@ this summary is downstream of it. The numbered list below keeps its original num
 > were two.
 
 > **`/work`'S DECK IS MID-REBUILD AND MUST NOT BE TREATED AS FINISHED.** It ships as
-> `components/sections/FannedDeckPhase1.tsx` — the filename is the status. Saad ordered it rebuilt
+> `components/sections/FannedDeck.tsx`. **The filename WAS the status until 2026-08-28** — it shipped as `FannedDeckPhase1.tsx` for the whole rebuild, and the phase number came off in the same pass that gave it a mobile treatment. Saad ordered it rebuilt
 > from the vendor component in three sequenced phases after the first, fully-adapted attempt failed
 > in a way nobody could diagnose (*"this isolates 'is the integration broken' from 'does our content
 > fit' — the two got conflated last round"*). Phases 1, 1b, 2 and 3 are done and each was looked at
@@ -219,34 +219,63 @@ this summary is downstream of it. The numbered list below keeps its original num
 > - All five `/projects/<slug>` anchors are now in `.next/server/app/work.html`. **Do not read that
 >   as a fix** — see the third bullet below.
 >
-> **STILL OPEN, counted off the file today. `FannedDeckPhase1.tsx`'s own header carries the full
-> list with measurements; these are the ones that constrain other work:**
+> **PHASE 1 OF THE REBUILD LANDED 2026-08-28 AND CLOSED THE LARGEST ITEM ON THIS LIST.** What stood
+> here that morning — *"NO MOBILE TREATMENT BELOW 1024px … **This is the largest open item**"* and
+> *"The file is still named `FannedDeckPhase1.tsx`"* — is done:
 >
-> - **NO MOBILE TREATMENT BELOW 1024px.** Still not one `sm:` or `md:` utility in the file — the two
->   `lg:` breakpoints are the only ones. The expanded card at least FITS at 900 and 768 now
->   (worst-case slack 24px, `Details` visible on all five), but fitting is not a treatment: at
->   220×300 with 70px of each card exposed the titles overlap. **This is the largest open item** and
->   the governing spec asks for a real mobile version of the interaction.
-> - **NO `prefers-reduced-motion` BRANCH.** The spring runs for everyone.
-> - **NO USABLE PROJECT LINKS WITH JS OFF, AND THE ANCHOR COUNT NO LONGER SHOWS IT.** The five
->   anchors are server-rendered only because the expanded body is always mounted for the
->   `ResizeObserver`; each sits inside `style="height:0px;opacity:0"` and carries `inert=""`, both
->   server-rendered. Invisible and inactive. The only route onward without JavaScript is still the
->   single `Browse All` control. Making the deck degrade to real links is a design decision, not a
->   cleanup.
-> - **A `role="button"` CONTAINING A FOCUSABLE DESCENDANT.** Valid HTML and reachable by Tab, but
->   some assistive tech may not surface `Details` while traversing the card as a widget. This is the
->   residual of the surgical fix; the clean answer moves `Details` out of the card's hit area, and
->   the version that did that by moving ALL the content out is the one Saad rejected.
-> - Aero-Grid's title is clipped while another card is open; CCN has 4px of vertical headroom at
->   220×300, so **lengthening any one-liner in `content/projects.ts` requires re-measuring**;
->   FOLIO's cover has no edge against FOLIO's card in light mode. Measurements at the file.
-> - The file is still named `FannedDeckPhase1.tsx`.
+> - **Below `lg` the deck is a PILE, not a shrunken fan.** Five full-width cards, each closed one
+>   exactly **89px** (`--spacing-2xl`) showing a band with its own title; tapping a band expands that
+>   card **in place** while the cards below it translate down. Still not one `sm:` or `md:` utility —
+>   `lg` and `max-lg` are the only breakpoints, so Rule S-5 is untouched.
+> - **The title overlap is gone structurally, not patched.** The occluding edge used to be vertical
+>   and 70px away, which no type size could fix; in the pile it is horizontal and below the title, so
+>   the measure is the card's full width. Measured at 320/360/375: every title
+>   `scrollWidth === clientWidth`, CCN wraps to two lines and fits.
+> - **Saad's three load-bearing clauses hold behaviourally**, verified in a browser rather than
+>   argued: content never leaves the card, all five stay visible in every state, one tap switches.
+> - **CCN's 4px headroom is gone with the 220×300 card** — the pile card is `height: auto`, so there
+>   is no box to overflow. The `content/projects.ts` re-measurement rule dies with it below `lg`.
+> - **FOLIO's cover has a `border-fg/25` edge below `lg`**, on Saad's call. At `lg`+ it is still
+>   borderless and still dissolves into `#F5EFEB` in light mode — see the list below.
+> - **The ARIA residual is closed on BOTH branches.** `role="button"` moved to the band and `Details`
+>   became its sibling, so the button contains only an `<h2>`. Desktop's whole-card hit area is
+>   preserved by `lg:after:inset-0`.
 >
-> *(Written from the code on both passes, never from the spec — the spec describes a deck with a
-> mobile swipe stack and per-card GitHub / Live Site anchors, and that component is the retired one.
-> The 2026-08-25 version of this note was part of the documentation reconstruction described below;
-> the 2026-08-28 pass re-ran every claim in it against the file and the built HTML.)*
+> **STILL OPEN. `FannedDeck.tsx`'s own header carries the full list with measurements; these are the
+> ones that constrain other work:**
+>
+> - **NO `prefers-reduced-motion` BRANCH.** Phase 2. With one correction that matters:
+>   `MotionProvider` sets `reducedMotion="user"` site-wide, so Motion already drops the card
+>   TRANSFORMS. What survives is the two HEIGHT animations, because height is neither a transform nor
+>   a layout projection — and on the pile that is the largest motion on the page.
+> - **NO USABLE PROJECT LINKS WITH JS OFF, AND THE ANCHOR COUNT STILL DOES NOT SHOW IT.** Unchanged
+>   by Phase 1 and deliberately so — the five anchors are still server-rendered inside
+>   `style="height:0px;opacity:0"` with `inert=""`. The only route onward without JavaScript is still
+>   the single `Browse All` control. A design decision, not a cleanup.
+> - **DROPPED-ROW TITLES ARE OCCLUDED AT `lg`+**, and the earlier entry here got this wrong twice.
+>   It said *"Aero-Grid loses the tail of its title — one probe in five"*. Re-measured 2026-08-28:
+>   **nothing is clipped in the CSS sense** — every title's `scrollWidth === clientWidth` — the
+>   titles are covered by the next card, whose 72px exposed strip is narrower than the 167px title
+>   box. With FOLIO open, **Aero-Grid reads in full; ClashChat and CCN lose their tails.** The count
+>   is not a fixed property of the deck: the last card in the dropped row has nothing in front of it,
+>   so which titles are lost depends on which card is open. Desktop only — the pile has no card to
+>   the right of any card.
+> - **FOLIO's cover has no edge against FOLIO's card in light mode at `lg`+.** Fixed below `lg` only,
+>   on Saad's 2026-08-28 call; `globals.css` still says "Do not add a border back" and that line is
+>   about the desktop card.
+> - **CLOSED PILE CARDS ABUT RATHER THAN OVERLAP.** A cost of the correctness fix, recorded rather
+>   than hidden: hiding a body by covering it with the next card is positional, so it did nothing to
+>   the LAST card, whose body painted in full with a dead `Details` link. Closed cards are 89 tall
+>   and 89 apart now, so the corner wedges that made the pile read as slabs-on-slabs are gone.
+>   Buying them back means `BAND_H + n` and a last card `n`px taller than the rest — Saad's call.
+>
+> *(Written from the code on every pass, never from the spec — the spec describes a deck with a
+> mobile SWIPE STACK and per-card GitHub / Live Site anchors, and that component is the retired one.
+> The pile is not that design either: a carousel was considered for Phase 1 and refused, because it
+> shows one project at a time and makes reaching the fifth four swipes, which breaks two of Saad's
+> three clauses. The 2026-08-25 version of this note was part of the documentation reconstruction
+> described below; the 2026-08-28 passes re-ran every claim against the file, the built HTML and a
+> real browser.)*
 
 0. **Chrome** — a fixed, transparent navbar on `/`, `/work`, `/projects` and `/about` (MS mark +
    location, ABOUT/[icon]/WORK, theme toggle, copy-to-clipboard email + LinkedIn). It is permanently

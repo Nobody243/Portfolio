@@ -2132,7 +2132,7 @@ Full record: `.claude/handoff/fanned-deck-phase-3-implementation.md`. Screenshot
 build, both themes, 1440 / 900 / 375, all five expanded cards):
 `.claude/handoff/fanned-deck-phase-3-shots/`. **Nothing committed.**
 
-Three files: `app/globals.css` (the ramp), `components/sections/FannedDeckPhase1.tsx` (everything
+Three files: `app/globals.css` (the ramp), `components/sections/FannedDeck.tsx` (everything
 else), `components/sections/ProjectDeckSection.tsx` (four comment blocks Phase 3 falsified).
 
 ### The transition glitch was the `flex-1` cover, and the previous round's hypothesis was right
@@ -2240,7 +2240,7 @@ exact commands pasted in the handoff.
 `focus-visible` ring; inactive cards stay tabbable after the drop; no `Details` anchors with JS
 off; **no mobile treatment at all** (below 1024 the deck is the desktop fan at 220x300 with 70px
 spacing, so each card exposes 70px — §6 asks for a real mobile version of the interaction); and
-the file is still named `FannedDeckPhase1.tsx`.
+the file was still named `FannedDeckPhase1.tsx` when this was written; it is `FannedDeck.tsx` since 2026-08-28.
 
 ---
 
@@ -2423,7 +2423,7 @@ Tailwind-default scale utility survives anywhere in the file.
   reducing the card height or widening `CARD_SPACING` are both on the do-not-change list.
 - **FOLIO's cover has no edge against FOLIO's card** in light — `#F5EFEB` and the screenshot's own
   cream page background are too close. The one card where dropping the cover frame costs something.
-- The file is still named `FannedDeckPhase1.tsx`.
+- ~~The file is still named `FannedDeckPhase1.tsx`.~~ **Renamed to `FannedDeck.tsx` on 2026-08-28, in the same pass that shipped the mobile pile.**
 
 ---
 
@@ -2548,7 +2548,7 @@ restored exactly with the animated container height.
 
 No mobile treatment below 1024 (the expanded card now *fits* there, but fitting is not a treatment);
 no `prefers-reduced-motion` branch; the ARIA residual above; still zero `/projects/<slug>` anchors in
-`work.html` with JS off; the file is still named `FannedDeckPhase1.tsx`.
+`work.html` with JS off; the file is `FannedDeck.tsx` since 2026-08-28.
 
 ---
 

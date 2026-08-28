@@ -120,7 +120,7 @@
      belongs to a PROJECT, not to a stacking position**, so re-ordering
      `content/projects.ts` must re-order these with it. The old ramp's
      "do not re-shuffle these, they encode depth" rule is therefore GONE and
-     `FannedDeckPhase1.tsx` no longer states it.
+     `FannedDeck.tsx` no longer states it.
 
      THIS IS NOT A THIRD ACCENT AND IT DOES NOT REOPEN THE PALETTE. Same guard
      `--field-ink` uses: these are five SURFACES with exactly one consumer

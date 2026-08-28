@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { IntroEntrance } from "@/components/intro/IntroEntrance";
-import type { DeckCardProject } from "@/components/sections/FannedDeckPhase1";
-import { Cards as FannedDeckPhase1 } from "@/components/sections/FannedDeckPhase1";
+import type { DeckCardProject } from "@/components/sections/FannedDeck";
+import { FannedDeck } from "@/components/sections/FannedDeck";
 import {
   PROJECT_BUTTON_NAV,
   PROJECT_SCRAMBLE_ON_BASE,
@@ -106,11 +106,21 @@ import type { Project } from "@/content/types";
  * production build, cards 0 and 2 were cut off at the top (12.0 and **52.3px**)
  * and card 3 at the bottom (6.8) — Saad reported it on sight. No amount of
  * re-centring would have fixed it: the fan does not fit in 480 and is not
- * symmetric about its own middle. `FannedDeckPhase1.tsx`'s box header carries
+ * symmetric about its own middle. `FannedDeck.tsx`'s box header carries
  * the full derivation, the hover case that sets the slack, and the constants.
  *
  *   RESTING          570px   (`DECK_H_REST`, fan offset 66px inside it)
- *   EXPANDED         866px below 1024 · **906px at `lg`**
+ *   EXPANDED         906px   (`DECK_H_ACTIVE_LG`)
+ *
+ * **THIS WHOLE ARITHMETIC IS DESKTOP-ONLY, AND SINCE 2026-08-28 IT SAYS SO.**
+ * It read "EXPANDED 866px below 1024 · 906px at `lg`" until then. `DECK_H_ACTIVE`
+ * (866) was the below-`lg` FAN's height and it is deleted: below `lg` the deck is
+ * a PILE whose box is `5 * BAND_H` (445) at rest and `4 * BAND_H` plus the open
+ * card's MEASURED height when one is open, so there is no constant to quote. **No
+ * mobile row is added to this budget, on Saad's call** — the one-viewport
+ * guarantee is about a desktop visitor landing on `/work`, `/work` is a scrolling
+ * document, and the pile's resting section runs past the fold on every phone by
+ * design. `FannedDeck.tsx` carries the pile's own geometry.
  *
  * so the running total from the top of the viewport is:
  *
@@ -200,7 +210,7 @@ import type { Project } from "@/content/types";
  *
  * `ProjectDeck.tsx` IS STILL ON DISK AND IS DELIBERATELY UNIMPORTED. It is not
  * dead code to be swept — Saad may want to compare the two, and its hard-cap
- * guard was salvaged into `FannedDeckPhase1.tsx` in Phase 1.
+ * guard was salvaged into `FannedDeck.tsx` in Phase 1.
  *
  * **ITS SEPARATE EXPANDED PANEL IS NO LONGER WANTED, AND THAT IS A RULING
  * RATHER THAN AN OVERSIGHT.** This paragraph said the panel "is still wanted"
@@ -254,7 +264,7 @@ export function ProjectDeckSection({
             as a peer of it. */}
         {/* PHASE 3: the five REAL projects, on this site's palette, type scale
             and spacing. The vendor's five-hue palette, its `rounded-*` and its
-            numeric spacing are gone; `FannedDeckPhase1.tsx`'s header carries
+            numeric spacing are gone; `FannedDeck.tsx`'s header carries
             what replaced each of them, and the short list of accessibility work
             that is still open. This wrapper, its `mt-xl` and the
             one-wrapper-around-the-whole-deck rule above are unchanged.
@@ -265,7 +275,7 @@ export function ProjectDeckSection({
             `description` into the client payload for a card that never renders
             one. */}
         <IntroEntrance className="mt-xl">
-          <FannedDeckPhase1
+          <FannedDeck
             projects={projects.map(
               ({ slug, title, oneLiner, coverImage }): DeckCardProject => ({
                 slug,

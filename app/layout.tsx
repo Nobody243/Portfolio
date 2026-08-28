@@ -406,7 +406,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         // the UA's selection blue — the cover included, because a selection
         // range that spans an <img> highlights the whole box. The deck, the
         // strip rows and the gallery cards are all press-and-move surfaces
-        // (`FannedDeckPhase1` fans on hover, `ProjectStripRow` swaps its cover,
+        // (`FannedDeck` fans on hover, `ProjectStripRow` swaps its cover,
         // `ProjectCard` is one big link), so the gesture that selects them is
         // the same gesture people use to browse them.
         //

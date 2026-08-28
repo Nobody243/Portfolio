@@ -665,7 +665,7 @@ const WATERMARK_DRAW_ALPHA = 0.45;
  *
  * `1em` SQUARE, NOT A PIXEL SIZE, so it scales with `text-body` here and with
  * anything else a future caller sets. `DetailsArrowIcon` in
- * `FannedDeckPhase1.tsx` is the site's other inline arrow and this borrows its
+ * `FannedDeck.tsx` is the site's other inline arrow and this borrows its
  * stroke vocabulary exactly — `strokeWidth` 1.75, round caps and joins,
  * `fill="none"` — so the two read as one hand.
  *

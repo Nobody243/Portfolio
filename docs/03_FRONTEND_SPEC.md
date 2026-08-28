@@ -75,7 +75,7 @@ Toward" skill group), never as competing primary surfaces. If in doubt, default 
 > **The card is borderless, so the surfaces themselves separate one card from the next.** That is
 > what `--radius-deck` assists and it is not the load-bearing part; the CIEDE2000 separation between
 > adjacent faces is. Figures live with the ramp in `app/globals.css` and the fuller record is in
-> `components/sections/FannedDeckPhase1.tsx` §1.
+> `components/sections/FannedDeck.tsx` §1.
 
 > **`--field-ink` was the FIRST addition to that list, and it is not an accent.** Added 2026-08-22. *(It read "the one addition" until 2026-08-28; the deck surfaces below are the second, and they were added on 2026-08-26.)*
 > `/about` renders the hero's particle mesh at `QUIET_FIELD` density, and until that date the canvas
@@ -582,7 +582,25 @@ the interactive family only, and this is the qualification.
 | Family | Value | Used on |
 |---|---|---|
 | Interactive | `border-accent-working/30` | Gallery cards (Ticket 6) — the whole card is a link |
-| Neutral | `border-fg/25` | Detail-page cover and screenshot frames (Ticket 7) — static images |
+| Neutral | `border-fg/25` | Detail-page cover and screenshot frames (Ticket 7) — static images. **Second consumer since 2026-08-28:** the deck card's cover, BELOW `lg` only |
+
+> **THE NEUTRAL FAMILY GAINED A TIER 2 CONSUMER ON 2026-08-28, and it is scoped by BREAKPOINT rather
+> than by component, which is new.** `components/sections/FannedDeck.tsx`'s cover box carries
+> `border border-fg/25 … lg:border-0`: framed in the mobile pile, borderless in the desktop fan.
+>
+> **Why it was needed.** FOLIO's cover is a screenshot of a cream page and its card face is
+> `--color-deck-1` `#f5efeb`; in light mode the image dissolved into the surface with no boundary at
+> all. It is the one card of five where the borderless silhouette costs something visible, and the
+> pile shows that cover at 292–550px instead of 204px — so the defect grew rather than shrank.
+>
+> **Why it is scoped below `lg`.** `app/globals.css` says by name "Do not add a border back" about
+> the deck card. That line was written about the DESKTOP card, which Saad confirmed borderless in a
+> browser, and it still governs there. Saad's 2026-08-28 call was to fix the mobile branch only, so
+> **at `lg`+ FOLIO's cover still has no edge and that is still open.**
+>
+> **It is the neutral family and not the teal one, and the distinction is the whole point of this
+> table.** A project cover is a static image inside a control, not a control; teal would spend the
+> affordance colour on the one part of the card you cannot separately activate.
 
 The point of the split is that **teal means "activate this" and nothing else**. A teal frame around a
 static screenshot spends the accent on something you cannot click, and once two things wear the same
@@ -737,7 +755,7 @@ WORTH MORE THAN THE CLAIM.** Re-run 2026-08-25, comment-stripped: **20 occurrenc
 the spine containers above. Four are `/about`'s composition boxes (the first named exception; the
 paragraph below already covers them). One is `components/ui/wobble-card.tsx`, an **untracked
 Aceternity vendor file that nothing imports** and which is not part of the site. **And one is new and
-is not covered by anything already written here: `components/sections/FannedDeckPhase1.tsx`'s
+is not covered by anything already written here: `components/sections/FannedDeck.tsx`'s
 positioning wrapper is `relative mx-auto … max-w-5xl … justify-center`, so `/work`'s fanned deck is
 CENTRED inside the spine rather than left-anchored on it.**
 
@@ -745,7 +763,7 @@ That last one is recorded here rather than ruled on, because it is a real disagr
 decision and the code. The projects-architecture design round ruled the deck *"left-anchored, not
 centred. Forced by Rule S-1"* — and then the deck was rebuilt from the vendor component in three
 phases and the vendor's own centred wrapper came with it. The deck is mid-rebuild
-(`FannedDeckPhase1.tsx` is still its filename), the centring has been in front of Saad in a real
+(the file was `FannedDeckPhase1.tsx` until 2026-08-28), the centring has been in front of Saad in a real
 browser at every phase gate, and it is not a text block, so it is not the failure `text-center`
 guards against. **It is nonetheless a third centred thing on a site whose spine rule says there are
 none, and it should be settled deliberately — as a decision or as a fix — rather than left to be
@@ -1183,7 +1201,7 @@ there were none, then "ZERO CONSUMERS" while the deck was unbuilt, then "one con
 `ProjectDeck.tsx`" when the first deck landed. **`grep -rn "SPRING" app components lib` today returns
 exactly one import — `components/sections/ProjectDeck.tsx:22` — and `ProjectDeck.tsx` is not imported
 by anything.** `/work` renders `components/sections/ProjectDeckSection.tsx`, which imports
-`components/sections/FannedDeckPhase1.tsx`, and that file declares its **own local** `SPRING` constant
+`components/sections/FannedDeck.tsx`, and that file declares its **own local** `SPRING` constant
 with the same two values rather than importing this one. `ProjectDeck.tsx` was retired to disk,
 unimported, when Saad ordered the deck rebuilt from the vendor component in three phases; its header
 says so, and salvaging from it was the plan.
@@ -1191,7 +1209,7 @@ says so, and salvaging from it was the plan.
 So the shipped deck springs, on the reference's exact numbers, and the shared export it was created
 for is currently reaching nothing. **A curve family's consumer count is the one number that decides
 whether it should exist at all**, which is why this is recorded plainly instead of rounded to "one".
-Two ways out and both are Saad's call, not an implementer's: point `FannedDeckPhase1.tsx` at the
+Two ways out and both are Saad's call, not an implementer's: point `FannedDeck.tsx` at the
 shared export and delete its local copy — a one-line import that makes the entry true again — or
 retract the export with the retired component. **Do neither silently.** The fourth curve was his
 explicit design-system decision and unwinding it is not a tidy-up.
@@ -1574,6 +1592,30 @@ who have that OS setting enabled.
 ## Component styles
 
 > ### Focus rings and hover vocabularies — both swept mechanically, 2026-08-22
+
+> **THE SITE HAS A SECOND FOCUS-RING TREATMENT SINCE 2026-08-28, AND IT IS THE ONLY ONE.** Every
+> other ring on the site is `outline-2 outline-offset-2|4 outline-accent-working`, drawn OUTSIDE the
+> element on `bg-base`. `components/sections/FannedDeck.tsx`'s mobile band is
+> `max-lg:focus-visible:outline-2 -outline-offset-2 outline-fg` — **inset, and `fg` rather than
+> teal.** Both departures are forced, and neither generalises:
+>
+> - **An outset ring cannot work there.** The band is the top 89px of a card that is clipped to 89px
+>   and abutted by the next card, so a ring drawn outside it is occluded on three sides.
+> - **Teal cannot work there either.** The ring lands on a `--color-deck-*` face, not on `bg-base`.
+>   `app/globals.css` measures `accent-working` at **2.36:1** on ClashChat's face and says in as many
+>   words not to put a teal control on a deck card. `--color-fg` clears 3:1 on all five faces in both
+>   themes.
+>
+> **`lg`+ is unchanged and still teal**, drawn `outline-offset-4` outside the card on `bg-base`.
+>
+> **A dead ring was found and fixed in the same pass, and the mechanism is worth knowing because it
+> is silent.** The desktop card carried `outline-none focus-visible:outline-2 …` on the SAME element.
+> In Tailwind v4 `outline-none` sets `--tw-outline-style: none`, and `outline-2` emits
+> `outline-style: var(--tw-outline-style)` — so it computed to `none` and **the desktop deck card's
+> focus ring never painted.** Verified in the emitted stylesheet and against the pre-rename file in
+> git, not inferred. It paints now. **If you see `outline-none` and `focus-visible:outline-*` on one
+> element anywhere else, that ring is dead too.**
+
 >
 > **Focus.** Verified by TABBING each route end to end and reading the computed outline at every stop,
 > not by grepping class strings: `/`, `/work`, `/about` and a project detail page at 1440×900, plus the

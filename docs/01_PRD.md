@@ -46,7 +46,7 @@
 > off `app/`, the navbar grouping off `components/ui/navContent.ts`, `/work`'s section order off
 > `app/(site)/(chrome)/work/page.tsx`. Where the spec described something as finished and the code
 > disagrees, the code won — see the fanned deck, which the spec plans in full and which ships
-> mid-rebuild as `components/sections/FannedDeckPhase1.tsx`.
+> mid-rebuild as `components/sections/FannedDeck.tsx` (named `FannedDeckPhase1.tsx` until 2026-08-28, when Phase 1 shipped the mobile treatment and took the phase number off).
 
 ## What this is
 A scrollable, cinematic personal portfolio site for Muhammad Saad — an IT undergraduate transitioning
