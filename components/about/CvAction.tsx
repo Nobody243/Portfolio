@@ -97,8 +97,8 @@ import {
 
 import {
   ABOUT_BUTTON_PRIMARY,
-  ABOUT_BUTTON_QUIET,
-  ABOUT_BUTTON_SECONDARY,
+  ABOUT_MODAL_ACTION,
+  ABOUT_MODAL_QUIET,
   ABOUT_SCRAMBLE_ON_ACCENT,
 } from "@/components/about/aboutButtonStyles";
 import {
@@ -423,25 +423,97 @@ function CvModal({ onClose }: { onClose: () => void }) {
     <dialog
       ref={dialogRef}
       aria-labelledby={MODAL_TITLE_ID}
-      /* FULL-VIEWPORT AND TRANSPARENT, so the empty area around the panel is a
-         real event target. `::backdrop` never receives clicks, so the standard
+      /* FULL-VIEWPORT, so the empty area around the panel is a real event
+         target.
+
+         ═══ IT CARRIES THE SCRIM, AND THIS IS NOT A BREACH OF RULE S-4 ═══
+         It was `bg-transparent` until 2026-08-28, which meant a 900px panel
+         floated over a fully lit `/about` with nothing behind it saying the
+         page was inert. `dialog::backdrop` cannot do this job: `globals.css`
+         zeroes it site-wide, deliberately, because the PROJECT overlay is an
+         opaque full-viewport surface and a UA tint would show in the gap
+         before its own fade finishes.
+
+         **Rule S-4's "no scrim" is about that overlay, not about this one, and
+         the two are different components.** An opaque full-viewport surface
+         has nothing to separate itself from; a panel modal over a live page
+         has nothing else. Reading S-4 as a site-wide ban would be reading a
+         rule about one component as a rule about a category.
+
+         `bg-hero-surface/70` RATHER THAN `bg-base/70`, and the reason is
+         mechanical: `--color-base` FLIPS with the theme, so a base scrim would
+         be a WHITE wash in light mode — and the panel is `bg-base` too, so the
+         panel would dissolve into its own scrim exactly where separation
+         matters most. `--color-hero-surface` is one of the three PINNED
+         tokens: `#07090C` in both themes. It is the site's existing "this
+         surface does not theme" value, which is precisely what a scrim needs.
+
+         IT WORKS IN BOTH THEMES, BUT ON DIFFERENT THINGS, AND THAT DISTINCTION
+         IS WHY THE PANEL STILL NEEDS ITS OWN BORDER. Compositing 70% `#07090C`:
+
+           light GROUND   `#FDFCFA` → `#51514F`   the page goes dark. Obvious.
+           dark  GROUND   `#0A0A0B` → `#08090B`   ~1 level. Invisible.
+           dark  CONTENT  `#EDEDED` → `#4C4D4E`   16.90:1 down to ~2.0:1.
+
+         So in dark mode the scrim does not darken the PAGE — it is already
+         near-black — it darkens everything drawn ON it: the paragraph, the
+         headings, the particle field. The page reads as inert either way, which
+         is the scrim's actual job.
+
+         **What it cannot do in dark mode is separate the panel from the ground**,
+         because `bg-base` `#0A0A0B` and the scrimmed ground `#08090B` are the
+         same colour to the eye. That is the `border-fg/25` hairline's job, and
+         it is the reason the border below is load-bearing rather than
+         decorative. Two mechanisms doing two different jobs, not one mechanism
+         with a weak theme.
+
+         Clicking it still closes: `::backdrop` never receives clicks, so the
+         standard technique is to stretch the dialog itself and compare
+         `event.target` against it — anything inside the panel reports the
+         panel's descendant instead and is left alone. A background on this
+         element changes nothing about that. `::backdrop` never receives clicks, so the standard
          technique is to stretch the dialog itself and compare `event.target`
          against it — anything inside the panel reports the panel's descendant
          instead and is left alone. `max-h-none`/`max-w-none` override the UA's
          `max-height: calc(100% - 6px)`, which would otherwise leave a 3px
          non-closing gutter at each edge. */
-      className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none items-center justify-center bg-transparent p-0 open:flex"
+      className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none items-center justify-center bg-hero-surface/70 p-0 open:flex"
       onClick={(event) => {
         if (event.target === dialogRef.current) dialogRef.current?.close();
       }}
     >
-      <div className="flex h-[min(90dvh,1100px)] w-[min(90vw,900px)] flex-col border border-accent-working/40 bg-base">
+      {/* THE PANEL. `border-fg/25` AND NOT `border-accent-working/40`, WHICH IS
+          WHAT SHIPPED UNTIL 2026-08-28.
+
+          `app/globals.css`'s BASE block names exactly two border families and
+          assigns them by role: `accent-working/30` for INTERACTIVE surfaces
+          (the gallery card, whose whole area is a link) and `border-fg/25` for
+          NEUTRAL frames (detail covers and screenshots, which are not). **A
+          modal panel is a container, not a control** — nothing about its edge
+          is clickable — so the teal was spending the affordance colour on the
+          one thing on screen you cannot activate, which is the exact failure
+          that block's own comment warns about: "a teal frame around a static
+          image spends the accent on something you cannot click."
+
+          It was also not doing the job. Teal at 40% over `bg-base` is a
+          near-invisible hairline in dark mode, which is where the panel most
+          needs an edge: the scrim dims the CONTENT of a dark page but not its
+          near-black GROUND, so `#0A0A0B` panel against `#08090B` ground is no
+          contrast at all and this hairline is the only thing separating them. `border-fg/25` is the same value
+          `ProjectStripRow` and `ProjectDetail`'s image frames use, confirmed on
+          a real light-mode render rather than computed.
+
+          NO RADIUS, and that is the site rule rather than an oversight. There
+          are exactly two radius tokens, `--radius-photo` and `--radius-deck`,
+          each naming its one consumer; nothing else on the site is rounded and
+          Rule S-4 bans a radius on the project overlay for the same reason. */}
+      <div className="flex h-[min(90dvh,1100px)] w-[min(90vw,900px)] flex-col border border-fg/25 bg-base">
         {/* THE PINNED HEAD. `shrink-0` so it survives the flex column even when
             the frame below wants the whole box. Download sits FIRST in the
             pair, before Close, because it is the action the modal exists to
             offer and it is the one a keyboard user should reach first after
             the frame. */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-sm border-b border-accent-working/40 px-md py-sm">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-sm border-b border-fg/25 bg-elevated px-md py-sm">
           <h2
             id={MODAL_TITLE_ID}
             className="text-caption font-mono uppercase text-fg"
@@ -459,13 +531,13 @@ function CvModal({ onClose }: { onClose: () => void }) {
             <a
               href={ABOUT_PAGE_CV_HREF}
               download={ABOUT_PAGE_CV_FILENAME}
-              className={ABOUT_BUTTON_SECONDARY}
+              className={ABOUT_MODAL_ACTION}
             >
               {ABOUT_PAGE_CV_DOWNLOAD_LABEL}
             </a>
             <button
               type="button"
-              className={ABOUT_BUTTON_QUIET}
+              className={ABOUT_MODAL_QUIET}
               onClick={() => dialogRef.current?.close()}
             >
               {ABOUT_PAGE_CV_CLOSE_LABEL}

@@ -922,6 +922,41 @@ would destroy the geometry parity S-3 exists to guarantee.
   control (top and bottom), and browser Back** — three exits, all keyboard-reachable. That is a
   decision, not an omission; a backdrop-click affordance would require a visible backdrop, which
   would require a scrim, which would require a token this site has decided not to have.
+> **AMENDED 2026-08-28 — S-4 IS A RULE ABOUT THE PROJECT OVERLAY, NOT A SITE-WIDE BAN ON SCRIMS,
+> AND THE CV MODAL NOW HAS ONE.** The bullets above are unchanged and still correct for the surface
+> they describe. What needed saying is their scope, because the second one ends *"which would require
+> a token this site has decided not to have"* — read out of context that is a category rule, and it
+> was starting to be read that way.
+>
+> **The two surfaces are different components with opposite geometry.** The project overlay is
+> opaque and covers the viewport: there is nothing behind it to tint, so a scrim would paint on
+> nothing. `components/about/CvAction.tsx`'s CV modal is a **900×674 panel over a live `/about`**;
+> until 2026-08-28 it had `bg-transparent` on the `<dialog>` and nothing at all said the page behind
+> it was inert.
+>
+> **NO TOKEN WAS INVENTED, WHICH IS THE PART S-4 ACTUALLY PROTECTS.** The scrim is
+> `bg-hero-surface/70` — an existing token at an opacity, and specifically one of the three PINNED
+> tokens that do not theme. `bg-base/70` was refused for a mechanical reason worth keeping: `base`
+> flips, so it would be a WHITE wash in light mode, and the panel is `bg-base` too — the panel would
+> dissolve into its own scrim exactly where separation matters most.
+>
+> **It works in both themes, on different things.** Compositing 70% `#07090C`: light ground
+> `#FDFCFA` → `#51514F`; dark ground `#0A0A0B` → `#08090B` (invisible); dark content `#EDEDED` →
+> `#4C4D4E`, i.e. 16.90:1 down to ~2.0:1. In dark mode it dims what is drawn ON the page rather than
+> the page, which is the same outcome. What it cannot do there is separate the panel from the ground
+> — `#0A0A0B` against `#08090B` is no contrast — so the panel's `border-fg/25` hairline does that,
+> and the two mechanisms are not redundant.
+>
+> **`dialog::backdrop` is still transparent site-wide and must stay that way.** The scrim is a
+> background on the `<dialog>` element, which is also the click-to-close target; `::backdrop` never
+> receives clicks, so putting it there would have broken dismissal as well as reopening the exact
+> UA-tint problem the global rule exists to prevent.
+>
+> **The CV modal's borders changed in the same pass**, and for a rule already written down rather
+> than a new preference: its panel and header divider were `border-accent-working/40`. `globals.css`
+> reserves teal borders for INTERACTIVE surfaces and neutral `border-fg/25` for frames, and a modal
+> panel is a container — nothing about its edge is clickable. They are `border-fg/25` now.
+
 - **The modal work is the platform's.** `dialog.showModal()` supplies initial focus, the focus trap,
   background inerting and focus restoration to the originating card link. None of it is hand-rolled,
   and `aria-modal` is not hand-written because `showModal()` implies it.

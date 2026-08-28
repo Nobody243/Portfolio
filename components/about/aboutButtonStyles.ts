@@ -306,29 +306,78 @@ export const ABOUT_BUTTON_PRIMARY =
 export const ABOUT_BUTTON_SECONDARY =
   `${BUTTON_BASE} border-2 border-brutal-edge bg-base text-fg ${BRUTAL_SHADOW} ${BRUTAL_MOTION}`;
 
+/* ────────────────────────────────────────────────────────────────────────────
+   THE CV MODAL'S CHROME — DELIBERATELY NOT THE BRUTAL TREATMENT.
+
+   Saad, 2026-08-28: "fix the buttons on the top for download and close and
+   make them simple not the brutal one."
+
+   WHY THE BRUTAL PAIR WAS WRONG *HERE* AND IS STILL RIGHT ON THE PAGE. The
+   treatment is a slab: a 2px `brutal-edge` border, a five-layer stepped
+   shadow, and a 2px lift on hover that grows the shadow to seven layers. In
+   `/about`'s action row that is the whole point — three controls, a lot of
+   whitespace, and the row IS the call to action. In a 900px modal's 47px chrome
+   bar it is the opposite: two heavy slabs, one of them casting a 5px shadow
+   down onto the PDF viewer's own toolbar, competing with the document the modal
+   exists to show. **Measured before the change: 46.8px tall each, against a
+   47px bar.** They filled it edge to edge.
+
+   THE MODAL PAIR IS THE SAME TYPE AT LOWER VOLUME: same `text-caption font-mono
+   uppercase`, same focus ring, same two-step hierarchy — one outlined, one bare
+   — with the slab, the shadow and the travel dropped. `px-sm py-xs` (13/8)
+   instead of `px-md py-sm` (21/13), which is what takes the bar from 47px to
+   ~33px and gives the header room to read as chrome rather than as a toolbar of
+   its own.
+
+   THE TWO ARE THE SAME HEIGHT BY CONSTRUCTION. `ABOUT_MODAL_QUIET` carries
+   `border border-transparent` rather than no border at all, so the pair cannot
+   shift by 2px when only one of them has an edge — the bug the brutal versions
+   avoided by both having borders.
+
+   HOVER IS A COLOUR STEP, NOT A MOVE. `transition-colors` and `bg-elevated`,
+   which is the token whose entire job is "one step up from base". No translate,
+   so there is nothing for `prefers-reduced-motion` to undo except the fade, and
+   `motion-reduce:transition-none` handles that.
+   ──────────────────────────────────────────────────────────────────────────── */
+const MODAL_BUTTON_BASE =
+  "inline-flex items-center justify-center px-sm py-xs text-caption font-mono uppercase " +
+  "transition-colors duration-200 motion-reduce:transition-none " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-working";
+
 /**
- * The modal's Close — the brutal edge, NO shadow, and that gap is the point
- * rather than an omission.
+ * The modal's Download — outlined, and the more prominent of the pair.
  *
- * Download and Close sit side by side in the modal head, and `CvAction` records
- * the requirement in as many words: Close must be visually distinct from the
- * control beside it. Giving both the full five-layer shadow makes them one pair
- * of identical slabs and deletes the distinction the modal was built with.
+ * `border-fg/25` IS THE SITE'S NEUTRAL FRAME FAMILY, not a new value:
+ * `app/globals.css`'s BASE block names exactly two border families and reserves
+ * `accent-working/30` for INTERACTIVE surfaces. A button IS interactive, so teal
+ * would be defensible here — it is refused anyway, because the modal's panel and
+ * head are neutral (see `CvAction.tsx`) and a teal control inside a neutral
+ * frame at this size reads as the frame's accent rather than as an affordance.
+ * The affordance is carried by the outline and the hover step.
  *
- * A DIMMER SHADOW WAS THE OTHER OPTION AND WAS REFUSED: `--color-fg` at some
- * fraction is a value nobody chose, in a system whose whole discipline is that
- * every value is a token. So the family is the edge and the voice, and the
- * shadow is what the quiet one does without. It still lifts and presses — `BRUTAL_MOTION`
- * travels it the same distances — so it reads as the same kind of object.
- *
- * IT KEEPS `px-md py-sm` so its hit area matches Download's exactly, and it
- * keeps `text-fg/70`, the site's standard subordinate ink, which sits above the
- * /70 text floor. THE BORDER IS `border-fg/70` TO MATCH THAT INK rather than
- * `border-fg`: a full-strength edge around subordinate text is the one
- * combination that would read as louder than Download rather than quieter.
+ * `text-fg` at full strength: 16.90:1 dark, 17.81:1 light. It is the action the
+ * modal exists to offer and it is first in the pair for that reason.
  */
-export const ABOUT_BUTTON_QUIET =
-  `${BUTTON_BASE} border-2 border-brutal-edge/70 bg-base text-fg/70 ${BRUTAL_MOTION}`;
+export const ABOUT_MODAL_ACTION =
+  `${MODAL_BUTTON_BASE} border border-fg/25 text-fg hover:border-fg/50 hover:bg-elevated`;
+
+/**
+ * The modal's Close — bare, and subordinate by ink rather than by weight.
+ *
+ * **THIS REPLACES `ABOUT_BUTTON_QUIET`, WHICH HAD EXACTLY ONE CONSUMER (this
+ * control) AND IS DELETED RATHER THAN LEFT ORPHANED.** The argument that
+ * constant carried is worth keeping and still holds in its new form: Close must
+ * be visually distinct from the control beside it, and the distinction is made
+ * by removing something rather than by dimming a shadow to a value nobody chose.
+ * What changed is WHICH thing is removed — it used to be the five-layer shadow
+ * while both kept a 2px slab edge; it is now the visible border, while both keep
+ * the same box.
+ *
+ * `text-fg/70` is unchanged and is the site's standard subordinate ink, at the
+ * documented `/70` floor.
+ */
+export const ABOUT_MODAL_QUIET =
+  `${MODAL_BUTTON_BASE} border border-transparent text-fg/70 hover:text-fg hover:bg-elevated`;
 
 /* ───────────────────────────────────────────────────────────────────────────
    THE SCRAMBLE INK - what an UNRESOLVED character is painted in while
